@@ -42,6 +42,12 @@ function toActionableMessage(baseMessage: string, httpStatus?: number, code?: st
     if (code === "HOST_DELETE_HAS_ACTIVE_SESSION") {
       return "Nao e possivel excluir host com sessao ativa. Encerre a sessao e tente novamente.";
     }
+    if (code === "HOST_MACHINE_NAME_CONFLICT") {
+      return "Ja existe host com este nome de maquina e outro ID remoto. Exclua o duplicado ou ajuste o cadastro.";
+    }
+    if (code === "DISCOVERED_HOST_ALREADY_LINKED") {
+      return "Esta maquina descoberta ja foi vinculada a um host.";
+    }
     if (code === "SESSION_DUPLICATE_OPEN") {
       return "Ja existe sessao aberta para este ticket e host.";
     }

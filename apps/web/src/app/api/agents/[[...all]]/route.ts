@@ -14,3 +14,8 @@ export async function PATCH(request: NextRequest, context: CatchAllRouteContext)
   const path = await resolveCatchAllBackendPath(context, "/agents");
   return proxyToBackend(request, { path });
 }
+
+export async function DELETE(request: NextRequest, context: CatchAllRouteContext) {
+  const path = await resolveCatchAllBackendPath(context, "/agents");
+  return proxyToBackend(request, { path });
+}

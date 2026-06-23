@@ -96,11 +96,14 @@ export function createRemoteDiscoverPort(params: {
     },
     async findDiscoveredHost(input) {
       const discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
-        where: input.rustdeskId
-          ? {
-              OR: [{ agentExternalId: input.rustdeskId }, ...(input.machineName ? [{ machineName: input.machineName }] : [])],
-            }
-          : { machineName: input.machineName ?? undefined },
+        where: {
+          status: { not: "IGNORED" },
+          ...(input.rustdeskId
+            ? {
+                OR: [{ agentExternalId: input.rustdeskId }, ...(input.machineName ? [{ machineName: input.machineName }] : [])],
+              }
+            : { machineName: input.machineName ?? undefined }),
+        },
         orderBy: [{ updatedAt: "desc" }],
       });
 

@@ -19,6 +19,7 @@ export type RemoteAdminProcedure =
   | 'sessionsStart'
   | 'sessionsStop'
   | 'linkDiscoveredHost'
+  | 'ignoreDiscoveredHost'
   | 'hostsCreate'
   | 'hostsUpdate'
   | 'hostsDelete'
@@ -163,6 +164,8 @@ export async function executeRemoteAdminProcedure(input: {
         return await remote.stopSession({ ...payload, scope, actor });
       case 'linkDiscoveredHost':
         return await remote.linkDiscoveredHost({ ...payload, scope });
+      case 'ignoreDiscoveredHost':
+        return await remote.ignoreDiscoveredHost({ ...payload, scope });
       case 'hostsCreate':
         return await remote.createHost({ ...payload, scope });
       case 'hostsUpdate':

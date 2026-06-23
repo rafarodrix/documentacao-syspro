@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Cpu,
   Activity,
+  Trash2,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ import {
   requestRemoteMutation,
 } from "@/features/remote/interface/remote-api";
 import { SearchableCompanyPicker } from "./host-details/components/searchable-company-picker";
+import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 type PendingDirectoryItem = RemotePlatformDirectory["pendingItems"][number];
@@ -42,6 +44,7 @@ type RemotePlatformDirectoryPanelProps = {
   directory: RemotePlatformDirectory;
   initialCompanyId?: string;
   initialTicketNumber?: string;
+  canManageRemote?: boolean;
 };
 
 function normalizeSearchValue(value: string | null | undefined) {
@@ -165,6 +168,7 @@ export function RemotePlatformDirectoryPanel({
   directory,
   initialCompanyId,
   initialTicketNumber,
+  canManageRemote = false,
 }: RemotePlatformDirectoryPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -185,6 +189,9 @@ export function RemotePlatformDirectoryPanel({
   const [isCreatingQuickHost, setIsCreatingQuickHost] = useState(false);
   const [showPendingItems, setShowPendingItems] = useState(false);
   const [connectingHostId, setConnectingHostId] = useState<string | null>(null);
+  const [hostToDelete, setHostToDelete] = useState<DirectoryItem | null>(null);
+  const [isDeletingHost, setIsDeletingHost] = useState(false);
+  const [ignoringPendingId, setIgnoringPendingId] = useState<string | null>(null);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
 
   const searchParams = useSearchParams();
@@ -319,6 +326,40 @@ export function RemotePlatformDirectoryPanel({
         }
       }
       toast.error(getRemoteApiErrorMessage(error));
+    }
+  }
+
+  async function handleIgnoreDiscoveredHost(id: PendingDirectoryItem["id"]) {
+    setIgnoringPendingId(id);
+    try {
+      await requestRemoteMutation({
+        url: `/api/remote/discovered-hosts/${id}/ignore`,
+        method: "POST",
+      });
+      toast.success("Máquina descoberta ignorada.");
+      startTransition(() => router.refresh());
+    } catch (error) {
+      toast.error(getRemoteApiErrorMessage(error));
+    } finally {
+      setIgnoringPendingId(null);
+    }
+  }
+
+  async function handleDeleteHost() {
+    if (!hostToDelete) return;
+    setIsDeletingHost(true);
+    try {
+      await requestRemoteMutation({
+        url: `/api/remote/hosts/${hostToDelete.id}`,
+        method: "DELETE",
+      });
+      toast.success("Host excluído com sucesso.");
+      setHostToDelete(null);
+      startTransition(() => router.refresh());
+    } catch (error) {
+      toast.error(getRemoteApiErrorMessage(error));
+    } finally {
+      setIsDeletingHost(false);
     }
   }
 
@@ -678,9 +719,26 @@ export function RemotePlatformDirectoryPanel({
                             placeholder="Ex.: Servidor matriz fiscal"
                           />
                         </div>
-                        <Button type="button" onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)} disabled={!canLinkPendingHost} className="xl:min-w-28">
-                          Vincular
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <Button type="button" onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)} disabled={!canLinkPendingHost} className="min-w-28">
+                            Vincular
+                          </Button>
+                          {canManageRemote && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => void handleIgnoreDiscoveredHost(item.id)}
+                              disabled={ignoringPendingId === item.id}
+                              className="min-w-28"
+                            >
+                              {ignoringPendingId === item.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Ignorar"
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -870,6 +928,18 @@ export function RemotePlatformDirectoryPanel({
                           Detalhes
                         </Link>
                       </Button>
+                      {canManageRemote && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2 text-red-600 hover:text-red-700"
+                          title="Excluir host"
+                          onClick={() => setHostToDelete(item)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -952,6 +1022,24 @@ export function RemotePlatformDirectoryPanel({
           className="rounded-2xl border-border/50 bg-card/50 py-10"
         />
       ) : null}
+
+      <ConfirmActionDialog
+        open={Boolean(hostToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setHostToDelete(null);
+        }}
+        title="Excluir host?"
+        description={
+          hostToDelete
+            ? `O host "${hostToDelete.name}" será removido permanentemente do portal. O agente precisará ser revinculado ou reinstalado para voltar a operar neste cadastro.`
+            : ""
+        }
+        confirmLabel="Excluir host"
+        cancelLabel="Cancelar"
+        isLoading={isDeletingHost}
+        variant="danger"
+        onConfirm={() => void handleDeleteHost()}
+      />
     </div>
   );
 }

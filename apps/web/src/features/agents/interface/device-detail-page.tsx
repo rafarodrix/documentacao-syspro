@@ -3,6 +3,7 @@ import { ArrowLeft, Building2, Clock, ExternalLink, Monitor, WifiOff } from "luc
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { formatDateTime } from "@/lib/date";
+import { AgentDeviceDeleteSection } from "@/features/agents/interface/agent-device-delete-section";
 
 function relativeTime(lagSeconds: number | null): string {
   if (lagSeconds === null) return "nunca";
@@ -18,7 +19,13 @@ function formatDate(iso: string | null | undefined): string {
   return res === "-" ? "—" : res;
 }
 
-export function AgentDeviceDetailPanel({ device }: { device: AgentDeviceSummary }) {
+export function AgentDeviceDetailPanel({
+  device,
+  canManage = false,
+}: {
+  device: AgentDeviceSummary;
+  canManage?: boolean;
+}) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 pb-8 duration-700">
       <div className="flex flex-col gap-3">
@@ -126,6 +133,8 @@ export function AgentDeviceDetailPanel({ device }: { device: AgentDeviceSummary 
           O agente enterprise não enviou heartbeat nos últimos {Math.round(5)} minutos. Verifique se o serviço está rodando na máquina.
         </p>
       )}
+
+      {canManage && <AgentDeviceDeleteSection deviceId={device.deviceId} hostname={device.hostname} />}
     </div>
   );
 }

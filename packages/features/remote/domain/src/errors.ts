@@ -118,6 +118,21 @@ const REMOTE_DOMAIN_ERROR_MAP: Record<string, Omit<RemoteDomainHttpError, "data"
     message: "Maquina descoberta nao encontrada.",
     httpStatus: 404,
   },
+  DISCOVERED_HOST_IGNORED: {
+    code: "DISCOVERED_HOST_IGNORED",
+    message: "Esta maquina descoberta foi ignorada. Reinstale o agente para redescobrir.",
+    httpStatus: 409,
+  },
+  DISCOVERED_HOST_ALREADY_LINKED: {
+    code: "DISCOVERED_HOST_ALREADY_LINKED",
+    message: "Esta maquina descoberta ja foi vinculada a um host.",
+    httpStatus: 409,
+  },
+  HOST_MACHINE_NAME_CONFLICT: {
+    code: "HOST_MACHINE_NAME_CONFLICT",
+    message: "Ja existe host com este nome de maquina, mas com outro ID remoto. Revise os cadastros duplicados.",
+    httpStatus: 409,
+  },
   HOST_AGENT_EXTERNAL_ID_INVALID: {
     code: "HOST_AGENT_EXTERNAL_ID_INVALID",
     message: "RustDesk ID invalido. Informe apenas numeros com 7 a 12 digitos.",

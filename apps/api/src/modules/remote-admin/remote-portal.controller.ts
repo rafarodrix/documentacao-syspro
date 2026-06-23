@@ -36,6 +36,11 @@ export class RemotePortalController {
     return this.remoteAdminService.linkDiscoveredHost(id, body, req.headers);
   }
 
+  @Post('discovered-hosts/:id/ignore')
+  ignoreDiscoveredHost(@Req() req: Request, @Param('id') id: string) {
+    return this.remoteAdminService.ignoreDiscoveredHost(id, req.headers);
+  }
+
   @Get('companies/search')
   searchCompanies(@Req() req: Request, @Query('q') query?: string) {
     return this.remoteAdminService.searchRemoteCompanies(query ?? '', req.headers);

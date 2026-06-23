@@ -374,6 +374,10 @@ export class RemoteAdminService {
     return this.callRemoteProcedure('linkDiscoveredHost', { ...this.asObject(body), discoveredHostId }, rawHeaders);
   }
 
+  ignoreDiscoveredHost(discoveredHostId: string, rawHeaders?: Record<string, unknown>) {
+    return this.callRemoteProcedure('ignoreDiscoveredHost', { discoveredHostId }, rawHeaders);
+  }
+
   createRemoteHost(body: unknown, rawHeaders?: Record<string, unknown>) {
     return this.callRemoteProcedure('hostsCreate', body, rawHeaders);
   }
@@ -565,7 +569,7 @@ export class RemoteAdminService {
   }
 
   private async callRemoteProcedure(procedure: RemoteAdminProcedure, payload: unknown, rawHeaders?: Record<string, unknown>) {
-    const requester = await this.authorizationService.assertPermission(rawHeaders as any, 'tools:all');
+    const requester = await this.assertRemoteAdminPermission(rawHeaders, procedure);
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     const result = await this.executeRemoteProcedure(procedure, payload, requester, tenantScope);
 
@@ -588,8 +592,8 @@ export class RemoteAdminService {
       return { success: true, data: (result as { session: unknown }).session };
     }
 
-    if (procedure === 'hostsDelete') {
-      return { success: true };
+    if (procedure === 'hostsDelete' || procedure === 'ignoreDiscoveredHost') {
+      return { success: true, ...(procedure === 'ignoreDiscoveredHost' && result && typeof result === 'object' ? { data: result } : {}) };
     }
 
     if (procedure === 'linkDiscoveredHost') {
@@ -660,6 +664,21 @@ export class RemoteAdminService {
         error: (event: string, meta?: Record<string, unknown>) => this.logger.error({ event, ...(meta ?? {}) }),
       },
     });
+  }
+
+  private async assertRemoteAdminPermission(rawHeaders: Record<string, unknown> | undefined, procedure: RemoteAdminProcedure) {
+    if (procedure.startsWith('addressBook')) {
+      return this.authorizationService.assertPermission(rawHeaders as any, 'tools:all');
+    }
+
+    try {
+      return await this.authorizationService.assertPermission(rawHeaders as any, 'remote:manage');
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        return this.authorizationService.assertPermission(rawHeaders as any, 'tools:all');
+      }
+      throw error;
+    }
   }
 
   private asObject(value: unknown): Record<string, unknown> {

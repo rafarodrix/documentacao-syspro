@@ -18,6 +18,10 @@ export default async function AgentDeviceDetailPage({
     redirect("/portal");
   }
 
+  const canManage = await currentUserHasAnyPermission(["agents:manage"], {
+    acceptCompanyScope: true,
+  });
+
   const { deviceId } = await params;
 
   let device;
@@ -27,5 +31,5 @@ export default async function AgentDeviceDetailPage({
     notFound();
   }
 
-  return <AgentDeviceDetailPanel device={device} />;
+  return <AgentDeviceDetailPanel device={device} canManage={canManage} />;
 }

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   agentDevicePatchSchema,
@@ -110,6 +110,8 @@ export class AgentsService {
       });
     }
 
+    await this.assertDeviceNotRevoked(parsed.data.deviceId);
+
     const payload = parsed.data;
     const now = new Date();
     const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
@@ -185,6 +187,8 @@ export class AgentsService {
         details: parsed.error.flatten(),
       });
     }
+
+    await this.assertDeviceNotRevoked(parsed.data.deviceId);
 
     const payload = parsed.data;
     const now = new Date();
@@ -361,6 +365,7 @@ export class AgentsService {
                 { status: { not: 'LINKED' as const } },
               ],
             },
+            { status: { not: 'IGNORED' as const } },
           ],
         },
         orderBy: [{ updatedAt: 'desc' }],
@@ -734,5 +739,98 @@ export class AgentsService {
     } as unknown as AgentDeviceSummary;
 
     return summary;
+  }
+
+  async deleteDevice(
+    rawHeaders: Record<string, unknown> | undefined,
+    deviceId: string,
+  ): Promise<{ success: true; data: { deleted: true; deviceId: string } }> {
+    const requester = await this.authorizationService.assertPermission(rawHeaders as any, 'agents:manage');
+
+    const normalizedDeviceId = deviceId?.trim();
+    if (!normalizedDeviceId) {
+      throw new BadRequestException({ success: false, error: 'INVALID_DEVICE_ID' });
+    }
+
+    const device = await this.prisma.agentDevice.findUnique({
+      where: { deviceId: normalizedDeviceId },
+      select: {
+        id: true,
+        deviceId: true,
+        hostname: true,
+        remoteHostId: true,
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException({ success: false, error: 'AGENT_DEVICE_NOT_FOUND' });
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (device.remoteHostId) {
+        await tx.remoteHost.update({
+          where: { id: device.remoteHostId },
+          data: {
+            agentTokenHash: null,
+            agentTokenIssuedAt: null,
+            agentTokenLastUsedAt: null,
+            lastHeartbeatErrorAt: new Date(),
+            lastHeartbeatErrorMessage:
+              'Dispositivo removido do portal. Reinstale o agente para registrar novamente.',
+          },
+        });
+      }
+
+      await tx.agentDevice.delete({ where: { deviceId: normalizedDeviceId } });
+
+      await tx.agentDeviceRevocation.upsert({
+        where: { deviceId: normalizedDeviceId },
+        create: {
+          deviceId: normalizedDeviceId,
+          hostname: device.hostname,
+          revokedByUserId: requester.userId,
+          reason: 'removed_by_portal',
+        },
+        update: {
+          hostname: device.hostname,
+          revokedAt: new Date(),
+          revokedByUserId: requester.userId,
+          reason: 'removed_by_portal',
+        },
+      });
+    });
+
+    this.logger.log({
+      event: 'agent.device_deleted',
+      deviceId: normalizedDeviceId,
+      remoteHostId: device.remoteHostId,
+      revokedByUserId: requester.userId,
+    });
+
+    return {
+      success: true,
+      data: {
+        deleted: true,
+        deviceId: normalizedDeviceId,
+      },
+    };
+  }
+
+  private async assertDeviceNotRevoked(deviceId: string): Promise<void> {
+    const normalizedDeviceId = deviceId?.trim();
+    if (!normalizedDeviceId) return;
+
+    const revoked = await this.prisma.agentDeviceRevocation.findUnique({
+      where: { deviceId: normalizedDeviceId },
+      select: { id: true },
+    });
+
+    if (revoked) {
+      throw new ForbiddenException({
+        success: false,
+        error: 'AGENT_DEVICE_REVOKED',
+        message: 'Este dispositivo foi removido do portal. Reinstale o agente para registrar novamente.',
+      });
+    }
   }
 }

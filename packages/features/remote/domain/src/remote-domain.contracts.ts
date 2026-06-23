@@ -409,6 +409,11 @@ export const deleteHostInputSchema = z.object({
   hostId: z.string().trim().min(1),
 });
 
+export const ignoreDiscoveredHostInputSchema = z.object({
+  scope: sessionScopeSchema,
+  discoveredHostId: z.string().trim().min(1),
+});
+
 export const hostAgentTokenInputSchema = z.object({
   scope: sessionScopeSchema,
   hostId: z.string().trim().min(1),
@@ -451,6 +456,7 @@ export type LinkDiscoveredHostInput = z.infer<typeof linkDiscoveredHostInputSche
 export type CreateHostInput = z.infer<typeof createHostInputSchema>;
 export type UpdateHostInput = z.infer<typeof updateHostInputSchema>;
 export type DeleteHostInput = z.infer<typeof deleteHostInputSchema>;
+export type IgnoreDiscoveredHostInput = z.infer<typeof ignoreDiscoveredHostInputSchema>;
 export type HostAgentTokenInput = z.infer<typeof hostAgentTokenInputSchema>;
 export type RelinkHostSysproUpdateInput = z.infer<typeof relinkHostSysproUpdateInputSchema>;
 export type ListAddressBookInput = z.infer<typeof listAddressBookInputSchema>;
@@ -480,6 +486,11 @@ export type UpdateHostOutput = {
 
 export type DeleteHostOutput = {
   deleted: true;
+};
+
+export type IgnoreDiscoveredHostOutput = {
+  ignored: true;
+  discoveredHostId: string;
 };
 
 export type RotateHostAgentTokenOutput = {

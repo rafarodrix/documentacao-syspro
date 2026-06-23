@@ -1893,3 +1893,15 @@ model AgentDevice {
   @@index([remoteHostId])
   @@map("agent_device")
 }
+
+model AgentDeviceRevocation {
+  id              String   @id @default(cuid())
+  deviceId        String   @unique
+  hostname        String?
+  revokedAt       DateTime @default(now())
+  revokedByUserId String?
+  reason          String?  @db.Text
+
+  @@index([revokedAt])
+  @@map("agent_device_revocation")
+}

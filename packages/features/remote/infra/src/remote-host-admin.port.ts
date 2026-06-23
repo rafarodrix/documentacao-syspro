@@ -13,6 +13,8 @@ import type {
   DeleteHostInput,
   DeleteHostOutput,
   HostAgentTokenInput,
+  IgnoreDiscoveredHostInput,
+  IgnoreDiscoveredHostOutput,
   LinkDiscoveredHostInput,
   LinkDiscoveredHostOutput,
   RelinkHostSysproUpdateInput,
@@ -40,6 +42,10 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         throw new Error("DISCOVERED_HOST_NOT_FOUND");
       }
 
+      if (discoveredHost.status === "IGNORED") {
+        throw new Error("DISCOVERED_HOST_IGNORED");
+      }
+
       if (discoveredHost.linkedHostId) {
         return {
           hostId: discoveredHost.linkedHostId,
@@ -48,22 +54,128 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         };
       }
 
+      const scopedWhere = buildScopedWhere(input.scope.companyIds, input.scope.isGlobalView);
       const heartbeatAt = discoveredHost.lastHeartbeatAt ?? new Date();
       const sysproUpdates = normalizeSysproUpdates(discoveredHost.installationsSnapshot);
       const incomingAgentExternalId = discoveredHost.agentExternalId?.trim() || null;
       const agentExternalId = normalizeRustdeskIdStrict(incomingAgentExternalId);
+      const machineName = discoveredHost.machineName?.trim() || null;
 
       if (incomingAgentExternalId && !agentExternalId) {
         throw new Error("HOST_AGENT_EXTERNAL_ID_INVALID");
+      }
+
+      let existingHostId: string | null = null;
+
+      if (agentExternalId) {
+        const existingByRustdesk = await prisma.remoteHost.findFirst({
+          where: {
+            agentExternalId,
+            ...scopedWhere,
+          },
+          select: { id: true, companyId: true, agentExternalId: true },
+        });
+
+        if (existingByRustdesk) {
+          if (existingByRustdesk.companyId !== input.companyId) {
+            throw new Error("HOST_AGENT_EXTERNAL_ID_CONFLICT");
+          }
+          existingHostId = existingByRustdesk.id;
+        }
+      }
+
+      if (!existingHostId && machineName) {
+        const existingByMachine = await prisma.remoteHost.findFirst({
+          where: {
+            companyId: input.companyId,
+            machineName: { equals: machineName, mode: "insensitive" },
+            ...scopedWhere,
+          },
+          select: { id: true, agentExternalId: true },
+          orderBy: [{ lastHeartbeatAt: "desc" }],
+        });
+
+        if (existingByMachine) {
+          if (
+            agentExternalId &&
+            existingByMachine.agentExternalId &&
+            existingByMachine.agentExternalId !== agentExternalId
+          ) {
+            throw new Error("HOST_MACHINE_NAME_CONFLICT");
+          }
+          existingHostId = existingByMachine.id;
+        }
+      }
+
+      const finalizeLink = async (hostId: string, created: boolean) => {
+        await prisma.$transaction(async (tx) => {
+          const hostRecord = await tx.remoteHost.findUnique({
+            where: { id: hostId },
+            select: { id: true, installToken: true },
+          });
+
+          if (!hostRecord) {
+            throw new Error("HOST_NOT_FOUND");
+          }
+
+          await tx.remoteHost.update({
+            where: { id: hostId },
+            data: {
+              name: input.name,
+              provider: discoveredHost.provider?.trim() || "RustDesk",
+              environment: discoveredHost.environment?.trim() || null,
+              description: input.description?.trim() || discoveredHost.description?.trim() || null,
+              ...(agentExternalId ? { agentExternalId } : {}),
+              ...(machineName ? { machineName } : {}),
+              agentVersion: discoveredHost.agentVersion?.trim() || undefined,
+              serviceStatus: discoveredHost.serviceStatus?.trim() || undefined,
+              lastHeartbeatAt: heartbeatAt,
+              status: "ACTIVE",
+              ...(!hostRecord.installToken ? { installToken: buildInstallToken() } : {}),
+            },
+          });
+
+          await syncRemoteHostSysproUpdates(tx, {
+            hostId,
+            hostCompanyId: input.companyId,
+            hostCompanyNames: company.normalizedPrimaryNames,
+            heartbeatAt,
+            sysproUpdates,
+          });
+
+          await tx.remoteDiscoveredHost.update({
+            where: { id: discoveredHost.id },
+            data: {
+              linkedHostId: hostId,
+              linkedAt: new Date(),
+              status: "LINKED",
+            },
+          });
+        });
+
+        return {
+          hostId,
+          discoveredHostId: discoveredHost.id,
+          created,
+        };
+      };
+
+      if (existingHostId) {
+        if (agentExternalId) {
+          await assertRemoteHostAgentExternalIdAvailable({
+            agentExternalId,
+            excludingHostId: existingHostId,
+          });
+        }
+        return finalizeLink(existingHostId, false);
       }
 
       if (agentExternalId) {
         await assertRemoteHostAgentExternalIdAvailable({ agentExternalId });
       }
 
-      let host;
       try {
-        host = await prisma.$transaction(async (tx) => {
+        const host = await prisma.$transaction(async (tx) => {
           const createdHost = await tx.remoteHost.create({
             data: {
               companyId: input.companyId,
@@ -73,13 +185,13 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
               description: input.description?.trim() || discoveredHost.description?.trim() || null,
               agentExternalId,
               installToken: buildInstallToken(),
-              machineName: discoveredHost.machineName?.trim() || null,
+              machineName,
               agentVersion: discoveredHost.agentVersion?.trim() || null,
               serviceStatus: discoveredHost.serviceStatus?.trim() || null,
               lastHeartbeatAt: heartbeatAt,
               status: "ACTIVE",
             },
-            select: { id: true, companyId: true },
+            select: { id: true },
           });
 
           await syncRemoteHostSysproUpdates(tx, {
@@ -101,6 +213,12 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
 
           return createdHost;
         });
+
+        return {
+          hostId: host.id,
+          discoveredHostId: discoveredHost.id,
+          created: true,
+        };
       } catch (error) {
         if (!isRemoteHostAgentExternalIdUniqueError(error)) {
           throw error;
@@ -108,12 +226,28 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         throwRemoteHostAgentExternalIdConflict();
         throw error;
       }
+    },
 
-      return {
-        hostId: host.id,
-        discoveredHostId: discoveredHost.id,
-        created: true,
-      };
+    async ignoreDiscoveredHost(input: IgnoreDiscoveredHostInput): Promise<IgnoreDiscoveredHostOutput> {
+      const discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
+        where: { id: input.discoveredHostId },
+        select: { id: true, status: true, linkedHostId: true },
+      });
+
+      if (!discoveredHost) {
+        throw new Error("DISCOVERED_HOST_NOT_FOUND");
+      }
+
+      if (discoveredHost.linkedHostId) {
+        throw new Error("DISCOVERED_HOST_ALREADY_LINKED");
+      }
+
+      await prisma.remoteDiscoveredHost.update({
+        where: { id: discoveredHost.id },
+        data: { status: "IGNORED" },
+      });
+
+      return { ignored: true, discoveredHostId: discoveredHost.id };
     },
 
     async createHost(input: CreateHostInput): Promise<CreateHostOutput> {
@@ -246,7 +380,24 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         throw new Error("HOST_DELETE_HAS_ACTIVE_SESSION");
       }
 
-      await prisma.remoteHost.delete({ where: { id: input.hostId } });
+      await prisma.$transaction(async (tx) => {
+        await tx.agentDevice.updateMany({
+          where: { remoteHostId: input.hostId },
+          data: { remoteHostId: null },
+        });
+
+        await tx.remoteDiscoveredHost.updateMany({
+          where: { linkedHostId: input.hostId },
+          data: {
+            status: "IGNORED",
+            linkedHostId: null,
+            linkedAt: null,
+          },
+        });
+
+        await tx.remoteHost.delete({ where: { id: input.hostId } });
+      });
+
       return { deleted: true };
     },
 

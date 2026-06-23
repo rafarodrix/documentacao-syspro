@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { AgentsService } from './agents.service';
 
@@ -63,5 +63,10 @@ export class AgentsController {
     @Param('deviceId') deviceId: string,
   ) {
     return this.agentsService.getDesiredState(internalApiKey, deviceId);
+  }
+
+  @Delete(':deviceId')
+  deleteDevice(@Req() req: Request, @Param('deviceId') deviceId: string) {
+    return this.agentsService.deleteDevice(req.headers as Record<string, unknown>, deviceId);
   }
 }

@@ -158,6 +158,9 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     const tenantScope = await getRemoteTenantScope();
     const directory = await getRemotePlatformDirectory(tenantScope);
     const canCreateHosts = tenantScope.role !== "CLIENTE_ADMIN";
+    const canManageRemote = await currentUserHasAnyPermission(["remote:manage", "tools:all"], {
+      acceptCompanyScope: true,
+    });
     if (canCreateHosts) {
       actions = (
         <Button asChild size="sm" className="h-9 gap-1.5 shrink-0 animate-in fade-in zoom-in-95 duration-200">
@@ -173,6 +176,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
         directory={directory}
         initialCompanyId={tabParams.companyId || undefined}
         initialTicketNumber={tabParams.ticketNumber || undefined}
+        canManageRemote={canManageRemote}
       />
     );
   }
