@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { processAck } from "../src/use-cases/process-ack.use-case";
 import { processDiscover } from "../src/use-cases/process-discover.use-case";
 import { processSync } from "../src/use-cases/process-sync.use-case";
-import type { RemoteAckPort, RemoteDiscoverPort, RemoteSyncPort } from "../src/ports";
+import type { RemoteAckPort, RemoteDiscoverPort, RemoteSyncPort } from "../src/remote-domain.port";
 
 function buildSyncPort(overrides: Partial<RemoteSyncPort> = {}): RemoteSyncPort {
   const port: RemoteSyncPort = {
@@ -359,5 +359,70 @@ describe("agent token lifecycle", () => {
         { port },
       ),
     ).rejects.toThrow("ACK_REASON_CODE_REQUIRED");
+  });
+
+  it("clears linkedHostId when falling back to pending_link (dangling reference resolution)", async () => {
+    const port = buildDiscoverPort({
+      findDiscoveredHost: vi.fn(async () => ({
+        id: "disc-1",
+        linkedHostId: "host-deleted",
+        linkedAt: null,
+      })),
+      findLinkedHost: vi.fn(async () => null),
+      updateDiscoveredHost: vi.fn(async () => ({ id: "disc-1" })),
+    });
+
+    await processDiscover(
+      {
+        schemaVersion: "discover.payload.v1",
+        discoveryToken: "DISCOVERY_TOKEN",
+        rustdeskId: "21187620068",
+        machineName: "ERP-MATRIZ-01",
+      },
+      { port },
+    );
+
+    expect(port.updateDiscoveredHost).toHaveBeenCalledWith(
+      "disc-1",
+      expect.objectContaining({
+        status: "PENDING_LINK",
+        linkedHostId: null,
+      }),
+    );
+  });
+
+  it("persists linkedHostId when discovery is linked", async () => {
+    const port = buildDiscoverPort({
+      findDiscoveredHost: vi.fn(async () => ({
+        id: "disc-1",
+        linkedHostId: "host-1",
+        linkedAt: new Date(),
+      })),
+      findLinkedHost: vi.fn(async () => ({
+        id: "host-1",
+        name: "ERP-MATRIZ-01",
+        agentTokenHash: "token-hash",
+        lastHeartbeatErrorMessage: null,
+      })),
+      updateDiscoveredHost: vi.fn(async () => ({ id: "disc-1" })),
+    });
+
+    await processDiscover(
+      {
+        schemaVersion: "discover.payload.v1",
+        discoveryToken: "DISCOVERY_TOKEN",
+        rustdeskId: "21187620068",
+        machineName: "ERP-MATRIZ-01",
+      },
+      { port },
+    );
+
+    expect(port.updateDiscoveredHost).toHaveBeenCalledWith(
+      "disc-1",
+      expect.objectContaining({
+        status: "LINKED",
+        linkedHostId: "host-1",
+      }),
+    );
   });
 });

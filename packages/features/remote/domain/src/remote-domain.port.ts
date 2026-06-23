@@ -350,6 +350,7 @@ export type ProcessedDiscoverPayload = {
   lastHeartbeatAt: Date;
   linkedAt?: Date | null;
   status: "PENDING_LINK" | "LINKED";
+  linkedHostId?: string | null;
 };
 
 export interface RemoteDiscoverPort {

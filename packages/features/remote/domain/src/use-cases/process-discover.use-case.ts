@@ -49,7 +49,7 @@ export async function processDiscover(
         await deps.port.updateLinkedHostMetrics(linkedHost.id, normalizedMetrics);
       }
 
-      await deps.port.updateDiscoveredHost(discoveredHost.id, {
+      const linkedPayload = {
         machineName,
         agentExternalId: rustdeskId,
         agentVersion: normalizeNullable(input.agentVersion),
@@ -61,8 +61,13 @@ export async function processDiscover(
         systemMetrics: normalizedMetrics,
         lastHeartbeatAt: heartbeatAt,
         linkedAt: discoveredHost.linkedAt ?? heartbeatAt,
-        status: "LINKED",
-      });
+        status: "LINKED" as const,
+        linkedHostId: linkedHost.id,
+      };
+
+      const record = discoveredHost.id
+        ? await deps.port.updateDiscoveredHost(discoveredHost.id, linkedPayload)
+        : await deps.port.createDiscoveredHost(linkedPayload);
 
       const hasMissingToken = !linkedHost.agentTokenHash;
       const hasInvalidToken =
@@ -92,7 +97,7 @@ export async function processDiscover(
       return {
         contractVersion: "discover.v2",
         mode: "linked",
-        discoveredHostId: discoveredHost.id,
+        discoveredHostId: record.id,
         hostId: linkedHost.id,
         hostName: linkedHost.name,
         installToken: linkedHost.installToken ?? undefined,
@@ -116,9 +121,10 @@ export async function processDiscover(
     systemMetrics: normalizedMetrics,
     lastHeartbeatAt: heartbeatAt,
     status: "PENDING_LINK" as const,
+    linkedHostId: null,
   };
 
-  const record = discoveredHost
+  const record = discoveredHost && discoveredHost.id
     ? await deps.port.updateDiscoveredHost(discoveredHost.id, payloadToPersist)
     : await deps.port.createDiscoveredHost(payloadToPersist);
 

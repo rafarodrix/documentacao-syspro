@@ -33,17 +33,31 @@ cd .\apps\agent
 go run .\cmd\agent-installer stage
 ```
 
-3. Compile com Inno Setup:
+Se preferir compilar o builder primeiro:
+
+```powershell
+cd .\apps\agent
+go build -o .\agent-installer.exe .\cmd\agent-installer
+.\agent-installer.exe stage
+```
+
+3. Compile o instalador com Inno Setup:
 
 ```powershell
 ISCC.exe .\apps\agent\deploy\windows-installer\AgenteTrilink.iss
 ```
 
-Ou faça tudo em um comando:
+Ou gere tudo em um único passo especificando a versão:
 
 ```powershell
 cd .\apps\agent
-go run .\cmd\agent-installer build 1.0.39
+go run .\cmd\agent-installer build 1.0.54
+```
+
+Se já houver um builder compilado:
+
+```powershell
+.\agent-installer.exe build 1.0.54
 ```
 
 O instalador compilado sai em:

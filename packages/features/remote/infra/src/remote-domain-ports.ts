@@ -104,12 +104,32 @@ export function createRemoteDiscoverPort(params: {
         orderBy: [{ updatedAt: "desc" }],
       });
 
-      if (!discoveredHost) return null;
+      let autoLinkedHostId: string | null = null;
+      if (input.rustdeskId) {
+        const existingHost = await prisma.remoteHost.findFirst({
+          where: { agentExternalId: input.rustdeskId },
+          select: { id: true },
+        });
+        if (existingHost) {
+          autoLinkedHostId = existingHost.id;
+        }
+      }
+
+      if (!discoveredHost) {
+        if (autoLinkedHostId) {
+          return {
+            id: "",
+            linkedHostId: autoLinkedHostId,
+            linkedAt: new Date(),
+          };
+        }
+        return null;
+      }
 
       return {
         id: discoveredHost.id,
-        linkedHostId: discoveredHost.linkedHostId,
-        linkedAt: discoveredHost.linkedAt,
+        linkedHostId: discoveredHost.linkedHostId ?? autoLinkedHostId,
+        linkedAt: discoveredHost.linkedAt ?? (autoLinkedHostId ? new Date() : null),
       };
     },
     async findLinkedHost(linkedHostId) {
@@ -165,6 +185,7 @@ export function createRemoteDiscoverPort(params: {
           lastHeartbeatAt: payload.lastHeartbeatAt,
           linkedAt: payload.linkedAt ?? undefined,
           status: payload.status,
+          linkedHostId: payload.linkedHostId !== undefined ? payload.linkedHostId : undefined,
         },
         select: { id: true },
       });
@@ -182,7 +203,9 @@ export function createRemoteDiscoverPort(params: {
           serviceStatus: payload.serviceStatus,
           installationsSnapshot: toJsonValue(payload.installationsSnapshot),
           lastHeartbeatAt: payload.lastHeartbeatAt,
+          linkedAt: payload.linkedAt ?? null,
           status: payload.status,
+          linkedHostId: payload.linkedHostId ?? null,
         },
         select: { id: true },
       });
@@ -298,6 +321,7 @@ export function createRemoteBootstrapPort(params: { logger: RemoteLogger; reques
           throw error;
         }
         throwRemoteHostAgentExternalIdConflict();
+        throw error;
       }
 
       return {
@@ -626,6 +650,7 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
           throw error;
         }
         throwRemoteHostAgentExternalIdConflict();
+        throw error;
       }
 
       return result;

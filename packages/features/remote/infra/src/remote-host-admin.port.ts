@@ -106,6 +106,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
           throw error;
         }
         throwRemoteHostAgentExternalIdConflict();
+        throw error;
       }
 
       return {
@@ -150,6 +151,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
           throw error;
         }
         throwRemoteHostAgentExternalIdConflict();
+        throw error;
       }
 
       return { host };
@@ -207,6 +209,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
           throw error;
         }
         throwRemoteHostAgentExternalIdConflict();
+        throw error;
       }
 
       await prisma.agentDevice.updateMany({
