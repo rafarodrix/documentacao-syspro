@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightLeft, Copy, Fingerprint, HardDriveDownload, RefreshCcw } from "lucide-react";
+import { ArrowRightLeft, Copy, Fingerprint, HardDriveDownload, RefreshCcw, Trash2 } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { MACHINE_PROFILE_LABEL } from "../host-details.constants";
@@ -32,6 +32,8 @@ type Props = {
   isRequestingResendConfig: boolean;
   isRequestingSelfHeal: boolean;
   onRequestRemoteAction: (action: "RESEND_CONFIG" | "REAPPLY_ALIAS") => void;
+  onDeleteHost: () => void;
+  isDeletingHost: boolean;
 };
 
 export function HostSettingsTab({
@@ -46,8 +48,14 @@ export function HostSettingsTab({
   isRequestingResendConfig,
   isRequestingSelfHeal,
   onRequestRemoteAction,
+  onDeleteHost,
+  isDeletingHost,
 }: Props) {
   const { moduleSettings } = details;
+  const canDeleteHost =
+    details.tenantScope.role === "ADMIN" ||
+    details.tenantScope.role === "SUPORTE" ||
+    details.tenantScope.role === "DEVELOPER";
 
   return (
     <div className="space-y-6">
@@ -225,6 +233,39 @@ export function HostSettingsTab({
           </p>
         </CardContent>
       </Card>
+
+      {canDeleteHost && (
+        <Card className="border-red-500/20 bg-red-500/5">
+          <CardHeader>
+            <CardTitle className="text-lg text-red-500 flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              Zona de Perigo
+            </CardTitle>
+            <CardDescription className="text-red-600/80 dark:text-red-400/80">
+              Ações irreversíveis para este host remoto. Tenha certeza do que está fazendo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">Excluir este host permanentemente</p>
+                <p className="text-xs text-muted-foreground">
+                  Remove o host do portal, limpa o token do agente e encerra a sincronização. Apenas use se o host estiver obsoleto.
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={onDeleteHost}
+                disabled={isDeletingHost}
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm flex items-center gap-2 sm:self-start"
+              >
+                {isDeletingHost ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {isDeletingHost ? "Excluindo..." : "Excluir host"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div>
         <p className="mb-3 text-sm font-medium text-muted-foreground">Funcionalidades em desenvolvimento</p>

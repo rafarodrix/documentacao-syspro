@@ -11,6 +11,7 @@ import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remo
 import { copyTextWithFallback } from "./host-details/host-details.helpers";
 import { DEFAULT_INSTALLATION_DIRECTORY, UNLINKED_COMPANY_VALUE } from "./host-details/host-details.constants";
 import { useHostComputedValues } from "./host-details/hooks/use-host-computed-values";
+import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import {
   HostHeroHeader,
   HostOverviewTab,
@@ -74,6 +75,8 @@ export function RemoteHostDetailsPanel({
   const [isCreatingManualInstallation, startCreatingManualInstallation] = useTransition();
   const [isSavingCompanyContext, startSavingCompanyContext] = useTransition();
   const [isStartingSession, startSessionTransition] = useTransition();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingHost, startDeletingHost] = useTransition();
 
   // ── Computed values (memos) ──────────────────────────────────────────────────
   const computed = useHostComputedValues(details, installationFilter);
@@ -235,6 +238,23 @@ export function RemoteHostDetailsPanel({
           method: "POST",
         });
         toast.success(result.message ?? "Credencial do agente renovada.");
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
+  function handleDeleteHost() {
+    startDeletingHost(async () => {
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/hosts/${host.id}`,
+          method: "DELETE",
+        });
+        toast.success("Host excluído com sucesso.");
+        setShowDeleteConfirm(false);
+        router.push("/portal/infraestrutura?tab=hosts");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -523,9 +543,23 @@ export function RemoteHostDetailsPanel({
             isRequestingResendConfig={isRequestingResendConfig}
             isRequestingSelfHeal={isRequestingSelfHeal}
             onRequestRemoteAction={handleRequestRemoteAction}
+            onDeleteHost={() => setShowDeleteConfirm(true)}
+            isDeletingHost={isDeletingHost}
           />
         </TabsContent>
       </Tabs>
+
+      <ConfirmActionDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Excluir Host"
+        description={`Tem certeza que deseja excluir permanentemente o host "${host.name}"? Esta ação removerá todo o histórico de sessões e dados associados a esta máquina no portal.`}
+        confirmLabel="Excluir permanentemente"
+        cancelLabel="Cancelar"
+        isLoading={isDeletingHost}
+        variant="danger"
+        onConfirm={handleDeleteHost}
+      />
     </div>
   );
 }
