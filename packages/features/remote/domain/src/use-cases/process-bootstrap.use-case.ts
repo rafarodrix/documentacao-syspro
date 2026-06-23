@@ -44,7 +44,7 @@ export async function processBootstrap(
   const configProfile = await deps.port.getConfigProfile();
   const issuedToken = await deps.port.issueAgentToken();
 
-  const rustdeskId = input.rustdeskId ?? host.agentExternalId;
+  const rustdeskId = deps.port.normalizeRustdeskId(input.rustdeskId) ?? host.agentExternalId;
   const machineName = input.machineName ?? host.machineName;
   const alias = deps.port.resolveAlias({
     hostName: host.hostName,

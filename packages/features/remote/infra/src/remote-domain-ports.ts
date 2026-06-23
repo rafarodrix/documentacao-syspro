@@ -24,6 +24,11 @@ import {
   resolveRustDeskAlias,
 } from "./rustdesk-helpers";
 import {
+  assertRemoteHostAgentExternalIdAvailable,
+  isRemoteHostAgentExternalIdUniqueError,
+  throwRemoteHostAgentExternalIdConflict,
+} from "./remote-host-agent-external-id";
+import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
   REMOTE_MODULE_SETTINGS_KEY,
   remoteModuleSettingsSchema,
@@ -257,27 +262,43 @@ export function createRemoteBootstrapPort(params: { logger: RemoteLogger; reques
       };
     },
     hashPublicKey: hashRustDeskPublicKey,
+    normalizeRustdeskId,
     resolveAlias,
     getAgentTokenExpiresAt: getRemoteAgentTokenExpiresAt,
     async saveProcessedBootstrap({ host, input, rustdeskId, machineName, alias, configProfile, issuedToken, reportedPublicKeyHash }) {
-      const persisted = await prisma.remoteHost.update({
-        where: { id: host.hostId },
-        data: {
+      if (rustdeskId) {
+        await assertRemoteHostAgentExternalIdAvailable({
           agentExternalId: rustdeskId,
-          machineName,
-          agentVersion: input.agentVersion || host.agentVersion,
-          environment: input.environment || host.environment,
-          agentTokenHash: issuedToken.tokenHash,
-          agentTokenIssuedAt: issuedToken.issuedAt,
-          lastKnownRustDeskAlias: alias,
-          lastKnownRustDeskVersion: configProfile.targetVersion,
-          lastKnownRustDeskServerHost: configProfile.serverHost,
-          lastKnownRustDeskApiHost: configProfile.apiHost,
-          lastKnownRustDeskPublicKeyHash: reportedPublicKeyHash,
-          lastRustDeskConfigSyncAt: new Date(),
-          status: "ACTIVE",
-        },
-      });
+          excludingHostId: host.hostId,
+        });
+      }
+
+      let persisted;
+      try {
+        persisted = await prisma.remoteHost.update({
+          where: { id: host.hostId },
+          data: {
+            agentExternalId: rustdeskId,
+            machineName,
+            agentVersion: input.agentVersion || host.agentVersion,
+            environment: input.environment || host.environment,
+            agentTokenHash: issuedToken.tokenHash,
+            agentTokenIssuedAt: issuedToken.issuedAt,
+            lastKnownRustDeskAlias: alias,
+            lastKnownRustDeskVersion: configProfile.targetVersion,
+            lastKnownRustDeskServerHost: configProfile.serverHost,
+            lastKnownRustDeskApiHost: configProfile.apiHost,
+            lastKnownRustDeskPublicKeyHash: reportedPublicKeyHash,
+            lastRustDeskConfigSyncAt: new Date(),
+            status: "ACTIVE",
+          },
+        });
+      } catch (error) {
+        if (!isRemoteHostAgentExternalIdUniqueError(error)) {
+          throw error;
+        }
+        throwRemoteHostAgentExternalIdConflict();
+      }
 
       return {
         id: persisted.id,
@@ -436,156 +457,176 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
         rebootPending: record.rebootPending,
       });
 
-      const result = await prisma.$transaction(async (tx) => {
-        const saved = await tx.remoteHost.update({
-          where: { id: record.context.hostId },
-          data: {
-            agentExternalId: record.rustdeskId || record.context.agentExternalId,
-            machineName: record.machineName || record.context.machineName,
-            agentVersion: record.agentVersion || record.context.agentVersion,
-            lastHeartbeatAt: record.heartbeatAt,
-            lastHeartbeatSuccessAt: record.heartbeatAt,
-            lastHeartbeatErrorAt: null,
-            lastHeartbeatErrorMessage: null,
-            lastKnownIp: requestIp || record.context.lastKnownIp,
-            agentTokenLastUsedAt: record.heartbeatAt,
-            serviceStatus: record.serviceStatus || record.context.serviceStatus,
-            lastKnownRustDeskAlias: record.reportedAlias || record.context.lastKnownRustDeskAlias,
-            lastKnownRustDeskVersion: record.reportedVersion || record.context.lastKnownRustDeskVersion,
-            lastKnownRustDeskServerHost: record.reportedServerHost || record.context.lastKnownRustDeskServerHost,
-            lastKnownRustDeskApiHost: record.reportedApiHost || record.context.lastKnownRustDeskApiHost,
-            lastKnownRustDeskPublicKeyHash: record.reportedPublicKeyHash || record.context.lastKnownRustDeskPublicKeyHash,
-            lastRustDeskConfigSyncAt: record.heartbeatAt,
-            lastSystemSnapshot: record.systemSnapshot ? toJsonValue(record.systemSnapshot) : undefined,
-            lastSystemSnapshotAt: record.systemSnapshot ? record.heartbeatAt : undefined,
-            lastNetworkSnapshot: record.networkSnapshot ? toJsonValue(record.networkSnapshot) : undefined,
-            lastNetworkSnapshotAt: record.networkSnapshot ? record.heartbeatAt : undefined,
-            lastSoftwareSnapshot: record.softwareSnapshot.length ? toJsonValue(record.softwareSnapshot) : undefined,
-            lastSoftwareSnapshotAt: record.softwareSnapshot.length ? record.heartbeatAt : undefined,
-            lastHardwareIdentity: record.hardwareIdentity ? toJsonValue(record.hardwareIdentity) : undefined,
-            lastHardwareIdentityAt: record.hardwareIdentity ? record.heartbeatAt : undefined,
-            lastDiskSnapshot: record.diskSnapshot.length ? toJsonValue(record.diskSnapshot) : undefined,
-            lastDiskSnapshotAt: record.diskSnapshot.length ? record.heartbeatAt : undefined,
-            lastSysproProcessSnapshot: record.sysproProcesses.length ? toJsonValue(record.sysproProcesses) : undefined,
-            lastSysproProcessSnapshotAt: record.sysproProcesses.length ? record.heartbeatAt : undefined,
-            lastSysproVersionSnapshot: record.sysproVersions ? toJsonValue(record.sysproVersions) : undefined,
-            lastSysproVersionSnapshotAt: record.sysproVersions ? record.heartbeatAt : undefined,
-            lastWindowsUpdateStatus: record.windowsUpdateStatus ? toJsonValue(record.windowsUpdateStatus) : undefined,
-            lastWindowsUpdateStatusAt: record.windowsUpdateStatus ? record.heartbeatAt : undefined,
-            lastRebootPending: typeof record.rebootPending === "boolean" ? record.rebootPending : undefined,
-            lastRebootPendingAt: typeof record.rebootPending === "boolean" ? record.heartbeatAt : undefined,
-            lastAgentMetrics: record.agentMetrics ? toJsonValue(record.agentMetrics) : undefined,
-            lastAgentMetricsAt: record.agentMetrics ? record.heartbeatAt : undefined,
-            status: "ACTIVE",
-          } as any,
-          select: {
-            id: true,
-            agentExternalId: true,
-            machineName: true,
-            agentVersion: true,
-            lastHeartbeatSuccessAt: true,
-            agentTokenIssuedAt: true,
-            agentTokenLastUsedAt: true,
-            lastKnownRustDeskAlias: true,
-            lastKnownRustDeskVersion: true,
-            lastKnownRustDeskServerHost: true,
-            lastKnownRustDeskApiHost: true,
-            lastKnownRustDeskPublicKeyHash: true,
-            lastRustDeskConfigSyncAt: true,
-          },
+      const nextAgentExternalId = record.rustdeskId || record.context.agentExternalId;
+      if (nextAgentExternalId) {
+        await assertRemoteHostAgentExternalIdAvailable({
+          agentExternalId: nextAgentExternalId,
+          excludingHostId: record.context.hostId,
         });
+      }
 
-        await syncRemoteHostSysproUpdates(tx, {
-          hostId: record.context.hostId,
-          hostCompanyId: record.context.companyId,
-          hostCompanyNames: record.context.companyPrimaryNames,
-          heartbeatAt: record.heartbeatAt,
-          sysproUpdates: record.normalizedSysproUpdates.map((u) => ({
-            ...u,
-            isServerHost: u.isServerHost ?? false,
-            hasClientFolder: u.hasClientFolder ?? false,
-            hasDllFolder: u.hasDllFolder ?? false,
-            firebirdVersion: u.firebirdVersion ?? null,
-            firebirdPath: u.firebirdPath ?? null,
-          })),
-        });
-
-        const existingCommands = await tx.remoteAgentCommand.findMany({
-          where: {
-            hostId: record.context.hostId,
-            status: { in: ["PENDING", "DELIVERED"] },
-          },
-        });
-
-        const desiredTypes = record.syncDirectives.map((directive) => COMMAND_TYPE_MAP[directive.action]) as Array<"REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED">;
-        for (const command of existingCommands) {
-          if (
-            command.status === "PENDING" &&
-            (!Object.values(COMMAND_TYPE_MAP).includes(command.type as any) ||
-              (command.type !== "ROTATE_TOKEN_REQUIRED" && !desiredTypes.includes(command.type as any)))
-          ) {
-            await tx.remoteAgentCommand.update({
-              where: { id: command.id },
-              data: { status: "CANCELLED", reason: "Comando cancelado porque a divergencia deixou de existir no ultimo sync." },
-            });
-          }
-        }
-
-        const existingPendingTypes = new Set(existingCommands.filter((command) => command.status === "PENDING").map((command) => command.type));
-
-        for (const directive of record.syncDirectives) {
-          const type = COMMAND_TYPE_MAP[directive.action];
-          if (existingPendingTypes.has(type)) continue;
-          await tx.remoteAgentCommand.create({
+      let result;
+      try {
+        result = await prisma.$transaction(async (tx) => {
+          const saved = await tx.remoteHost.update({
+            where: { id: record.context.hostId },
             data: {
-              hostId: record.context.hostId,
-              type,
-              status: "PENDING",
-              reason: directive.reason,
-              payload: directive.payload ? toJsonValue(directive.payload) : Prisma.JsonNull,
+              agentExternalId: nextAgentExternalId,
+              machineName: record.machineName || record.context.machineName,
+              agentVersion: record.agentVersion || record.context.agentVersion,
+              lastHeartbeatAt: record.heartbeatAt,
+              lastHeartbeatSuccessAt: record.heartbeatAt,
+              lastHeartbeatErrorAt: null,
+              lastHeartbeatErrorMessage: null,
+              lastKnownIp: requestIp || record.context.lastKnownIp,
+              agentTokenLastUsedAt: record.heartbeatAt,
+              serviceStatus: record.serviceStatus || record.context.serviceStatus,
+              lastKnownRustDeskAlias: record.reportedAlias || record.context.lastKnownRustDeskAlias,
+              lastKnownRustDeskVersion: record.reportedVersion || record.context.lastKnownRustDeskVersion,
+              lastKnownRustDeskServerHost: record.reportedServerHost || record.context.lastKnownRustDeskServerHost,
+              lastKnownRustDeskApiHost: record.reportedApiHost || record.context.lastKnownRustDeskApiHost,
+              lastKnownRustDeskPublicKeyHash: record.reportedPublicKeyHash || record.context.lastKnownRustDeskPublicKeyHash,
+              lastRustDeskConfigSyncAt: record.heartbeatAt,
+              lastSystemSnapshot: record.systemSnapshot ? toJsonValue(record.systemSnapshot) : undefined,
+              lastSystemSnapshotAt: record.systemSnapshot ? record.heartbeatAt : undefined,
+              lastNetworkSnapshot: record.networkSnapshot ? toJsonValue(record.networkSnapshot) : undefined,
+              lastNetworkSnapshotAt: record.networkSnapshot ? record.heartbeatAt : undefined,
+              lastSoftwareSnapshot: record.softwareSnapshot.length ? toJsonValue(record.softwareSnapshot) : undefined,
+              lastSoftwareSnapshotAt: record.softwareSnapshot.length ? record.heartbeatAt : undefined,
+              lastHardwareIdentity: record.hardwareIdentity ? toJsonValue(record.hardwareIdentity) : undefined,
+              lastHardwareIdentityAt: record.hardwareIdentity ? record.heartbeatAt : undefined,
+              lastDiskSnapshot: record.diskSnapshot.length ? toJsonValue(record.diskSnapshot) : undefined,
+              lastDiskSnapshotAt: record.diskSnapshot.length ? record.heartbeatAt : undefined,
+              lastSysproProcessSnapshot: record.sysproProcesses.length ? toJsonValue(record.sysproProcesses) : undefined,
+              lastSysproProcessSnapshotAt: record.sysproProcesses.length ? record.heartbeatAt : undefined,
+              lastSysproVersionSnapshot: record.sysproVersions ? toJsonValue(record.sysproVersions) : undefined,
+              lastSysproVersionSnapshotAt: record.sysproVersions ? record.heartbeatAt : undefined,
+              lastWindowsUpdateStatus: record.windowsUpdateStatus ? toJsonValue(record.windowsUpdateStatus) : undefined,
+              lastWindowsUpdateStatusAt: record.windowsUpdateStatus ? record.heartbeatAt : undefined,
+              lastRebootPending: typeof record.rebootPending === "boolean" ? record.rebootPending : undefined,
+              lastRebootPendingAt: typeof record.rebootPending === "boolean" ? record.heartbeatAt : undefined,
+              lastAgentMetrics: record.agentMetrics ? toJsonValue(record.agentMetrics) : undefined,
+              lastAgentMetricsAt: record.agentMetrics ? record.heartbeatAt : undefined,
+              status: "ACTIVE",
+            } as any,
+            select: {
+              id: true,
+              agentExternalId: true,
+              machineName: true,
+              agentVersion: true,
+              lastHeartbeatSuccessAt: true,
+              agentTokenIssuedAt: true,
+              agentTokenLastUsedAt: true,
+              lastKnownRustDeskAlias: true,
+              lastKnownRustDeskVersion: true,
+              lastKnownRustDeskServerHost: true,
+              lastKnownRustDeskApiHost: true,
+              lastKnownRustDeskPublicKeyHash: true,
+              lastRustDeskConfigSyncAt: true,
             },
           });
-        }
 
-        const deliverableCommands = await tx.remoteAgentCommand.findMany({
-          where: {
+          await syncRemoteHostSysproUpdates(tx, {
             hostId: record.context.hostId,
-            status: { in: ["PENDING", "DELIVERED"] },
-          },
-          orderBy: [{ createdAt: "asc" }],
-          take: 20,
-        });
-
-        for (const command of deliverableCommands) {
-          if (command.status !== "PENDING") continue;
-          await tx.remoteAgentCommand.update({
-            where: { id: command.id },
-            data: { status: "DELIVERED", deliveredAt: command.deliveredAt ?? record.heartbeatAt, attemptCount: { increment: 1 } },
+            hostCompanyId: record.context.companyId,
+            hostCompanyNames: record.context.companyPrimaryNames,
+            heartbeatAt: record.heartbeatAt,
+            sysproUpdates: record.normalizedSysproUpdates.map((u) => ({
+              ...u,
+              isServerHost: u.isServerHost ?? false,
+              hasClientFolder: u.hasClientFolder ?? false,
+              hasDllFolder: u.hasDllFolder ?? false,
+              firebirdVersion: u.firebirdVersion ?? null,
+              firebirdPath: u.firebirdPath ?? null,
+            })),
           });
-        }
 
-        const returnedCommands = await tx.remoteAgentCommand.findMany({
-          where: { hostId: record.context.hostId, status: { in: ["DELIVERED"] } },
-          orderBy: [{ createdAt: "asc" }],
-          take: 20,
+          const existingCommands = await tx.remoteAgentCommand.findMany({
+            where: {
+              hostId: record.context.hostId,
+              status: { in: ["PENDING", "DELIVERED"] },
+            },
+          });
+
+          const desiredTypes = record.syncDirectives.map((directive) => COMMAND_TYPE_MAP[directive.action]) as Array<
+            "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED"
+          >;
+          for (const command of existingCommands) {
+            if (
+              command.status === "PENDING" &&
+              (!Object.values(COMMAND_TYPE_MAP).includes(command.type as any) ||
+                (command.type !== "ROTATE_TOKEN_REQUIRED" && !desiredTypes.includes(command.type as any)))
+            ) {
+              await tx.remoteAgentCommand.update({
+                where: { id: command.id },
+                data: { status: "CANCELLED", reason: "Comando cancelado porque a divergencia deixou de existir no ultimo sync." },
+              });
+            }
+          }
+
+          const existingPendingTypes = new Set(
+            existingCommands.filter((command) => command.status === "PENDING").map((command) => command.type),
+          );
+
+          for (const directive of record.syncDirectives) {
+            const type = COMMAND_TYPE_MAP[directive.action];
+            if (existingPendingTypes.has(type)) continue;
+            await tx.remoteAgentCommand.create({
+              data: {
+                hostId: record.context.hostId,
+                type,
+                status: "PENDING",
+                reason: directive.reason,
+                payload: directive.payload ? toJsonValue(directive.payload) : Prisma.JsonNull,
+              },
+            });
+          }
+
+          const deliverableCommands = await tx.remoteAgentCommand.findMany({
+            where: {
+              hostId: record.context.hostId,
+              status: { in: ["PENDING", "DELIVERED"] },
+            },
+            orderBy: [{ createdAt: "asc" }],
+            take: 20,
+          });
+
+          for (const command of deliverableCommands) {
+            if (command.status !== "PENDING") continue;
+            await tx.remoteAgentCommand.update({
+              where: { id: command.id },
+              data: { status: "DELIVERED", deliveredAt: command.deliveredAt ?? record.heartbeatAt, attemptCount: { increment: 1 } },
+            });
+          }
+
+          const returnedCommands = await tx.remoteAgentCommand.findMany({
+            where: { hostId: record.context.hostId, status: { in: ["DELIVERED"] } },
+            orderBy: [{ createdAt: "asc" }],
+            take: 20,
+          });
+
+          const pendingCommands = returnedCommands.map((command) => ({
+            id: command.id,
+            type: mapDeliveredCommandType(command.type),
+            status: "DELIVERED" as const,
+            reason: command.reason,
+            payload: toRecordPayload(command.payload),
+            attemptCount: command.attemptCount,
+            createdAt: command.createdAt,
+            deliveredAt: command.deliveredAt,
+          }));
+
+          return {
+            host: saved,
+            pendingCommands,
+          };
         });
-
-        const pendingCommands = returnedCommands.map((command) => ({
-          id: command.id,
-          type: mapDeliveredCommandType(command.type),
-          status: "DELIVERED" as const,
-          reason: command.reason,
-          payload: toRecordPayload(command.payload),
-          attemptCount: command.attemptCount,
-          createdAt: command.createdAt,
-          deliveredAt: command.deliveredAt,
-        }));
-
-        return {
-          host: saved,
-          pendingCommands,
-        };
-      });
+      } catch (error) {
+        if (!isRemoteHostAgentExternalIdUniqueError(error)) {
+          throw error;
+        }
+        throwRemoteHostAgentExternalIdConflict();
+      }
 
       return result;
     },

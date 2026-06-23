@@ -1,7 +1,12 @@
 import { randomBytes } from "node:crypto";
-import { prisma, buildScopedWhere, normalizeCompareValue, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
+import { prisma, buildScopedWhere, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
 import { normalizeRustdeskIdStrict } from "./rustdesk-helpers";
 import { resolveScopedCompanyContext } from "./scoped-company-context";
+import {
+  assertRemoteHostAgentExternalIdAvailable,
+  isRemoteHostAgentExternalIdUniqueError,
+  throwRemoteHostAgentExternalIdConflict,
+} from "./remote-host-agent-external-id";
 import type {
   CreateHostInput,
   CreateHostOutput,
@@ -21,14 +26,6 @@ import type {
 
 function buildInstallToken() {
   return `rhost_${randomBytes(12).toString("hex")}`;
-}
-
-function withDataError(message: string, data?: unknown) {
-  const error = new Error(message) as Error & { data?: unknown };
-  if (data !== undefined) {
-    error.data = data;
-  }
-  return error;
 }
 
 export function createRemoteHostAdminPort(): RemoteHostAdminPort {
@@ -53,45 +50,63 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
 
       const heartbeatAt = discoveredHost.lastHeartbeatAt ?? new Date();
       const sysproUpdates = normalizeSysproUpdates(discoveredHost.installationsSnapshot);
+      const incomingAgentExternalId = discoveredHost.agentExternalId?.trim() || null;
+      const agentExternalId = normalizeRustdeskIdStrict(incomingAgentExternalId);
 
-      const host = await prisma.$transaction(async (tx) => {
-        const createdHost = await tx.remoteHost.create({
-          data: {
-            companyId: input.companyId,
-            name: input.name,
-            provider: discoveredHost.provider?.trim() || "RustDesk",
-            environment: discoveredHost.environment?.trim() || null,
-            description: input.description?.trim() || discoveredHost.description?.trim() || null,
-            agentExternalId: discoveredHost.agentExternalId?.trim() || null,
-            installToken: buildInstallToken(),
-            machineName: discoveredHost.machineName?.trim() || null,
-            agentVersion: discoveredHost.agentVersion?.trim() || null,
-            serviceStatus: discoveredHost.serviceStatus?.trim() || null,
-            lastHeartbeatAt: heartbeatAt,
-            status: "ACTIVE",
-          },
-          select: { id: true, companyId: true },
+      if (incomingAgentExternalId && !agentExternalId) {
+        throw new Error("HOST_AGENT_EXTERNAL_ID_INVALID");
+      }
+
+      if (agentExternalId) {
+        await assertRemoteHostAgentExternalIdAvailable({ agentExternalId });
+      }
+
+      let host;
+      try {
+        host = await prisma.$transaction(async (tx) => {
+          const createdHost = await tx.remoteHost.create({
+            data: {
+              companyId: input.companyId,
+              name: input.name,
+              provider: discoveredHost.provider?.trim() || "RustDesk",
+              environment: discoveredHost.environment?.trim() || null,
+              description: input.description?.trim() || discoveredHost.description?.trim() || null,
+              agentExternalId,
+              installToken: buildInstallToken(),
+              machineName: discoveredHost.machineName?.trim() || null,
+              agentVersion: discoveredHost.agentVersion?.trim() || null,
+              serviceStatus: discoveredHost.serviceStatus?.trim() || null,
+              lastHeartbeatAt: heartbeatAt,
+              status: "ACTIVE",
+            },
+            select: { id: true, companyId: true },
+          });
+
+          await syncRemoteHostSysproUpdates(tx, {
+            hostId: createdHost.id,
+            hostCompanyId: input.companyId,
+            hostCompanyNames: company.normalizedPrimaryNames,
+            heartbeatAt,
+            sysproUpdates,
+          });
+
+          await tx.remoteDiscoveredHost.update({
+            where: { id: discoveredHost.id },
+            data: {
+              linkedHostId: createdHost.id,
+              linkedAt: new Date(),
+              status: "LINKED",
+            },
+          });
+
+          return createdHost;
         });
-
-        await syncRemoteHostSysproUpdates(tx, {
-          hostId: createdHost.id,
-          hostCompanyId: input.companyId,
-          hostCompanyNames: company.normalizedPrimaryNames,
-          heartbeatAt,
-          sysproUpdates,
-        });
-
-        await tx.remoteDiscoveredHost.update({
-          where: { id: discoveredHost.id },
-          data: {
-            linkedHostId: createdHost.id,
-            linkedAt: new Date(),
-            status: "LINKED",
-          },
-        });
-
-        return createdHost;
-      });
+      } catch (error) {
+        if (!isRemoteHostAgentExternalIdUniqueError(error)) {
+          throw error;
+        }
+        throwRemoteHostAgentExternalIdConflict();
+      }
 
       return {
         hostId: host.id,
@@ -110,35 +125,32 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
       }
 
       if (agentExternalId) {
-        const existingHost = await prisma.remoteHost.findFirst({
-          where: { agentExternalId },
-          select: {
-            id: true,
-            company: { select: { nomeFantasia: true, razaoSocial: true } },
-          },
-        });
-
-        if (existingHost) {
-          const companyLabel = existingHost.company.nomeFantasia ?? existingHost.company.razaoSocial ?? "empresa";
-          throw withDataError("HOST_AGENT_EXTERNAL_ID_CONFLICT", { companyLabel });
-        }
+        await assertRemoteHostAgentExternalIdAvailable({ agentExternalId });
       }
 
-      const host = await prisma.remoteHost.create({
-        data: {
-          companyId: input.companyId,
-          name: input.name,
-          machineName: input.machineName?.trim() || null,
-          machineProfile: input.machineProfile ?? null,
-          environment: input.environment?.trim() || null,
-          provider: input.provider?.trim() || "RustDesk",
-          description: input.description?.trim() || null,
-          notes: input.notes?.trim() || null,
-          agentExternalId,
-          installToken: buildInstallToken(),
-          status: input.status ?? "ACTIVE",
-        },
-      });
+      let host;
+      try {
+        host = await prisma.remoteHost.create({
+          data: {
+            companyId: input.companyId,
+            name: input.name,
+            machineName: input.machineName?.trim() || null,
+            machineProfile: input.machineProfile ?? null,
+            environment: input.environment?.trim() || null,
+            provider: input.provider?.trim() || "RustDesk",
+            description: input.description?.trim() || null,
+            notes: input.notes?.trim() || null,
+            agentExternalId,
+            installToken: buildInstallToken(),
+            status: input.status ?? "ACTIVE",
+          },
+        });
+      } catch (error) {
+        if (!isRemoteHostAgentExternalIdUniqueError(error)) {
+          throw error;
+        }
+        throwRemoteHostAgentExternalIdConflict();
+      }
 
       return { host };
     },
@@ -167,38 +179,35 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
       }
 
       if (agentExternalId) {
-        const duplicate = await prisma.remoteHost.findFirst({
-          where: {
-            agentExternalId,
-            id: { not: input.hostId },
-          },
-          select: {
-            id: true,
-            company: { select: { nomeFantasia: true, razaoSocial: true } },
-          },
+        await assertRemoteHostAgentExternalIdAvailable({
+          agentExternalId,
+          excludingHostId: input.hostId,
         });
-
-        if (duplicate) {
-          const companyLabel = duplicate.company.nomeFantasia ?? duplicate.company.razaoSocial ?? "empresa";
-          throw withDataError("HOST_AGENT_EXTERNAL_ID_CONFLICT", { companyLabel });
-        }
       }
 
-      const host = await prisma.remoteHost.update({
-        where: { id: input.hostId },
-        data: {
-          companyId: input.companyId,
-          name: input.name,
-          machineName: input.machineName?.trim() || null,
-          machineProfile: input.machineProfile ?? null,
-          environment: input.environment?.trim() || null,
-          provider: input.provider?.trim() || null,
-          description: input.description?.trim() || null,
-          notes: input.notes?.trim() || null,
-          agentExternalId,
-          status: input.status ?? "ACTIVE",
-        },
-      });
+      let host;
+      try {
+        host = await prisma.remoteHost.update({
+          where: { id: input.hostId },
+          data: {
+            companyId: input.companyId,
+            name: input.name,
+            machineName: input.machineName?.trim() || null,
+            machineProfile: input.machineProfile ?? null,
+            environment: input.environment?.trim() || null,
+            provider: input.provider?.trim() || null,
+            description: input.description?.trim() || null,
+            notes: input.notes?.trim() || null,
+            agentExternalId,
+            status: input.status ?? "ACTIVE",
+          },
+        });
+      } catch (error) {
+        if (!isRemoteHostAgentExternalIdUniqueError(error)) {
+          throw error;
+        }
+        throwRemoteHostAgentExternalIdConflict();
+      }
 
       await prisma.agentDevice.updateMany({
         where: { remoteHostId: input.hostId },
@@ -484,9 +493,6 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
     },
   };
 }
-
-
-
 
 
 

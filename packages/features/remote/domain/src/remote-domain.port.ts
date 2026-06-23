@@ -139,6 +139,7 @@ export interface RemoteBootstrapPort {
   getConfigProfile(): Promise<RemoteBootstrapConfigProfile>;
   issueAgentToken(): Promise<IssuedAgentToken>;
   hashPublicKey(publicKey: string): string;
+  normalizeRustdeskId(value: string | null | undefined): string | null;
   resolveAlias(input: { hostName: string; machineName: string | null; companyName: string }): string;
   getAgentTokenExpiresAt(issuedAt: Date | null): Date | null;
   saveProcessedBootstrap(record: ProcessedBootstrapRecord): Promise<PersistedBootstrapHostSnapshot>;
@@ -485,5 +486,4 @@ export interface TrilinkRemoteDomain {
   rotateAddressBookCredential(payload: unknown): Promise<RotateAddressBookCredentialOutput>;
   revokeAddressBookCredential(payload: unknown): Promise<RevokeAddressBookCredentialOutput>;
 }
-
 
