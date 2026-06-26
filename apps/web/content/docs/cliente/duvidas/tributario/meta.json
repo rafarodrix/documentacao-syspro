@@ -1,5 +1,12 @@
 {
   "root": false,
-  "title": "Dúvidas Tributárias",
-  "description": "Orientações sobre regras tributárias, CST, ICMS-ST e diferenças de alíquota no Syspro ERP."
+  "title": "Tributário",
+  "description": "Dúvidas e orientações sobre regras tributárias, CST, ICMS-ST, DIFAL e antecipação de alíquota no Syspro ERP.",
+  "pages": [
+    "antecipacao-aliquota",
+    "cst",
+    "diferenca-aliquota",
+    "icms-st",
+    "produtos-monofasicos-autopecas"
+  ]
 }
