@@ -73,28 +73,23 @@ Remessa de mercadoria para industrialização por encomenda.
 
 Utilize as abas abaixo para visualizar as diretrizes fiscais conforme a condição do produtor ou encomendante responsável pela remessa do gado.
 
-<Tabs items={['Contribuinte de ICMS', 'Produtor Não Emitente de NF-e']}>
+<Tabs items={['Encomendante emitente de NF-e', 'Encomendante não emitente de NF-e']}>
   <Tab
-    value="Contribuinte de ICMS"
-    title="Cenário A — Contribuinte de ICMS"
+    value="Encomendante emitente de NF-e"
+    title="Cenário A — Contribuinte de ICMS e emitente de NF-e"
   >
-    #### Cenário A — Encomendante Contribuinte de ICMS
-
     Quando o produtor ou encomendante for contribuinte do ICMS e estiver obrigado ou habilitado à emissão de documento fiscal, a remessa do gado de sua propriedade ao frigorífico deverá ser formalizada por NF-e emitida pelo próprio encomendante.
 
     Neste cenário não ocorre venda do gado ao frigorífico. O animal permanece pertencendo ao encomendante e é remetido temporariamente para realização do abate ou da industrialização por encomenda.
 
-    ##### Documento Fiscal
-
     | Campo | Tratamento |
     | :--- | :--- |
     | **Documento** | NF-e de remessa para industrialização por encomenda |
-    | **Emitente** | Produtor/encomendante contribuinte do ICMS |
-    | **Destinatário** | Frigorífico/industrializador |
-    | **CFOP interno** | **5.901 — Remessa para industrialização por encomenda** |
-    | **CFOP interestadual** | **6.901 — Remessa para industrialização por encomenda** |
+    | **Emitente** | Eencomendante contribuinte do ICMS |
+    | **Destinatário** | Frigorífico |
+    | **CFOP interno** | **1.922 | 1.922 — Remessa para industrialização por encomenda** |
     | **NCM** | **0102.29.90 — Gado bovino doméstico vivo** |
-    | **Finalidade** | Remessa temporária de gado para abate/industrialização |
+    | **Finalidade** | Remessa temporária de gado para abate |
     | **GTA** | Informar o número da Guia de Trânsito Animal correspondente |
     | **NF referenciada** | A NF-e deverá ser referenciada posteriormente na nota de retorno emitida pelo frigorífico |
 
@@ -103,18 +98,11 @@ Utilize as abas abaixo para visualizar as diretrizes fiscais conforme a condiç�
     | Tributo | Parametrização |
     | :--- | :--- |
     | **CST ICMS** | **050 — Suspensão**, sujeito à confirmação da contabilidade |
-    | **Alíquota ICMS** | Sem destaque |
-    | **Base e valor do ICMS** | Zero nesta etapa |
     | **Fundamento ICMS** | Suspensão aplicável à remessa para industrialização, conforme RICMS/MG |
-    | **ICMS-ST** | Não aplicável à remessa do gado vivo |
-    | **CST PIS** | **49 — Outras operações de saída** |
-    | **CST COFINS** | **49 — Outras operações de saída** |
-    | **PIS/COFINS** | Sem receita e sem débito nesta etapa |
+    | **CST PIS e Cofins** | **49 — Outras operações de saída** (Sem receita e sem débito nesta etapa)|
     | **CST IBS/CBS** | **410 — Imunidade e não incidência** |
     | **cClassTrib** | **410029 — Operações acobertadas somente pelo ICMS** |
-    | **Base IBS/CBS** | Não informar |
-    | **Alíquota IBS/CBS** | Não informar |
-    | **Valor IBS/CBS** | Não informar |
+
 
     <Callout type="warning" title="Não utilizar CFOP 5.122 ou 6.122 nesta remessa">
       Os CFOPs 5.122 e 6.122 representam venda de produção própria com entrega direta ao industrializador, por conta e ordem do adquirente.
@@ -135,16 +123,13 @@ Utilize as abas abaixo para visualizar as diretrizes fiscais conforme a condiç�
   </Tab>
 
   <Tab
-    value="Não contribuinte de ICMS"
-    title="Cenário B — Não contribuinte de ICMS não emitente de NF-e"
+    value="Encomendante não emitente de NF-e"
+    title="Cenário B — Não contribuinte de ICMS e não emitente de NF-e"
   >
-    #### Cenário B — Produtor/Encomendante não emitente de NF-e
 
     Quando o produtor ou encomendante não estiver obrigado, habilitado ou autorizado a emitir NF-e, o frigorífico deverá emitir uma NF-e de entrada própria para documentar o recebimento dos animais destinados ao abate por encomenda.
 
     A emissão da nota de entrada não representa aquisição do gado pelo frigorífico. Os animais continuam pertencendo ao produtor/encomendante.
-
-    ##### Documento Fiscal
 
     | Campo | Tratamento |
     | :--- | :--- |
@@ -163,26 +148,12 @@ Utilize as abas abaixo para visualizar as diretrizes fiscais conforme a condiç�
 
     | Tributo | Parametrização |
     | :--- | :--- |
-    | **CST ICMS** | **090 — Outras**, sujeito à homologação da contabilidade |
-    | **Alíquota ICMS** | Sem destaque |
-    | **Base e valor do ICMS** | Zero nesta etapa |
-    | **ICMS** | Entrada de mercadoria de terceiro para industrialização, sem aquisição pelo frigorífico |
-    | **ICMS-ST** | Não aplicável à entrada do gado para industrialização |
-    | **CST PIS** | **98 — Outras operações de entrada** |
-    | **CST COFINS** | **98 — Outras operações de entrada** |
-    | **PIS/COFINS** | Sem direito a crédito e sem incidência nesta movimentação |
+    | **CST ICMS** | **050 — Suspensão**, sujeito à confirmação da contabilidade |
+    | **Fundamento ICMS** | Suspensão aplicável à remessa para industrialização, conforme RICMS/MG |
+    | **CST PIS e Cofins** | **49 — Outras operações de saída** (Sem receita e sem débito nesta etapa)|
     | **CST IBS/CBS** | **410 — Imunidade e não incidência** |
     | **cClassTrib** | **410029 — Operações acobertadas somente pelo ICMS** |
-    | **Base IBS/CBS** | Não informar |
-    | **Alíquota IBS/CBS** | Não informar |
-    | **Valor IBS/CBS** | Não informar |
 
-    <Callout type="warning" title="CST ICMS pendente de homologação">
-      O CST ICMS 090 foi mantido como orientação operacional para a NF-e
-      própria de entrada. A contabilidade deverá confirmar se o documento
-      deverá utilizar CST 090 ou outro enquadramento específico previsto
-      para a operação no RICMS/MG.
-    </Callout>
 
     ##### Informação Complementar Sugerida
 
