@@ -175,7 +175,15 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
       </Tab>
     </Tabs>
 
-    ## Retorno das Carcaças / Produto Industrializado
+  </Step>
+  <Step>
+
+    ## Retorno das Carcaças 
+
+      **Separar o tratamento do retorno da industrialização da cobrança do serviço de abate.**
+      * Retorno da industrialização: NF-e de retorno físico com CFOP 5.925 / 6.925 (sem destaque de ICMS).
+      * Cobrança do serviço: NF-e com CFOP 5.125 / 6.125 (tributada sob alíquota interna/estadual).
+
 
     Após o abate, deve ser emitida a nota fiscal de **retorno das mercadorias industrializadas** ao encomendante.
 
@@ -210,7 +218,7 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
     ---
 
-    ## 5. Cobrança do Serviço de Abate / Industrialização
+    ## 5. Cobrança do Serviço de Abate
 
     Na mesma nota fiscal de retorno ou em documento fiscal próprio, deve ser incluída a cobrança referente à **prestação de serviços de abate / industrialização** (mão de obra e materiais aplicados).
 
@@ -254,8 +262,13 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
     > * **Gado Bovino Abatido (Retorno Físico)**: Faturado com CST `050` (Nacional, com suspensão/diferimento do ICMS), sem incidência ou base de cálculo.
     > * **Serviço de Mão de Obra (Cobrança)**: Faturado com CST `000` (Nacional, tributado integralmente), com destaque de ICMS à alíquota padrão do estado (exemplo de 18% em Minas Gerais).
 
-    ---
+  </Step>
+  <Step>
     ## Venda de Produtos Não Comestíveis
+
+    **Subprodutos: Validar a venda de despojos comestíveis e não comestíveis.**
+    * Despojos não comestíveis: NCM `0511.99.99`, com diferimento de ICMS (ex: RICMS/MG).
+    * Miúdos comestíveis: NCMs específicas (fígado, mocotó, etc.), tributados por ST (CST `060` ou `070`) ou com benefícios de alíquota zero.
 
     <Callout type="warning" title="Parametrização informada pela contabilidade">
       O tratamento abaixo deve ser validado por NCM e pela destinação do produto. O CST `051` representa diferimento do ICMS, e não isenção ou alíquota nominal zero.
@@ -275,9 +288,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
     | **Natureza da receita** | Pendente por NCM |
     | **CST IBS/CBS** | `000` — Tributação integral |
     | **cClassTrib** | `000001` — Situações tributadas integralmente pelo IBS e CBS |
-
-
-    #### Produtos não comestíveis
 
     #### Matriz fiscal dos produtos não comestíveis
 
