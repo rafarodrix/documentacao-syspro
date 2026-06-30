@@ -252,25 +252,27 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
       | Campo | Configuração informada |
       | :--- | :--- |
-      | **CFOP interno** | `5.101` — Venda de produção do estabelecimento |
-      | **CFOP interestadual** | `6.101` — Venda de produção do estabelecimento |
+      | **CFOP** | `5.401`, `6.401` — Venda de produção própria sujeita à ST, na condição de substituto |
       | **CST ICMS** | `060` — ICMS cobrado anteriormente por substituição tributária |
       | **CST PIS e COFINS** | `06` — Operação tributável à alíquota zero |
+      | **CST IBS/CBS** | `200` — Alíquota reduzida |
+      | **cClassTrib** | `200034` — Fornecimento de alimentos destinados ao consumo humano relacionados no Anexo VII da LC nº 214/2025 |
+      | **Redução das alíquotas** | `60%` |
 
       ### Produtos
 
-      | Produto | NCM | CEST | CST IBS/CBS | cClassTrib | Observação |
-      | :--- | :---: | :---: | :---: | :---: | :--- |
-      | Buchinho bovino comestível | `0504.00.90` | — | `000` | `000001` | Tributação integral; validar com a contabilidade |
-      | Bucho bovino — rúmen — comestível | `0504.00.90` | — | `000` | `000001` | Tributação integral; validar com a contabilidade |
-      | Carne industrial | `0206.29.90` | `17.084.00` | `200` | `200034` | Redefinir a descrição conforme o produto efetivo |
-      | Coração bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
-      | Fígado bovino congelado | `0206.22.00` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
-      | Língua bovina congelada | `0206.21.00` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
-      | Mocotó bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
-      | Rabo bovino congelado | `0206.29.10` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
-      | Rim bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
-      | Tendão bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
+      | Produto | NCM | CEST | Observação |
+      | :--- | :---: | :---: | :---: |
+      | Buchinho bovino comestível | `0504.00.90` | — | Tributação integral; validar com a contabilidade |
+      | Bucho bovino — rúmen — comestível | `0504.00.90` | — | Tributação integral; validar com a contabilidade |
+      | Carne industrial | `0206.29.90` | `17.084.00` | Redefinir a descrição conforme o produto efetivo |
+      | Coração bovino congelado | `0206.29.90` | `17.084.00` | Alíquota reduzida em 60% |
+      | Fígado bovino congelado | `0206.22.00` | `17.084.00` | Alíquota reduzida em 60% |
+      | Língua bovina congelada | `0206.21.00` | `17.084.00` | Alíquota reduzida em 60% |
+      | Mocotó bovino congelado | `0206.29.90` | `17.084.00` | Alíquota reduzida em 60% |
+      | Rabo bovino congelado | `0206.29.10` | `17.084.00` | Alíquota reduzida em 60% |
+      | Rim bovino congelado | `0206.29.90` | `17.084.00` | Alíquota reduzida em 60% |
+      | Tendão bovino congelado | `0206.29.90` | `17.084.00` | Alíquota reduzida em 60% |
 
       <Callout type="info" title="Tratamento do IBS e da CBS">
         Para os produtos classificados no NCM `0206`, foi informada a utilização
@@ -305,7 +307,7 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
     | Campo | Configuração informada |
     | :--- | :--- |
-    | **CFOP interno** | `5.101` `6.101`, sujeito à validação da operação |
+    | **CFOP** | `5.101` `6.101`, sujeito à validação da operação |
     | **CST ICMS** | `051` — Diferimento |
     | **CST PIS e COFINS** | `06` — Operação tributável à alíquota zero |
     | **CST IBS/CBS** | `000` — Tributação integral |
