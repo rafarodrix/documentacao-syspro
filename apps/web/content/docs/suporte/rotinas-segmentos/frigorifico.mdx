@@ -36,11 +36,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
 <Steps>
   <Step>
-    **Validar o enquadramento do produtor e identificar qual documento fiscal acoberta a entrada do gado.**
-    * Produtor contribuinte: Produtor emite NF-e de remessa para industrialização.
-    * Produtor não contribuinte: Frigorífico emite NF-e de remessa/entrada para industrialização.
-  </Step>
-  <Step>
     **Separar o tratamento do retorno da industrialização da cobrança do serviço de abate.**
     * Retorno da industrialização: NF-e de retorno físico com CFOP 5.925 / 6.925 (sem destaque de ICMS).
     * Cobrança do serviço: NF-e com CFOP 5.125 / 6.125 (tributada sob alíquota interna/estadual).
@@ -61,6 +56,10 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 <Steps>
   <Step>
     ## Entrada do Gado bovino destinado ao abate
+
+    **Validar o enquadramento do produtor e identificar qual documento fiscal acoberta a entrada do gado.**
+    * Produtor contribuinte: Produtor emite NF-e de remessa para industrialização.
+    * Produtor não contribuinte: Frigorífico emite NF-e de remessa/entrada para industrialização.
 
     ### Natureza da Operação
 
@@ -178,85 +177,88 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
   </Step>
   <step>
 
-  ## Retorno das Carcaças / Produto Industrializado
+    ## Retorno das Carcaças / Produto Industrializado
 
-  Após o abate, deve ser emitida a nota fiscal de **retorno das mercadorias industrializadas** ao encomendante.
+    Após o abate, deve ser emitida a nota fiscal de **retorno das mercadorias industrializadas** ao encomendante.
 
-  | Campo | Tratamento |
-  | :--- | :--- |
-  | **Documento** | NF-e de retorno de industrialização |
-  | **Emitente** | Frigorífico |
-  | **Destinatário** | Encomendante / produtor |
-  | **CFOP Interno** | **5.925** (Retorno de mercadoria recebida para industrialização por encomenda) |
-  | **CFOP Interestadual** | **6.925** |
-  | **Produto** | Carcaças, bandas, quartos ou produto industrializado final retornado |
-  | **NF Referenciada** | Chave de acesso da NF-e de remessa original (Cenário A) ou de entrada (Cenário B) |
+    | Campo | Tratamento |
+    | :--- | :--- |
+    | **Documento** | NF-e de retorno de industrialização |
+    | **Emitente** | Frigorífico |
+    | **Destinatário** | Encomendante / produtor |
+    | **CFOP Interno** | **5.925** (Retorno de mercadoria recebida para industrialização por encomenda) |
+    | **CFOP Interestadual** | **6.925** |
+    | **Produto** | Carcaças, bandas, quartos ou produto industrializado final retornado |
+    | **NF Referenciada** | Chave de acesso da NF-e de remessa original (Cenário A) ou de entrada (Cenário B) |
 
-  | Tributo | Tratamento sugerido |
-  | :--- | :--- |
-  | **ICMS** | Normalmente sem destaque (CST `050` - Retorno com suspensão do ICMS) |
-  | **ICMS-ST** | Não se aplica ao retorno da mercadoria industrializada |
-  | **PIS / COFINS** | Não há débito (mera devolução física de insumo) |
-  | **IBS / CBS** | 100% |
-  | **cClassTrib** | 200003 |
-  | **Informações comp.** | Deve vincular e referenciar explicitamente a NF de remessa, GTA e a operação |
+    | Tributo | Tratamento sugerido |
+    | :--- | :--- |
+    | **ICMS** | Normalmente sem destaque (CST `050` - Retorno com suspensão do ICMS) |
+    | **ICMS-ST** | Não se aplica ao retorno da mercadoria industrializada |
+    | **PIS / COFINS** | Não há débito (mera devolução física de insumo) |
+    | **IBS / CBS** | 100% |
+    | **cClassTrib** | 200003 |
+    | **Informações comp.** | Deve vincular e referenciar explicitamente a NF de remessa, GTA e a operação |
 
-  <Callout type="warning" title="Observação fiscal crucial">
-    O retorno da carcaça ou produto industrializado **não deve ser tratado como venda**. Trata-se da devolução física dos insumos que pertencem ao próprio produtor e foram entregues apenas para sofrer o processo de industrialização por encomenda.
-  </Callout>
+    <Callout type="warning" title="Observação fiscal crucial">
+      O retorno da carcaça ou produto industrializado **não deve ser tratado como venda**. Trata-se da devolução física dos insumos que pertencem ao próprio produtor e foram entregues apenas para sofrer o processo de industrialização por encomenda.
+    </Callout>
 
-  ### Informação Complementar Sugerida
+    ### Informação Complementar Sugerida
 
-  ```txt title="Texto Sugerido para Nota de Retorno"
-  Retorno de mercadoria recebida para industrialização por encomenda, referente a NF-e nº [NF_ORIGEM], série [SERIE_ORIGEM], emitida em [DATA_DA_NF], vinculada à GTA nº [GTA_INFORMADA]. Operação de retorno dos produtos resultantes do abate/industrialização.
-  ```
+    ```txt title="Texto Sugerido para Nota de Retorno"
+    Retorno de mercadoria recebida para industrialização por encomenda, referente a NF-e nº [NF_ORIGEM], série [SERIE_ORIGEM], emitida em [DATA_DA_NF], vinculada à GTA nº [GTA_INFORMADA]. Operação de retorno dos produtos resultantes do abate/industrialização.
+    ```
 
-  ---
+    ---
 
-  ## 5. Cobrança do Serviço de Abate / Industrialização
+    ## 5. Cobrança do Serviço de Abate / Industrialização
 
-  Na mesma nota fiscal de retorno ou em documento fiscal próprio, deve ser incluída a cobrança referente à **prestação de serviços de abate / industrialização** (mão de obra e materiais aplicados).
+    Na mesma nota fiscal de retorno ou em documento fiscal próprio, deve ser incluída a cobrança referente à **prestação de serviços de abate / industrialização** (mão de obra e materiais aplicados).
 
-  | Campo | Tratamento |
-  | :--- | :--- |
-  | **Documento** | NF-e com item de serviço/industrialização por encomenda |
-  | **Emitente** | Frigorífico |
-  | **Destinatário** | Encomendante |
-  | **CFOP Interno** | **5.125** (Industrialização efetuada para outra empresa) |
-  | **CFOP Interestadual** | **6.125** |
-  | **Descrição** | Serviço de abate e industrialização efetuada por encomenda |
-  | **NF Referenciada** | NF-e de remessa original ou nota de entrada |
+    | Campo | Tratamento |
+    | :--- | :--- |
+    | **Documento** | NF-e com item de serviço/industrialização por encomenda |
+    | **Emitente** | Frigorífico |
+    | **Destinatário** | Encomendante |
+    | **CFOP Interno** | **5.125** (Industrialização efetuada para outra empresa) |
+    | **CFOP Interestadual** | **6.125** |
+    | **Descrição** | Serviço de abate e industrialização efetuada por encomenda |
+    | **NF Referenciada** | NF-e de remessa original ou nota de entrada |
 
-  | Tributo | Tratamento a validar |
-  | :--- | :--- |
-  | **ICMS** | Validar se o estado concede diferimento na parcela da mão de obra ou se há destaque normal do imposto (CST `000` ou similar) |
-  | **ICMS-ST** | Não se aplica sobre a prestação de serviço de abate |
-  | **PIS / COFINS** | Receita tributada normalmente conforme o regime do frigorífico |
-  | **IBS / CBS** | 100% |
-  | **cClassTrib** | 200003 |
-  | **Base de Cálculo** | Valor total cobrado pelo serviço (mão de obra + materiais consumidos no abate) |
+    | Tributo | Tratamento a validar |
+    | :--- | :--- |
+    | **ICMS** | Validar se o estado concede diferimento na parcela da mão de obra ou se há destaque normal do imposto (CST `000` ou similar) |
+    | **ICMS-ST** | Não se aplica sobre a prestação de serviço de abate |
+    | **PIS / COFINS** | Receita tributada normalmente conforme o regime do frigorífico |
+    | **IBS / CBS** | 100% |
+    | **cClassTrib** | 200003 |
+    | **Base de Cálculo** | Valor total cobrado pelo serviço (mão de obra + materiais consumidos no abate) |
 
-  ### Informação Complementar Sugerida
+    ### Informação Complementar Sugerida
 
-  ```txt title="Texto Sugerido para Cobrança de Serviço"
-  Cobrança referente aos serviços de abate/industrialização prestados sobre mercadoria recebida para industrialização, vinculada à NF-e de origem nº [NF_ORIGEM], série [SERIE_ORIGEM], e à GTA nº [GTA_INFORMADA].
-  ```
+    ```txt title="Texto Sugerido para Cobrança de Serviço"
+    Cobrança referente aos serviços de abate/industrialização prestados sobre mercadoria recebida para industrialização, vinculada à NF-e de origem nº [NF_ORIGEM], série [SERIE_ORIGEM], e à GTA nº [GTA_INFORMADA].
+    ```
 
-  ---
+    ---
 
-  ### 5.1 Exemplo Prático de Faturamento Unificado (Carcaça + Serviço de Mão de Obra)
+    ### 5.1 Exemplo Prático de Faturamento Unificado (Carcaça + Serviço de Mão de Obra)
 
-  Na prática comercial dos frigoríficos, é comum emitir uma **única nota fiscal** englobando tanto a devolução das carcaças quanto a cobrança dos serviços. Abaixo está o exemplo real de preenchimento do grid de itens de nota fiscal baseado em faturamentos reais:
+    Na prática comercial dos frigoríficos, é comum emitir uma **única nota fiscal** englobando tanto a devolução das carcaças quanto a cobrança dos serviços. Abaixo está o exemplo real de preenchimento do grid de itens de nota fiscal baseado em faturamentos reais:
 
-  | Cód | Descrição do Produto/Serviço | NCM/SH | CST | CFOP | UN | Qtd | Val. Unit | Val. Total | B. Calc ICMS | Val. ICMS | Alíq ICMS |
-  | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-  | `000008` | GADO BOVINO ABATIDO - FEMEA | `02011000` | **`050`** | **`5925`** | UN | 4,0000 | 2.000,00 | 8.000,00 | 0,00 | 0,00 | 0,00% |
-  | `000080` | INDUST ABATE MAO DE OBRA E MATERIAIS BOVINO | `02011000` | **`000`** | **`5125`** | UN | 4,0000 | 200,00 | 800,00 | 800,00 | 144,00 | 18,00% |
+    | Cód | Descrição do Produto/Serviço | NCM/SH | CST | CFOP | UN | Qtd | Val. Unit | Val. Total | B. Calc ICMS | Val. ICMS | Alíq ICMS |
+    | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+    | `000008` | GADO BOVINO ABATIDO - FEMEA | `02011000` | **`050`** | **`5925`** | UN | 4,0000 | 2.000,00 | 8.000,00 | 0,00 | 0,00 | 0,00% |
+    | `000080` | INDUST ABATE MAO DE OBRA E MATERIAIS BOVINO | `02011000` | **`000`** | **`5125`** | UN | 4,0000 | 200,00 | 800,00 | 800,00 | 144,00 | 18,00% |
 
-  > [!NOTE]
-  > * **Gado Bovino Abatido (Retorno Físico)**: Faturado com CST `050` (Nacional, com suspensão/diferimento do ICMS), sem incidência ou base de cálculo.
-  > * **Serviço de Mão de Obra (Cobrança)**: Faturado com CST `000` (Nacional, tributado integralmente), com destaque de ICMS à alíquota padrão do estado (exemplo de 18% em Minas Gerais).
+    > [!NOTE]
+    > * **Gado Bovino Abatido (Retorno Físico)**: Faturado com CST `050` (Nacional, com suspensão/diferimento do ICMS), sem incidência ou base de cálculo.
+    > * **Serviço de Mão de Obra (Cobrança)**: Faturado com CST `000` (Nacional, tributado integralmente), com destaque de ICMS à alíquota padrão do estado (exemplo de 18% em Minas Gerais).
 
+    ---
+
+  </Step>
   <Step>
     ## Venda de Produtos Não Comestíveis
 
@@ -282,27 +284,27 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
     #### Produtos não comestíveis
 
-#### Matriz fiscal dos produtos não comestíveis
+    #### Matriz fiscal dos produtos não comestíveis
 
-| Produto | NCM | CEST | CFOP interno | CFOP interestadual | CST ICMS | Tratamento do ICMS | cBenef | CST PIS | Alíquota PIS | CST COFINS | Alíquota COFINS | Natureza da receita | CST IBS/CBS | cClassTrib | Redução IBS/CBS | Situação |
-| :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Aorta bovina não comestível** | `0511.99.99` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar NCM, destinação e enquadramento no diferimento |
-| **Bexiga bovina não comestível** | `0504.00.90` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar aplicação do diferimento e fundamento do PIS/COFINS |
-| **Casco bovino em bruto — não comestível** | `0507.90.00` | — | `5.101` | `6.101` | `051` | Diferimento integral nas operações internas, quando atendidas as condições do RICMS/MG | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Diferimento previsto para casco; confirmar encerramento e cBenef |
-| **Chifre bovino em bruto — não comestível** | `0507.90.00` | — | `5.101` | `6.101` | `051` | Diferimento integral nas operações internas, quando atendidas as condições do RICMS/MG | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Diferimento previsto para chifre; confirmar encerramento e cBenef |
-| **Mucosa intestinal bovina — não comestível** | `0511.99.99` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar se permanece em `0511.99.99` ou se possui destinação farmacêutica |
-| **Traqueia bovina não comestível** | `0511.99.99` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar NCM, destinação e enquadramento no diferimento |
-| **Vergalho bovino não comestível** | `0511.99.99` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar NCM, destinação e enquadramento no diferimento |
+    | Produto | NCM | CEST | CFOP interno | CFOP interestadual | CST ICMS | Tratamento do ICMS | cBenef | CST PIS | Alíquota PIS | CST COFINS | Alíquota COFINS | Natureza da receita | CST IBS/CBS | cClassTrib | Redução IBS/CBS | Situação |
+    | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+    | **Aorta bovina não comestível** | `0511.99.99` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar NCM, destinação e enquadramento no diferimento |
+    | **Bexiga bovina não comestível** | `0504.00.90` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar aplicação do diferimento e fundamento do PIS/COFINS |
+    | **Casco bovino em bruto — não comestível** | `0507.90.00` | — | `5.101` | `6.101` | `051` | Diferimento integral nas operações internas, quando atendidas as condições do RICMS/MG | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Diferimento previsto para casco; confirmar encerramento e cBenef |
+    | **Chifre bovino em bruto — não comestível** | `0507.90.00` | — | `5.101` | `6.101` | `051` | Diferimento integral nas operações internas, quando atendidas as condições do RICMS/MG | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Diferimento previsto para chifre; confirmar encerramento e cBenef |
+    | **Mucosa intestinal bovina — não comestível** | `0511.99.99` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar se permanece em `0511.99.99` ou se possui destinação farmacêutica |
+    | **Traqueia bovina não comestível** | `0511.99.99` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar NCM, destinação e enquadramento no diferimento |
+    | **Vergalho bovino não comestível** | `0511.99.99` | — | `5.101` | `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar NCM, destinação e enquadramento no diferimento |
 
-    A contabilidade deverá indicar o fundamento legal e o código de natureza da receita da EFD-Contribuições.
+        A contabilidade deverá indicar o fundamento legal e o código de natureza da receita da EFD-Contribuições.
 
-    ### Informação complementar sugerida
+        ### Informação complementar sugerida
 
-    ```txt title="Texto condicionado à validação"
-    Venda de subproduto não comestível resultante do abate de gado bovino. ICMS diferido nos termos de [FUNDAMENTO LEGAL], com percentual de diferimento de [PERCENTUAL]%. CST PIS/COFINS 06 e alíquotas zero conforme [FUNDAMENTO LEGAL/NATUREZA DA RECEITA]. IBS e CBS tributados integralmente, CST 000 e cClassTrib 000001.
-    ```
+        ```txt title="Texto condicionado à validação"
+        Venda de subproduto não comestível resultante do abate de gado bovino. ICMS diferido nos termos de [FUNDAMENTO LEGAL], com percentual de diferimento de [PERCENTUAL]%. CST PIS/COFINS 06 e alíquotas zero conforme [FUNDAMENTO LEGAL/NATUREZA DA RECEITA]. IBS e CBS tributados integralmente, CST 000 e cClassTrib 000001.
+        ```
   </Step>
-<Steps>
+</Steps>
 
 ## Matriz Fiscal Consolidada
 
