@@ -1,0 +1,523 @@
+---
+title: Rotina Fiscal de Frigorífico
+description: Manual técnico para parametrização e homologação contábil das operações de abate, industrialização por encomenda, retorno simbólico, venda de produtos comestíveis e subprodutos não comestíveis.
+lastUpdated: 2026-06-30
+owner: Fiscal / Implantação
+status: pending-accounting-validation
+tags:
+  - fiscal
+  - frigorífico
+  - abate
+  - industrialização
+  - icms
+  - icms-st
+  - pis-cofins
+  - ibs-cbs
+  - reforma-tributaria
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Rotina Fiscal do Processo de Abate Frigorífico
+
+Este documento consolida a rotina fiscal do **Tijuco Frigorífico Ituiutaba**, com foco na industrialização por encomenda, no retorno dos insumos, na cobrança do abate e na venda dos produtos resultantes.
+
+<Callout type="warning" title="Documento para homologação contábil">
+  Este material organiza a parametrização técnica do ERP, mas não substitui a validação formal da contabilidade. Regras de CFOP, CST, benefícios fiscais, PIS/COFINS, IBS/CBS, cClassTrib e informações complementares deverão ser revalidadas sempre que houver mudança de produto, NCM, destinatário, unidade federada, regime tributário ou natureza da operação.
+</Callout>
+
+---
+
+## 1. Situação da Homologação
+
+| Grupo | Situação | Observação |
+| :--- | :--- | :--- |
+| **Produtos comestíveis** | Parâmetros recebidos | CST ICMS `060`, PIS/COFINS `06`, CST IBS/CBS `200` e cClassTrib `200034` |
+| **Subprodutos não comestíveis** | Parâmetros recebidos | CST ICMS `051`, PIS/COFINS `06`, CST IBS/CBS `000` e cClassTrib `000001` |
+| **Entrada do gado** | Pendente | Confirmar emitente, CFOP, CST ICMS e tratamento IBS/CBS |
+| **Retorno da industrialização** | Pendente | Confirmar CST ICMS, classificação IBS/CBS e informações complementares |
+| **Cobrança do abate** | Pendente | Confirmar ICMS sobre mão de obra e materiais, PIS/COFINS e IBS/CBS |
+| **ICMS-ST dos comestíveis** | Pendente de justificativa | Confirmar em qual etapa ocorreu a retenção anterior e qual CFOP deverá ser utilizado |
+| **PIS/COFINS dos não comestíveis** | Pendente por NCM | Confirmar fundamento legal e natureza da receita na EFD-Contribuições |
+
+---
+
+
+## 3. Matriz de Produtos, NCM e CEST
+
+<Callout type="info" title="Regra do CEST">
+  O CEST `17.084.00` alcança mercadorias das posições `0201`, `0202` e `0206`. O preenchimento do CEST identifica mercadoria passível de sujeição à substituição tributária, mas não define isoladamente que haverá ICMS-ST em toda saída.
+</Callout>
+
+### 3.1 Produtos principais e movimentações
+
+| Produto | NCM | CEST | Situação |
+| :--- | :---: | :---: | :--- |
+| Gado bovino doméstico vivo destinado ao abate | `0102.29.90` | — | Manter |
+| Meia-carcaça bovina congelada | `0202.10.00` | `17.084.00` | Manter |
+| Quarto dianteiro bovino com osso refrigerado | `0201.20.10` | `17.084.00` | Manter |
+| Quarto traseiro bovino com osso refrigerado | `0201.20.20` | `17.084.00` | Manter |
+| Outros cortes bovinos com osso refrigerados | `0201.20.90` | `17.084.00` | Manter |
+| Industrialização por encomenda — mão de obra de abate bovino | `00000000` | — | Corrigir cadastro atual e retirar o CEST |
+
+### 3.2 Produtos comestíveis
+
+| Produto | NCM | CEST | Situação |
+| :--- | :---: | :---: | :--- |
+| Buchinho bovino — estômago | `0504.00.90` | — | Manter NCM; completar estado de conservação |
+| Bucho bovino — rúmen | `0504.00.90` | — | Manter NCM; completar estado de conservação |
+| Coração bovino congelado | `0206.29.90` | `17.084.00` | Manter |
+| Fígado bovino congelado | `0206.22.00` | `17.084.00` | Manter |
+| Língua bovina congelada | `0206.21.00` | `17.084.00` | Manter |
+| Mocotó bovino congelado | `0206.29.90` | `17.084.00` | Validar apresentação sanitária |
+| Rabo bovino congelado | `0206.29.10` | `17.084.00` | Manter |
+| Rim bovino congelado | `0206.29.90` | `17.084.00` | Manter |
+| Tendão bovino comestível congelado | `0206.29.90` | `17.084.00` | Manter, após confirmação da apresentação |
+| Carne industrial | — | — | Desativar ou redefinir; o nome não identifica o produto físico |
+
+### 3.3 Subprodutos não comestíveis
+
+| Produto | NCM recomendado | CEST | Situação |
+| :--- | :---: | :---: | :--- |
+| Aorta bovina não comestível | `0511.99.99` | — | Provisório; validar destinação e processamento |
+| Bexiga bovina não comestível | `0504.00.90` | — | Corrigir cadastro atual |
+| Casco bovino em bruto — não comestível | `0507.90.00` | — | Manter/corrigir conforme cadastro |
+| Chifre bovino em bruto — não comestível | `0507.90.00` | — | Corrigir cadastro atual |
+| Mucosa intestinal bovina — não comestível | `0511.99.99` ou `0510.00.90` | — | Validar destinação, especialmente uso farmacêutico |
+| Traqueia bovina não comestível | `0511.99.99` | — | Provisório; validar apresentação |
+| Vergalho bovino não comestível | `0511.99.99` | — | Provisório; validar apresentação |
+
+<Callout type="warning" title="Produtos residuais">
+  O NCM `0511.99.99` é residual. Aorta, mucosa, traqueia e vergalho somente devem permanecer nesse código depois de confirmados o estado do produto, o processamento realizado e a destinação comercial.
+</Callout>
+
+---
+
+## 4. Fluxos de Industrialização por Encomenda
+
+A escolha dos CFOPs depende de o insumo transitar ou não pelo estabelecimento do encomendante.
+
+<Tabs items={['Remessa direta pelo encomendante', 'Operação triangular', 'Remetente sem emissão própria']}>
+  <Tab value="Remessa direta pelo encomendante" title="Remessa direta pelo encomendante">
+    Neste cenário, o gado pertence ao encomendante e é remetido diretamente por ele ao frigorífico.
+
+    <Steps>
+      <Step>
+        **Remessa ao frigorífico**
+
+        O encomendante emite NF-e com CFOP `5.901` ou `6.901`, conforme a localização do industrializador.
+      </Step>
+      <Step>
+        **Retorno dos insumos incorporados**
+
+        O frigorífico utiliza CFOP `5.902` ou `6.902`, mantendo a identificação e o valor dos insumos recebidos.
+      </Step>
+      <Step>
+        **Cobrança da industrialização**
+
+        O frigorífico utiliza CFOP `5.124` ou `6.124` para a mão de obra e os materiais próprios empregados.
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab value="Operação triangular" title="Operação triangular — fornecedor entrega diretamente ao frigorífico">
+    Neste cenário, o encomendante compra o gado de um fornecedor, mas a mercadoria é entregue diretamente ao frigorífico, sem transitar pelo estabelecimento do adquirente.
+
+    <Steps>
+      <Step>
+        **Venda do fornecedor ao encomendante**
+
+        O fornecedor emite a nota de venda ao adquirente/encomendante. Quando se tratar de produção própria, utiliza-se `5.122` ou `6.122`; quando se tratar de mercadoria adquirida de terceiros, utiliza-se `5.123` ou `6.123`.
+      </Step>
+      <Step>
+        **Remessa física do fornecedor ao frigorífico**
+
+        O fornecedor emite a nota que acompanha o gado até o industrializador com CFOP `5.924` ou `6.924`, sem destaque do imposto quando assim previsto.
+      </Step>
+      <Step>
+        **Remessa simbólica do encomendante ao frigorífico**
+
+        O adquirente/encomendante emite NF-e com CFOP `5.901` ou `6.901`, indicando a remessa para industrialização por encomenda.
+      </Step>
+      <Step>
+        **Retorno simbólico pelo frigorífico**
+
+        O frigorífico utiliza CFOP `5.925` ou `6.925` para retornar simbolicamente o insumo recebido por conta e ordem do adquirente.
+      </Step>
+      <Step>
+        **Cobrança da industrialização**
+
+        O frigorífico utiliza CFOP `5.125` ou `6.125` para a mão de obra e os materiais próprios empregados.
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab value="Remetente sem emissão própria" title="Produtor ou encomendante sem emissão própria">
+    Quando a pessoa que entrega ou encomenda o abate não emitir documento fiscal próprio, a emissão de NF-e de entrada pelo frigorífico, o CFOP e o enquadramento tributário deverão ser confirmados pela contabilidade e pela legislação de Minas Gerais.
+
+    <Callout type="warning" title="Não automatizar sem validação">
+      Não considerar automaticamente o CFOP `1.901` ou `2.901`, o CST `090` ou PIS/COFINS `06` para todos os casos. A solução depende da condição cadastral do produtor, da propriedade do gado, do documento rural disponível e da natureza jurídica da operação.
+    </Callout>
+  </Tab>
+</Tabs>
+
+---
+
+## 5. Entrada do Gado em Pé
+
+### 5.1 Identificação do produto
+
+| Campo | Preenchimento recomendado |
+| :--- | :--- |
+| **Produto** | Gado bovino doméstico vivo destinado ao abate |
+| **NCM** | `0102.29.90` |
+| **CEST** | Não informar |
+| **Unidade** | Cabeça, unidade ou padrão definido no documento de origem |
+| **Controle sanitário** | Referenciar a GTA correspondente |
+
+### 5.2 Informações mínimas
+
+A documentação de entrada deve permitir identificar:
+
+- proprietário ou fornecedor do gado;
+- encomendante da industrialização;
+- frigorífico industrializador;
+- quantidade de animais;
+- valor do gado remetido;
+- chave da NF-e ou documento rural de origem;
+- número da GTA;
+- local efetivo de entrega.
+
+### 5.3 Informação complementar sugerida
+
+```txt title="Texto sugerido"
+Gado bovino vivo remetido para industrialização por encomenda/abate, vinculado à NF-e nº [NF_ORIGEM], série [SERIE], chave [CHAVE_NFE] e GTA nº [GTA]. Encomendante: [NOME/RAZÃO SOCIAL], CPF/CNPJ [DOCUMENTO]. Industrializador: [FRIGORÍFICO].
+```
+
+---
+
+## 6. Retorno e Cobrança da Industrialização
+
+### 6.1 Retorno simbólico no fluxo triangular
+
+No CFOP `5.925` ou `6.925`, a linha fiscal deve representar o **insumo recebido**, e não uma venda da carcaça.
+
+| Campo | Preenchimento recomendado |
+| :--- | :--- |
+| **Descrição** | Retorno simbólico de gado bovino vivo recebido para industrialização por conta e ordem do encomendante |
+| **NCM** | `0102.29.90` |
+| **CFOP** | `5.925` ou `6.925` |
+| **Quantidade** | Compatível com a documentação de remessa |
+| **Valor** | Mesmo valor dos insumos recebidos para industrialização |
+| **ICMS** | Suspensão/sem destaque, conforme enquadramento validado |
+| **NF referenciada** | Nota de venda, remessa física e remessa simbólica, conforme o fluxo |
+
+<Callout type="warning" title="Produto final do abate">
+  A meia-carcaça, os quartos e os demais produtos resultantes devem ser identificados nos controles de produção e, quando necessário, nas informações complementares. Eles não substituem o NCM do gado vivo na linha de retorno simbólico do CFOP 5.925/6.925.
+</Callout>
+
+### 6.2 Cobrança da mão de obra
+
+| Campo | Preenchimento recomendado |
+| :--- | :--- |
+| **Descrição** | Industrialização por encomenda — abate bovino — mão de obra |
+| **NCM** | `00000000` |
+| **CEST** | Não informar |
+| **CFOP** | `5.125` ou `6.125` no fluxo triangular; `5.124` ou `6.124` na remessa direta |
+| **Unidade** | CAB, KG ou SERV, conforme o contrato |
+| **ICMS** | Confirmar CST, base, alíquota e eventual benefício com a contabilidade |
+| **PIS/COFINS** | Receita da industrialização; confirmar regime aplicável |
+| **IBS/CBS** | Pendente de classificação contábil específica |
+
+### 6.3 Materiais próprios do frigorífico
+
+Materiais do frigorífico não devem ser somados à mão de obra em uma única linha genérica. Devem ser discriminados individualmente, com NCM, quantidade, valor e tributação próprios.
+
+Exemplos:
+
+- embalagem aplicada;
+- etiqueta de identificação;
+- materiais incorporados ao produto;
+- outros insumos cobrados separadamente.
+
+### 6.4 Exemplo corrigido de faturamento unificado
+
+| Descrição | NCM | CST ICMS | CFOP | Tratamento |
+| :--- | :---: | :---: | :---: | :--- |
+| Retorno simbólico de gado bovino vivo recebido para industrialização | `0102.29.90` | A validar | `5.925` | Mesmo valor do insumo recebido; sem receita de venda |
+| Industrialização por encomenda — abate bovino — mão de obra | `00000000` | A validar | `5.125` | Valor cobrado pelo abate |
+| Material próprio aplicado — item individualizado | NCM real | Conforme o material | `5.125` | Valor e tributação do material empregado |
+
+### 6.5 Informação complementar sugerida
+
+```txt title="Retorno e cobrança"
+Retorno simbólico de mercadoria recebida para industrialização por conta e ordem do adquirente, referente às NF-e nº [NF_VENDA], [NF_REMESSA_FÍSICA] e [NF_REMESSA_SIMBÓLICA], vinculadas à GTA nº [GTA]. O produto resultante do processo compreende [DESCREVER MEIA-CARCAÇAS/QUARTOS/OUTROS], conforme controle de produção e inspeção sanitária. Cobrança de industrialização discriminada em item próprio.
+```
+
+---
+
+## 7. Venda de Produtos Comestíveis
+
+<Callout type="warning" title="Parametrização informada pela contabilidade">
+  A configuração abaixo foi fornecida pela contabilidade. O CST ICMS `060` somente deverá ser utilizado depois de confirmados a origem da retenção anterior do ICMS-ST, o documento em que ela ocorreu e o CFOP adequado à venda de produtos resultantes do próprio abate.
+</Callout>
+
+### 7.1 Parametrização recebida
+
+| Campo | Configuração informada |
+| :--- | :--- |
+| **CST ICMS** | `060` — ICMS cobrado anteriormente por substituição tributária |
+| **ICMS próprio na saída** | Sem destaque |
+| **Alíquota apresentada no ERP** | `0%` |
+| **CFOP** | Pendente de confirmação |
+| **CST PIS** | `06` — Operação tributável à alíquota zero |
+| **Alíquota PIS** | `0%` |
+| **CST COFINS** | `06` — Operação tributável à alíquota zero |
+| **Alíquota COFINS** | `0%` |
+| **Natureza da receita** | Confirmar por NCM na EFD-Contribuições |
+| **CST IBS/CBS** | `200` — Alíquota reduzida |
+| **cClassTrib** | `200034` — Alimentos destinados ao consumo humano, Anexo VII |
+| **Redução IBS/CBS** | `60%` das alíquotas-padrão |
+
+### 7.2 Aplicação por produto
+
+| Grupo | Tratamento inicial | Validação necessária |
+| :--- | :--- | :--- |
+| Carnes e cortes NCM `0201` e `0202` | Candidato a `200/200034` | Confirmar NCM no Anexo VII e situação da operação |
+| Miudezas NCM `0206` | Candidato a `200/200034` | Confirmar NCM no Anexo VII |
+| Bucho e buchinho NCM `0504.00.90` | Não aplicar automaticamente | Confirmar expressamente com a contabilidade |
+
+### 7.3 Ponto crítico do CST 060
+
+O CST `060` caracteriza mercadoria cujo ICMS já foi cobrado anteriormente por substituição tributária. Como fígado, coração, língua, rabo, rim, mocotó e demais produtos resultam do abate realizado pelo próprio frigorífico, devem ser respondidas as seguintes questões antes da homologação:
+
+1. Quem recolheu anteriormente o ICMS-ST?
+2. Em qual documento fiscal constam a base e o valor retidos?
+3. O frigorífico atua como contribuinte substituído ou substituto?
+4. O CFOP correto será `5.405` ou um CFOP de venda de produção própria sujeita à ST?
+5. A regra vale para todas as vendas ou apenas para destinatários e operações específicos?
+
+<Callout type="danger" title="Bloqueio de implantação">
+  Não utilizar o CFOP `5.405` como regra geral sem a confirmação acima. Esse CFOP é associado à venda de mercadoria adquirida ou recebida de terceiros por contribuinte substituído e pode não refletir a saída de produção própria do frigorífico.
+</Callout>
+
+### 7.4 Informação complementar sugerida
+
+A informação complementar somente deverá mencionar ICMS-ST recolhido anteriormente quando houver documentação que comprove a retenção.
+
+```txt title="Texto condicionado à confirmação"
+Operação com ICMS cobrado anteriormente por substituição tributária, conforme [DOCUMENTO/ETAPA DA RETENÇÃO], nos termos de [FUNDAMENTO LEGAL]. Produto destinado ao consumo humano com redução das alíquotas do IBS e da CBS, CST 200 e cClassTrib 200034, quando atendidos os requisitos legais e o enquadramento da NCM.
+```
+
+---
+
+## 8. Venda de Subprodutos Não Comestíveis
+
+<Callout type="warning" title="Parametrização informada pela contabilidade">
+  O tratamento abaixo deve ser validado por NCM e pela destinação do produto. O CST `051` representa diferimento do ICMS, e não isenção ou alíquota nominal zero.
+</Callout>
+
+### 8.1 Parametrização recebida
+
+| Campo | Configuração informada |
+| :--- | :--- |
+| **CFOP interno** | `5.101`, sujeito à validação da operação |
+| **CFOP interestadual** | `6.101`, sujeito à validação da operação |
+| **CST ICMS** | `051` — Diferimento |
+| **Alíquota nominal** | Conforme a operação |
+| **Percentual de diferimento** | Pendente de confirmação |
+| **ICMS destacado nesta etapa** | Zero quando houver diferimento integral |
+| **Fundamento legal** | Pendente de indicação |
+| **cBenef** | Confirmar obrigatoriedade e código |
+| **CST PIS** | `06` — Operação tributável à alíquota zero |
+| **CST COFINS** | `06` — Operação tributável à alíquota zero |
+| **Alíquota PIS/COFINS** | `0%` |
+| **Natureza da receita** | Pendente por NCM |
+| **CST IBS/CBS** | `000` — Tributação integral |
+| **cClassTrib** | `000001` — Situações tributadas integralmente pelo IBS e CBS |
+| **Redução IBS/CBS** | Não se aplica |
+
+### 8.2 Abrangência do diferimento em Minas Gerais
+
+A legislação mineira prevê tratamento específico para determinadas saídas internas de produtos não comestíveis resultantes do abate, especialmente:
+
+- couro ou pele em estado previsto na legislação;
+- osso;
+- chifre;
+- casco;
+- produto gorduroso, inclusive sebo.
+
+A aplicação do CST `051` não deve ser estendida automaticamente a aorta, bexiga, mucosa, traqueia ou vergalho sem confirmação do fundamento legal correspondente.
+
+### 8.3 Preenchimento correto do CST 051
+
+Em caso de diferimento integral, o ERP poderá apresentar valor de ICMS devido nesta etapa igual a zero, mas deverá preservar os campos necessários à demonstração da operação, quando exigidos:
+
+- base de cálculo;
+- alíquota nominal;
+- valor do ICMS da operação;
+- percentual de diferimento;
+- valor do ICMS diferido;
+- valor residual do imposto, se houver.
+
+### 8.4 PIS/COFINS por NCM
+
+O CST `06` deve ser confirmado individualmente para:
+
+| Grupo | NCM |
+| :--- | :---: |
+| Bexiga, estômago e produtos da posição 05.04 | `0504.00.90` |
+| Casco e chifre | `0507.90.00` |
+| Aorta, traqueia, vergalho e outros residuais | `0511.99.99` |
+| Mucosa destinada à indústria farmacêutica | Possível `0510.00.90` |
+
+A contabilidade deverá indicar o fundamento legal e o código de natureza da receita da EFD-Contribuições.
+
+### 8.5 Informação complementar sugerida
+
+```txt title="Texto condicionado à validação"
+Venda de subproduto não comestível resultante do abate de gado bovino. ICMS diferido nos termos de [FUNDAMENTO LEGAL], com percentual de diferimento de [PERCENTUAL]%. CST PIS/COFINS 06 e alíquotas zero conforme [FUNDAMENTO LEGAL/NATUREZA DA RECEITA]. IBS e CBS tributados integralmente, CST 000 e cClassTrib 000001.
+```
+
+---
+
+## 9. PIS e COFINS
+
+### 9.1 Matriz de tratamento
+
+| Operação | Tratamento no manual |
+| :--- | :--- |
+| Remessa do gado para industrialização | Sem receita de venda; classificar conforme o documento e a escrituração aplicável |
+| Retorno simbólico dos insumos | Sem receita própria; confirmar CST de saída e escrituração |
+| Cobrança da industrialização | Receita do frigorífico; tributação conforme o regime da empresa |
+| Venda de carnes e miudezas comestíveis | CST `06` e alíquotas zero, conforme orientação contábil e enquadramento legal da NCM |
+| Venda de produtos não comestíveis | CST `06` informado pela contabilidade, pendente de confirmação individual por NCM |
+
+### 9.2 Campos que devem ser homologados
+
+- CST PIS;
+- CST COFINS;
+- alíquotas;
+- base de cálculo;
+- código de natureza da receita;
+- tratamento na entrada;
+- direito a crédito ou crédito presumido;
+- diferenças entre Lucro Real, Lucro Presumido e Simples Nacional.
+
+<Callout type="warning" title="CST de entrada">
+  Não fixar CST `50` para todas as entradas. O direito ao crédito depende do fornecedor, da natureza da aquisição, do regime tributário e da destinação do produto.
+</Callout>
+
+---
+
+## 10. IBS e CBS
+
+### 10.1 Produtos comestíveis
+
+| Campo | Configuração |
+| :--- | :--- |
+| **CST IBS/CBS** | `200` |
+| **cClassTrib** | `200034` |
+| **Descrição** | Fornecimento de alimentos destinados ao consumo humano relacionados no Anexo VII |
+| **Redução** | `60%` das alíquotas-padrão |
+
+O sistema deve calcular as alíquotas conforme o período de vigência. O manual não deve armazenar uma alíquota final fixa, pois as alíquotas-padrão e a transição variam no tempo.
+
+### 10.2 Subprodutos não comestíveis
+
+| Campo | Configuração |
+| :--- | :--- |
+| **CST IBS/CBS** | `000` |
+| **cClassTrib** | `000001` |
+| **Descrição** | Situações tributadas integralmente pelo IBS e CBS |
+| **Redução** | Não se aplica |
+
+### 10.3 Demais operações
+
+A entrada do gado, a remessa para industrialização, o retorno simbólico e a cobrança do abate não devem continuar com `IBS/CBS 100%` ou cClassTrib `200003` de forma genérica.
+
+Para cada uma dessas operações, a contabilidade deverá confirmar:
+
+- existência ou não de fornecimento oneroso;
+- CST IBS/CBS;
+- cClassTrib;
+- base de cálculo;
+- redução, suspensão, não incidência ou diferimento;
+- tratamento durante o período de transição.
+
+---
+
+## 11. Matriz Fiscal Consolidada
+
+| Operação | CFOP | Produto/NCM | ICMS | PIS/COFINS | IBS/CBS | Situação |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Remessa direta do encomendante ao frigorífico | `5.901/6.901` | Gado vivo `0102.29.90` | A validar | Sem receita | A validar | Fluxo padrão |
+| Retorno no fluxo direto | `5.902/6.902` | Mesmo insumo recebido | A validar | Sem receita própria | A validar | Fluxo padrão |
+| Cobrança no fluxo direto | `5.124/6.124` | Mão de obra `00000000` e materiais próprios | A validar | Receita tributável conforme regime | A validar | Pendente de contabilidade |
+| Venda do fornecedor ao encomendante no fluxo triangular | `5.122/6.122` ou `5.123/6.123` | Gado vivo | Conforme fornecedor | Conforme fornecedor | Conforme fornecedor | Documento do fornecedor |
+| Remessa física ao frigorífico | `5.924/6.924` | Gado vivo `0102.29.90` | Sem destaque quando aplicável | Sem receita adicional | A validar | Fluxo triangular |
+| Remessa simbólica do encomendante | `5.901/6.901` | Gado vivo `0102.29.90` | Suspensão, quando aplicável | Sem receita | A validar | Fluxo triangular |
+| Retorno simbólico do frigorífico | `5.925/6.925` | Gado vivo `0102.29.90` | Suspensão, quando aplicável | Sem receita própria | A validar | Fluxo triangular |
+| Cobrança da industrialização triangular | `5.125/6.125` | Mão de obra `00000000` e materiais próprios | A validar | Receita tributável conforme regime | A validar | Pendente de contabilidade |
+| Venda de produtos comestíveis | A confirmar | NCM `0201/0202/0206` e casos de `0504` | CST `060`, condicionado à comprovação da ST anterior | CST `06`, 0% | CST `200`, cClassTrib `200034` | Parâmetros recebidos; CFOP pendente |
+| Venda de subprodutos não comestíveis | `5.101/6.101`, a confirmar | NCM `0504/0507/0511` | CST `051`, diferimento a confirmar | CST `06`, 0%, validar por NCM | CST `000`, cClassTrib `000001` | Parâmetros recebidos; fundamento pendente |
+
+---
+
+## 12. Checklist de Validação da Contabilidade
+
+### 12.1 Produtos comestíveis
+
+- [ ] Informar quem recolheu anteriormente o ICMS-ST.
+- [ ] Informar o documento fiscal em que consta a retenção.
+- [ ] Confirmar se o frigorífico é substituto ou substituído.
+- [ ] Confirmar o CFOP interno e interestadual.
+- [ ] Confirmar se o CST `060` vale para todos os produtos comestíveis.
+- [ ] Confirmar se bucho e buchinho `0504.00.90` usam cClassTrib `200034`.
+- [ ] Informar a natureza da receita de PIS/COFINS por NCM.
+
+### 12.2 Subprodutos não comestíveis
+
+- [ ] Confirmar quais NCMs estão alcançados pelo diferimento.
+- [ ] Informar o artigo do RICMS/MG.
+- [ ] Confirmar o percentual de diferimento.
+- [ ] Confirmar se o diferimento é integral ou parcial.
+- [ ] Informar o cBenef, quando exigido.
+- [ ] Confirmar CST PIS/COFINS `06` para `0504.00.90`, `0507.90.00` e `0511.99.99`.
+- [ ] Informar a natureza da receita da EFD-Contribuições.
+
+### 12.3 Industrialização
+
+- [ ] Confirmar CST ICMS da remessa simbólica.
+- [ ] Confirmar CST ICMS do retorno simbólico.
+- [ ] Confirmar CST ICMS da mão de obra.
+- [ ] Confirmar a tributação dos materiais próprios.
+- [ ] Confirmar PIS/COFINS sobre a cobrança do abate.
+- [ ] Confirmar CST IBS/CBS e cClassTrib da remessa, retorno e industrialização.
+- [ ] Validar o procedimento quando o produtor não emitir NF-e própria.
+
+---
+
+## 13. Checklist de Implantação no ERP
+
+- [ ] Corrigir o item de mão de obra para NCM `00000000` e retirar o CEST.
+- [ ] Corrigir bexiga para NCM `0504.00.90`.
+- [ ] Corrigir chifre para NCM `0507.90.00`.
+- [ ] Confirmar casco em `0507.90.00`.
+- [ ] Desativar ou redefinir o cadastro “CARNE INDUSTRIAL”.
+- [ ] Padronizar os nomes com “congelado”, “refrigerado” ou “em bruto”.
+- [ ] Separar os materiais próprios da mão de obra.
+- [ ] Criar perfil fiscal exclusivo para gado vivo e retornos simbólicos.
+- [ ] Criar perfil fiscal exclusivo para industrialização.
+- [ ] Criar perfil de produtos comestíveis condicionado à validação do ICMS-ST.
+- [ ] Criar perfil de não comestíveis com diferimento parametrizável.
+- [ ] Cadastrar CST IBS/CBS e cClassTrib por produto e operação.
+- [ ] Homologar uma NF-e de cada cenário antes da entrada em produção.
+
+---
+
+<Callout type="info" title="Controle de versão">
+  Após a devolução da contabilidade, atualizar o campo `status` do frontmatter para `accounting-approved`, registrar a data da homologação e anexar a matriz fiscal assinada ou o e-mail formal de aprovação.
+</Callout>
