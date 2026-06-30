@@ -284,36 +284,17 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
       ### Informações complementares sugeridas
 
-      #### Produtos do NCM 0206
-
-      ```txt title="Texto para produtos com alíquota reduzida"
-      Venda de produto comestível resultante do abate de gado bovino.
-      ICMS cobrado anteriormente por substituição tributária, CST 060,
-      conforme [FUNDAMENTO LEGAL].
-
-      PIS e COFINS sujeitos à alíquota zero, CST 06, conforme
-      [FUNDAMENTO LEGAL] e natureza da receita [CODIGO].
-
-      IBS e CBS com redução de 60% das alíquotas, CST 200 e
-      cClassTrib 200034.
-    ````
-
-    #### Bucho e buchinho — NCM 0504.00.90
-
-    ```txt title="Texto para produtos com tributação integral"
+    ```txt title="Texto condicionado à validação"
     Venda de produto comestível resultante do abate de gado bovino.
     ICMS cobrado anteriormente por substituição tributária, CST 060,
     conforme [FUNDAMENTO LEGAL].
 
     PIS e COFINS sujeitos à alíquota zero, CST 06, conforme
     [FUNDAMENTO LEGAL] e natureza da receita [CODIGO].
-
-    IBS e CBS tributados integralmente, CST 000 e
-    cClassTrib 000001, sem redução das alíquotas.
     ```
 
     </Step>
-<Step>
+    <Step>
     ## Venda de Produtos Não Comestíveis
 
     <Callout type="warning" title="Parametrização informada pela contabilidade">
@@ -342,10 +323,16 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
     | Traqueia bovina não comestível | `0511.99.99` | Validar conforme destinação |
     | Vergalho bovino não comestível | `0511.99.99` | Validar conforme apresentação |
     
-    ### Informação complementar sugerida
+    ### Informações complementares sugeridas
 
       ```txt title="Texto condicionado à validação"
-        Venda de subproduto não comestível resultante do abate de gado bovino. ICMS diferido nos termos de [FUNDAMENTO LEGAL], com percentual de diferimento de [PERCENTUAL]%. CST PIS/COFINS 06 e alíquotas zero conforme [FUNDAMENTO LEGAL/NATUREZA DA RECEITA]. IBS e CBS tributados integralmente, CST 000 e cClassTrib 000001.
+      Venda de subproduto não comestível resultante do abate de gado bovino.
+
+      ICMS diferido nos termos de [FUNDAMENTO LEGAL], 
+      com percentual de diferimento de [PERCENTUAL]%. 
+         
+      PIS e COFINS sujeitos à alíquota zero, CST 06, conforme
+      [FUNDAMENTO LEGAL] e natureza da receita [CODIGO].
       ```
   </Step>
 </Steps>
