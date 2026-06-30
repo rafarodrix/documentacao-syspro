@@ -7,11 +7,10 @@ status: published
 tags:
   - fiscal
   - frigorífico
-  - abate
   - icms
   - pis-cofins
   - icms-st
-  - reforma-tributaria
+
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -22,10 +21,11 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Análise Fiscal do Processo de Abate Frigorífico
 
-Este documento organiza a análise fiscal da operação de abate frigorífico com foco exclusivo no tratamento tributário, integrando as novas diretrizes da Reforma Tributária (IBS/CBS e cClassTrib). O objetivo aqui não é descrever o fluxo operacional do sistema, e sim consolidar os cenários fiscais que precisam orientar a parametrização, a emissão documental e a validação contábil.
 
-<Callout type="info" title="Escopo do documento">
-  Este material trata exclusivamente dos aspectos fiscais da operação. Não cobre telas, módulos, estoque, pesagem, rendimento ou comportamento operacional do sistema.
+Este documento consolida a rotina fiscal do **Tijuco Frigorífico Ituiutaba**, com foco na industrialização por encomenda, no retorno dos insumos, na cobrança do abate e na venda dos produtos resultantes. O objetivo aqui é descrever o fluxo operacional do sistema, e consolidar os cenários fiscais que precisam orientar a parametrização, a emissão documental e a validação contábil.
+
+<Callout type="warning" title="Documento para homologação contábil">
+  Este material organiza a parametrização técnica do ERP, mas não substitui a validação formal da contabilidade. Regras de CFOP, CST, benefícios fiscais, PIS/COFINS, IBS/CBS, cClassTrib e informações complementares deverão ser revalidadas sempre que houver mudança de produto, NCM, destinatário, unidade federada, regime tributário ou natureza da operação.
 </Callout>
 
 ---
@@ -253,18 +253,20 @@ Venda de subprodutos não comestíveis resultantes do abate de gado bovino. ICMS
 
 ---
 
-### 6.2 Venda de Despojos Comestíveis / Miúdos
+### Venda de produtos não comestíveis
 
-A comercialização de miúdos e despojos comestíveis (fígado, coração, língua, bucho, etc.) deve ser parametrizada conforme a NCM, regime de tributação do frigorífico e regras específicas de substituição tributária (ICMS-ST) do estado.
+#### Subprodutos não comestíveis
 
-#### Produtos e NCMs Comuns
-| Produto | NCM |
-| :--- | :--- |
-| **Fígado bovino** | `0206.22.00` |
-| **Coração bovino** | `0206.29.90` |
-| **Língua bovina** | `0206.21.00` |
-| **Bucho bovino** | `0206.29.90` |
-| **Mocotó bovino** | `0206.29.90` |
+| Produto | NCM recomendado | CEST | Situação |
+| :--- | :---: | :---: | :--- |
+| Aorta bovina - não comestível | `0511.99.99` | — | validar |
+| Bexiga bovina - não comestível | `0504.00.90` | — | validar |
+| Casco bovino em bruto — não comestível | `0507.90.00` | — | validar |
+| Chifre bovino em bruto — não comestível | `0507.90.00` | — | validar |
+| Mucosa intestinal bovina — não comestível | `0511.99.99` | — | Validar |
+| Traqueia bovina - não comestível | `0511.99.99` | — | validar |
+| Vergalho bovino - não comestível | `0511.99.99` | — | validar |
+
 
 #### Escolha o Cenário de Tributação
 
@@ -326,11 +328,11 @@ A comercialização de miúdos e despojos comestíveis (fígado, coração, lín
 
 ---
 
-## 7. PIS e COFINS
+## PIS e COFINS
 
 A parametrização de PIS e COFINS não é fixa e deve respeitar a NCM, regime tributário (Lucro Real ou Lucro Presumido) e o enquadramento de suspensões/isenções da Lei nº 10.925/2004.
 
-### 7.1 Matriz de Incidência de PIS/COFINS
+### Matriz de Incidência de PIS/COFINS
 
 | Operação | Tratamento Sugerido |
 | :--- | :--- |
@@ -340,28 +342,63 @@ A parametrização de PIS e COFINS não é fixa e deve respeitar a NCM, regime t
 | **Venda de despojos não comestíveis** | Validar isenção/suspensão para produtos de origem animal |
 | **Venda de miúdos comestíveis** | Validar incidência ou suspensão (Lei 10.925/2004) |
 
-### 7.2 Campos Obrigatórios para Configuração
+### Campos Obrigatórios para Configuração
 * **CST PIS / CST COFINS:** Definir com precisão para cada produto e operação fiscal.
 * **Alíquotas:** 0,65% / 3,00% (Cumulativo) ou 1,65% / 7,60% (Não Cumulativo).
 * **Código de Natureza da Receita:** Exigido na EFD-Contribuições sempre que houver CST de isenção, suspensão ou alíquota zero.
 
 ---
 
-## 8. Matriz Fiscal Consolidada (Geral)
+## IBS e CBS
 
-A tabela abaixo resume e consolida todas as parametrizações recomendadas para as operações fiscais na rotina do frigorífico, integrando os dados e classificadores da Reforma Tributária.
+### Produtos comestíveis
 
-| Operação Fiscal | CFOP Padrão | CST ICMS | Alíquota ICMS | PIS/COFINS | IBS/CBS | cClassTrib | Descrição e Observações |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Entrada (Animais) - Comercialização** | `1.101` / `2.101` | **`040`** | `ISENTO` | **`06 - Alíq. Zero`** | `100%` | `200003` | Aquisição de gado vivo próprio para faturamento ou abate posterior. |
-| **Entrada Abate - Encomenda (Não Contrib.)** | `1.901` / `2.901` | **`090`** | `0` | **`06 - Alíq. Zero`** | `100%` | `200003` | Emissão de entrada pelo frigorífico para gado em pé de terceiro. |
-| **Entrada Abate - Encomenda (Contrib.)** | `5.122` / `5.901` | **`050` / `090`** | `Suspensão` | **Sem receita** | `100%` | `200003` | Remessa emitida pelo produtor rural, vinculada ao CPF e GTA física. |
-| **Devolução de Compra - Animais Vivos** | `5.202` / `6.202` | **`040`** | `ISENTO` | **`06 - Alíq. Zero`** | `100%` | `200003` | Devolução física ao produtor de gado adquirido para comercialização. |
-| **Ajustes de Estoque - Perdas e Roubo** | `5.927` | **`060`** | `0%` | **`06 - Alíq. Zero`** | `100%` | `200003` | Baixa de estoque decorrente de sinistro biológico ou morte animal. |
-| **Retorno da Carcaça** | `5.925` / `6.925` | **`050`** | `Suspensão` | **Sem receita** | `100%` | `200003` | Retorno físico ao encomendante dos produtos do abate (CST 050). |
-| **Serviço de Abate (Mão de Obra)** | `5.125` / `6.125` | **`000`** | `18% (ou s/ dif.)` | **Tributável** | `100%` | `200003` | Cobrança da prestação do serviço (CST 000 com ICMS conforme estado). |
-| **Venda Miúdos Comestíveis (Antecipado)** | `5.405` | **`060`** | `0%` | **`06 - Alíq. Zero`** | `100%` | `200003` | Saída de subprodutos com ST retida na compra (ex: fígado, mocotó). |
-| **Venda Miúdos Comestíveis (Substituto)** | `5.401` | **`070`** | `18% (Red 61,11%)`| **`06 - Alíq. Zero`** | `100%` | `200003` | Saída como substituto tributário sob carga tributária reduzida (CST 070). |
-| **Venda Despojos Não Comestíveis** | `5.101` / `6.101` | **`051` / `090`** | `Diferido` | **Tributado/Zero** | `100%` | `200003` | Sebo, ossos e couro verde. Diferimento aplicável (ex: RICMS/MG). |
+| Campo | Configuração |
+| :--- | :--- |
+| **CST IBS/CBS** | `200` |
+| **cClassTrib** | `200034` |
+| **Descrição** | Fornecimento de alimentos destinados ao consumo humano relacionados no Anexo VII |
+| **Redução** | `60%` das alíquotas-padrão |
+
+O sistema deve calcular as alíquotas conforme o período de vigência. O manual não deve armazenar uma alíquota final fixa, pois as alíquotas-padrão e a transição variam no tempo.
+
+### Subprodutos não comestíveis
+
+| Campo | Configuração |
+| :--- | :--- |
+| **CST IBS/CBS** | `000` |
+| **cClassTrib** | `000001` |
+| **Descrição** | Situações tributadas integralmente pelo IBS e CBS |
+| **Redução** | Não se aplica |
+
+### Demais operações
+
+A entrada do gado, a remessa para industrialização, o retorno simbólico e a cobrança do abate não devem continuar com `IBS/CBS 100%` ou cClassTrib `200003` de forma genérica.
+
+Para cada uma dessas operações, a contabilidade deverá confirmar:
+
+- existência ou não de fornecimento oneroso;
+- CST IBS/CBS;
+- cClassTrib;
+- base de cálculo;
+- redução, suspensão, não incidência ou diferimento;
+- tratamento durante o período de transição.
+
+---
+
+## Matriz Fiscal Consolidada
+
+| Operação | CFOP | Produto/NCM | ICMS | PIS/COFINS | IBS/CBS | Situação |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Remessa direta do encomendante ao frigorífico | `5.901` | Gado vivo `0102.29.90` | A validar | Sem receita | A validar | Fluxo padrão |
+| Retorno no fluxo direto | `5.902` | Mesmo insumo recebido | A validar | Sem receita própria | A validar | Fluxo padrão |
+| Cobrança no fluxo direto | `5.124` | Mão de obra `00000000` | A validar | Receita tributável conforme regime | A validar | Pendente de contabilidade |
+| Venda do fornecedor ao encomendante no fluxo triangular | `5.122/6.122` ou `5.123/6.123` | Gado vivo | Conforme fornecedor | Conforme fornecedor | Conforme fornecedor | Documento do fornecedor |
+| Remessa física ao frigorífico | `5.924` | Gado vivo `0102.29.90` | Sem destaque quando aplicável | Sem receita adicional | A validar | Fluxo triangular |
+| Remessa simbólica do encomendante | `5.901` | Gado vivo `0102.29.90` | Suspensão, quando aplicável | Sem receita | A validar | Fluxo triangular |
+| Retorno simbólico do frigorífico | `5.925` | Gado vivo `0102.29.90` | Suspensão, quando aplicável | Sem receita própria | A validar | Fluxo triangular |
+| Cobrança da industrialização triangular | `5.125` | Mão de obra `00000000`  | A validar | Receita tributável conforme regime | A validar | Pendente de contabilidade |
+| Venda de produtos comestíveis | A confirmar | NCM `0201/0202/0206` e casos de `0504` | CST `060`, condicionado à comprovação da ST anterior | CST `06`, 0% | CST `200`, cClassTrib `200034` | Parâmetros recebidos; CFOP pendente |
+| Venda de subprodutos não comestíveis | `5.101`, a confirmar | NCM `0504/0507/0511` | CST ICMS `051` | CST Pis e Cofins `06` | CST CBS E IBS`000`, cClassTrib `000001` | Parâmetros recebidos; fundamento pendente |
 
 ---
