@@ -237,67 +237,116 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
     > * **Serviço de Mão de Obra (Cobrança)**: Faturado com CST `000` (Nacional, tributado integralmente), com destaque de ICMS à alíquota padrão do estado (exemplo de 18% em Minas Gerais).
 
   </Step>
-  <Step>
-    ## Venda de Produtos Não Comestíveis
+    <Step>
+      ## Venda de Produtos Comestíveis
 
-    **Subprodutos: Validar a venda de despojos comestíveis e não comestíveis.**
-    * Despojos não comestíveis: NCM `0511.99.99`, com diferimento de ICMS (ex: RICMS/MG).
-    * Miúdos comestíveis: NCMs específicas (fígado, mocotó, etc.), tributados por ST (CST `060` ou `070`) ou com benefícios de alíquota zero.
+      <Callout type="warning" title="Parametrização informada pela contabilidade">
+        O CST ICMS `060` pressupõe que o ICMS-ST tenha sido recolhido
+        anteriormente. O CFOP e a origem da retenção deverão ser confirmados
+        pela contabilidade antes da utilização em produção.
+
+        A classificação do IBS/CBS varia conforme a NCM do produto.
+      </Callout>
+
+      ### Parametrização geral
+
+      | Campo | Configuração informada |
+      | :--- | :--- |
+      | **CFOP interno** | `5.101` — Venda de produção do estabelecimento |
+      | **CFOP interestadual** | `6.101` — Venda de produção do estabelecimento |
+      | **CST ICMS** | `060` — ICMS cobrado anteriormente por substituição tributária |
+      | **CST PIS e COFINS** | `06` — Operação tributável à alíquota zero |
+
+      ### Produtos
+
+      | Produto | NCM | CEST | CST IBS/CBS | cClassTrib | Observação |
+      | :--- | :---: | :---: | :---: | :---: | :--- |
+      | Buchinho bovino comestível | `0504.00.90` | — | `000` | `000001` | Tributação integral; validar com a contabilidade |
+      | Bucho bovino — rúmen — comestível | `0504.00.90` | — | `000` | `000001` | Tributação integral; validar com a contabilidade |
+      | Carne industrial | `0206.29.90` | `17.084.00` | `200` | `200034` | Redefinir a descrição conforme o produto efetivo |
+      | Coração bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
+      | Fígado bovino congelado | `0206.22.00` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
+      | Língua bovina congelada | `0206.21.00` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
+      | Mocotó bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
+      | Rabo bovino congelado | `0206.29.10` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
+      | Rim bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
+      | Tendão bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | Alíquota reduzida em 60% |
+
+      <Callout type="info" title="Tratamento do IBS e da CBS">
+        Para os produtos classificados no NCM `0206`, foi informada a utilização
+        do CST `200` e do cClassTrib `200034`, com redução de 60% das alíquotas
+        do IBS e da CBS.
+
+        Para bucho e buchinho, classificados no NCM `0504.00.90`, o cadastro
+        atual utiliza CST `000` e cClassTrib `000001`, correspondentes à
+        tributação integral, sem redução.
+      </Callout>
+
+      ### Informações complementares sugeridas
+
+      #### Produtos do NCM 0206
+
+      ```txt title="Texto para produtos com alíquota reduzida"
+      Venda de produto comestível resultante do abate de gado bovino.
+      ICMS cobrado anteriormente por substituição tributária, CST 060,
+      conforme [FUNDAMENTO LEGAL].
+
+      PIS e COFINS sujeitos à alíquota zero, CST 06, conforme
+      [FUNDAMENTO LEGAL] e natureza da receita [CODIGO].
+
+      IBS e CBS com redução de 60% das alíquotas, CST 200 e
+      cClassTrib 200034.
+    ````
+
+    #### Bucho e buchinho — NCM 0504.00.90
+
+    ```txt title="Texto para produtos com tributação integral"
+    Venda de produto comestível resultante do abate de gado bovino.
+    ICMS cobrado anteriormente por substituição tributária, CST 060,
+    conforme [FUNDAMENTO LEGAL].
+
+    PIS e COFINS sujeitos à alíquota zero, CST 06, conforme
+    [FUNDAMENTO LEGAL] e natureza da receita [CODIGO].
+
+    IBS e CBS tributados integralmente, CST 000 e
+    cClassTrib 000001, sem redução das alíquotas.
+    ```
+
+    </Step>
+<Step>
+    ## Venda de Produtos Não Comestíveis
 
     <Callout type="warning" title="Parametrização informada pela contabilidade">
       O tratamento abaixo deve ser validado por NCM e pela destinação do produto. O CST `051` representa diferimento do ICMS, e não isenção ou alíquota nominal zero.
     </Callout>
 
-    ### Parametrização
+    ### Parametrização geral
 
     | Campo | Configuração informada |
     | :--- | :--- |
     | **CFOP interno** | `5.101` `6.101`, sujeito à validação da operação |
     | **CST ICMS** | `051` — Diferimento |
-    | **% ICMS** | Zero |
-    | **Fundamento legal** | Pendente de indicação |
-    | **cBenef** | Confirmar obrigatoriedade e código |
     | **CST PIS e COFINS** | `06` — Operação tributável à alíquota zero |
-    | **Alíquota PIS/COFINS** | `0%` |
-    | **Natureza da receita** | Pendente por NCM |
     | **CST IBS/CBS** | `000` — Tributação integral |
     | **cClassTrib** | `000001` — Situações tributadas integralmente pelo IBS e CBS |
 
-    #### Matriz fiscal dos produtos não comestíveis
+    ### Produtos
 
-    | Produto | NCM | CEST | CFOP interno | CST ICMS | Tratamento do ICMS | cBenef | CST PIS | Alíquota PIS | CST COFINS | Alíquota COFINS | Natureza da receita | CST IBS/CBS | cClassTrib | Redução IBS/CBS | Situação |
-    | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-    | **Aorta bovina** | `0511.99.99` | — | `5.101`, `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar NCM, destinação e enquadramento no diferimento |
-    | **Bexiga bovina** | `0504.00.90` | — | `5.101`, `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar aplicação do diferimento e fundamento do PIS/COFINS |
-    | **Casco bovino** | `0507.90.00` | — | `5.101`, `6.101` | `051` | Diferimento integral nas operações internas, quando atendidas as condições do RICMS/MG | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Diferimento previsto para casco; confirmar encerramento e cBenef |
-    | **Chifre bovino** | `0507.90.00` | — | `5.101`, `6.101` | `051` | Diferimento integral nas operações internas, quando atendidas as condições do RICMS/MG | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Diferimento previsto para chifre; confirmar encerramento e cBenef |
-    | **Mucosa intestinal bovina** | `0511.99.99` | — | `5.101`, `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar se permanece em `0511.99.99` ou se possui destinação farmacêutica |
-    | **Traqueia bovina** | `0511.99.99` | — | `5.101`, `6.101` | `051` | Diferimento integral, com `pDif` de 100%, sujeito à confirmação do fundamento legal | Pendente | `06` | `0%` | `06` | `0%` | Pendente por NCM | `000` | `000001` | `0%` — tributação integral | Validar NCM, destinação e enquadramento no diferimento |
-    | **Vergalho bovino** | `0511.99.99` | — | `5.101`, `6.101` | `051` | Diferimento integral, com `pDif` de 10０%, sujeito à confirmação do fundamento legal | Pendente | `06` | `０%` | `０６` | `０%` | Pendente por NCM | `０００` | `０００００１` | `０%` — tributação integral | Validar NCM, destinação e enquadramento no diferimento |
+    | Produto | NCM | Observação |
+    | :--- | :---: | :--- |
+    | Aorta bovina não comestível | `0511.99.99` | Validar conforme destinação |
+    | Bexiga bovina não comestível | `0504.00.90` | Validar conforme destinação |
+    | Casco bovino em bruto não comestível | `0507.90.00` | Validar conforme destinação |
+    | Chifre bovino em bruto não comestível | `0507.90.00` | Validar conforme destinação |
+    | Mucosa intestinal bovina não comestível | `0511.99.99` | Validar conforme destinação |
+    | Traqueia bovina não comestível | `0511.99.99` | Validar conforme destinação |
+    | Vergalho bovino não comestível | `0511.99.99` | Validar conforme apresentação |
+    
+    ### Informação complementar sugerida
 
-        A contabilidade deverá indicar o fundamento legal e o código de natureza da receita da EFD-Contribuições.
-
-        ### Informação complementar sugerida
-
-        ```txt title="Texto condicionado à validação"
+      ```txt title="Texto condicionado à validação"
         Venda de subproduto não comestível resultante do abate de gado bovino. ICMS diferido nos termos de [FUNDAMENTO LEGAL], com percentual de diferimento de [PERCENTUAL]%. CST PIS/COFINS 06 e alíquotas zero conforme [FUNDAMENTO LEGAL/NATUREZA DA RECEITA]. IBS e CBS tributados integralmente, CST 000 e cClassTrib 000001.
-        ```
+      ```
   </Step>
 </Steps>
 
-## Matriz Fiscal Consolidada
-
-| Operação | CFOP | Produto/NCM | ICMS | PIS/COFINS | IBS/CBS | Situação |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Remessa direta do encomendante ao frigorífico | `5.901` | Gado vivo `0102.29.90` | A validar | Sem receita | A validar | Fluxo padrão |
-| Retorno no fluxo direto | `5.902` | Mesmo insumo recebido | A validar | Sem receita própria | A validar | Fluxo padrão |
-| Cobrança no fluxo direto | `5.124` | Mão de obra `00000000` | A validar | Receita tributável conforme regime | A validar | Pendente de contabilidade |
-| Venda do fornecedor ao encomendante no fluxo triangular | `5.122/6.122` ou `5.123/6.123` | Gado vivo | Conforme fornecedor | Conforme fornecedor | Conforme fornecedor | Documento do fornecedor |
-| Remessa física ao frigorífico | `5.924` | Gado vivo `0102.29.90` | Sem destaque quando aplicável | Sem receita adicional | A validar | Fluxo triangular |
-| Remessa simbólica do encomendante | `5.901` | Gado vivo `0102.29.90` | Suspensão, quando aplicável | Sem receita | A validar | Fluxo triangular |
-| Retorno simbólico do frigorífico | `5.925` | Gado vivo `0102.29.90` | Suspensão, quando aplicável | Sem receita própria | A validar | Fluxo triangular |
-| Cobrança da industrialização triangular | `5.125` | Mão de obra `00000000`  | A validar | Receita tributável conforme regime | A validar | Pendente de contabilidade |
-| Venda de produtos comestíveis | A confirmar | NCM `0201/0202/0206` e casos de `0504` | CST `060`, condicionado à comprovação da ST anterior | CST `06`, 0% | CST `200`, cClassTrib `200034` | Parâmetros recebidos; CFOP pendente |
-| Venda de subprodutos não comestíveis | `5.101`, a confirmar | NCM `0504/0507/0511` | CST ICMS `051` | CST Pis e Cofins `06` | CST CBS E IBS`000`, cClassTrib `000001` | Parâmetros recebidos; fundamento pendente |
-
----
