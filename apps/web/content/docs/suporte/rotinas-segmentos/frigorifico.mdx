@@ -34,32 +34,11 @@ Este documento consolida a rotina fiscal do **Tijuco Frigorífico Ituiutaba**, c
 
 Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a implantação:
 
-<Steps>
-  <Step>
-    **Separar o tratamento do retorno da industrialização da cobrança do serviço de abate.**
-    * Retorno da industrialização: NF-e de retorno físico com CFOP 5.925 / 6.925 (sem destaque de ICMS).
-    * Cobrança do serviço: NF-e com CFOP 5.125 / 6.125 (tributada sob alíquota interna/estadual).
-  </Step>
-  <Step>
-    **Subprodutos: Validar a venda de despojos comestíveis e não comestíveis.**
-    * Despojos não comestíveis: NCM `0511.99.99`, com diferimento de ICMS (ex: RICMS/MG).
-    * Miúdos comestíveis: NCMs específicas (fígado, mocotó, etc.), tributados por ST (CST `060` ou `070`) ou com benefícios de alíquota zero.
-  </Step>
-</Steps>
-
-<Callout type="warning" title="Premissa de suporte">
-  O fluxo acima serve para orientar a análise fiscal e a parametrização. Nenhuma etapa deve ser automatizada como regra fixa sem confirmação do enquadramento contábil e da legislação aplicável de cada estado.
-</Callout>
-
 ---
 
 <Steps>
   <Step>
     ## Entrada do Gado bovino destinado ao abate
-
-    **Validar o enquadramento do produtor e identificar qual documento fiscal acoberta a entrada do gado.**
-    * Produtor contribuinte: Produtor emite NF-e de remessa para industrialização.
-    * Produtor não contribuinte: Frigorífico emite NF-e de remessa/entrada para industrialização.
 
     ### Natureza da Operação
 
@@ -68,6 +47,10 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
     <Callout type="warning" title="Observação fiscal importante">
       A operação deve ser obrigatoriamente acobertada pela **GTA (Guia de Trânsito Animal)**  para fins de controle e rastreabilidade sanitária.
     </Callout>
+
+    **Validar o enquadramento do produtor e identificar qual documento fiscal acoberta a entrada do gado.**
+    * Produtor contribuinte: Produtor emite NF-e de remessa para industrialização.
+    * Produtor não contribuinte: Frigorífico emite NF-e de remessa/entrada para industrialização.
 
 
     ### Cenários de Entrada
@@ -114,13 +97,8 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         ##### Informação Complementar Sugerida
 
         ```txt title="Texto sugerido para NF-e"
-        Remessa de gado bovino vivo para industrialização por encomenda, sem transferência de propriedade e sem contraprestação nesta etapa, vinculada à GTA nº [NUMERO_GTA].
-
-        Operação com suspensão do ICMS, nos termos do item 1 do Anexo IX e dos arts. 206 e seguintes do Anexo VIII do RICMS/MG, sujeita à confirmação da fundamentação legal pela contabilidade.
-
-        Operação não sujeita ao IBS e à CBS, CST 410 e cClassTrib 410029.
-        O retorno deverá referenciar esta NF-e.
-        ```
+        Remessa de gado bovino vivo para industrialização por encomenda, vinculada à GTA nº [NUMERO_GTA].
+        exclusivamente para realização de abate por encomenda, sem transferência de propriedade ao frigorífico.        ```
       </Tab>
 
       <Tab
@@ -136,14 +114,13 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | :--- | :--- |
         | **Documento** | NF-e de entrada emitida pelo próprio frigorífico |
         | **Emitente** | Frigorífico/industrializador |
-        | **Produtor informado no documento** | Produtor/encomendante proprietário dos animais |
-        | **CFOP interno** | **1.901 — Entrada para industrialização por encomenda** |
-        | **CFOP interestadual** | **2.901 — Entrada para industrialização por encomenda** |
+        | **Produtor informado no documento** | Encomendante proprietário dos animais |
+        | **CFOP interno** | **1.922 | 1.922 — Remessa para industrialização por encomenda** |
         | **NCM** | **0102.29.90 — Gado bovino doméstico vivo** |
         | **Finalidade** | Entrada de gado pertencente a terceiro para abate/industrialização |
         | **GTA** | Informar o número da Guia de Trânsito Animal correspondente |
-        | **Propriedade da mercadoria** | Permanece com o produtor/encomendante |
-        | **NF referenciada** | A própria NF-e de entrada deverá ser referenciada na nota de retorno |
+        | **Propriedade da mercadoria** | Permanece com o encomendante |
+
 
         ##### Tratamento Fiscal
 
@@ -159,18 +136,8 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         ##### Informação Complementar Sugerida
 
         ```txt title="Texto sugerido para NF-e de entrada"
-        Entrada de gado bovino vivo pertencente a
-        [NOME_PRODUTOR_ENCOMENDANTE], CPF/CNPJ [CPF_CNPJ],
-        recebido exclusivamente para realização de abate/industrialização
-        por encomenda, sem transferência de propriedade ao frigorífico.
-
-        Operação vinculada à GTA nº [NUMERO_GTA].
-        Documento emitido pelo estabelecimento industrializador para
-        acobertar a entrada fiscal dos animais.
-
-        Operação não sujeita ao IBS e à CBS, CST 410 e
-        cClassTrib 410029. Esta NF-e deverá ser referenciada no retorno
-        dos produtos resultantes do abate.
+        Entrada de gado bovino vivo pertencente a [NOME_PRODUTOR_ENCOMENDANTE], CPF [CPF], vinculada à GTA nº [NUMERO_GTA].
+        exclusivamente para realização de abate por encomenda, sem transferência de propriedade ao frigorífico.
         ```
       </Tab>
     </Tabs>
