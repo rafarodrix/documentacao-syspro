@@ -58,78 +58,147 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
 ---
 
-## Entrada do Gado em Pé para Abate
+## Entrada do Gado bovino destinado ao abate
 
 ### Natureza da Operação
 
-Remessa de gado em pé para industrialização por encomenda. A operação deve ser obrigatoriamente acobertada pela **GTA (Guia de Trânsito Animal)** física correspondente e emitida em nome do **CPF do encomendante** (quando pessoa física), para fins de controle e rastreabilidade sanitária.
+Remessa de mercadoria para industrialização por encomenda. 
+
+<Callout type="warning" title="Observação fiscal importante">
+  A operação deve ser obrigatoriamente acobertada pela **GTA (Guia de Trânsito Animal)**  para fins de controle e rastreabilidade sanitária.
+</Callout>
+
 
 ### Cenários de Entrada
 
-Utilize as abas abaixo para visualizar as diretrizes fiscais conforme o tipo de produtor remetente.
+Utilize as abas abaixo para visualizar as diretrizes fiscais conforme a condição do produtor ou encomendante responsável pela remessa do gado.
 
-<Tabs items={['Produtor Contribuinte de ICMS', 'Produtor Não Contribuinte']}>
-  <Tab value="Produtor Contribuinte de ICMS" title="Cenário A - Produtor Contribuinte de ICMS">
-    #### Cenário A - Produtor Contribuinte de ICMS
-    
-    Quando o produtor rural ou encomendante for contribuinte de ICMS e possuir a obrigação de emissão de documento fiscal, a remessa do gado ao frigorífico deve ser formalizada por **NF-e emitida pelo próprio produtor/encomendante**.
+<Tabs items={['Contribuinte de ICMS', 'Produtor Não Emitente de NF-e']}>
+  <Tab
+    value="Contribuinte de ICMS"
+    title="Cenário A — Contribuinte de ICMS"
+  >
+    #### Cenário A — Encomendante Contribuinte de ICMS
+
+    Quando o produtor ou encomendante for contribuinte do ICMS e estiver obrigado ou habilitado à emissão de documento fiscal, a remessa do gado de sua propriedade ao frigorífico deverá ser formalizada por NF-e emitida pelo próprio encomendante.
+
+    Neste cenário não ocorre venda do gado ao frigorífico. O animal permanece pertencendo ao encomendante e é remetido temporariamente para realização do abate ou da industrialização por encomenda.
 
     ##### Documento Fiscal
+
     | Campo | Tratamento |
     | :--- | :--- |
-    | **Documento** | NF-e de remessa para industrialização |
-    | **Emitente** | Produtor / encomendante |
-    | **Destinatário** | Frigorífico |
-    | **CFOP** | **5.122 / 6.122** (Remessa de mercadoria p/ industrialização por encomenda) ou **5.901 / 6.901** |
-    | **Finalidade** | Remessa de gado para industrialização / abate |
+    | **Documento** | NF-e de remessa para industrialização por encomenda |
+    | **Emitente** | Produtor/encomendante contribuinte do ICMS |
+    | **Destinatário** | Frigorífico/industrializador |
+    | **CFOP interno** | **5.901 — Remessa para industrialização por encomenda** |
+    | **CFOP interestadual** | **6.901 — Remessa para industrialização por encomenda** |
+    | **NCM** | **0102.29.90 — Gado bovino doméstico vivo** |
+    | **Finalidade** | Remessa temporária de gado para abate/industrialização |
+    | **GTA** | Informar o número da Guia de Trânsito Animal correspondente |
+    | **NF referenciada** | A NF-e deverá ser referenciada posteriormente na nota de retorno emitida pelo frigorífico |
 
     ##### Tratamento Fiscal
-    | Tributo | Tratamento a validar |
+
+    | Tributo | Parametrização |
     | :--- | :--- |
-    | **ICMS** | Validar suspensão, diferimento ou não destaque conforme legislação estadual aplicável |
-    | **ICMS-ST** | Não se aplica na remessa do gado em pé |
-    | **PIS / COFINS** | Sem receita comercial nesta etapa |
-    | **IBS / CBS** | 100% |
-    | **cClassTrib** | 200003 |
-    | **NF referenciada** | A NF-e de remessa do produtor deverá ser referenciada posteriormente na nota de retorno del frigorífico |
-    | **Informações comp.** | Emitir obrigatoriamente no CPF do encomendante e citar o número da GTA |
+    | **CST ICMS** | **050 — Suspensão**, sujeito à confirmação da contabilidade |
+    | **Alíquota ICMS** | Sem destaque |
+    | **Base e valor do ICMS** | Zero nesta etapa |
+    | **Fundamento ICMS** | Suspensão aplicável à remessa para industrialização, conforme RICMS/MG |
+    | **ICMS-ST** | Não aplicável à remessa do gado vivo |
+    | **CST PIS** | **49 — Outras operações de saída** |
+    | **CST COFINS** | **49 — Outras operações de saída** |
+    | **PIS/COFINS** | Sem receita e sem débito nesta etapa |
+    | **CST IBS/CBS** | **410 — Imunidade e não incidência** |
+    | **cClassTrib** | **410029 — Operações acobertadas somente pelo ICMS** |
+    | **Base IBS/CBS** | Não informar |
+    | **Alíquota IBS/CBS** | Não informar |
+    | **Valor IBS/CBS** | Não informar |
+
+    <Callout type="warning" title="Não utilizar CFOP 5.122 ou 6.122 nesta remessa">
+      Os CFOPs 5.122 e 6.122 representam venda de produção própria com entrega direta ao industrializador, por conta e ordem do adquirente.
+
+      Eles não devem ser utilizados quando o próprio encomendante apenas remete o gado de sua propriedade ao frigorífico para abate.
+    </Callout>
 
     ##### Informação Complementar Sugerida
-    
-    ```txt title="Texto Sugerido para NF-e"
-    Mercadoria remetida para industrialização por encomenda por conta e ordem do encomendante CPF: [CPF_DO_PRODUTOR], vinculada à GTA nº [GTA_INFORMADA]. Operação de remessa para abate/industrialização com suspensão do ICMS nos termos do [Citar Artigo/Decreto Estadual], com posterior retorno dos produtos resultantes.
+
+    ```txt title="Texto sugerido para NF-e"
+    Remessa de gado bovino vivo para industrialização por encomenda, sem transferência de propriedade e sem contraprestação nesta etapa, vinculada à GTA nº [NUMERO_GTA].
+
+    Operação com suspensão do ICMS, nos termos do item 1 do Anexo IX e dos arts. 206 e seguintes do Anexo VIII do RICMS/MG, sujeita à confirmação da fundamentação legal pela contabilidade.
+
+    Operação não sujeita ao IBS e à CBS, CST 410 e cClassTrib 410029.
+    O retorno deverá referenciar esta NF-e.
     ```
   </Tab>
 
-  <Tab value="Produtor Não Contribuinte" title="Cenário B - Produtor Não Contribuinte">
-    #### Cenário B - Produtor Não Contribuinte de ICMS
-    
-    Quando o produtor/encomendante não for contribuinte de ICMS ou não possuir capacidade/obrigação de emissão de NF-e, o frigorífico é responsável por emitir uma **NF-e de Entrada Própria** para acobertar a recepção física e fiscal dos animais.
+  <Tab
+    value="Não contribuinte de ICMS"
+    title="Cenário B — Não contribuinte de ICMS não emitente de NF-e"
+  >
+    #### Cenário B — Produtor/Encomendante não emitente de NF-e
 
-    ##### Documento Fiscal (Emissão Própria pelo Frigorífico)
-    | Campo | Tratamento a validar |
+    Quando o produtor ou encomendante não estiver obrigado, habilitado ou autorizado a emitir NF-e, o frigorífico deverá emitir uma NF-e de entrada própria para documentar o recebimento dos animais destinados ao abate por encomenda.
+
+    A emissão da nota de entrada não representa aquisição do gado pelo frigorífico. Os animais continuam pertencendo ao produtor/encomendante.
+
+    ##### Documento Fiscal
+
+    | Campo | Tratamento |
     | :--- | :--- |
-    | **Documento** | NF-e de entrada (emissão própria pelo destinatário) |
-    | **Emitente** | Frigorífico |
-    | **Destinatário** | Produtor / encomendante |
-    | **CFOP** | **1.901 / 2.901** (Entrada de mercadoria para industrialização por encomenda) |
-    | **Finalidade** | Entrada de gado para industrialização / abate |
+    | **Documento** | NF-e de entrada emitida pelo próprio frigorífico |
+    | **Emitente** | Frigorífico/industrializador |
+    | **Produtor informado no documento** | Produtor/encomendante proprietário dos animais |
+    | **CFOP interno** | **1.901 — Entrada para industrialização por encomenda** |
+    | **CFOP interestadual** | **2.901 — Entrada para industrialização por encomenda** |
+    | **NCM** | **0102.29.90 — Gado bovino doméstico vivo** |
+    | **Finalidade** | Entrada de gado pertencente a terceiro para abate/industrialização |
+    | **GTA** | Informar o número da Guia de Trânsito Animal correspondente |
+    | **Propriedade da mercadoria** | Permanece com o produtor/encomendante |
+    | **NF referenciada** | A própria NF-e de entrada deverá ser referenciada na nota de retorno |
 
     ##### Tratamento Fiscal
-    | Tributo | Parametrização Fiscal Homologada |
+
+    | Tributo | Parametrização |
     | :--- | :--- |
-    | **CST ICMS** | **090** (Outros) |
-    | **Alíquota ICMS** | **0** |
-    | **ICMS** | Operação sem destaque, amparada por diferimento/não-incidência |
-    | **PIS / COFINS** | **06 - Alíquota Zero** (Sem direito a crédito e sem incidência) |
-    | **IBS / CBS** | **100%** |
-    | **cClassTrib** | **200003** |
-    | **Informações comp.** | Constar nome/CPF do produtor de origem, número da GTA e embasamento legal local |
+    | **CST ICMS** | **090 — Outras**, sujeito à homologação da contabilidade |
+    | **Alíquota ICMS** | Sem destaque |
+    | **Base e valor do ICMS** | Zero nesta etapa |
+    | **ICMS** | Entrada de mercadoria de terceiro para industrialização, sem aquisição pelo frigorífico |
+    | **ICMS-ST** | Não aplicável à entrada do gado para industrialização |
+    | **CST PIS** | **98 — Outras operações de entrada** |
+    | **CST COFINS** | **98 — Outras operações de entrada** |
+    | **PIS/COFINS** | Sem direito a crédito e sem incidência nesta movimentação |
+    | **CST IBS/CBS** | **410 — Imunidade e não incidência** |
+    | **cClassTrib** | **410029 — Operações acobertadas somente pelo ICMS** |
+    | **Base IBS/CBS** | Não informar |
+    | **Alíquota IBS/CBS** | Não informar |
+    | **Valor IBS/CBS** | Não informar |
+
+    <Callout type="warning" title="CST ICMS pendente de homologação">
+      O CST ICMS 090 foi mantido como orientação operacional para a NF-e
+      própria de entrada. A contabilidade deverá confirmar se o documento
+      deverá utilizar CST 090 ou outro enquadramento específico previsto
+      para a operação no RICMS/MG.
+    </Callout>
 
     ##### Informação Complementar Sugerida
-    
-    ```txt title="Texto Sugerido para NF-e de Entrada"
-    Entrada de gado em pé para industrialização/abate por encomenda, referente ao produtor [NOME_DO_PRODUTOR] - CPF: [CPF_DO_PRODUTOR], acompanhada da GTA nº [GTA_INFORMADA]. Documento emitido pelo destinatário para acobertar a entrada fiscal da operação nos termos do [Citar Legislação Estadual].
+
+    ```txt title="Texto sugerido para NF-e de entrada"
+    Entrada de gado bovino vivo pertencente a
+    [NOME_PRODUTOR_ENCOMENDANTE], CPF/CNPJ [CPF_CNPJ],
+    recebido exclusivamente para realização de abate/industrialização
+    por encomenda, sem transferência de propriedade ao frigorífico.
+
+    Operação vinculada à GTA nº [NUMERO_GTA].
+    Documento emitido pelo estabelecimento industrializador para
+    acobertar a entrada fiscal dos animais.
+
+    Operação não sujeita ao IBS e à CBS, CST 410 e
+    cClassTrib 410029. Esta NF-e deverá ser referenciada no retorno
+    dos produtos resultantes do abate.
     ```
   </Tab>
 </Tabs>
