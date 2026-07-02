@@ -1,15 +1,11 @@
 ---
 title: Rotina de Frigorífico Tijuco
-description: Documento técnico fiscal para análise de operações de abate, industrialização, retorno, ICMS, ICMS-ST, PIS, COFINS, Reforma Tributária (IBS/CBS e cClassTrib) e informações complementares.
-lastUpdated: 2026-07-01
+description: Documento técnico fiscal para análise de operações de abate, industrialização, retorno e venda de subprodutos.
 owner: Implantação
 status: published
 tags:
   - fiscal
   - frigorífico
-  - icms
-  - pis-cofins
-  - icms-st
 
 ---
 
@@ -57,13 +53,13 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
     | Pergunta | Cenário |
     | :--- | :--- |
     | O gado já pertencia ao encomendante e foi enviado diretamente por ele ao frigorífico? | **Remessa direta — CFOP 5.901** |
-    | O encomendante comprou o gado de um fornecedor e determinou que ele fosse entregue diretamente ao frigorífico? | **Operação triangular — CFOPs 5.122/5.123, 5.924 e 5.901** |
+    | O encomendante comprou o gado de um fornecedor e determinou que ele fosse entregue diretamente ao frigorífico? | **Operação triangular — CFOPs 5.122** |
     | O encomendante não está habilitado a emitir NF-e? | **NF-e própria de entrada emitida pelo frigorífico — CFOP 1.901** |
 
     <Tabs
       items={[
         'Remessa direta — 5.901',
-        'Operação triangular — 5.122/5.123',
+        'Operação triangular — 5.122',
         'NF-e própria de entrada'
       ]}
     >
@@ -97,19 +93,9 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | Tributo | Parametrização |
         | :--- | :--- |
         | **CST ICMS** | `050` — Suspensão |
-        | **ICMS** | Sem destaque nesta etapa |
-        | **CST PIS e COFINS na saída do encomendante** | `49` — Outras operações de saída |
         | **CST PIS e COFINS na entrada do frigorífico** | `98` — Outras operações de entrada |
         | **CST IBS/CBS** | `410` — Imunidade e não incidência |
         | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
-        | **Base, alíquota e valores de IBS/CBS** | Não informar |
-
-        #### Retorno posterior pelo frigorífico
-
-        | Item | CFOP |
-        | :--- | :---: |
-        | Retorno dos insumos incorporados ao produto resultante | `5.902` |
-        | Cobrança da mão de obra e dos materiais próprios | `5.124` |
 
         #### Informação complementar sugerida
 
@@ -149,8 +135,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **Emitente** | Fornecedor/vendedor do gado |
         | **Destinatário** | Adquirente/encomendante |
         | **Local de entrega** | Frigorífico |
-        | **CFOP — gado de produção própria do fornecedor** | `5.122` |
-        | **CFOP — gado adquirido de terceiros pelo fornecedor** | `5.123` |
         | **CFOP de entrada no encomendante** | `1.122` |
         | **NCM** | `0102.29.90` |
         | **Natureza** | Venda com entrega direta ao industrializador |
@@ -182,7 +166,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **CST PIS e COFINS na entrada** | `98` — Outras operações de entrada |
         | **CST IBS/CBS** | `410` — Imunidade e não incidência |
         | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
-        | **Base, alíquota e valores IBS/CBS** | Não informar |
 
         #### Documento 3 — Remessa do encomendante ao frigorífico
 
@@ -202,12 +185,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **CST IBS/CBS** | `410` |
         | **cClassTrib** | `410029` |
 
-        #### Retorno posterior pelo frigorífico
-
-        | Item | CFOP |
-        | :--- | :---: |
-        | Retorno dos insumos recebidos diretamente do fornecedor | `5.925` |
-        | Cobrança da industrialização e materiais próprios | `5.125` |
 
         #### Informação complementar sugerida — CFOP 5.924
 
@@ -263,14 +240,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **CST PIS e COFINS** | `98` — Outras operações de entrada |
         | **CST IBS/CBS** | `410` — Imunidade e não incidência |
         | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
-        | **Base, alíquota e valores IBS/CBS** | Não informar |
-
-        #### Retorno posterior pelo frigorífico
-
-        | Item | CFOP |
-        | :--- | :---: |
-        | Retorno dos insumos incorporados ao produto final | `5.902` |
-        | Cobrança da industrialização | `5.124` |
 
         #### Informação complementar sugerida
 
@@ -352,7 +321,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **CFOP interno** | `5.902`, `6.902` — Retorno de mercadoria utilizada na industrialização por encomenda |
         | **Descrição do item** | Retorno de gado bovino vivo recebido para industrialização |
         | **NCM** | `0102.29.90` |
-        | **CEST** | Não se aplica |
         | **Quantidade** | Correspondente ao gado recebido |
         | **Valor** | Igual ao valor informado na remessa |
         | **NF referenciada** | NF-e recebida com CFOP `5.901/6.901` |
@@ -363,11 +331,9 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | Tributo | Parametrização |
         | :--- | :--- |
         | **CST ICMS** | `050` — Suspensão |
-        | **ICMS** | Sem destaque |
         | **CST PIS e COFINS** | `49` — Outras operações de saída |
         | **CST IBS/CBS** | `410` — Imunidade e não incidência |
         | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
-        | **Base, alíquotas e valores de IBS/CBS** | Não informar |
 
         #### Cobrança do abate
 
@@ -492,14 +458,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
   <Step>
       ## Venda de Produtos Comestíveis
 
-      <Callout type="warning" title="Parametrização informada pela contabilidade">
-        O CST ICMS `060` pressupõe que o ICMS-ST tenha sido recolhido
-        anteriormente. O CFOP e a origem da retenção deverão ser confirmados
-        pela contabilidade antes da utilização em produção.
-
-        A classificação do IBS/CBS varia conforme a NCM do produto.
-      </Callout>
-
       ### Parametrização geral
 
       | Campo | Configuração informada |
@@ -524,13 +482,13 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
       | Tendão bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
 
       <Callout type="info" title="Tratamento do IBS e da CBS">
-        Para os produtos classificados no NCM `0206`, foi informada a utilização
-        do CST `200` e do cClassTrib `200034`, com redução de 60% das alíquotas
-        do IBS e da CBS.
+        Para os produtos classificados no NCM `0206`, foi informada a utilização do CST `200` e do cClassTrib `200034`, com redução de 60% das alíquotas do IBS e da CBS.
 
-        Para bucho e buchinho, classificados no NCM `0504.00.90`, o cadastro
-        atual utiliza CST `000` e cClassTrib `000001`, correspondentes à
-        tributação integral, sem redução.
+        Para bucho e buchinho, classificados no NCM `0504.00.90`, o cadastro atual utiliza CST `000` e cClassTrib `000001`, correspondentes à tributação integral, sem redução.
+      </Callout>
+
+      <Callout type="warning" title="Parametrização informada pela contabilidade">
+        O CST ICMS `060` pressupõe que o ICMS-ST tenha sido recolhido aeriormente. O CFOP e a origem da retenção deverão ser confirmados pela contabilidade antes da utilização em produção.
       </Callout>
 
       ### Informações complementares sugeridas
@@ -546,10 +504,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
     <Step>
     ## Venda de Produtos Não Comestíveis
 
-    <Callout type="warning" title="Parametrização informada pela contabilidade">
-      O tratamento abaixo deve ser validado por NCM e pela destinação do produto. O CST `051` representa diferimento do ICMS, e não isenção ou alíquota nominal zero.
-    </Callout>
-
     ### Parametrização geral
 
     | Campo | Configuração informada |
@@ -557,7 +511,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
     | **CFOP** | `5.101` `6.101`, sujeito à validação da operação |
     | **CST ICMS** | `051` — Diferimento |
     | **CST PIS e COFINS** | `06` — Operação tributável à alíquota zero |
-
 
     ### Produtos
 
