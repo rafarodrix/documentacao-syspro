@@ -652,6 +652,39 @@
   button[data-state] svg {
     display: none !important;
   }
+
+  .shiki,
+  figure[class*="shiki"] {
+    overflow: visible !important;
+    max-width: none !important;
+  }
+
+  .shiki > div,
+  .shiki [class*="overflow-auto"],
+  .shiki [class*="max-h-"] {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .shiki pre,
+  .shiki code {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .shiki pre {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .shiki button,
+  .shiki [aria-label="Copy Text"],
+  .shiki [aria-label="Copied Text"] {
+    display: none !important;
+  }
 }
 
 /* ==========================================================================
@@ -778,4 +811,3 @@
   color: var(--muted-foreground);
   font-style: italic;
 }
-

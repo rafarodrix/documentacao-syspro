@@ -157,6 +157,9 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           white-space: pre-wrap !important;
           word-break: break-word;
           overflow-wrap: anywhere;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
           overflow: visible !important;
           padding: 10px 12px !important;
           border: 1px solid #d1d5db !important;
@@ -166,8 +169,37 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
 
         .docs-print-root code {
           font-size: 0.9em !important;
+          white-space: pre-wrap !important;
           word-break: break-word;
           overflow-wrap: anywhere;
+        }
+
+        .docs-print-root .shiki,
+        .docs-print-root figure[class*="shiki"] {
+          overflow: visible !important;
+          max-width: none !important;
+          break-inside: auto !important;
+          page-break-inside: auto !important;
+        }
+
+        .docs-print-root .shiki figcaption {
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: clip !important;
+        }
+
+        .docs-print-root .shiki button,
+        .docs-print-root .shiki [aria-label="Copy Text"],
+        .docs-print-root .shiki [aria-label="Copied Text"] {
+          display: none !important;
+        }
+
+        .docs-print-root .shiki > div,
+        .docs-print-root .shiki [class*="overflow-auto"],
+        .docs-print-root .shiki [class*="max-h-"] {
+          height: auto !important;
+          max-height: none !important;
+          overflow: visible !important;
         }
 
         .docs-print-root table {
