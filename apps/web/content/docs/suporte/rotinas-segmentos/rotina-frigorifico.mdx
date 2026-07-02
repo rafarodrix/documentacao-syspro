@@ -349,8 +349,7 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **Documento** | NF-e de retorno de industrialização |
         | **Emitente** | Frigorífico |
         | **Destinatário** | Encomendante |
-        | **CFOP interno** | `5.902` — Retorno de mercadoria utilizada na industrialização por encomenda |
-        | **CFOP interestadual** | `6.902` |
+        | **CFOP interno** | `5.902`, `6.902` — Retorno de mercadoria utilizada na industrialização por encomenda |
         | **Descrição do item** | Retorno de gado bovino vivo recebido para industrialização |
         | **NCM** | `0102.29.90` |
         | **CEST** | Não se aplica |
@@ -366,7 +365,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **CST ICMS** | `050` — Suspensão |
         | **ICMS** | Sem destaque |
         | **CST PIS e COFINS** | `49` — Outras operações de saída |
-        | **PIS/COFINS** | Sem receita e sem débito |
         | **CST IBS/CBS** | `410` — Imunidade e não incidência |
         | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
         | **Base, alíquotas e valores de IBS/CBS** | Não informar |
@@ -375,11 +373,9 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
         | Campo | Parametrização |
         | :--- | :--- |
-        | **CFOP interno** | `5.124` — Industrialização efetuada para outra empresa |
-        | **CFOP interestadual** | `6.124` |
+        | **CFOP interno** | `5.124`, `6.124` — Industrialização efetuada para outra empresa |
         | **Descrição** | Industrialização por encomenda — abate bovino — mão de obra |
         | **NCM** | `00000000` |
-        | **CEST** | Não se aplica |
         | **CST ICMS** | `000` — Tributação integral, conforme homologação contábil |
         | **Alíquota ICMS** | Conforme legislação e parametrização da contabilidade |
         | **CST PIS e COFINS** | `01` — Operação tributável à alíquota básica, quando aplicável |
@@ -408,11 +404,9 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **Documento** | NF-e de retorno de industrialização por conta e ordem |
         | **Emitente** | Frigorífico |
         | **Destinatário** | Adquirente/encomendante |
-        | **CFOP interno** | `5.925` — Retorno de mercadoria recebida para industrialização por conta e ordem do adquirente |
-        | **CFOP interestadual** | `6.925` |
+        | **CFOP interno** | `5.925`, `6.925` — Retorno de mercadoria recebida para industrialização por conta e ordem do adquirente |
         | **Descrição do item** | Retorno de gado bovino vivo recebido para industrialização por conta e ordem |
         | **NCM** | `0102.29.90` |
-        | **CEST** | Não se aplica |
         | **Quantidade** | Correspondente ao gado recebido |
         | **Valor** | Igual ao valor informado na NF-e com CFOP `5.924/6.924` |
         | **NF referenciada** | NF-e de venda e NF-e de remessa física |
@@ -425,10 +419,8 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **CST ICMS** | `050` — Suspensão |
         | **ICMS** | Sem destaque |
         | **CST PIS e COFINS** | `49` — Outras operações de saída |
-        | **PIS/COFINS** | Sem receita e sem débito |
         | **CST IBS/CBS** | `410` — Imunidade e não incidência |
         | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
-        | **Base, alíquotas e valores de IBS/CBS** | Não informar |
 
         #### Cobrança do abate
 
@@ -438,7 +430,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **CFOP interestadual** | `6.125` |
         | **Descrição** | Industrialização por encomenda — abate bovino — mão de obra |
         | **NCM** | `00000000` |
-        | **CEST** | Não se aplica |
         | **CST ICMS** | `000` — Tributação integral, conforme homologação contábil |
         | **Alíquota ICMS** | Conforme legislação e parametrização da contabilidade |
         | **CST PIS e COFINS** | `01` — Operação tributável à alíquota básica, quando aplicável |
@@ -516,24 +507,21 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
       | **CFOP** | `5.401`, `6.401` — Venda de produção própria sujeita à ST, na condição de substituto |
       | **CST ICMS** | `060` — ICMS cobrado anteriormente por substituição tributária |
       | **CST PIS e COFINS** | `06` — Operação tributável à alíquota zero |
-      | **CST IBS/CBS** | `200` — Alíquota reduzida |
-      | **cClassTrib** | `200034` — Fornecimento de alimentos destinados ao consumo humano relacionados no Anexo VII da LC nº 214/2025 |
-      | **Redução das alíquotas** | `60%` |
 
       ### Produtos
 
-      | Produto | NCM | CEST | Observação |
-      | :--- | :---: | :---: | :---: |
-      | Buchinho bovino comestível | `0504.00.90` | — | Tributação integral; validar com a contabilidade |
-      | Bucho bovino — rúmen — comestível | `0504.00.90` | — | Tributação integral; validar com a contabilidade |
-      | Carne industrial | `0206.29.90` | `17.084.00` | Redefinir a descrição conforme o produto efetivo |
-      | Coração bovino congelado | `0206.29.90` | `17.084.00` | Alíquota reduzida em 60% |
-      | Fígado bovino congelado | `0206.22.00` | `17.084.00` | Alíquota reduzida em 60% |
-      | Língua bovina congelada | `0206.21.00` | `17.084.00` | Alíquota reduzida em 60% |
-      | Mocotó bovino congelado | `0206.29.90` | `17.084.00` | Alíquota reduzida em 60% |
-      | Rabo bovino congelado | `0206.29.10` | `17.084.00` | Alíquota reduzida em 60% |
-      | Rim bovino congelado | `0206.29.90` | `17.084.00` | Alíquota reduzida em 60% |
-      | Tendão bovino congelado | `0206.29.90` | `17.084.00` | Alíquota reduzida em 60% |
+    | Produto | NCM | CEST | CST IBS/CBS | cClassTrib | Observação |
+    | :--- | :---: | :--- | :--- | :--- | :--- |
+      | Buchinho bovino comestível | `0504.00.90` | — | `000` | `000001` | - |
+      | Bucho bovino comestível | `0504.00.90` | — | `000` | `000001` | - 
+      | Carne industrial | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
+      | Coração bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
+      | Fígado bovino congelado | `0206.22.00` | `17.084.00` | `200` | `200034` | - |
+      | Língua bovina congelada | `0206.21.00` | `17.084.00` | `200` | `200034` | - |
+      | Mocotó bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
+      | Rabo bovino congelado | `0206.29.10` | `17.084.00` | `200` | `200034` | - |
+      | Rim bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
+      | Tendão bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
 
       <Callout type="info" title="Tratamento do IBS e da CBS">
         Para os produtos classificados no NCM `0206`, foi informada a utilização
@@ -569,21 +557,20 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
     | **CFOP** | `5.101` `6.101`, sujeito à validação da operação |
     | **CST ICMS** | `051` — Diferimento |
     | **CST PIS e COFINS** | `06` — Operação tributável à alíquota zero |
-    | **CST IBS/CBS** | `000` — Tributação integral |
-    | **cClassTrib** | `000001` — Situações tributadas integralmente pelo IBS e CBS |
+
 
     ### Produtos
 
-    | Produto | NCM | Observação |
-    | :--- | :---: | :--- |
-    | Aorta bovina não comestível | `0511.99.99` | Validar conforme destinação |
-    | Bexiga bovina não comestível | `0504.00.90` | Validar conforme destinação |
-    | Casco bovino em bruto não comestível | `0507.90.00` | Validar conforme destinação |
-    | Chifre bovino em bruto não comestível | `0507.90.00` | Validar conforme destinação |
-    | Mucosa intestinal bovina não comestível | `0511.99.99` | Validar conforme destinação |
-    | Traqueia bovina não comestível | `0511.99.99` | Validar conforme destinação |
-    | Vergalho bovino não comestível | `0511.99.99` | Validar conforme apresentação |
-    
+    | Produto | NCM | CST IBS/CBS | cClassTrib | Observação |
+    | :--- | :---: | :--- | :--- | :--- |
+    | Aorta bovina não comestível | `0511.99.99` | `000` | `000001` | - |
+    | Bexiga bovina não comestível | `0504.00.90` | `000` | `000001` |  -  |
+    | Casco bovino em bruto não comestível | `0507.90.00` | `000` | `000001` | - |
+    | Chifre bovino em bruto não comestível | `0507.90.00` | `000` | `000001` | - |
+    | Mucosa intestinal bovina não comestível | `0507.90.00` | `000` | `000001` | - |
+    | Traqueia bovina não comestível | `0507.90.00` | `000` | `000001` |  -  |
+    | Vergalho bovino não comestível |  `0507.90.00` | `000` | `000001` |  -  |
+
     ### Informações complementares sugeridas
 
       ```txt title="Texto condicionado à validação"
