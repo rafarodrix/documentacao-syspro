@@ -146,10 +146,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
 
         .docs-print-root pre,
         .docs-print-root blockquote,
-        .docs-print-root figure,
-        .docs-print-root ul,
-        .docs-print-root ol,
-        .docs-print-root dl {
+        .docs-print-root figure {
           break-inside: avoid;
           page-break-inside: avoid;
         }
@@ -239,7 +236,14 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
 
         .docs-print-root ul,
         .docs-print-root ol {
+          break-inside: auto !important;
+          page-break-inside: auto !important;
           padding-left: 20px !important;
+        }
+
+        .docs-print-root li {
+          break-inside: avoid;
+          page-break-inside: avoid;
         }
 
         .docs-print-root li + li {
@@ -278,7 +282,10 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           opacity: 1 !important;
           visibility: visible !important;
           margin-bottom: 2rem;
-          page-break-inside: avoid;
+          break-inside: auto !important;
+          page-break-inside: auto !important;
+          break-before: auto !important;
+          page-break-before: auto !important;
         }
 
         .docs-print-root [role="tabpanel"]::before {

@@ -580,7 +580,10 @@
     opacity: 1 !important;
     visibility: visible !important;
     margin-bottom: 2rem;
-    page-break-inside: avoid; /* Evita que uma aba seja cortada ao meio na folha */
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
   }
 
   /* 3. Adiciona um título visual indicando a qual cenário pertence */
@@ -775,5 +778,4 @@
   color: var(--muted-foreground);
   font-style: italic;
 }
-
 
