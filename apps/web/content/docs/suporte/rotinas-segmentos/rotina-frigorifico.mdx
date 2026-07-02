@@ -107,7 +107,7 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
       </Tab>
 
       <Tab
-        value="Operação triangular — 5.122/5.123"
+        value="Operação triangular — 5.122"
         title="Cenário B — Compra com entrega direta ao frigorífico"
       >
         ### Cenário B — Industrialização triangular
@@ -121,7 +121,7 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         3. **Frigorífico/industrializador.**
 
         <Callout type="warning" title="O CFOP 5.122 não é a entrada física do frigorífico">
-          A NF-e com CFOP `5.122` ou `5.123` representa a venda do fornecedor para o encomendante.
+          A NF-e com CFOP `5.122` representa a venda do fornecedor para o encomendante.
 
           O destinatário comercial dessa nota é o encomendante, ainda que o local de entrega seja o frigorífico.
 
@@ -138,12 +138,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **CFOP de entrada no encomendante** | `1.122` |
         | **NCM** | `0102.29.90` |
         | **Natureza** | Venda com entrega direta ao industrializador |
-
-        <Callout type="warning" title="Tributação da nota de venda">
-          A NF-e com CFOP `5.122` ou `5.123` é uma operação de venda.
-
-          Portanto, não deverá utilizar automaticamente CST IBS/CBS  `410` e cClassTrib `410029`. ICMS, PIS, COFINS, IBS e CBS deverão seguir o tratamento da venda do gado e o regime tributário do fornecedor.
-        </Callout>
 
         #### Documento 2 — Remessa física ao frigorífico
 
@@ -181,7 +175,7 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **NCM** | `0102.29.90` |
         | **Movimentação física** | Não movimentar novamente o estoque |
         | **Referências** | Informar a NF-e de venda e a NF-e de remessa física |
-        | **ICMS** | Sem destaque, conforme suspensão aplicável |
+        | **CST ICMS** | `050` — Suspensão |
         | **CST IBS/CBS** | `410` |
         | **cClassTrib** | `410029` |
 
@@ -236,7 +230,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | Tributo | Parametrização |
         | :--- | :--- |
         | **CST ICMS** | `050` — Suspensão, quando atendidas as condições legais |
-        | **ICMS** | Sem destaque |
         | **CST PIS e COFINS** | `98` — Outras operações de entrada |
         | **CST IBS/CBS** | `410` — Imunidade e não incidência |
         | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
@@ -481,15 +474,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
       | Rim bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
       | Tendão bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
 
-      <Callout type="info" title="Tratamento do IBS e da CBS">
-        Para os produtos classificados no NCM `0206`, foi informada a utilização do CST `200` e do cClassTrib `200034`, com redução de 60% das alíquotas do IBS e da CBS.
-
-        Para bucho e buchinho, classificados no NCM `0504.00.90`, o cadastro atual utiliza CST `000` e cClassTrib `000001`, correspondentes à tributação integral, sem redução.
-      </Callout>
-
-      <Callout type="warning" title="Parametrização informada pela contabilidade">
-        O CST ICMS `060` pressupõe que o ICMS-ST tenha sido recolhido aeriormente. O CFOP e a origem da retenção deverão ser confirmados pela contabilidade antes da utilização em produção.
-      </Callout>
 
       ### Informações complementares sugeridas
 
