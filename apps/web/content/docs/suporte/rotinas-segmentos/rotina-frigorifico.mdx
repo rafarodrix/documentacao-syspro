@@ -107,24 +107,6 @@ INICIO
 
 ## Rotina A - Remessa direta pelo encomendante
 
-<Callout type="info" title="Quando usar">
-  Use a **Rotina A** quando o gado ja pertencer ao encomendante e ele apenas remeter os animais ao frigorifico para realizacao do abate. Nao ocorre venda nem transferencia de propriedade ao frigorifico.
-</Callout>
-
-<Cards>
-  <Card title="Entrada">
-    NF-e do encomendante com `5.901/6.901` e entrada no frigorifico em `1.901/2.901`.
-  </Card>
-  <Card title="Retorno">
-    Retorno do insumo com `5.902/6.902`, reproduzindo o gado recebido como insumo fiscal.
-  </Card>
-  <Card title="Industrializacao">
-    Cobranca da mao de obra e materiais proprios com `5.124/6.124`.
-  </Card>
-</Cards>
-
-### Steps da Rotina A no sistema
-
 <Steps>
   <Step>
     ### Step 1 - Recebimento documental
@@ -221,19 +203,6 @@ Operacao com suspensao do ICMS, CST 050. Operacao nao sujeita ao IBS e a CBS, CS
   Use a **Rotina B** quando o encomendante comprar o gado de um fornecedor, mas determinar que os animais sejam entregues diretamente ao frigorifico, sem transitar pelo estabelecimento do encomendante.
 </Callout>
 
-<Cards>
-  <Card title="Entrada">
-    A entrada fisica no frigorifico ocorre em `1.924/2.924`, a partir da remessa `5.924/6.924`.
-  </Card>
-  <Card title="Retorno">
-    O retorno do insumo segue em `5.925/6.925` por industrializacao por conta e ordem.
-  </Card>
-  <Card title="Industrializacao">
-    A cobranca do abate segue em `5.125/6.125`.
-  </Card>
-</Cards>
-
-### Steps da Rotina B no sistema
 
 <Steps>
   <Step>
@@ -304,7 +273,7 @@ Operacao com suspensao do ICMS, CST 050. Operacao nao sujeita ao IBS e a CBS, CS
 
 | Tributo | Parametrizacao |
 | :--- | :--- |
-| **ICMS da remessa fisica** | Sem novo destaque, conforme procedimento aplicavel |
+| **CST ICMS** | `050` - Suspensao |
 | **CST PIS e COFINS na entrada** | `98` - Outras operacoes de entrada |
 | **CST IBS/CBS** | `410` - Imunidade e nao incidencia |
 | **cClassTrib** | `410029` - Operacoes acobertadas somente pelo ICMS |
@@ -349,20 +318,6 @@ Documento sem nova movimentacao fisica da mercadoria.
 <Callout type="info" title="Quando usar">
   Use a **Rotina C** quando o proprietario dos animais nao estiver habilitado ou autorizado a emitir a NF-e necessaria para documentar a remessa ao frigorifico.
 </Callout>
-
-<Cards>
-  <Card title="Entrada">
-    O proprio frigorifico emite a NF-e de entrada com `1.901/2.901`.
-  </Card>
-  <Card title="Retorno">
-    O retorno do insumo segue o mesmo padrao da Rotina A, com `5.902/6.902`.
-  </Card>
-  <Card title="Industrializacao">
-    A cobranca da industrializacao segue o mesmo padrao da Rotina A, com `5.124/6.124`.
-  </Card>
-</Cards>
-
-### Steps da Rotina C no sistema
 
 <Steps>
   <Step>
