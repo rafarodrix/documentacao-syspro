@@ -273,6 +273,16 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           padding-left: 20px !important;
         }
 
+        .docs-print-root .fd-steps {
+          break-inside: auto !important;
+          page-break-inside: auto !important;
+        }
+
+        .docs-print-root .fd-step {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
         .docs-print-root li {
           break-inside: avoid;
           page-break-inside: avoid;
