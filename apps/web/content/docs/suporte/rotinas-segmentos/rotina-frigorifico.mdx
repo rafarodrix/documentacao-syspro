@@ -70,7 +70,7 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         ### Cenário A — Gado pertencente ao encomendante
 
         Utilize este cenário quando o encomendante já for proprietário do gado e apenas remeter os animais ao frigorífico para realização do abate.
-
+        **CFOP da NF-e recebida** | `5.901` — Remessa para industrialização por encomenda |
         Não ocorre venda ou transferência da propriedade dos animais ao frigorífico.
 
         #### Documento fiscal
@@ -80,11 +80,8 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **Documento** | NF-e de remessa para industrialização por encomenda |
         | **Emitente** | Encomendante proprietário do gado |
         | **Destinatário** | Frigorífico |
-        | **CFOP da NF-e recebida** | `5.901` — Remessa para industrialização por encomenda |
         | **CFOP de entrada no frigorífico** | `1.901` — Entrada para industrialização por encomenda |
         | **NCM** | `0102.29.90` — Gado bovino doméstico vivo |
-        | **Finalidade** | Entrada temporária para abate por encomenda |
-        | **Propriedade dos animais** | Permanece com o encomendante |
         | **GTA** | Informar o número correspondente |
         | **NF referenciada** | Referenciar esta NF-e no posterior retorno da industrialização |
 
@@ -97,12 +94,14 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         | **CST IBS/CBS** | `410` — Imunidade e não incidência |
         | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
 
-        #### Informação complementar sugerida
+        #### Informação complementar sugerida — CFOP 5.901
 
-        ```txt title="Texto sugerido para a remessa"
-        Remessa de gado bovino vivo para industrialização por encomenda, vinculada à GTA nº [NUMERO_GTA], exclusivamente para realização de abate por encomenda, sem transferência de propriedade ao frigorífico.
+        ```txt title="Texto para a remessa do encomendante"
+        Remessa para industrialização por encomenda de gado bovino adquirido de [NOME_FORNECEDOR], por meio da NF-e nº [NUMERO_NFE_VENDA], série [SERIE].
 
-        Operação com suspensão do ICMS, CST 050. Operação não sujeita ao IBS e à CBS, CST 410 e cClassTrib 410029.
+        Os animais foram entregues diretamente ao frigorífico por meio da NF-e nº [NUMERO_NFE_REMESSA], CFOP 5.924, vinculada à GTA nº [NUMERO_GTA].
+
+        Documento sem nova movimentação física da mercadoria.
         ```
       </Tab>
 
@@ -156,7 +155,7 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
         | Tributo | Parametrização |
         | :--- | :--- |
-        | **ICMS** | Sem novo destaque sobre a remessa física, conforme o procedimento aplicável |
+        | **CST ICMS** | `050` — Suspensão |
         | **CST PIS e COFINS na entrada** | `98` — Outras operações de entrada |
         | **CST IBS/CBS** | `410` — Imunidade e não incidência |
         | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
@@ -190,15 +189,6 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
         Operação vinculada à GTA nº [NUMERO_GTA].
         ```
 
-        #### Informação complementar sugerida — CFOP 5.901
-
-        ```txt title="Texto para a remessa do encomendante"
-        Remessa para industrialização por encomenda de gado bovino adquirido de [NOME_FORNECEDOR], por meio da NF-e nº [NUMERO_NFE_VENDA], série [SERIE].
-
-        Os animais foram entregues diretamente ao frigorífico por meio da NF-e nº [NUMERO_NFE_REMESSA], CFOP 5.924, vinculada à GTA nº [NUMERO_GTA].
-
-        Documento sem nova movimentação física da mercadoria.
-        ```
       </Tab>
 
       <Tab
