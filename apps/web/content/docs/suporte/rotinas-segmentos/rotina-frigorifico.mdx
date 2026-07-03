@@ -1,512 +1,357 @@
 ---
-title: Rotina de Frigorífico Tijuco
-description: Documento técnico fiscal para análise de operações de abate, industrialização, retorno e venda de subprodutos.
-owner: Implantação
+title: Rotina de Frigorifico Tijuco
+description: Documento tecnico fiscal para analise das rotinas de entrada, retorno, industrializacao e venda no processo de abate bovino por encomenda.
+lastUpdated: 2026-07-03
+owner: Implantacao
 status: published
 tags:
   - fiscal
-  - frigorífico
-
+  - frigorifico
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Card, Cards } from 'fumadocs-ui/components/card';
-import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+# Analise Fiscal do Processo de Abate Frigorifico
 
-# Análise Fiscal do Processo de Abate Frigorífico
+Este documento consolida a rotina fiscal do **Tijuco Frigorifico Ituiutaba**, com foco na industrializacao por encomenda, no retorno dos insumos, na cobranca do abate e na venda dos produtos resultantes.
 
+> Documento para homologacao contabil:
+> Este material organiza a parametrizacao tecnica do ERP, mas nao substitui a validacao formal da contabilidade. Regras de CFOP, CST, beneficios fiscais, PIS/COFINS, IBS/CBS, cClassTrib e informacoes complementares devem ser revalidadas sempre que houver mudanca de produto, NCM, destinatario, unidade federada, regime tributario ou natureza da operacao.
 
-Este documento consolida a rotina fiscal do **Tijuco Frigorífico Ituiutaba**, com foco na industrialização por encomenda, no retorno dos insumos, na cobrança do abate e na venda dos produtos resultantes. O objetivo aqui é descrever o fluxo operacional do sistema, e consolidar os cenários fiscais que precisam orientar a parametrização, a emissão documental e a validação contábil.
+## Como usar este documento
 
-<Callout type="warning" title="Documento para homologação contábil">
-  Este material organiza a parametrização técnica do ERP, mas não substitui a validação formal da contabilidade. Regras de CFOP, CST, benefícios fiscais, PIS/COFINS, IBS/CBS, cClassTrib e informações complementares deverão ser revalidadas sempre que houver mudança de produto, NCM, destinatário, unidade federada, regime tributário ou natureza da operação.
-</Callout>
+1. Identifique primeiro qual rotina operacional do sistema sera usada: **Rotina A**, **Rotina B** ou **Rotina C**.
+2. Parametrize a entrada do gado conforme a origem documental correta.
+3. Ao concluir o abate, emita o retorno do insumo e a cobranca da industrializacao com os CFOPs da mesma rotina.
+4. Classifique a venda final dos produtos comestiveis e nao comestiveis separadamente.
+5. Antes da homologacao, revise os textos complementares, NCMs, CSTs e fundamentos legais com a contabilidade.
 
----
+## Mapa rapido das rotinas no sistema
 
-## Visão Geral do Fluxo Fiscal e Sequência de Emissão
+| Rotina no sistema | Quando usar | Entrada no frigorifico | Retorno do insumo | Cobranca da industrializacao |
+| :--- | :--- | :---: | :---: | :---: |
+| **Rotina A** | O gado ja pertence ao encomendante e ele remete direto ao frigorifico | `1.901 / 2.901` | `5.902 / 6.902` | `5.124 / 6.124` |
+| **Rotina B** | O encomendante compra de um fornecedor e manda entregar direto no frigorifico | `1.924 / 2.924` | `5.925 / 6.925` | `5.125 / 6.125` |
+| **Rotina C** | O proprietario do gado nao emite NF-e e o frigorifico precisa emitir a entrada | `1.901 / 2.901` | `5.902 / 6.902` | `5.124 / 6.124` |
 
-Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a implantação:
+## Regra base para parametrizacao do ERP
 
----
+No cadastro de entradas do frigorifico, **nao** deve existir natureza de entrada com CFOP `5.122` ou `5.123`.
 
-<Steps>
-  <Step>
-    ## Entrada do Gado Bovino Destinado ao Abate
+- `5.122` e `5.123` sao CFOPs de saida do fornecedor para o encomendante.
+- A entrada fisica do frigorifico sera registrada em `1.901/2.901` ou `1.924/2.924`.
+- A NF-e com CFOP `5.901/6.901` ou `5.924/6.924` deve ser importada com o respectivo CFOP de entrada.
+- A GTA deve ser vinculada ao documento fiscal e aos controles internos do frigorifico em qualquer rotina.
 
-    ### Natureza da operação
+## Rotina A - Remessa direta pelo encomendante
 
-    Recebimento de gado bovino vivo para realização de abate por encomenda, sem aquisição dos animais pelo frigorífico.
+### Quando usar
 
-    <Callout type="warning" title="GTA obrigatória">
-      A entrada dos animais deverá estar acobertada pela **GTA — Guia de Trânsito Animal**, conforme as regras sanitárias e de rastreabilidade aplicáveis.
+Use a **Rotina A** quando o gado ja pertencer ao encomendante e ele apenas remeter os animais ao frigorifico para realizacao do abate. Nao ocorre venda nem transferencia de propriedade ao frigorifico.
 
-      O número da GTA deverá ser registrado no documento fiscal e nos controles internos do frigorífico.
-    </Callout>
+### Fluxo da rotina no sistema
 
-    ### Identificação do cenário
+1. Receber a NF-e do encomendante com CFOP `5.901/6.901`.
+2. Registrar a entrada do frigorifico com CFOP `1.901/2.901`.
+3. Vincular a GTA e a NF-e recebida ao processo de abate.
+4. Concluir o abate e os controles internos de producao/rendimento.
+5. Emitir o retorno do insumo com CFOP `5.902/6.902`.
+6. Emitir a cobranca da industrializacao com CFOP `5.124/6.124`.
 
-    Antes de registrar a entrada, verifique quem é o proprietário do gado e como ele chegou ao frigorífico:
+### Entrada do gado na Rotina A
 
-    | Pergunta | Cenário |
-    | :--- | :--- |
-    | O gado já pertencia ao encomendante e foi enviado diretamente por ele ao frigorífico? | **Remessa direta — CFOP 5.901** |
-    | O encomendante comprou o gado de um fornecedor e determinou que ele fosse entregue diretamente ao frigorífico? | **Operação triangular — CFOPs 5.122** |
-    | O encomendante não está habilitado a emitir NF-e? | **NF-e própria de entrada emitida pelo frigorífico — CFOP 1.901** |
+| Campo | Tratamento |
+| :--- | :--- |
+| **Documento** | NF-e de remessa para industrializacao por encomenda |
+| **Emitente** | Encomendante proprietario do gado |
+| **Destinatario** | Frigorifico |
+| **CFOP da NF-e recebida** | `5.901 / 6.901` |
+| **CFOP de entrada no frigorifico** | `1.901 / 2.901` |
+| **NCM** | `0102.29.90` - Gado bovino domestico vivo |
+| **Finalidade** | Entrada temporaria para abate por encomenda |
+| **Propriedade dos animais** | Permanece com o encomendante |
+| **GTA** | Informar o numero correspondente |
+| **NF referenciada** | Referenciar esta NF-e no retorno posterior |
 
-    <Tabs
-      items={[
-        'Remessa direta — 5.901',
-        'Operação triangular — 5.122',
-        'NF-e própria de entrada'
-      ]}
-    >
-      <Tab
-        value="Remessa direta — 5.901"
-        title="Cenário A — Remessa direta pelo encomendante"
-      >
-        ### Cenário A — Gado pertencente ao encomendante
+### Tratamento fiscal da entrada na Rotina A
 
-        Utilize este cenário quando o encomendante já for proprietário do gado e apenas remeter os animais ao frigorífico para realização do abate.
-        **CFOP da NF-e recebida** | `5.901` — Remessa para industrialização por encomenda |
-        Não ocorre venda ou transferência da propriedade dos animais ao frigorífico.
+| Tributo | Parametrizacao |
+| :--- | :--- |
+| **CST ICMS** | `050` - Suspensao |
+| **ICMS** | Sem destaque nesta etapa |
+| **CST PIS e COFINS na entrada** | `98` - Outras operacoes de entrada |
+| **CST IBS/CBS** | `410` - Imunidade e nao incidencia |
+| **cClassTrib** | `410029` - Operacoes acobertadas somente pelo ICMS |
 
-        #### Documento fiscal
+### Retorno e cobranca apos o abate na Rotina A
 
-        | Campo | Tratamento |
-        | :--- | :--- |
-        | **Documento** | NF-e de remessa para industrialização por encomenda |
-        | **Emitente** | Encomendante proprietário do gado |
-        | **Destinatário** | Frigorífico |
-        | **CFOP de entrada no frigorífico** | `1.901` — Entrada para industrialização por encomenda |
-        | **NCM** | `0102.29.90` — Gado bovino doméstico vivo |
-        | **GTA** | Informar o número correspondente |
-        | **NF referenciada** | Referenciar esta NF-e no posterior retorno da industrialização |
+| Operacao | CFOP | Tratamento resumido |
+| :--- | :---: | :--- |
+| **Retorno do insumo recebido** | `5.902 / 6.902` | Reproduz o gado recebido como insumo fiscal |
+| **Cobranca da industrializacao** | `5.124 / 6.124` | Mao de obra de abate e materiais proprios do frigorifico |
 
-        #### Tratamento fiscal da entrada
+| Tributo da cobranca | Parametrizacao |
+| :--- | :--- |
+| **CST ICMS** | `000` - Tributacao integral, conforme homologacao contabil |
+| **Aliquota ICMS** | Conforme legislacao e parametrizacao da contabilidade |
+| **CST PIS e COFINS** | `01` - Operacao tributavel a aliquota basica, quando aplicavel |
+| **CST IBS/CBS** | `000` - Tributacao integral |
+| **cClassTrib** | `000001` - Situacoes tributadas integralmente pelo IBS e CBS |
 
-        | Tributo | Parametrização |
-        | :--- | :--- |
-        | **CST ICMS** | `050` — Suspensão |
-        | **CST PIS e COFINS na entrada do frigorífico** | `98` — Outras operações de entrada |
-        | **CST IBS/CBS** | `410` — Imunidade e não incidência |
-        | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
+### Texto sugerido para a remessa do encomendante
 
-        #### Informação complementar sugerida — CFOP 5.901
+```txt title="Rotina A - Remessa do encomendante"
+Remessa de gado bovino vivo para industrializacao por encomenda, vinculada a GTA numero [NUMERO_GTA], exclusivamente para realizacao de abate por encomenda, sem transferencia de propriedade ao frigorifico.
 
-        ```txt title="Texto para a remessa do encomendante"
-        Remessa para industrialização por encomenda de gado bovino adquirido de [NOME_FORNECEDOR], por meio da NF-e nº [NUMERO_NFE_VENDA], série [SERIE].
+Operacao com suspensao do ICMS, CST 050. Operacao nao sujeita ao IBS e a CBS, CST 410 e cClassTrib 410029.
+```
 
-        Os animais foram entregues diretamente ao frigorífico por meio da NF-e nº [NUMERO_NFE_REMESSA], CFOP 5.924, vinculada à GTA nº [NUMERO_GTA].
+## Rotina B - Compra com entrega direta ao frigorifico
 
-        Documento sem nova movimentação física da mercadoria.
-        ```
-      </Tab>
+### Quando usar
 
-      <Tab
-        value="Operação triangular — 5.122"
-        title="Cenário B — Compra com entrega direta ao frigorífico"
-      >
-        ### Cenário B — Industrialização triangular
+Use a **Rotina B** quando o encomendante comprar o gado de um fornecedor, mas determinar que os animais sejam entregues diretamente ao frigorifico, sem transitar pelo estabelecimento do encomendante.
 
-        Utilize este cenário quando o encomendante comprar o gado de um fornecedor, mas determinar que os animais sejam entregues diretamente ao frigorífico, sem transitar pelo estabelecimento do encomendante.
+### Regra central da Rotina B
 
-        Neste fluxo existem três participantes:
+Na operacao triangular existem tres participantes:
 
-        1. **Fornecedor/vendedor do gado;**
-        2. **Adquirente/encomendante;**
-        3. **Frigorífico/industrializador.**
+1. **Fornecedor/vendedor do gado**
+2. **Adquirente/encomendante**
+3. **Frigorifico/industrializador**
 
-        <Callout type="warning" title="O CFOP 5.122 não é a entrada física do frigorífico">
-          A NF-e com CFOP `5.122` representa a venda do fornecedor para o encomendante.
+O CFOP `5.122` ou `5.123` **nao** representa a entrada fisica do frigorifico. A entrada fisica sera acobertada pela NF-e com CFOP `5.924/6.924`, importada no frigorifico como `1.924/2.924`.
 
-          O destinatário comercial dessa nota é o encomendante, ainda que o local de entrega seja o frigorífico.
+### Fluxo da rotina no sistema
 
-          A entrada física no frigorífico será acobertada pela NF-e com CFOP `5.924`.
-        </Callout>
+1. O fornecedor emite a venda ao encomendante com CFOP `5.122/6.122` ou `5.123/6.123`.
+2. O fornecedor emite a remessa fisica ao frigorifico com CFOP `5.924/6.924`.
+3. O frigorifico registra a entrada fisica com CFOP `1.924/2.924`.
+4. O encomendante emite a NF-e de remessa para industrializacao com CFOP `5.901/6.901`, sem nova movimentacao fisica.
+5. O frigorifico conclui o abate.
+6. O frigorifico emite o retorno do insumo com CFOP `5.925/6.925`.
+7. O frigorifico emite a cobranca da industrializacao com CFOP `5.125/6.125`.
 
-        #### Documento 1 — Venda do fornecedor ao encomendante
+### Documentos da Rotina B
 
-        | Campo | Tratamento |
-        | :--- | :--- |
-        | **Emitente** | Fornecedor/vendedor do gado |
-        | **Destinatário** | Adquirente/encomendante |
-        | **Local de entrega** | Frigorífico |
-        | **CFOP de entrada no encomendante** | `1.122` |
-        | **NCM** | `0102.29.90` |
-        | **Natureza** | Venda com entrega direta ao industrializador |
+| Etapa | Documento | Emitente | Destinatario | CFOP | Observacao |
+| :--- | :--- | :--- | :--- | :---: | :--- |
+| **Documento 1** | Venda do fornecedor ao encomendante | Fornecedor | Encomendante | `5.122/6.122` ou `5.123/6.123` | O local de entrega sera o frigorifico |
+| **Documento 2** | Remessa fisica ao frigorifico | Fornecedor | Frigorifico | `5.924/6.924` | Acoberta o transito fisico do gado |
+| **Documento 3** | Remessa do encomendante ao frigorifico | Encomendante | Frigorifico | `5.901/6.901` | Documento de vinculo, sem nova movimentacao fisica |
 
-        #### Documento 2 — Remessa física ao frigorífico
+### Entrada do gado na Rotina B
 
-        | Campo | Tratamento |
-        | :--- | :--- |
-        | **Emitente** | Fornecedor do gado |
-        | **Destinatário** | Frigorífico |
-        | **CFOP da NF-e** | `5.924` — Remessa para industrialização por conta e ordem do adquirente |
-        | **CFOP de entrada no frigorífico** | `1.924` |
-        | **NCM** | `0102.29.90` |
-        | **Finalidade** | Acobertar o trânsito físico do gado |
-        | **Referência** | Informar a NF-e de venda com CFOP `5.122` ou `5.123` |
-        | **GTA** | Informar o número correspondente |
+| Campo | Tratamento |
+| :--- | :--- |
+| **CFOP de entrada no frigorifico** | `1.924 / 2.924` |
+| **NCM** | `0102.29.90` |
+| **Finalidade** | Acobertar a entrada fisica do gado por conta e ordem do adquirente |
+| **Referencia obrigatoria** | Informar a NF-e de venda e a NF-e de remessa fisica |
+| **GTA** | Informar o numero correspondente |
+| **Movimentacao fisica da NF 5.901/6.901** | Nao movimentar novamente o estoque |
 
-        #### Tratamento fiscal da remessa física
+### Tratamento fiscal da entrada na Rotina B
 
-        | Tributo | Parametrização |
-        | :--- | :--- |
-        | **CST ICMS** | `050` — Suspensão |
-        | **CST PIS e COFINS na entrada** | `98` — Outras operações de entrada |
-        | **CST IBS/CBS** | `410` — Imunidade e não incidência |
-        | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
+| Tributo | Parametrizacao |
+| :--- | :--- |
+| **ICMS da remessa fisica** | Sem novo destaque, conforme procedimento aplicavel |
+| **CST PIS e COFINS na entrada** | `98` - Outras operacoes de entrada |
+| **CST IBS/CBS** | `410` - Imunidade e nao incidencia |
+| **cClassTrib** | `410029` - Operacoes acobertadas somente pelo ICMS |
 
-        #### Documento 3 — Remessa do encomendante ao frigorífico
+### Retorno e cobranca apos o abate na Rotina B
 
-        O adquirente/encomendante deverá emitir uma NF-e para formalizar que o gado adquirido foi destinado à industrialização.
+| Operacao | CFOP | Tratamento resumido |
+| :--- | :---: | :--- |
+| **Retorno do insumo recebido** | `5.925 / 6.925` | Retorno de mercadoria recebida para industrializacao por conta e ordem |
+| **Cobranca da industrializacao** | `5.125 / 6.125` | Industrializacao efetuada para outra empresa quando o insumo nao transitou pelo adquirente |
 
-        Esta nota não representa uma segunda entrada física.
+| Tributo da cobranca | Parametrizacao |
+| :--- | :--- |
+| **CST ICMS** | `000` - Tributacao integral, conforme homologacao contabil |
+| **Aliquota ICMS** | Conforme legislacao e parametrizacao da contabilidade |
+| **CST PIS e COFINS** | `01` - Operacao tributavel a aliquota basica, quando aplicavel |
+| **CST IBS/CBS** | `000` - Tributacao integral |
+| **cClassTrib** | `000001` - Situacoes tributadas integralmente pelo IBS e CBS |
 
-        | Campo | Tratamento |
-        | :--- | :--- |
-        | **Emitente** | Adquirente/encomendante |
-        | **Destinatário** | Frigorífico |
-        | **CFOP** | `5.901` — Remessa para industrialização por encomenda |
-        | **NCM** | `0102.29.90` |
-        | **Movimentação física** | Não movimentar novamente o estoque |
-        | **Referências** | Informar a NF-e de venda e a NF-e de remessa física |
-        | **CST ICMS** | `050` — Suspensão |
-        | **CST IBS/CBS** | `410` |
-        | **cClassTrib** | `410029` |
+### Textos sugeridos da Rotina B
 
+```txt title="Rotina B - Remessa fisica do fornecedor"
+Remessa de gado bovino vivo para industrializacao por conta e ordem de [NOME_ENCOMENDANTE], CNPJ [CNPJ_ENCOMENDANTE].
 
-        #### Informação complementar sugerida — CFOP 5.924
+Mercadoria vendida por meio da NF-e numero [NUMERO_NFE_VENDA], serie [SERIE], emitida em [DATA], e entregue diretamente ao frigorifico industrializador.
 
-        ```txt title="Texto para a remessa física" 
-        Remessa de gado bovino vivo para industrialização por conta e ordem de [NOME_ENCOMENDANTE], CNPJ [CNPJ_ENCOMENDANTE].
+Operacao vinculada a GTA numero [NUMERO_GTA].
+```
 
-        Mercadoria vendida por meio da NF-e nº [NUMERO_NFE_VENDA], série [SERIE], emitida em [DATA], e entregue diretamente ao frigorífico industrializador.
+```txt title="Rotina B - Remessa do encomendante"
+Remessa para industrializacao por encomenda de gado bovino adquirido de [NOME_FORNECEDOR], por meio da NF-e numero [NUMERO_NFE_VENDA], serie [SERIE].
 
-        Operação vinculada à GTA nº [NUMERO_GTA].
-        ```
+Os animais foram entregues diretamente ao frigorifico por meio da NF-e numero [NUMERO_NFE_REMESSA], CFOP 5.924/6.924, vinculada a GTA numero [NUMERO_GTA].
 
-      </Tab>
+Documento sem nova movimentacao fisica da mercadoria.
+```
 
-      <Tab
-        value="NF-e própria de entrada"
-        title="Cenário C — Encomendante não emitente de NF-e"
-      >
-        ### Cenário C — NF-e de entrada emitida pelo frigorífico
+## Rotina C - NF-e propria de entrada emitida pelo frigorifico
 
-        Utilize este cenário quando o proprietário dos animais não estiver habilitado ou autorizado a emitir a NF-e necessária para documentar a remessa ao frigorífico.
+### Quando usar
 
-        A emissão da NF-e de entrada não representa compra dos animais.
-        A propriedade permanece com o encomendante.
+Use a **Rotina C** quando o proprietario dos animais nao estiver habilitado ou autorizado a emitir a NF-e necessaria para documentar a remessa ao frigorifico.
 
-        #### Documento fiscal
+### Fluxo da rotina no sistema
 
-        | Campo | Tratamento |
-        | :--- | :--- |
-        | **Documento** | NF-e própria de entrada |
-        | **Emitente** | Frigorífico |
-        | **Produtor/encomendante** | Proprietário dos animais |
-        | **CFOP** | `1.901` — Entrada para industrialização por encomenda |
-        | **NCM** | `0102.29.90` |
-        | **Finalidade** | Entrada temporária para abate por encomenda |
-        | **GTA** | Informar o número correspondente |
-        | **Propriedade** | Permanece com o encomendante |
-
-        #### Tratamento fiscal
-
-        | Tributo | Parametrização |
-        | :--- | :--- |
-        | **CST ICMS** | `050` — Suspensão, quando atendidas as condições legais |
-        | **CST PIS e COFINS** | `98` — Outras operações de entrada |
-        | **CST IBS/CBS** | `410` — Imunidade e não incidência |
-        | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
-
-        #### Informação complementar sugerida
-
-        ```txt title="Texto sugerido para NF-e de entrada"
-        Entrada de gado bovino vivo pertencente a [NOME_PRODUTOR_ENCOMENDANTE], CPF/CNPJ [CPF_CNPJ], vinculado à GTA nº [NUMERO_GTA].
-
-        Animais recebidos exclusivamente para realização de abate por encomenda, sem aquisição ou transferência de propriedade ao frigorífico.
-
-        Operação com suspensão do ICMS, CST 050, e não sujeita ao IBS e à CBS, CST 410 e cClassTrib 410029.
-        ```
-      </Tab>
-    </Tabs>
-
-    ## Matriz fiscal consolidada da entrada
-
-    | Cenário | Nota principal | Destinatário da nota | Entrada no frigorífico | Retorno | Industrialização |
-    | :--- | :--- | :--- | :--- | :--- | :--- |
-    | Gado já pertencente ao encomendante | `5.901` | Frigorífico | `1.901` | `5.902` | `5.124` |
-    | Compra triangular — produção própria do fornecedor | `5.122` | Encomendante | `1.924`, mediante NF `5.924` | `5.925` | `5.125` |
-    | Compra triangular — mercadoria adquirida de terceiros | `5.123` | Encomendante | `1.924`, mediante NF `5.924` | `5.925` | `5.125` |
-    | Encomendante não emitente | NF-e própria `1.901` | Documento emitido pelo frigorífico | `1.901` | `5.902` | `5.124` |
-
-    <Callout type="info" title="Regra para parametrização do ERP">
-      No cadastro de entradas do frigorífico, não deverá ser criada uma natureza de entrada com CFOP `5.122`.
-
-      O CFOP `5.122` é um código de saída utilizado pelo fornecedor na venda ao encomendante.
-
-      Para a entrada física no frigorífico, deverão ser parametrizados:
-
-      - `1.901` — entrada para industrialização por encomenda;
-      - `1.924` — entrada por conta e ordem do adquirente, na operação triangular.
-
-      A NF-e com CFOP `5.901` ou `5.924` deverá ser importada com o respectivo CFOP de entrada.
-    </Callout>
-  </Step>
-  
-  <Step>
-    ## Retorno dos Produtos Resultantes do Abate
-
-    Após a conclusão do abate, o frigorífico deverá emitir NF-e para:
-
-    1. documentar o retorno dos insumos recebidos e incorporados ao produto resultante;
-    2. cobrar a mão de obra de abate e os materiais próprios empregados pelo frigorífico.
-
-    <Callout type="warning" title="O CFOP depende da forma de entrada">
-      O retorno não utiliza sempre os CFOPs 5.925 e 5.125.
-
-      - Entrada com `1.901`: retorno com `5.902` e industrialização com `5.124`;
-      - Entrada com `1.924`: retorno com `5.925` e industrialização com `5.125`.
-    </Callout>
-
-    ### Identificação do cenário
-
-    | Entrada no frigorífico | Origem da entrada | Retorno do insumo | Cobrança da industrialização |
-    | :--- | :--- | :---: | :---: |
-    | `1.901 / 2.901` | Remessa direta do encomendante ou NF-e própria de entrada | `5.902 / 6.902` | `5.124 / 6.124` |
-    | `1.924 / 2.924` | Entrega direta pelo fornecedor em operação triangular | `5.925 / 6.925` | `5.125 / 6.125` |
-
-    <Tabs
-      items={[
-        'Remessa direta — 5.902/5.124',
-        'Operação triangular — 5.925/5.125',
-        'NF-e própria de entrada'
-      ]}
-    >
-      <Tab
-        value="Remessa direta — 5.902/5.124"
-        title="Cenário A — Gado remetido diretamente pelo encomendante"
-      >
-        Utilize este cenário quando o encomendante emitir uma NF-e de remessa com CFOP `5.901/6.901`, registrada pelo frigorífico como entrada `1.901/2.901`.
-
-        #### Retorno do insumo recebido
-
-        | Campo | Parametrização |
-        | :--- | :--- |
-        | **Documento** | NF-e de retorno de industrialização |
-        | **Emitente** | Frigorífico |
-        | **Destinatário** | Encomendante |
-        | **CFOP interno** | `5.902`, `6.902` — Retorno de mercadoria utilizada na industrialização por encomenda |
-        | **Descrição do item** | Retorno de gado bovino vivo recebido para industrialização |
-        | **NCM** | `0102.29.90` |
-        | **Quantidade** | Correspondente ao gado recebido |
-        | **Valor** | Igual ao valor informado na remessa |
-        | **NF referenciada** | NF-e recebida com CFOP `5.901/6.901` |
-        | **GTA** | Informar o número correspondente |
-
-        #### Tratamento fiscal do retorno
-
-        | Tributo | Parametrização |
-        | :--- | :--- |
-        | **CST ICMS** | `050` — Suspensão |
-        | **CST PIS e COFINS** | `49` — Outras operações de saída |
-        | **CST IBS/CBS** | `410` — Imunidade e não incidência |
-        | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
-
-        #### Cobrança do abate
-
-        | Campo | Parametrização |
-        | :--- | :--- |
-        | **CFOP interno** | `5.124`, `6.124` — Industrialização efetuada para outra empresa |
-        | **Descrição** | Industrialização por encomenda — abate bovino — mão de obra |
-        | **NCM** | `00000000` |
-        | **CST ICMS** | `000` — Tributação integral, conforme homologação contábil |
-        | **Alíquota ICMS** | Conforme legislação e parametrização da contabilidade |
-        | **CST PIS e COFINS** | `01` — Operação tributável à alíquota básica, quando aplicável |
-        | **CST IBS/CBS** | `000` — Tributação integral |
-        | **cClassTrib** | `000001` — Situações tributadas integralmente pelo IBS e CBS |
-
-        <Callout type="info" title="Materiais do frigorífico">
-          Embalagens, etiquetas e demais materiais pertencentes ao frigorífico devem ser discriminados separadamente, com seus respectivos NCMs e valores.
-
-          Não utilizar o NCM da carcaça para representar a mão de obra.
-        </Callout>
-      </Tab>
-
-      <Tab
-        value="Operação triangular — 5.925/5.125"
-        title="Cenário B — Gado entregue diretamente pelo fornecedor"
-      >
-        Utilize este cenário quando o encomendante comprar o gado de um fornecedor e determinar que os animais sejam entregues diretamente ao frigorífico.
-
-        Nesse fluxo, o frigorífico recebe fisicamente o gado por uma NF-e com CFOP `5.924/6.924`, registrada como entrada `1.924/2.924`.
-
-        #### Retorno do insumo recebido
-
-        | Campo | Parametrização |
-        | :--- | :--- |
-        | **Documento** | NF-e de retorno de industrialização por conta e ordem |
-        | **Emitente** | Frigorífico |
-        | **Destinatário** | Adquirente/encomendante |
-        | **CFOP interno** | `5.925`, `6.925` — Retorno de mercadoria recebida para industrialização por conta e ordem do adquirente |
-        | **Descrição do item** | Retorno de gado bovino vivo recebido para industrialização por conta e ordem |
-        | **NCM** | `0102.29.90` |
-        | **Quantidade** | Correspondente ao gado recebido |
-        | **Valor** | Igual ao valor informado na NF-e com CFOP `5.924/6.924` |
-        | **NF referenciada** | NF-e de venda e NF-e de remessa física |
-        | **GTA** | Informar o número correspondente |
-
-        #### Tratamento fiscal do retorno
-
-        | Tributo | Parametrização |
-        | :--- | :--- |
-        | **CST ICMS** | `050` — Suspensão |
-        | **ICMS** | Sem destaque |
-        | **CST PIS e COFINS** | `49` — Outras operações de saída |
-        | **CST IBS/CBS** | `410` — Imunidade e não incidência |
-        | **cClassTrib** | `410029` — Operações acobertadas somente pelo ICMS |
-
-        #### Cobrança do abate
-
-        | Campo | Parametrização |
-        | :--- | :--- |
-        | **CFOP interno** | `5.125` — Industrialização efetuada para outra empresa quando o insumo não transitou pelo adquirente |
-        | **CFOP interestadual** | `6.125` |
-        | **Descrição** | Industrialização por encomenda — abate bovino — mão de obra |
-        | **NCM** | `00000000` |
-        | **CST ICMS** | `000` — Tributação integral, conforme homologação contábil |
-        | **Alíquota ICMS** | Conforme legislação e parametrização da contabilidade |
-        | **CST PIS e COFINS** | `01` — Operação tributável à alíquota básica, quando aplicável |
-        | **CST IBS/CBS** | `000` — Tributação integral |
-        | **cClassTrib** | `000001` — Situações tributadas integralmente pelo IBS e CBS |
-      </Tab>
-
-      <Tab
-        value="NF-e própria de entrada"
-        title="Cenário C — Entrada emitida pelo próprio frigorífico"
-      >
-        Utilize este cenário quando o proprietário dos animais não emitir NF-e e o frigorífico emitir uma NF-e própria de entrada com CFOPB `1.901/2.901`.
-
-        Como a entrada está classificada em `1.901/2.901`, o retorno seguirá o fluxo normal de industrialização por encomenda.
-
-        | Operação | CFOP interno | CFOP interestadual |
-        | :--- | :---: | :---: |
-        | Retorno do insumo recebido | `5.902` | `6.902` |
-        | Cobrança da industrialização | `5.124` | `6.124` |
-
-        O tratamento fiscal dos itens será o mesmo apresentado no **Cenário A**.
-      </Tab>
-    </Tabs>
-
-    ---
-
-    ## Produtos físicos resultantes do abate
-
-    Os produtos abaixo representam as mercadorias fisicamente obtidas no processo de abate e devem ser utilizados nos controles de produção, rendimento, estoque e venda.
-
-    | Produto físico resultante | NCM | CEST |
-    | :--- | :---: | :---: |
-    | Meia-carcaça bovina congelada | `0202.10.00` | `17.084.00` |
-    | Quarto dianteiro bovino com osso refrigerado | `0201.20.10` | `17.084.00` |
-    | Quarto traseiro bovino com osso refrigerado | `0201.20.20` | `17.084.00` |
-    | Outros cortes bovinos com osso refrigerados | `0201.20.90` | `17.084.00` |
-
-    <Callout type="warning" title="Produtos físicos x retorno fiscal do insumo">
-      Os produtos físicos resultantes não substituem o gado vivo na linha fiscal com CFOP `5.902` ou `5.925`.
-
-      A linha de retorno deve reproduzir o insumo recebido, com NCM `0102.29.90` e o mesmo valor da remessa.
-
-      As carcaças, quartos e demais cortes podem ser informados nos controles internos, romaneios e informações complementares da NF-e.
-    </Callout>
-
-    ### Informação complementar sobre os produtos transportados
-
-    ```txt title="Descrição sugerida"
-    Produtos físicos resultantes do abate transportados nesta operação:
-
-    - [QUANTIDADE] meia(s)-carcaça(s) bovina(s) [CONGELADA/REFRIGERADA], peso líquido total [PESO] kg;
-    - [QUANTIDADE] quarto(s) dianteiro(s), peso líquido total [PESO] kg;
-    - [QUANTIDADE] quarto(s) traseiro(s), peso líquido total [PESO] kg;
-    - [DESCRIÇÃO DE OUTROS CORTES], peso líquido total [PESO] kg.
-
-    Operação vinculada à GTA nº [NUMERO_GTA] e à NF-e de remessa nº [NUMERO_NFE], série [SERIE], emitida em [DATA].    ```
-    ```
-  </Step>
-
-  <Step>
-      ## Venda de Produtos Comestíveis
-
-      ### Parametrização geral
-
-      | Campo | Configuração informada |
-      | :--- | :--- |
-      | **CFOP** | `5.401`, `6.401` — Venda de produção própria sujeita à ST, na condição de substituto |
-      | **CST ICMS** | `060` — ICMS cobrado anteriormente por substituição tributária |
-      | **CST PIS e COFINS** | `06` — Operação tributável à alíquota zero |
-
-      ### Produtos
-
-    | Produto | NCM | CEST | CST IBS/CBS | cClassTrib | Observação |
-    | :--- | :---: | :--- | :--- | :--- | :--- |
-      | Buchinho bovino comestível | `0504.00.90` | — | `000` | `000001` | - |
-      | Bucho bovino comestível | `0504.00.90` | — | `000` | `000001` | - 
-      | Carne industrial | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
-      | Coração bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
-      | Fígado bovino congelado | `0206.22.00` | `17.084.00` | `200` | `200034` | - |
-      | Língua bovina congelada | `0206.21.00` | `17.084.00` | `200` | `200034` | - |
-      | Mocotó bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
-      | Rabo bovino congelado | `0206.29.10` | `17.084.00` | `200` | `200034` | - |
-      | Rim bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
-      | Tendão bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
-
-
-      ### Informações complementares sugeridas
-
-    ```txt title="Texto condicionado à validação"
-    Venda de produto comestível resultante do abate de gado bovino.
-    ICMS cobrado anteriormente por substituição tributária, CST 060, conforme [FUNDAMENTO LEGAL].
-
-    PIS e COFINS sujeitos à alíquota zero, CST 06, conforme [FUNDAMENTO LEGAL] e natureza da receita [CODIGO].
-    ```
-
-    </Step>
-    <Step>
-    ## Venda de Produtos Não Comestíveis
-
-    ### Parametrização geral
-
-    | Campo | Configuração informada |
-    | :--- | :--- |
-    | **CFOP** | `5.101` `6.101`, sujeito à validação da operação |
-    | **CST ICMS** | `051` — Diferimento |
-    | **CST PIS e COFINS** | `06` — Operação tributável à alíquota zero |
-
-    ### Produtos
-
-    | Produto | NCM | CST IBS/CBS | cClassTrib | Observação |
-    | :--- | :---: | :--- | :--- | :--- |
-    | Aorta bovina não comestível | `0511.99.99` | `000` | `000001` | - |
-    | Bexiga bovina não comestível | `0504.00.90` | `000` | `000001` |  -  |
-    | Casco bovino em bruto não comestível | `0507.90.00` | `000` | `000001` | - |
-    | Chifre bovino em bruto não comestível | `0507.90.00` | `000` | `000001` | - |
-    | Mucosa intestinal bovina não comestível | `0507.90.00` | `000` | `000001` | - |
-    | Traqueia bovina não comestível | `0507.90.00` | `000` | `000001` |  -  |
-    | Vergalho bovino não comestível |  `0507.90.00` | `000` | `000001` |  -  |
-
-    ### Informações complementares sugeridas
-
-      ```txt title="Texto condicionado à validação"
-      Venda de subproduto não comestível resultante do abate de gado bovino.
-
-      ICMS diferido nos termos de [FUNDAMENTO LEGAL],  com percentual de diferimento de [PERCENTUAL]%. 
-         
-      PIS e COFINS sujeitos à alíquota zero, CST 06, conforme [FUNDAMENTO LEGAL] e natureza da receita [CODIGO].
-      ```
-  </Step>
-</Steps>
+1. O frigorifico emite a propria NF-e de entrada com CFOP `1.901/2.901`.
+2. Vincula o produtor/encomendante, a GTA e os dados da origem dos animais.
+3. Conclui o abate e os controles internos de producao/rendimento.
+4. Emite o retorno do insumo com CFOP `5.902/6.902`.
+5. Emite a cobranca da industrializacao com CFOP `5.124/6.124`.
 
+### Entrada do gado na Rotina C
+
+| Campo | Tratamento |
+| :--- | :--- |
+| **Documento** | NF-e propria de entrada |
+| **Emitente** | Frigorifico |
+| **Produtor/encomendante** | Proprietario dos animais |
+| **CFOP** | `1.901 / 2.901` |
+| **NCM** | `0102.29.90` |
+| **Finalidade** | Entrada temporaria para abate por encomenda |
+| **GTA** | Informar o numero correspondente |
+| **Propriedade** | Permanece com o encomendante |
+
+### Tratamento fiscal da entrada na Rotina C
+
+| Tributo | Parametrizacao |
+| :--- | :--- |
+| **CST ICMS** | `050` - Suspensao, quando atendidas as condicoes legais |
+| **CST PIS e COFINS** | `98` - Outras operacoes de entrada |
+| **CST IBS/CBS** | `410` - Imunidade e nao incidencia |
+| **cClassTrib** | `410029` - Operacoes acobertadas somente pelo ICMS |
+
+### Retorno e cobranca apos o abate na Rotina C
+
+| Operacao | CFOP | Observacao |
+| :--- | :---: | :--- |
+| **Retorno do insumo recebido** | `5.902 / 6.902` | Mesmo tratamento da Rotina A |
+| **Cobranca da industrializacao** | `5.124 / 6.124` | Mesmo tratamento da Rotina A |
+
+### Texto sugerido para a NF-e de entrada
+
+```txt title="Rotina C - NF-e propria de entrada"
+Entrada de gado bovino vivo pertencente a [NOME_PRODUTOR_ENCOMENDANTE], CPF/CNPJ [CPF_CNPJ], vinculado a GTA numero [NUMERO_GTA].
+
+Animais recebidos exclusivamente para realizacao de abate por encomenda, sem aquisicao ou transferencia de propriedade ao frigorifico.
+
+Operacao com suspensao do ICMS, CST 050, e nao sujeita ao IBS e a CBS, CST 410 e cClassTrib 410029.
+```
+
+## Matriz consolidada de conferencia
+
+| Rotina | Nota principal | Destinatario da nota | Entrada no frigorifico | Retorno | Industrializacao | Observacao |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **A** | `5.901 / 6.901` | Frigorifico | `1.901 / 2.901` | `5.902 / 6.902` | `5.124 / 6.124` | Gado ja pertence ao encomendante |
+| **B** | `5.122 / 6.122` ou `5.123 / 6.123` + `5.924 / 6.924` | Encomendante e frigorifico | `1.924 / 2.924` | `5.925 / 6.925` | `5.125 / 6.125` | Operacao triangular |
+| **C** | NF-e propria de entrada | Documento emitido pelo frigorifico | `1.901 / 2.901` | `5.902 / 6.902` | `5.124 / 6.124` | Encomendante nao emitente |
+
+## Produtos fisicos resultantes do abate
+
+Os produtos abaixo representam as mercadorias fisicamente obtidas no processo de abate e devem ser usados nos controles de producao, rendimento, estoque e venda.
+
+| Produto fisico resultante | NCM | CEST |
+| :--- | :---: | :---: |
+| Meia-carcaca bovina congelada | `0202.10.00` | `17.084.00` |
+| Quarto dianteiro bovino com osso refrigerado | `0201.20.10` | `17.084.00` |
+| Quarto traseiro bovino com osso refrigerado | `0201.20.20` | `17.084.00` |
+| Outros cortes bovinos com osso refrigerados | `0201.20.90` | `17.084.00` |
+
+> Produtos fisicos x retorno fiscal do insumo:
+> Os produtos fisicos resultantes nao substituem o gado vivo na linha fiscal com CFOP `5.902` ou `5.925`.
+> A linha de retorno deve reproduzir o insumo recebido, com NCM `0102.29.90` e o mesmo valor da remessa.
+> As carcacas, quartos e demais cortes podem ser informados nos controles internos, romaneios e informacoes complementares da NF-e.
+
+### Descricao sugerida dos produtos transportados
+
+```txt title="Descricao sugerida"
+Produtos fisicos resultantes do abate transportados nesta operacao:
+
+- [QUANTIDADE] meia(s)-carcaca(s) bovina(s) [CONGELADA/REFRIGERADA], peso liquido total [PESO] kg;
+- [QUANTIDADE] quarto(s) dianteiro(s), peso liquido total [PESO] kg;
+- [QUANTIDADE] quarto(s) traseiro(s), peso liquido total [PESO] kg;
+- [DESCRICAO DE OUTROS CORTES], peso liquido total [PESO] kg.
+
+Operacao vinculada a GTA numero [NUMERO_GTA] e a NF-e de remessa numero [NUMERO_NFE], serie [SERIE], emitida em [DATA].
+```
+
+## Venda de produtos comestiveis
+
+### Parametrizacao geral
+
+| Campo | Configuracao informada |
+| :--- | :--- |
+| **CFOP** | `5.401 / 6.401` - Venda de producao propria sujeita a ST, na condicao de substituto |
+| **CST ICMS** | `060` - ICMS cobrado anteriormente por substituicao tributaria |
+| **CST PIS e COFINS** | `06` - Operacao tributavel a aliquota zero |
+
+### Produtos
+
+| Produto | NCM | CEST | CST IBS/CBS | cClassTrib | Observacao |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| Buchinho bovino comestivel | `0504.00.90` | - | `000` | `000001` | - |
+| Bucho bovino comestivel | `0504.00.90` | - | `000` | `000001` | - |
+| Carne industrial | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
+| Coracao bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
+| Figado bovino congelado | `0206.22.00` | `17.084.00` | `200` | `200034` | - |
+| Lingua bovina congelada | `0206.21.00` | `17.084.00` | `200` | `200034` | - |
+| Mocoto bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
+| Rabo bovino congelado | `0206.29.10` | `17.084.00` | `200` | `200034` | - |
+| Rim bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
+| Tendao bovino congelado | `0206.29.90` | `17.084.00` | `200` | `200034` | - |
+
+### Texto condicionado a validacao
+
+```txt title="Venda de produtos comestiveis"
+Venda de produto comestivel resultante do abate de gado bovino.
+ICMS cobrado anteriormente por substituicao tributaria, CST 060, conforme [FUNDAMENTO LEGAL].
+
+PIS e COFINS sujeitos a aliquota zero, CST 06, conforme [FUNDAMENTO LEGAL] e natureza da receita [CODIGO].
+```
+
+## Venda de produtos nao comestiveis
+
+### Parametrizacao geral
+
+| Campo | Configuracao informada |
+| :--- | :--- |
+| **CFOP** | `5.101 / 6.101`, sujeito a validacao da operacao |
+| **CST ICMS** | `051` - Diferimento |
+| **CST PIS e COFINS** | `06` - Operacao tributavel a aliquota zero |
+
+### Produtos
+
+| Produto | NCM | CST IBS/CBS | cClassTrib | Observacao |
+| :--- | :---: | :---: | :---: | :--- |
+| Aorta bovina nao comestivel | `0511.99.99` | `000` | `000001` | - |
+| Bexiga bovina nao comestivel | `0504.00.90` | `000` | `000001` | - |
+| Casco bovino em bruto nao comestivel | `0507.90.00` | `000` | `000001` | - |
+| Chifre bovino em bruto nao comestivel | `0507.90.00` | `000` | `000001` | - |
+| Mucosa intestinal bovina nao comestivel | `0507.90.00` | `000` | `000001` | - |
+| Traqueia bovina nao comestivel | `0507.90.00` | `000` | `000001` | - |
+| Vergalho bovino nao comestivel | `0507.90.00` | `000` | `000001` | - |
+
+### Texto condicionado a validacao
+
+```txt title="Venda de produtos nao comestiveis"
+Venda de subproduto nao comestivel resultante do abate de gado bovino.
+
+ICMS diferido nos termos de [FUNDAMENTO LEGAL], com percentual de diferimento de [PERCENTUAL]%.
+
+PIS e COFINS sujeitos a aliquota zero, CST 06, conforme [FUNDAMENTO LEGAL] e natureza da receita [CODIGO].
+```
+
+## Checklist de ajustes finos na documentacao
+
+- Confirmar se a operacao sera interna (`5.xxx`) ou interestadual (`6.xxx`) antes de homologar os CFOPs.
+- Validar com a contabilidade os CSTs de ICMS, PIS, COFINS, IBS e CBS de cada fase.
+- Revisar os NCMs e CESTs dos produtos fisicos e dos subprodutos vendidos.
+- Confirmar os fundamentos legais que serao usados nos textos complementares de venda.
+- Verificar se o ERP tera naturezas separadas para entrada, retorno e industrializacao em cada rotina.
+- Revisar se os materiais proprios do frigorifico serao destacados em linhas separadas na cobranca da industrializacao.
