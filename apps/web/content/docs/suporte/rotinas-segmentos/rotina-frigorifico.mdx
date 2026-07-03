@@ -32,6 +32,39 @@ Este documento consolida a rotina fiscal do **Tijuco Frigorifico Ituiutaba**, co
 | **Rotina B** | O encomendante compra de um fornecedor e manda entregar direto no frigorifico | `1.924 / 2.924` | `5.925 / 6.925` | `5.125 / 6.125` |
 | **Rotina C** | O proprietario do gado nao emite NF-e e o frigorifico precisa emitir a entrada | `1.901 / 2.901` | `5.902 / 6.902` | `5.124 / 6.124` |
 
+## Organograma decisorio das rotinas
+
+```text
+INICIO
+  |
+  +-- O gado ja pertence ao encomendante?
+  |      |
+  |      +-- Sim -> ROTINA A
+  |      |           Entrada: 1.901/2.901
+  |      |           Retorno: 5.902/6.902
+  |      |           Industrializacao: 5.124/6.124
+  |      |
+  |      +-- Nao
+  |            |
+  |            +-- O encomendante comprou de um fornecedor com entrega direta ao frigorifico?
+  |            |      |
+  |            |      +-- Sim -> ROTINA B
+  |            |      |           Entrada: 1.924/2.924
+  |            |      |           Retorno: 5.925/6.925
+  |            |      |           Industrializacao: 5.125/6.125
+  |            |      |
+  |            |      +-- Nao
+  |            |            |
+  |            |            +-- O proprietario nao emite NF-e?
+  |            |                    |
+  |            |                    +-- Sim -> ROTINA C
+  |            |                    |           Entrada: 1.901/2.901
+  |            |                    |           Retorno: 5.902/6.902
+  |            |                    |           Industrializacao: 5.124/6.124
+  |            |                    |
+  |            |                    +-- Nao -> Revisar o enquadramento fiscal com a contabilidade
+```
+
 ## Regra base para parametrizacao do ERP
 
 No cadastro de entradas do frigorifico, **nao** deve existir natureza de entrada com CFOP `5.122` ou `5.123`.
@@ -49,12 +82,29 @@ Use a **Rotina A** quando o gado ja pertencer ao encomendante e ele apenas remet
 
 ### Fluxo da rotina no sistema
 
-1. Receber a NF-e do encomendante com CFOP `5.901/6.901`.
-2. Registrar a entrada do frigorifico com CFOP `1.901/2.901`.
-3. Vincular a GTA e a NF-e recebida ao processo de abate.
-4. Concluir o abate e os controles internos de producao/rendimento.
-5. Emitir o retorno do insumo com CFOP `5.902/6.902`.
-6. Emitir a cobranca da industrializacao com CFOP `5.124/6.124`.
+#### Etapa 1 - Recebimento documental
+
+Receber a NF-e do encomendante com CFOP `5.901/6.901`.
+
+#### Etapa 2 - Registro da entrada
+
+Registrar a entrada do frigorifico com CFOP `1.901/2.901`.
+
+#### Etapa 3 - Vinculos obrigatorios
+
+Vincular a GTA e a NF-e recebida ao processo de abate.
+
+#### Etapa 4 - Execucao do abate
+
+Concluir o abate e os controles internos de producao/rendimento.
+
+#### Etapa 5 - Retorno do insumo
+
+Emitir o retorno do insumo com CFOP `5.902/6.902`.
+
+#### Etapa 6 - Cobranca da industrializacao
+
+Emitir a cobranca da industrializacao com CFOP `5.124/6.124`.
 
 ### Entrada do gado na Rotina A
 
@@ -122,13 +172,33 @@ O CFOP `5.122` ou `5.123` **nao** representa a entrada fisica do frigorifico. A 
 
 ### Fluxo da rotina no sistema
 
-1. O fornecedor emite a venda ao encomendante com CFOP `5.122/6.122` ou `5.123/6.123`.
-2. O fornecedor emite a remessa fisica ao frigorifico com CFOP `5.924/6.924`.
-3. O frigorifico registra a entrada fisica com CFOP `1.924/2.924`.
-4. O encomendante emite a NF-e de remessa para industrializacao com CFOP `5.901/6.901`, sem nova movimentacao fisica.
-5. O frigorifico conclui o abate.
-6. O frigorifico emite o retorno do insumo com CFOP `5.925/6.925`.
-7. O frigorifico emite a cobranca da industrializacao com CFOP `5.125/6.125`.
+#### Etapa 1 - Venda do fornecedor ao encomendante
+
+O fornecedor emite a venda ao encomendante com CFOP `5.122/6.122` ou `5.123/6.123`.
+
+#### Etapa 2 - Remessa fisica ao frigorifico
+
+O fornecedor emite a remessa fisica ao frigorifico com CFOP `5.924/6.924`.
+
+#### Etapa 3 - Registro da entrada fisica
+
+O frigorifico registra a entrada fisica com CFOP `1.924/2.924`.
+
+#### Etapa 4 - Documento de vinculo do encomendante
+
+O encomendante emite a NF-e de remessa para industrializacao com CFOP `5.901/6.901`, sem nova movimentacao fisica.
+
+#### Etapa 5 - Execucao do abate
+
+O frigorifico conclui o abate.
+
+#### Etapa 6 - Retorno do insumo
+
+O frigorifico emite o retorno do insumo com CFOP `5.925/6.925`.
+
+#### Etapa 7 - Cobranca da industrializacao
+
+O frigorifico emite a cobranca da industrializacao com CFOP `5.125/6.125`.
 
 ### Documentos da Rotina B
 
@@ -199,11 +269,25 @@ Use a **Rotina C** quando o proprietario dos animais nao estiver habilitado ou a
 
 ### Fluxo da rotina no sistema
 
-1. O frigorifico emite a propria NF-e de entrada com CFOP `1.901/2.901`.
-2. Vincula o produtor/encomendante, a GTA e os dados da origem dos animais.
-3. Conclui o abate e os controles internos de producao/rendimento.
-4. Emite o retorno do insumo com CFOP `5.902/6.902`.
-5. Emite a cobranca da industrializacao com CFOP `5.124/6.124`.
+#### Etapa 1 - Emissao da entrada propria
+
+O frigorifico emite a propria NF-e de entrada com CFOP `1.901/2.901`.
+
+#### Etapa 2 - Vinculos obrigatorios
+
+Vincular o produtor/encomendante, a GTA e os dados da origem dos animais.
+
+#### Etapa 3 - Execucao do abate
+
+Concluir o abate e os controles internos de producao/rendimento.
+
+#### Etapa 4 - Retorno do insumo
+
+Emitir o retorno do insumo com CFOP `5.902/6.902`.
+
+#### Etapa 5 - Cobranca da industrializacao
+
+Emitir a cobranca da industrializacao com CFOP `5.124/6.124`.
 
 ### Entrada do gado na Rotina C
 
