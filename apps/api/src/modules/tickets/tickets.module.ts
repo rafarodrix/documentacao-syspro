@@ -10,6 +10,7 @@ import { TicketsRouter } from './tickets.router';
 import { TarefasModule } from '../tarefas/tarefas.module';
 import { TicketSlaService } from './ticket-sla.service';
 import { TicketNotificationService } from './ticket-notification.service';
+import { TicketAccessService } from './ticket-access.service';
 import { TicketIntegrationService } from './ticket-integration.service';
 import { TicketMetadataService } from './ticket-metadata.service';
 
@@ -23,6 +24,7 @@ import { TicketMetadataService } from './ticket-metadata.service';
     TicketsRouter,
     TicketSlaService,
     TicketNotificationService,
+    TicketAccessService,
     TicketIntegrationService,
     TicketMetadataService,
   ],

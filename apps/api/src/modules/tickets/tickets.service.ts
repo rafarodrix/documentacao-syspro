@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import type {
   TicketModuleSettings,
   TicketModuleCreateRequest,
@@ -22,7 +22,6 @@ import {
   ConversationPriority as TicketPriority,
   ConversationStatus as TicketStatus,
   Prisma,
-  Role,
 } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import type { Response } from 'express';
@@ -60,6 +59,7 @@ import { R2StorageService } from '../integrations/storage/r2-storage.service';
 import { TarefasTicketBridgeService } from '../tarefas/tarefas-ticket-bridge.service';
 import { TicketSlaService } from './ticket-sla.service';
 import { TicketNotificationService } from './ticket-notification.service';
+import { TicketAccessService } from './ticket-access.service';
 import { TicketIntegrationService } from './ticket-integration.service';
 import { TicketMetadataService } from './ticket-metadata.service';
 
@@ -97,6 +97,7 @@ export class TicketsService {
     private readonly automationSettingsService: AutomationSettingsService,
     private readonly ticketSlaService: TicketSlaService,
     private readonly ticketNotificationService: TicketNotificationService,
+    private readonly ticketAccessService: TicketAccessService,
     private readonly ticketIntegrationService: TicketIntegrationService,
     private readonly ticketMetadataService: TicketMetadataService,
     private readonly r2StorageService: R2StorageService,
@@ -110,9 +111,9 @@ export class TicketsService {
   ) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const ticketNumber = generateTicketNumber();
-    const accessScope = await this.getTicketAccessScope(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
     const settings = await this.getTicketModuleSettings();
-    const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
+    const ticketCapabilities = await this.ticketAccessService.getTicketOperatorCapabilities(requester);
 
     const { resolvedCompanyId, resolvedContactId } = await this.ticketIntegrationService.resolveAndValidateCustomer(
       data,
@@ -283,14 +284,14 @@ export class TicketsService {
 
   async getLinkedCompanies(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const accessScope = await this.getTicketAccessScope(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
     const companies = await this.ticketIntegrationService.getLinkedCompaniesForRequester(requester, accessScope);
     return serializeLinkedCompaniesResponse(companies);
   }
 
   async findCustomerOptions(input: { q?: string; limit?: string }, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const accessScope = await this.getTicketAccessScope(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
 
     const q = (input.q || '').trim();
     const rawLimit = Number(input.limit || 15);
@@ -419,7 +420,7 @@ export class TicketsService {
 
   async findAll(input: TicketModuleListQuery, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const accessScope = await this.getTicketAccessScope(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
 
     const page = Math.max(1, Number.parseInt(input.page || '1', 10) || 1);
     const pageSize = Math.min(100, Math.max(1, Number.parseInt(input.pageSize || '50', 10) || 50));
@@ -565,13 +566,13 @@ export class TicketsService {
 
   async findOne(id: string, input?: { page?: string; pageSize?: string }, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const accessScope = await this.getTicketAccessScope(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
     const page = Math.max(1, Number.parseInt(input?.page || '1', 10) || 1);
     const pageSize = Math.min(100, Math.max(10, Number.parseInt(input?.pageSize || '50', 10) || 50));
     const [ticket, totalMessages] = await findTicketDetail(this.prisma, id, page, pageSize);
 
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
-    this.assertTicketAccess(ticket.companyId, accessScope);
+    this.ticketAccessService.assertTicketAccess(ticket.companyId, accessScope);
 
     const orderedMessages = [...ticket.messages].reverse();
 
@@ -588,7 +589,7 @@ export class TicketsService {
 
   async reply(id: string, input: TicketReplyInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const accessScope = await this.getTicketAccessScope(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
     const message = input.message?.trim();
     const visibility = input.visibility ?? 'INTERNAL';
     const attachments = input.attachments ?? [];
@@ -606,7 +607,7 @@ export class TicketsService {
       select: { id: true, companyId: true, slaResponseHitAt: true },
     });
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
-    this.assertTicketAccess(ticket.companyId, accessScope);
+    this.ticketAccessService.assertTicketAccess(ticket.companyId, accessScope);
 
     const normalizedAttachments = await Promise.all(
       attachments.map((attachment) => this.normalizeReplyAttachment(attachment)),
@@ -653,7 +654,7 @@ export class TicketsService {
 
   async updateStatus(id: string, input: TicketModuleUpdateRequest, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const accessScope = await this.getTicketAccessScope(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
     const settings = await this.getTicketModuleSettings();
     const isArchiveFlow = input.status === TicketStatus.ARCHIVED;
 
@@ -675,10 +676,10 @@ export class TicketsService {
       },
     });
     if (!exists) throw new NotFoundException('Ticket nao encontrado.');
-    this.assertTicketAccess(exists.companyId, accessScope);
+    this.ticketAccessService.assertTicketAccess(exists.companyId, accessScope);
 
     if (input.status !== undefined) {
-      await this.assertCanManageTickets(requester);
+      await this.ticketAccessService.assertCanManageTickets(requester);
     }
 
     if (isArchiveFlow) {
@@ -706,7 +707,7 @@ export class TicketsService {
     const followUpTask = input.followUpTask;
     const shouldPublishToReleases = publishToReleases === true;
     const effectiveResolutionSummary = resolutionSummary || exists.resolutionSummary?.trim();
-    const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
+    const ticketCapabilities = await this.ticketAccessService.getTicketOperatorCapabilities(requester);
     const requestedTeam =
       input.team !== undefined
         ? resolveTicketTeam(
@@ -1314,7 +1315,7 @@ export class TicketsService {
     res: Response,
   ) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const accessScope = await this.getTicketAccessScope(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
 
     const attachment = await this.prisma.conversationMessageAttachment.findUnique({
       where: { id: attachmentId },
@@ -1334,7 +1335,7 @@ export class TicketsService {
       throw new NotFoundException('Anexo nao encontrado.');
     }
 
-    this.assertTicketAccess(attachment.message.ticket.companyId, accessScope);
+    this.ticketAccessService.assertTicketAccess(attachment.message.ticket.companyId, accessScope);
 
     if (attachment.storageBackend === 'R2') {
       if (!attachment.storageKey) {
@@ -1362,15 +1363,15 @@ export class TicketsService {
   // Assign a ticket directly to the current user (Self-Assign)
   async assignToMe(id: string, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const accessScope = await this.getTicketAccessScope(requester);
-    await this.assertCanManageTickets(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
+    await this.ticketAccessService.assertCanManageTickets(requester);
 
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       select: { id: true, companyId: true, metadata: true, assignedUserId: true },
     });
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
-    this.assertTicketAccess(ticket.companyId, accessScope);
+    this.ticketAccessService.assertTicketAccess(ticket.companyId, accessScope);
 
     if (ticket.assignedUserId === requester.userId) {
       throw new BadRequestException('Voce ja e o responsavel atual deste ticket.');
@@ -1379,7 +1380,7 @@ export class TicketsService {
     const currentMetadata = this.ticketMetadataService.toRecord(ticket.metadata);
 
     const requesterName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
-    const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
+    const ticketCapabilities = await this.ticketAccessService.getTicketOperatorCapabilities(requester);
     const currentTeam = this.ticketMetadataService.resolveCurrentTeam(currentMetadata, ticketCapabilities);
 
     this.ticketMetadataService.assignCurrentOwner(currentMetadata, {
@@ -1435,21 +1436,21 @@ export class TicketsService {
   // Triage ticket
   async triageTicket(id: string, input: TicketModuleTriageRequest, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const accessScope = await this.getTicketAccessScope(requester);
-    await this.assertCanManageTickets(requester);
+    const accessScope = await this.ticketAccessService.getTicketAccessScope(requester);
+    await this.ticketAccessService.assertCanManageTickets(requester);
 
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       select: { id: true, companyId: true, metadata: true },
     });
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
-    this.assertTicketAccess(ticket.companyId, accessScope);
+    this.ticketAccessService.assertTicketAccess(ticket.companyId, accessScope);
 
     const currentMetadata = this.ticketMetadataService.toRecord(ticket.metadata);
 
     const requesterName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const settings = await this.getTicketModuleSettings();
-    const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
+    const ticketCapabilities = await this.ticketAccessService.getTicketOperatorCapabilities(requester);
     const resolvedTeam = input.team
       ? resolveTicketTeam(
           input.team,
@@ -1622,53 +1623,6 @@ export class TicketsService {
     });
 
     return user?.name?.trim() || user?.email || email;
-  }
-
-  private async getTicketAccessScope(requester: { userId: string; role: Role; email: string }): Promise<{
-    isGlobal: boolean;
-    companyIds: string[];
-  }> {
-    return this.authorizationService.resolveCompanyAccessScope(
-      requester,
-      'tickets:view_own',
-      'tickets:view_all',
-    );
-  }
-
-  private async assertCanManageTickets(requester: { userId: string; role: Role; email: string }) {
-    const canManage = await this.authorizationService.userHasPermission(
-      requester,
-      'tickets:manage',
-      { acceptCompanyScope: true },
-    );
-
-    if (!canManage) {
-      throw new ForbiddenException('Sem permissao para gerenciar tickets.');
-    }
-  }
-
-  private async getTicketOperatorCapabilities(requester: { userId: string; role: Role; email: string }) {
-    const [canRouteDevelopment, canOwnSupportQueue, canOwnDevelopmentQueue] = await Promise.all([
-      this.authorizationService.userHasPermission(requester, 'tickets:route_development', { acceptCompanyScope: true }),
-      this.authorizationService.userHasPermission(requester, 'tickets:own_support_queue', { acceptCompanyScope: true }),
-      this.authorizationService.userHasPermission(requester, 'tickets:own_development_queue', { acceptCompanyScope: true }),
-    ]);
-
-    return {
-      canRouteDevelopment,
-      canOwnSupportQueue,
-      canOwnDevelopmentQueue,
-    };
-  }
-
-  private assertTicketAccess(companyId: string | null, accessScope: { isGlobal: boolean; companyIds: string[] }) {
-    if (accessScope.isGlobal) {
-      return;
-    }
-
-    if (!companyId || !accessScope.companyIds.includes(companyId)) {
-      throw new NotFoundException('Ticket nao encontrado.');
-    }
   }
 
   private toConversationEntryPoint(entryPoint?: TicketModuleEntryPoint): TicketEntryPoint {

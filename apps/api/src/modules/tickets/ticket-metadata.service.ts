@@ -2,12 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { TicketModuleSettings } from '@dosc-syspro/contracts/ticket';
 import type { Prisma, Role } from '@prisma/client';
 import { resolveCategoryType } from '@dosc-syspro/tickets-domain';
-
-export type TicketOperatorCapabilities = {
-  canRouteDevelopment: boolean;
-  canOwnSupportQueue: boolean;
-  canOwnDevelopmentQueue: boolean;
-};
+import type { TicketOperatorCapabilities } from './ticket-access.service';
 
 export type TicketTeam = 'SUPORTE' | 'DESENVOLVIMENTO';
 
