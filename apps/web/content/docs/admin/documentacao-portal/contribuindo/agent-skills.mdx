@@ -1,0 +1,77 @@
+---
+title: Agent Skills
+description: Skills locais e authorities complementares para orientar implementacao, refatoracao, arquitetura e documentacao deste monorepo.
+lastUpdated: 2026-07-04
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - contribuindo
+  - agent
+  - skills
+  - engenharia
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Agent Skills
+
+<Callout type="info">
+  Estas skills foram adaptadas da matriz usada no projeto Cadens e ajustadas para a arquitetura real do Portal Trilink / Syspro.
+</Callout>
+
+## Objetivo
+
+Padronizar como agentes de IA e desenvolvedores atacam problemas de arquitetura, duplicacao, autorizacao, banco, UI e documentacao neste monorepo.
+
+As skills locais vivem em `/.agents/skills`. Elas nao substituem authorities oficiais do ecossistema; servem para registrar as regras especificas deste repositorio.
+
+## Skills locais instaladas
+
+<Cards>
+  <Card title="syspro-agent-governance" description="Escolhe a authority correta, prioriza codigo real e coordena as demais skills locais." />
+  <Card title="syspro-architecture" description="Define fronteiras entre apps e packages, extracao de duplicacao e decomposicao de modulos." />
+  <Card title="syspro-monorepo-governance" description="Orienta workspaces, scripts raiz, compartilhamento entre apps e ownership de packages." />
+  <Card title="syspro-auth-authorization" description="Centraliza RBAC persistido, company scope, roles legados e autenticacao de servico." />
+  <Card title="syspro-prisma-migrations" description="Controla schema Prisma, migrations e geracao do client compartilhado." />
+  <Card title="syspro-testing-strategy" description="Aplica cobertura proporcional para API, web, agent, packages e docs." />
+  <Card title="syspro-definition-of-done" description="Fecha a tarefa com validacao, docs alinhadas e sem duplicacao obvia sobrando." />
+  <Card title="syspro-worker-reliability" description="Endereca jobs, webhooks, retries, filas de comando e sync com agentes." />
+  <Card title="syspro-ui-system" description="Mantem as fronteiras entre @dosc-syspro/ui, patterns, componentes de feature e docs MDX." />
+</Cards>
+
+## Authorities complementares
+
+Quando o ambiente do agente disponibilizar skills oficiais ou curadas, combine com a skill local mais proxima:
+
+| Tema | Authority externa | Combinar com |
+| --- | --- | --- |
+| React / Next.js | `vercel-react-best-practices` | `syspro-ui-system` |
+| Composicao de componentes | `vercel-composition-patterns` | `syspro-ui-system` |
+| Acessibilidade e UX | `web-design-guidelines` | `syspro-ui-system` |
+| Monorepo e pipelines | `turborepo` | `syspro-monorepo-governance` |
+| Prisma ORM | `prisma-cli`, `prisma-client-api` | `syspro-prisma-migrations` |
+| Seguranca e threat modeling | `security-best-practices` | `syspro-auth-authorization`, `syspro-worker-reliability` |
+
+## Como usar
+
+1. Comece por `syspro-agent-governance` em tarefas amplas ou ambiguas.
+2. Empilhe a skill local da area dominante do problema.
+3. Se existir uma authority externa mais forte para a tecnologia envolvida, combine as duas.
+4. Verifique sempre se a documentacao do portal ainda representa o codigo real depois da mudanca.
+
+## Fontes de verdade do repo
+
+- `apps/api/README.md`
+- `apps/web/README.md`
+- `packages/database/README.md`
+- `packages/ui/README.md`
+- `apps/web/content/docs/admin/documentacao-portal/**`
+
+## Manutencao
+
+Sempre que uma skill nova entrar ou uma authority mudar de escopo:
+
+1. atualize o arquivo correspondente em `.agents/skills`
+2. atualize esta pagina
+3. revise se a navegacao de `Contribuindo` ainda aponta para a referencia certa
