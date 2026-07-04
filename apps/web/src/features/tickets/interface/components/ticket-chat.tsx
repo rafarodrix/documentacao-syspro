@@ -6,7 +6,7 @@ import { DEFAULT_TICKET_MODULE_SETTINGS, TICKET_ATTACHMENT_ACCEPT_ATTRIBUTE } fr
 import { useTicketChat } from "@/features/tickets/interface";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { Avatar, AvatarFallback, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, ScrollArea, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import { AlertCircle, Bot, Film, Headset, History, ImageIcon, Loader2, MessageSquareText, Mic, Paperclip, Send, User, X, FileText } from "lucide-react";
+import { AlertCircle, Bot, Film, Headset, History, ImageIcon, Loader2, MessageSquareText, Mic, Paperclip, Send, User, X, FileText, Download, ExternalLink, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketMessagePagination } from "./ticket-view.types";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
@@ -341,10 +341,36 @@ function Timeline({
 }) {
     const containerRef = useRef<HTMLDivElement>(null);
     const openingIndex = findOpeningArticleIndex(articles);
+    const [showScrollBottom, setShowScrollBottom] = useState(false);
+
+    useEffect(() => {
+        const marker = scrollRef?.current;
+        if (!marker) return;
+
+        const viewport = marker.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
+        if (!viewport) return;
+
+        const handleScroll = () => {
+            const isNearBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 200;
+            setShowScrollBottom(!isNearBottom);
+        };
+
+        viewport.addEventListener("scroll", handleScroll, { passive: true });
+        return () => viewport.removeEventListener("scroll", handleScroll);
+    }, [scrollRef]);
+
+    const scrollToBottom = () => {
+        const marker = scrollRef?.current;
+        if (!marker) return;
+        const viewport = marker.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
+        if (viewport) {
+            viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+        }
+    };
 
     return (
-        <div ref={containerRef} className="w-full">
-            <ScrollArea className="h-130 w-full max-w-full overflow-hidden bg-[hsl(var(--muted))]/10 dark:bg-[hsl(var(--background))]/40 **:data-radix-scroll-area-viewport:overflow-x-hidden">
+        <div ref={containerRef} className="relative w-full">
+            <ScrollArea className="h-130 w-full max-w-full overflow-hidden bg-linear-to-b from-muted/5 to-muted/15 dark:from-background/10 dark:to-background/30 bg-[radial-gradient(ellipse_60%_60%_at_50%_0%,color-mix(in_srgb,var(--primary)_3.5%,transparent),transparent)] **:data-radix-scroll-area-viewport:overflow-x-hidden">
                 <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden p-4">
                     {hasOlderArticles && (
                         <div className="flex justify-center">
@@ -473,6 +499,17 @@ function Timeline({
                     {scrollRef && <div ref={scrollRef} className="h-px w-full" />}
                 </div>
             </ScrollArea>
+            {showScrollBottom && (
+                <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={scrollToBottom}
+                    className="absolute bottom-4 right-6 z-10 h-8 w-8 rounded-full border border-border bg-background/95 shadow-md transition-all hover:bg-muted hover:scale-105 active:scale-95 cursor-pointer animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
+                    <ArrowDown className="h-4 w-4 text-muted-foreground" />
+                </Button>
+            )}
         </div>
     );
 }
@@ -487,12 +524,12 @@ function TicketAttachmentPreview({
     return (
         <div className="space-y-2">
             {isImage && attachment.url ? (
-                <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="block">
+                <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="block group/img overflow-hidden rounded-xl border border-border/60 bg-background/50 hover:shadow-md transition-all">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={attachment.url}
                         alt={attachment.filename}
-                        className="max-h-128 w-auto max-w-full rounded-xl border border-border/60 bg-background object-contain"
+                        className="max-h-128 w-auto max-w-full object-contain transition-transform duration-300 group-hover/img:scale-[1.01]"
                     />
                 </a>
             ) : null}
@@ -502,19 +539,22 @@ function TicketAttachmentPreview({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                    "flex items-center gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-xs text-foreground transition-colors hover:bg-background",
+                    "group flex items-center gap-3 rounded-xl border border-border/60 bg-background/80 px-3.5 py-2.5 text-xs text-foreground transition-all hover:border-primary/30 hover:bg-background hover:shadow-xs",
                     !attachment.url && "pointer-events-none opacity-60",
                 )}
             >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/20 text-muted-foreground">
-                    <FileText className="h-4 w-4" />
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/20 text-muted-foreground group-hover:border-primary/20 group-hover:bg-primary/5 group-hover:text-primary transition-all">
+                    <AttachmentTypeIcon mimeType={attachment.mimeType} className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{attachment.filename}</span>
+                    <span className="block truncate font-medium group-hover:text-primary transition-colors">{attachment.filename}</span>
                     <span className="block text-[11px] text-muted-foreground">
                         {formatTicketAttachmentSize(attachment.fileSize)} - {attachment.storageBackend === "R2" ? "Storage" : "Banco"}
                     </span>
                 </span>
+                {attachment.url && (
+                    <Download className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all shrink-0 hover:text-primary ml-1" />
+                )}
             </a>
         </div>
     );

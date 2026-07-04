@@ -5,7 +5,7 @@
 import React, { ComponentPropsWithoutRef, ReactNode, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { AlertCircle, AlertTriangle, Check, Copy, Info, ShieldAlert, Sparkles } from "lucide-react";
+import { AlertCircle, AlertTriangle, Check, Copy, Info, ShieldAlert, Sparkles, Play, Video, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type TicketMessageContentProps = {
@@ -309,14 +309,71 @@ export function TicketMessageContent({
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          a: ({ className: anchorClassName, ...props }: ComponentPropsWithoutRef<"a">) => (
-            <a
-              {...props}
-              className={cn("break-all underline underline-offset-4", anchorClassName)}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-            />
-          ),
+          a: ({ className: anchorClassName, href, children, ...props }: ComponentPropsWithoutRef<"a">) => {
+            const resolvedHref = href ?? "";
+            const isYoutube = resolvedHref.includes("youtube.com/watch") || resolvedHref.includes("youtu.be/");
+            const isLoom = resolvedHref.includes("loom.com/share") || resolvedHref.includes("loom.com/embed");
+
+            if (isYoutube || isLoom) {
+              let embedUrl = "";
+              let title = "Visualizar Vídeo";
+
+              if (isYoutube) {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                const match = resolvedHref.match(regExp);
+                const id = (match && match[2].length === 11) ? match[2] : null;
+                if (id) {
+                  embedUrl = `https://www.youtube.com/embed/${id}`;
+                  title = "YouTube Video Player";
+                }
+              } else if (isLoom) {
+                const regExp = /loom\.com\/(share|embed)\/([a-zA-Z0-9_-]+)/;
+                const match = resolvedHref.match(regExp);
+                const id = match ? match[2] : null;
+                if (id) {
+                  embedUrl = `https://www.loom.com/embed/${id}`;
+                  title = "Loom Video Player";
+                }
+              }
+
+              if (embedUrl) {
+                return (
+                  <div className="my-3 overflow-hidden rounded-xl border border-border bg-black/5 dark:bg-zinc-950/40 shadow-xs max-w-xl">
+                    <div className="flex items-center justify-between border-b border-border bg-muted/40 px-3.5 py-2 text-[11px] font-medium text-muted-foreground select-none">
+                      <span className="flex items-center gap-1.5 font-semibold">
+                        <Video className="h-3.5 w-3.5 text-accent-blue" />
+                        {isYoutube ? "Vídeo do YouTube" : "Vídeo do Loom"}
+                      </span>
+                      <a href={resolvedHref} target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline flex items-center gap-1">
+                        Ver original <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                    <div className="relative aspect-video w-full">
+                      <iframe
+                        src={embedUrl}
+                        title={title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        className="absolute inset-0 h-full w-full border-none"
+                      />
+                    </div>
+                  </div>
+                );
+              }
+            }
+
+            return (
+              <a
+                {...props}
+                href={href}
+                className={cn("break-all underline underline-offset-4 text-accent-blue hover:text-accent-blue/80 font-medium", anchorClassName)}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+              >
+                {children}
+              </a>
+            );
+          },
           pre: PreBlock,
           code: ({
             className: codeClassName,
