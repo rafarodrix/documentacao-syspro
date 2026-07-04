@@ -138,7 +138,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                 <div
                     className={cn(
                         "border-t bg-background p-4 transition-colors",
-                        composerIsInternal && "bg-amber-50/70 dark:bg-amber-950/20",
+                        composerIsInternal && "bg-accent-amber/5 dark:bg-accent-amber/10",
                         isDragging && "bg-muted/10",
                     )}
                     onDragOver={(event) => {
@@ -162,7 +162,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <Tabs value={messageMode} onValueChange={(value) => setMessageMode(value as "PUBLIC" | "INTERNAL")}>
-                                    <TabsList className={cn("h-8", composerIsInternal && "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200")}>
+                                    <TabsList className={cn("h-8", composerIsInternal && "bg-accent-amber/20 text-accent-amber dark:bg-accent-amber/10 dark:text-accent-amber")}>
                                         <TabsTrigger value="PUBLIC" className="h-6 px-2 text-xs">Resposta ao Cliente</TabsTrigger>
                                         <TabsTrigger value="INTERNAL" className="h-6 px-2 text-xs">Nota Interna</TabsTrigger>
                                     </TabsList>
@@ -411,7 +411,7 @@ function Timeline({
                             <div key={article.id} className={cn("grid min-w-0 max-w-full grid-cols-[2.25rem_minmax(0,1fr)] gap-3", alignRight && "grid-cols-[minmax(0,1fr)_2.25rem]")}>
                                 {!alignRight && (
                                     <Avatar className="h-9 w-9 shrink-0 border shadow-none">
-                                        <AvatarFallback className="bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200">
+                                        <AvatarFallback className="bg-accent-orange/10 text-accent-orange dark:bg-accent-orange/20 dark:text-accent-orange">
                                             <Headset className="h-4 w-4" />
                                         </AvatarFallback>
                                     </Avatar>
@@ -423,7 +423,7 @@ function Timeline({
                                             {messageIsMe ? "Voce" : article.from.split("<")[0]}
                                         </span>
                                         {article.isInternal && (
-                                            <span className="max-w-full wrap-break-word rounded bg-amber-100 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
+                                            <span className="max-w-full wrap-break-word rounded bg-accent-amber/20 px-1.5 text-[10px] font-bold uppercase tracking-widest text-accent-amber dark:bg-accent-amber/10 dark:text-accent-amber">
                                                 Nota Interna
                                             </span>
                                         )}
@@ -435,7 +435,7 @@ function Timeline({
                                             "min-w-0 rounded-2xl p-3 text-sm shadow-none wrap-anywhere",
                                             isOpening ? "w-full max-w-full!" : "w-fit max-w-[min(100%,42rem)]!",
                                             article.isInternal
-                                                ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
+                                                ? "rounded-tl-sm border border-accent-amber/20 bg-accent-amber/5 text-accent-amber dark:border-accent-amber/10 dark:bg-accent-amber/5 dark:text-accent-amber dark:prose-invert"
                                                 : isOpening
                                                     ? "rounded-tl-sm border border-border bg-card p-4 text-foreground dark:prose-invert"
                                                     : messageIsMe

@@ -81,7 +81,7 @@ export function TicketAttachmentField({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-red-500"
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                   onClick={() => onRemove(index)}
                 >
                   <X className="h-4 w-4" />

@@ -4,15 +4,15 @@ import { Loader2 } from "lucide-react";
 import type { TicketListItem, TicketPriorityLevel } from "./ticket-view.types";
 
 const STATUS_STYLES: Record<string, string> = {
-  NEW: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800",
-  UNASSIGNED: "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
-  TRIAGE: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
-  IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
-  TESTING: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800",
-  WAITING_CUSTOMER: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
-  WAITING_INTERNAL: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800",
-  RESOLVED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
-  ARCHIVED: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+  NEW: "bg-accent-blue/10 text-accent-blue border-accent-blue/20",
+  UNASSIGNED: "bg-muted text-muted-foreground border-border",
+  TRIAGE: "bg-accent-amber/10 text-accent-amber border-accent-amber/20",
+  IN_PROGRESS: "bg-accent-blue/10 text-accent-blue border-accent-blue/20",
+  TESTING: "bg-accent-violet/10 text-accent-violet border-accent-violet/20",
+  WAITING_CUSTOMER: "bg-accent-orange/10 text-accent-orange border-accent-orange/20",
+  WAITING_INTERNAL: "bg-accent-yellow/10 text-accent-yellow border-accent-yellow/20",
+  RESOLVED: "bg-accent-emerald/10 text-accent-emerald border-accent-emerald/20",
+  ARCHIVED: "bg-muted text-muted-foreground border-border",
 } as const;
 
 export function StatusBadge({ status, rawStatus }: { status?: string | null; rawStatus?: string | null }) {
@@ -34,12 +34,12 @@ export function PriorityBadge({ priority }: { priority: TicketPriorityLevel }) {
 }
 
 export function SlaBadge({ ticket }: { ticket: TicketListItem }) {
-  if (ticket.slaPaused) return <Badge variant="outline" className="text-[10px] px-2 rounded-md border-orange-500/50 text-orange-600 dark:text-orange-400">SLA pausado</Badge>;
+  if (ticket.slaPaused) return <Badge variant="outline" className="text-[10px] px-2 rounded-md border-accent-orange/30 text-accent-orange">SLA pausado</Badge>;
   if (ticket.slaBreached) return <Badge variant="destructive" className="text-[10px] px-2 rounded-md">SLA estourado</Badge>;
   if (ticket.slaWarning) {
     const suffix = typeof ticket.minutesToBreach === "number" && ticket.minutesToBreach > 0 ? ` (${ticket.minutesToBreach} min)` : "";
     return (
-      <Badge variant="outline" className="text-[10px] px-2 rounded-md border-amber-500/50 text-amber-600 dark:text-amber-400">
+      <Badge variant="outline" className="text-[10px] px-2 rounded-md border-accent-amber/30 text-accent-amber">
         SLA alerta{suffix}
       </Badge>
     );

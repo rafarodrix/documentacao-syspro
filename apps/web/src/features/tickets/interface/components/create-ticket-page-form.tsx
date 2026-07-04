@@ -523,7 +523,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
                       </div>
                     ) : null}
                     {source === "chatwoot" && !selectedCompanyId ? (
-                      <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                      <div className="rounded-md border border-accent-amber/30 bg-accent-amber/10 px-3 py-2 text-xs text-accent-amber">
                         Tickets originados do Chatwoot so podem ser abertos quando o contato estiver vinculado a uma empresa no portal.
                       </div>
                     ) : null}
@@ -731,8 +731,8 @@ function TeamPanel({ team, label }: { team: string; label: string }) {
   const Icon = isDev ? Code2 : Headphones;
 
   return (
-    <div className={cn("rounded-md border px-3 py-2 text-sm", isDev ? "border-violet-500/30 bg-violet-500/10" : "border-sky-500/30 bg-sky-500/10")}>
-      <span className={cn("inline-flex items-center gap-2 font-semibold", isDev ? "text-violet-700 dark:text-violet-300" : "text-sky-700 dark:text-sky-300")}>
+    <div className={cn("rounded-md border px-3 py-2 text-sm", isDev ? "border-accent-violet/30 bg-accent-violet/10" : "border-accent-blue/30 bg-accent-blue/10")}>
+      <span className={cn("inline-flex items-center gap-2 font-semibold", isDev ? "text-accent-violet" : "text-accent-blue")}>
         <Icon className="h-4 w-4" />
         {label}
       </span>

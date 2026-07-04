@@ -118,6 +118,7 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
     effectiveReleaseType,
     open,
     shouldSuggestRelease,
+    ticket,
     ticket.number,
     ticket.ownerId,
     ticket.releaseModule,
@@ -238,7 +239,7 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
               disabled={isPending}
             />
             {isDevelopmentTicket && !resolutionSummary.trim() && (
-              <p className="flex items-center gap-1.5 text-[11px] text-amber-600">
+              <p className="flex items-center gap-1.5 text-[11px] text-accent-amber">
                 <AlertCircle className="h-3.5 w-3.5" />
                 A conclusao exige o preenchimento da resolucao aplicada.
               </p>
@@ -282,7 +283,7 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
             </label>
 
             {!canCreateFollowUpTask ? (
-              <p className="flex items-center gap-1.5 text-[11px] text-amber-600">
+              <p className="flex items-center gap-1.5 text-[11px] text-accent-amber">
                 <AlertCircle className="h-3.5 w-3.5" />
                 Vincule uma empresa ao ticket para habilitar a abertura de tarefa.
               </p>

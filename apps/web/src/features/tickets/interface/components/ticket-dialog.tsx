@@ -402,7 +402,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                   {hasInternalTicketAccess && (
                     <FormItem className="space-y-3 bg-background rounded-xl p-4 shadow-none border border-border/60">
                       <Label className="flex justify-between items-center text-[13px] font-semibold">
-                          Cliente Solicitante <span className="p-1 bg-yellow-500/10 text-yellow-600 rounded text-[10px]">Restrito a Agentes</span>
+                           Cliente Solicitante <span className="p-1 bg-accent-yellow/10 text-accent-yellow rounded text-[10px]">Restrito a Agentes</span>
                       </Label>
                       <CompanyPicker
                         value={selectedCompanyId || customerEmail ? (customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`) : ""}
@@ -462,7 +462,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                               {ticketSettings.priorities.map((p) => (
                                 <SelectItem key={p.id} value={p.value} className="text-sm">
                                   <div className="flex items-center gap-2">
-                                      <div className={cn("w-2 h-2 rounded-full", String(p.color).includes("red") ? "bg-red-500" : String(p.color).includes("blue") ? "bg-blue-500" : "bg-neutral-400")} />
+                                       <div className={cn("w-2 h-2 rounded-full", String(p.color).includes("red") ? "bg-destructive" : String(p.color).includes("blue") ? "bg-accent-blue" : "bg-muted-foreground")} />
                                       {p.label}
                                   </div>
                                 </SelectItem>
