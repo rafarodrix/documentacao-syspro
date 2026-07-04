@@ -173,7 +173,7 @@ function UserActions({ user, isLoading, canManage, onToggleStatus }: UserActions
         ) : (
           // ds-allow: status
           <DropdownMenuItem
-            className="gap-2.5 cursor-pointer rounded-md text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/20"
+            className="gap-2.5 cursor-pointer rounded-md text-accent-emerald focus:text-accent-emerald focus:bg-accent-emerald/10"
             onClick={onToggleStatus}
           >
             <UserCheck className="w-3.5 h-3.5" />

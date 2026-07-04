@@ -135,7 +135,7 @@ export function CreateUserPageForm({
   });
   const selectedRoleIsClient = selectedProfileKey === ROLE.CLIENTE_ADMIN || selectedProfileKey === ROLE.CLIENTE_USER;
   const normalizedWatchedEmail = String(watchedEmail ?? "").trim().toLowerCase();
-  const selectedCompanyIds = watchedCompanyIds ?? [];
+  const selectedCompanyIds = useMemo(() => watchedCompanyIds ?? [], [watchedCompanyIds]);
 
   useEffect(() => {
     setContactPage(1);
@@ -530,9 +530,9 @@ export function CreateUserPageForm({
                           {mode !== "edit" && emailAvailability.status === "checking" ? (
                             <p className="text-[11px] text-muted-foreground">Verificando disponibilidade do e-mail...</p>
                           ) : null}
-                          {mode !== "edit" && emailAvailability.status === "available" ? (
-                            <p className="text-[11px] text-emerald-600">E-mail disponivel para cadastro.</p>
-                          ) : null}
+                           {mode !== "edit" && emailAvailability.status === "available" ? (
+                             <p className="text-[11px] text-accent-emerald">E-mail disponivel para cadastro.</p>
+                           ) : null}
                           <FormMessage />
                         </FormItem>
                       )}

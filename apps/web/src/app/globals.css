@@ -83,6 +83,15 @@
 
   --color-sidebar-ring: var(--sidebar-ring);
 
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-orange: var(--accent-orange);
+  --color-accent-pink: var(--accent-pink);
+  --color-accent-emerald: var(--accent-emerald);
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-red: var(--accent-red);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-yellow: var(--accent-yellow);
+
   --animate-shine: shine var(--duration) infinite linear;
   @keyframes shine {
   0% {

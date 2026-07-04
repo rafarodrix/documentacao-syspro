@@ -11,15 +11,15 @@ interface TicketsSummaryProps {
 }
 
 const STATUS_CONFIG = {
-  Aberto: { icon: Inbox, color: "text-blue-500", bg: "bg-blue-500/10", label: "Aberto" },
-  "Em Análise": { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Em Análise" },
-  Pendente: { icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-500/10", label: "Pendente" },
-  Resolvido: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Resolvido" },
+  Aberto: { icon: Inbox, color: "text-accent-blue", bg: "bg-accent-blue/10", label: "Aberto" },
+  "Em Análise": { icon: Clock, color: "text-accent-amber", bg: "bg-accent-amber/10", label: "Em Análise" },
+  Pendente: { icon: AlertTriangle, color: "text-accent-orange", bg: "bg-accent-orange/10", label: "Pendente" },
+  Resolvido: { icon: CheckCircle2, color: "text-accent-emerald", bg: "bg-accent-emerald/10", label: "Resolvido" },
 } as const;
 
 const PRIORITY_CONFIG = {
-  Alta: { class: "bg-red-500/10 text-red-600 border-red-500/20" },
-  Média: { class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  Alta: { class: "bg-accent-red/10 text-accent-red border-accent-red/20" },
+  Média: { class: "bg-accent-amber/10 text-accent-amber border-accent-amber/20" },
   Baixa: { class: "bg-muted text-muted-foreground border-border" },
 } as const;
 
@@ -71,7 +71,7 @@ export function TicketsSummary({ tickets }: TicketsSummaryProps) {
                       {isLatest ? (
                         <Badge
                           variant="outline"
-                          className="h-4 shrink-0 border-emerald-500/20 bg-emerald-500/10 px-1.5 text-[10px] text-emerald-600"
+                          className="h-4 shrink-0 border-accent-emerald/20 bg-accent-emerald/10 px-1.5 text-[10px] text-accent-emerald"
                         >
                           Mais recente
                         </Badge>

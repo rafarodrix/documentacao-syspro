@@ -210,7 +210,7 @@ export function TicketRichTextEditor({
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line no-unused-vars
   function toggleLinePrefix(prefix: string, placeholderText: string) {
     updateSelection(({ currentValue, selectedValue, selectionStart, selectionEnd }) => {
       const selected = selectedValue || placeholderText;
@@ -563,7 +563,7 @@ export function TicketRichTextEditor({
                     Você
                   </span>
                   {previewMode === "INTERNAL" && (
-                    <span className="max-w-full wrap-break-word rounded bg-amber-100 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
+                    <span className="max-w-full wrap-break-word rounded bg-accent-amber/20 px-1.5 text-[10px] font-bold uppercase tracking-widest text-accent-amber dark:bg-accent-amber/10 dark:text-accent-amber">
                       Nota Interna
                     </span>
                   )}
@@ -575,7 +575,7 @@ export function TicketRichTextEditor({
                     "min-w-0 rounded-2xl text-sm shadow-none wrap-anywhere",
                     compact ? "w-fit max-w-[min(100%,42rem)]! p-3" : "w-full max-w-full! p-4",
                     previewMode === "INTERNAL"
-                      ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
+                      ? "rounded-tl-sm border border-accent-amber/20 bg-accent-amber/5 text-accent-amber dark:border-accent-amber/10 dark:bg-accent-amber/5 dark:text-accent-amber dark:prose-invert"
                       : compact
                         ? "rounded-tr-sm bg-muted text-foreground dark:prose-invert"
                         : "rounded-tl-sm border border-border bg-card text-foreground dark:prose-invert"

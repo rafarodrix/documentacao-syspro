@@ -73,8 +73,8 @@ export function TicketsStats({ counts, activeStatus, onSelectStatus }: TicketsSt
                 title="Novos & Abertos"
                 value={counts.open}
                 icon={Inbox}
-                colorClass="text-blue-600 dark:text-blue-400"
-                bgClass="bg-blue-500/10"
+                colorClass="text-accent-blue"
+                bgClass="bg-accent-blue/10"
                 description="Fila de atendimento pronta para acao."
                 active={activeStatus === "open"}
                 onClick={() => onSelectStatus("open")}
@@ -84,8 +84,8 @@ export function TicketsStats({ counts, activeStatus, onSelectStatus }: TicketsSt
                 title="Em Desenvolvimento"
                 value={counts.development}
                 icon={Wrench}
-                colorClass="text-blue-600 dark:text-blue-400"
-                bgClass="bg-blue-500/10"
+                colorClass="text-accent-blue"
+                bgClass="bg-accent-blue/10"
                 description="Itens atualmente em execucao tecnica."
                 active={activeStatus === "development"}
                 onClick={() => onSelectStatus("development")}
@@ -95,8 +95,8 @@ export function TicketsStats({ counts, activeStatus, onSelectStatus }: TicketsSt
                 title="Em Testes"
                 value={counts.testing}
                 icon={FlaskConical}
-                colorClass="text-violet-600 dark:text-violet-400"
-                bgClass="bg-violet-500/10"
+                colorClass="text-accent-violet"
+                bgClass="bg-accent-violet/10"
                 description="Analise, validacao e demais etapas intermediarias."
                 active={activeStatus === "testing"}
                 onClick={() => onSelectStatus("testing")}
@@ -106,8 +106,8 @@ export function TicketsStats({ counts, activeStatus, onSelectStatus }: TicketsSt
                 title="Finalizados"
                 value={counts.closed}
                 icon={CheckCircle2}
-                colorClass="text-emerald-600 dark:text-emerald-400"
-                bgClass="bg-emerald-500/10"
+                colorClass="text-accent-emerald"
+                bgClass="bg-accent-emerald/10"
                 description="Historico encerrado conforme o periodo filtrado."
                 active={activeStatus === "closed"}
                 onClick={() => onSelectStatus("closed")}
