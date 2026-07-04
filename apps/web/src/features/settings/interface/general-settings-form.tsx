@@ -24,7 +24,7 @@ import {
 import { Button, Input, Label, Switch, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent } from "@dosc-syspro/ui";
 import {
   Loader2, Save, DollarSign, ShieldAlert, Headset, Mail, Phone,
-  Banknote, Lock, SlidersHorizontal, Settings, Globe, Ban, Building2
+  Banknote, Lock, SlidersHorizontal, Settings, Globe, Ban, Building2, Palette
 } from "lucide-react";
 
 const defaultValues: SettingsInput = {
@@ -38,6 +38,7 @@ const defaultValues: SettingsInput = {
   preferences: {
     companyInactivationReasons: DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
     contractBlockReasons: DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+    themeColor: "neutral",
   },
 };
 
@@ -126,10 +127,11 @@ export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormPr
         <TabsContent value="general" className="space-y-6">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs defaultValue="overview" className="space-y-5">
-              <SettingsTabsRail className="sm:grid-cols-3">
+              <SettingsTabsRail className="sm:grid-cols-4">
                 <SettingsTabsRailTrigger value="overview" icon={Settings} title="Visao geral" />
                 <SettingsTabsRailTrigger value="support" icon={Headset} title="Canais de atendimento" />
                 <SettingsTabsRailTrigger value="cancellation" icon={Ban} title="Cancelamento" />
+                <SettingsTabsRailTrigger value="appearance" icon={Palette} title="Aparencia" />
               </SettingsTabsRail>
 
               <TabsContent value="overview" className="space-y-6">
@@ -331,6 +333,56 @@ export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormPr
                         });
                       }}
                     />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="appearance" className="space-y-6">
+                <Card className="relative overflow-hidden border-border/40 bg-card/75 shadow-sm backdrop-blur-md dark:bg-zinc-950/45">
+                  <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
+                  <CardHeader className="border-b border-border/40 bg-muted/10 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
+                        <Palette className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Tema e Aparência Visual</CardTitle>
+                        <CardDescription>Configure a paleta de cores padrão de destaque (estilo Shadcn) para a área logada do portal.</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-5">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Cor de Destaque Primária</Label>
+                      <div className="flex flex-wrap gap-2.5 pt-1">
+                        {[
+                          { value: "neutral", name: "Padrão / Neutro", bg: "bg-zinc-400" },
+                          { value: "blue", name: "Azul", bg: "bg-blue-500" },
+                          { value: "emerald", name: "Esmeralda", bg: "bg-emerald-500" },
+                          { value: "violet", name: "Violeta", bg: "bg-violet-500" },
+                          { value: "amber", name: "Âmbar", bg: "bg-amber-500" },
+                          { value: "red", name: "Vermelho", bg: "bg-red-500" },
+                        ].map((theme) => {
+                          const isSelected = form.watch("preferences.themeColor") === theme.value;
+                          return (
+                            <button
+                              key={theme.value}
+                              type="button"
+                              onClick={() => form.setValue("preferences.themeColor", theme.value as any, { shouldDirty: true })}
+                              className={`flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-xs font-semibold transition-all hover:bg-muted/40 cursor-pointer ${
+                                isSelected ? "border-primary bg-muted/60 ring-2 ring-primary/20" : "border-border/60 bg-transparent"
+                              }`}
+                            >
+                              <span className={`h-3 w-3 rounded-full ${theme.bg}`} />
+                              {theme.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground pt-1.5">
+                        Alterar esta cor modificará a aparência dos botões, menus ativos, foco e componentes interativos do portal ao salvar.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

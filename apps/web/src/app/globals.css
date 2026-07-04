@@ -820,3 +820,61 @@
   color: var(--muted-foreground);
   font-style: italic;
 }
+
+/* ==========================================================================
+   PERFIS DE CORES SHADCN (DYNAMIC THEMING)
+   ========================================================================== */
+.theme-blue {
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --ring: #3b82f6;
+}
+.dark .theme-blue {
+  --primary: #3b82f6;
+  --primary-foreground: #09090b;
+  --ring: #2563eb;
+}
+
+.theme-emerald {
+  --primary: #059669;
+  --primary-foreground: #ffffff;
+  --ring: #10b981;
+}
+.dark .theme-emerald {
+  --primary: #10b981;
+  --primary-foreground: #042f1a;
+  --ring: #059669;
+}
+
+.theme-violet {
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --ring: #8b5cf6;
+}
+.dark .theme-violet {
+  --primary: #8b5cf6;
+  --primary-foreground: #09090b;
+  --ring: #7c3aed;
+}
+
+.theme-amber {
+  --primary: #d97706;
+  --primary-foreground: #ffffff;
+  --ring: #f59e0b;
+}
+.dark .theme-amber {
+  --primary: #f59e0b;
+  --primary-foreground: #451a03;
+  --ring: #d97706;
+}
+
+.theme-red {
+  --primary: #dc2626;
+  --primary-foreground: #ffffff;
+  --ring: #ef4444;
+}
+.dark .theme-red {
+  --primary: #ef4444;
+  --primary-foreground: #450a0a;
+  --ring: #dc2626;
+}

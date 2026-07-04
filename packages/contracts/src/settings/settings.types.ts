@@ -51,6 +51,7 @@ export const DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS = CONTRACT_BLOCK_REASONS.map(
 export const settingsPreferencesSchema = z.object({
   companyInactivationReasons: z.array(companyInactivationReasonOptionSchema).min(1),
   contractBlockReasons: z.array(contractBlockReasonOptionSchema).min(1),
+  themeColor: z.enum(["neutral", "blue", "emerald", "violet", "amber", "red"]).default("neutral"),
 });
 
 export const settingsSchema = z.object({
@@ -64,6 +65,7 @@ export const settingsSchema = z.object({
   preferences: settingsPreferencesSchema.default({
     companyInactivationReasons: DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
     contractBlockReasons: DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+    themeColor: "neutral",
   }),
 });
 

@@ -113,6 +113,7 @@ export class SettingsController {
     preferences: {
       companyInactivationReasons: DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
       contractBlockReasons: DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+      themeColor: 'neutral',
     },
   };
   private readonly logger = new Logger(SettingsController.name);
