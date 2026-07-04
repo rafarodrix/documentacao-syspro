@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import type { IncomingHttpHeaders } from 'node:http';
 import { Prisma } from '@prisma/client';
+import { cleanChatwootDisplayName, splitChatwootContactDisplayName } from '@dosc-syspro/shared/chatwoot-contact-presentation';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuthorizationService } from '../../authorization/authorization.service';
 import { ChatwootClient } from '../../integrations/chatwoot/chatwoot.client';
@@ -359,7 +360,7 @@ export class AtendimentosDashboardQuery {
       const sysproCompany = sysproCompanyId ? companyById.get(sysproCompanyId) ?? null : null;
       const sysproContact = sysproContactId ? contactById.get(sysproContactId) ?? null : null;
       const sysproContactCompany = sysproContact?.companyLinks?.[0]?.company ?? null;
-      const displayParts = this.splitDisplayName(conversation.contactName);
+      const displayParts = this.splitSharedDisplayName(conversation.contactName);
       const companyName = this.resolveCompanyName({
         linkedTicket,
         conversationLink,
@@ -561,7 +562,7 @@ export class AtendimentosDashboardQuery {
         const linkedTicket = ticketByConversationId.get(conversation.id);
         const sysproContactId = String(conversation.customAttributes.syspro_contact_id ?? '').trim();
         const sysproContact = sysproContactId ? contactById.get(sysproContactId) ?? null : null;
-        const displayParts = this.splitDisplayName(conversation.contactName);
+        const displayParts = this.splitSharedDisplayName(conversation.contactName);
         return {
           id: linkedTicket?.id || conversation.id,
           reference: linkedTicket?.ticketNumber || `CW-${conversation.id}`,
@@ -874,7 +875,7 @@ export class AtendimentosDashboardQuery {
     displayCompanyName: string | null;
   }) {
     const primaryContactCompany = input.sysproContact?.companyLinks?.[0]?.company ?? null;
-    const customName = this.cleanDisplayName(String(
+    const customName = this.cleanSharedDisplayName(String(
       input.customAttributes.syspro_primary_company_name ??
       input.customAttributes.syspro_company_name ??
       input.customAttributes.company_name ??
@@ -891,7 +892,7 @@ export class AtendimentosDashboardQuery {
       primaryContactCompany?.nomeFantasia ||
       primaryContactCompany?.razaoSocial ||
       customName ||
-      this.cleanDisplayName(input.displayCompanyName) ||
+      this.cleanSharedDisplayName(input.displayCompanyName) ||
       'Empresa nao vinculada'
     );
   }
@@ -903,15 +904,23 @@ export class AtendimentosDashboardQuery {
     fallbackConversationName: string;
     displayContactName: string | null;
   }) {
-    const customName = this.cleanDisplayName(String(input.customAttributes.syspro_contact_name ?? '').trim());
+    const customName = this.cleanSharedDisplayName(String(input.customAttributes.syspro_contact_name ?? '').trim());
     return (
       input.linkedTicket?.companyContact?.name ||
       input.sysproContact?.name ||
       customName ||
-      this.cleanDisplayName(input.displayContactName) ||
-      this.cleanDisplayName(input.fallbackConversationName) ||
+      this.cleanSharedDisplayName(input.displayContactName) ||
+      this.cleanSharedDisplayName(input.fallbackConversationName) ||
       'Contato nao identificado'
     );
+  }
+
+  private splitSharedDisplayName(value: string) {
+    return splitChatwootContactDisplayName(value);
+  }
+
+  private cleanSharedDisplayName(value: string | null | undefined) {
+    return cleanChatwootDisplayName(value);
   }
 
   private splitDisplayName(value: string) {
@@ -993,7 +1002,7 @@ export class AtendimentosDashboardQuery {
   }
 
   private normalizeRecurrenceName(value: string | null | undefined) {
-    const cleaned = this.cleanDisplayName(value);
+    const cleaned = this.cleanSharedDisplayName(value);
     if (!cleaned) return null;
 
     return cleaned
@@ -1006,8 +1015,8 @@ export class AtendimentosDashboardQuery {
   }
 
   private shouldPreferRecurrenceName(candidate: string, current: string) {
-    const candidateClean = this.cleanDisplayName(candidate);
-    const currentClean = this.cleanDisplayName(current);
+    const candidateClean = this.cleanSharedDisplayName(candidate);
+    const currentClean = this.cleanSharedDisplayName(current);
     if (!candidateClean) return false;
     if (!currentClean) return true;
     const candidateIsUpper = candidateClean === candidateClean.toUpperCase();

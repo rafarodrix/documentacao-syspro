@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
+import {
+  cleanChatwootDisplayName,
+  splitChatwootContactDisplayName,
+} from "@dosc-syspro/shared/chatwoot-contact-presentation";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { ChatwootDashboardContext } from "./chatwoot-dashboard-context";
@@ -54,21 +58,33 @@ export function ChatwootDashboardApp() {
   const resolved = useMemo(() => {
     const conversationAttributes = context?.conversation?.custom_attributes ?? {};
     const contactAttributes = context?.contact?.custom_attributes ?? {};
+    const rawChatwootContactName = pickFirstValue(context?.contact?.name);
+    const chatwootDisplayNameParts = splitChatwootContactDisplayName(rawChatwootContactName);
 
     const companyId = pickFirstValue(
       contactAttributes.syspro_company_id,
+      contactAttributes.syspro_primary_company_id,
       conversationAttributes.syspro_company_id,
+      conversationAttributes.syspro_primary_company_id,
       conversationAttributes.company_id,
     );
     const companyName = pickFirstValue(
+      contactAttributes.syspro_primary_company_name,
       contactAttributes.syspro_company_name,
+      conversationAttributes.syspro_primary_company_name,
       conversationAttributes.syspro_company_name,
       conversationAttributes.company_name,
+      chatwootDisplayNameParts.companyName,
     );
     const hostId = pickFirstValue(conversationAttributes.host_id);
     const rustdeskId = pickFirstValue(conversationAttributes.rustdesk_id);
     const ticketNumber = pickFirstValue(conversationAttributes.ticket_number);
-    const contactName = pickFirstValue(context?.contact?.name, contactAttributes.syspro_contact_name);
+    const contactName = pickFirstValue(
+      contactAttributes.syspro_contact_name,
+      conversationAttributes.syspro_contact_name,
+      chatwootDisplayNameParts.contactName,
+      cleanChatwootDisplayName(rawChatwootContactName),
+    );
     const customerEmail = pickFirstValue(context?.contact?.email);
     const customerPhone = pickFirstValue(context?.contact?.phone_number);
     const conversationId = pickFirstValue(context?.conversation?.id);

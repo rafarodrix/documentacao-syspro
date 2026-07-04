@@ -4,329 +4,51 @@ import { Prisma, type Role } from '@prisma/client';
 import type {
   DashboardCrmSummary,
   DashboardDailyPassword,
-  DashboardOpenTicketRecord,
   DashboardResponse,
-  DashboardTicketKpis,
-  DashboardTicketSummary,
   DashboardTarefasOverdueItem,
 } from '@dosc-syspro/contracts/dashboard';
 import { getDailyPasswordForDate } from '@dosc-syspro/contracts/dashboard';
 import { buildDefaultSefazRoutes } from '@dosc-syspro/contracts/sefaz-endpoints';
 import { sefazRoutesSchema } from '@dosc-syspro/contracts/sefaz-routes';
-import type { TicketModuleRecord } from '@dosc-syspro/contracts/ticket';
 import { SETTING_KEYS } from '@dosc-syspro/contracts/settings';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { TicketsService } from '../tickets/tickets.service';
+import {
+  DASHBOARD_TICKETS_TIMEOUT_MS,
+  averageDurationInMinutes,
+  buildTicketKpis,
+  extractChatwootAssignee,
+  extractChatwootChannel,
+  extractChatwootContactSummary,
+  extractChatwootContactText,
+  extractChatwootConversationCustomAttributes,
+  extractChatwootConversationLabels,
+  getDashboardTimeoutWarning,
+  getLast7DaysRange,
+  mapConversationStatus,
+  parseChatwootDate,
+  parseDateInput,
+  readTicketMetadataString,
+  resolveChatwootClosureOrigin,
+  shouldSkipChatwootCsat,
+  startOfDay,
+  toOpenTicketRecordItems,
+  toSeries,
+  toTicketSummaryItems,
+  withTimeout,
+} from './dashboard.shared';
 import { AtendimentosDashboardQuery } from './queries/atendimentos-dashboard.query';
 import { CadastrosDashboardQuery } from './queries/cadastros-dashboard.query';
 import { ComercialDashboardQuery } from './queries/comercial-dashboard.query';
 import { SuporteTicketsDashboardQuery } from './queries/suporte-tickets-dashboard.query';
 import { TarefasDashboardQuery } from './queries/tarefas-dashboard.query';
 
-const DASHBOARD_TICKETS_TIMEOUT_MS = 4000;
 const DASHBOARD_VIEW_INTERNAL = 'dashboard:view_internal' as const;
-
-function timeoutError(label: string, timeoutMs: number) {
-  return new Error(`${label} excedeu ${timeoutMs}ms.`);
-}
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timer = setTimeout(() => reject(timeoutError(label, timeoutMs)), timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
 
 function mergeTicketWarnings(...warnings: Array<string | undefined>) {
   const unique = Array.from(new Set(warnings.filter(Boolean)));
   return unique.length > 0 ? unique.join(' ') : undefined;
-}
-
-function getDashboardTimeoutWarning() {
-  return 'Modulo de tickets em contingencia no dashboard. Alguns cards foram carregados com dados reduzidos.';
-}
-
-function getLast7DaysRange() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - 6);
-
-  const days: Date[] = [];
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(start);
-    day.setDate(start.getDate() + i);
-    days.push(day);
-  }
-
-  return { start, days };
-}
-
-function startOfDay(date = new Date()) {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
-function toSeries(events: Date[]) {
-  const { days } = getLast7DaysRange();
-  const map = new Map<string, number>();
-
-  for (const day of days) {
-    const key = day.toISOString().slice(0, 10);
-    map.set(key, 0);
-  }
-
-  for (const event of events) {
-    const key = new Date(event).toISOString().slice(0, 10);
-    if (map.has(key)) map.set(key, (map.get(key) || 0) + 1);
-  }
-
-  return days.map((day) => {
-    const key = day.toISOString().slice(0, 10);
-    return {
-      label: day.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-      value: map.get(key) || 0,
-    };
-  });
-}
-
-function mapTicketStatus(status: string): DashboardTicketSummary['status'] {
-  switch (status) {
-    case 'RESOLVED':
-    case 'ARCHIVED':
-      return 'Resolvido';
-    case 'WAITING_CUSTOMER':
-    case 'WAITING_INTERNAL':
-      return 'Pendente';
-    case 'IN_PROGRESS':
-    case 'UNASSIGNED':
-      return 'Em Análise';
-    default:
-      return 'Aberto';
-  }
-}
-
-function mapTicketPriority(priority: string): DashboardTicketSummary['priority'] {
-  switch (priority) {
-    case 'HIGH':
-    case 'CRITICAL':
-      return 'Alta';
-    case 'LOW':
-      return 'Baixa';
-    default:
-      return 'Média';
-  }
-}
-
-function toTicketSummaryItems(records: TicketModuleRecord[]): DashboardTicketSummary[] {
-  return records.map((ticket) => ({
-    id: ticket.id,
-    number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
-    subject: ticket.subject || 'Sem assunto',
-    status: mapTicketStatus(ticket.status),
-    priority: mapTicketPriority(ticket.priority),
-    lastUpdate: ticket.updatedAt,
-  }));
-}
-
-function readTicketMetadataString(metadata: TicketModuleRecord['metadata'], key: string): string | null {
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
-  const value = (metadata as Record<string, unknown>)[key];
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function toOpenTicketRecordItems(records: TicketModuleRecord[]): DashboardOpenTicketRecord[] {
-  const items: DashboardOpenTicketRecord[] = [];
-
-  for (const ticket of records) {
-    const status = mapTicketStatus(ticket.status);
-    if (status === 'Resolvido') continue;
-
-    const currentTeam = readTicketMetadataString(ticket.metadata, 'currentTeam');
-    const moduleName = readTicketMetadataString(ticket.metadata, 'module');
-    const categoryName = readTicketMetadataString(ticket.metadata, 'category');
-
-    items.push({
-      id: ticket.id,
-      number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
-      subject: ticket.subject || 'Sem assunto',
-      team:
-        currentTeam === 'SUPORTE' || currentTeam === 'DESENVOLVIMENTO'
-          ? currentTeam
-          : null,
-      module: moduleName,
-      category: categoryName,
-      priority: mapTicketPriority(ticket.priority),
-      status,
-    });
-  }
-
-  return items;
-}
-
-function buildTicketKpis(records: DashboardTicketSummary[]): DashboardTicketKpis {
-  const resolved = records.filter((ticket) => ticket.status === 'Resolvido').length;
-  const pending = records.filter((ticket) => ticket.status === 'Pendente' || ticket.status === 'Em Análise').length;
-  const open = records.filter((ticket) => ticket.status === 'Aberto').length;
-
-  return { open, pending, resolved };
-}
-
-function mapConversationStatus(status: string) {
-  switch (status) {
-    case 'UNASSIGNED':
-      return 'Sem responsavel';
-    case 'TRIAGE':
-      return 'Triagem';
-    case 'IN_PROGRESS':
-      return 'Em andamento';
-    case 'WAITING_CUSTOMER':
-      return 'Aguardando cliente';
-    case 'WAITING_INTERNAL':
-      return 'Aguardando interno';
-    case 'TESTING':
-      return 'Teste';
-    case 'RESOLVED':
-      return 'Resolvido';
-    case 'ARCHIVED':
-      return 'Arquivado';
-    default:
-      return 'Novo';
-  }
-}
-
-function averageDurationInMinutes(items: Array<{ startedAt: Date; endedAt: Date | null | undefined }>) {
-  const valid = items.filter((item) => item.endedAt instanceof Date && item.endedAt >= item.startedAt);
-  if (!valid.length) return null;
-
-  const totalMs = valid.reduce((sum, item) => sum + (item.endedAt!.getTime() - item.startedAt.getTime()), 0);
-  return Math.round((totalMs / valid.length / 60000) * 10) / 10;
-}
-
-function parseDateInput(value?: string, endOfDay = false) {
-  const normalized = String(value ?? '').trim();
-  if (!normalized) return null;
-  const base = new Date(`${normalized}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}`);
-  return Number.isNaN(base.getTime()) ? null : base;
-}
-
-function parseChatwootDate(value: unknown) {
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    const parsed = new Date(value > 10_000_000_000 ? value : value * 1000);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-  const normalized = String(value ?? '').trim();
-  if (!normalized) return null;
-  if (/^\d+$/.test(normalized)) {
-    const numeric = Number(normalized);
-    const parsed = new Date(numeric > 10_000_000_000 ? numeric : numeric * 1000);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-  const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function extractChatwootConversationLabels(conversation: any): string[] {
-  const labels = Array.isArray(conversation?.labels) ? conversation.labels : [];
-  return labels.map((item: unknown) => String(item ?? '').trim().toLowerCase()).filter(Boolean);
-}
-
-function extractChatwootConversationCustomAttributes(conversation: any): Record<string, unknown> {
-  const value =
-    conversation?.custom_attributes ??
-    conversation?.meta?.custom_attributes ??
-    conversation?.additional_attributes ??
-    conversation?.meta?.additional_attributes;
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? { ...(value as Record<string, unknown>) }
-    : {};
-}
-
-function extractChatwootAssignee(conversation: any) {
-  const assignee = conversation?.meta?.assignee ?? conversation?.assignee ?? conversation?.last_non_activity_message?.conversation?.assignee;
-  const id = String(assignee?.id ?? '').trim();
-  const name = String(assignee?.name ?? assignee?.available_name ?? assignee?.email ?? '').trim();
-  return id ? { id, name: name || id } : null;
-}
-
-function extractChatwootChannel(conversation: any) {
-  const channelRaw = String(
-    conversation?.meta?.channel ??
-    conversation?.channel ??
-    conversation?.inbox?.channel_type ??
-    '',
-  ).trim().toLowerCase();
-
-  if (channelRaw.includes('email')) return 'EMAIL' as const;
-  if (channelRaw.includes('portal') || channelRaw.includes('api')) return 'PORTAL' as const;
-  if (channelRaw.includes('phone') || channelRaw.includes('call')) return 'PHONE' as const;
-  return 'WHATSAPP' as const;
-}
-
-function extractChatwootContactSummary(conversation: any) {
-  const name = String(
-    conversation?.meta?.sender?.name ??
-    conversation?.contact?.name ??
-    conversation?.last_non_activity_message?.sender?.name ??
-    '',
-  ).trim();
-  const phone = String(
-    conversation?.meta?.sender?.phone_number ??
-    conversation?.contact?.phone_number ??
-    conversation?.last_non_activity_message?.sender?.phone_number ??
-    '',
-  ).trim();
-  const identifier = String(
-    conversation?.meta?.sender?.identifier ??
-    conversation?.contact?.identifier ??
-    conversation?.last_non_activity_message?.sender?.identifier ??
-    conversation?.contact_inbox?.source_id ??
-    '',
-  ).trim();
-  const key = identifier || phone || name;
-  const label = name || phone || identifier || 'Contato nao identificado';
-  return key ? { key, name: label } : null;
-}
-
-function extractChatwootContactText(conversation: any) {
-  const candidates = [
-    conversation?.meta?.sender?.name,
-    conversation?.meta?.sender?.phone_number,
-    conversation?.meta?.sender?.identifier,
-    conversation?.last_non_activity_message?.sender?.name,
-    conversation?.last_non_activity_message?.sender?.phone_number,
-    conversation?.contact?.name,
-    conversation?.contact?.phone_number,
-  ];
-  return candidates.map((item) => String(item ?? '').trim()).filter(Boolean).join(' ').toLowerCase();
-}
-
-function resolveChatwootClosureOrigin(conversation: any) {
-  const customAttributes = extractChatwootConversationCustomAttributes(conversation);
-  const closureOrigin = String(customAttributes.closure_origin ?? '').trim().toLowerCase();
-  if (closureOrigin) return closureOrigin;
-
-  const labels = extractChatwootConversationLabels(conversation);
-  if (labels.includes('cancelado_cliente')) return 'cancelled_by_customer';
-  if (labels.includes('cancelado_agente')) return 'cancelled_by_agent';
-  if (labels.includes('spam')) return 'spam';
-  return null;
-}
-
-function shouldSkipChatwootCsat(conversation: any) {
-  const customAttributes = extractChatwootConversationCustomAttributes(conversation);
-  const skipCsatRaw = String(customAttributes.skip_csat ?? '').trim().toLowerCase();
-  return skipCsatRaw === 'true' || skipCsatRaw === '1' || Boolean(resolveChatwootClosureOrigin(conversation));
 }
 
 function buildCrmSummary(leads: any[]): DashboardCrmSummary {

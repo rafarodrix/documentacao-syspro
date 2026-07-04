@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { buildChatwootContactDisplayName } from "@dosc-syspro/shared/chatwoot-contact-presentation";
 import { Loader2, MessageSquare, RefreshCw } from "lucide-react";
 import { Button } from "@dosc-syspro/ui";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
@@ -10,11 +11,22 @@ export function ChatwootAppHeader() {
   const {
     status,
     resolved,
+    effectiveContactName,
     linkedCompanies,
     contactEditHref,
     requestRefresh,
     handleSelectContextCompany,
   } = useChatwootDashboard();
+
+  const hasResolvedContext = Boolean(resolved.companyName || effectiveContactName || resolved.contactName);
+  const contextLabel = hasResolvedContext
+    ? buildChatwootContactDisplayName({
+        companyName: resolved.companyName,
+        contactName: effectiveContactName || resolved.contactName,
+      })
+    : linkedCompanies.length > 1
+      ? "Selecionar empresa em contexto"
+      : "Sem empresa em contexto";
 
   return (
     <div className="border-b border-border/60 bg-background/85 backdrop-blur">
@@ -27,10 +39,7 @@ export function ChatwootAppHeader() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground">Painel do Atendimento</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {resolved.companyName || (linkedCompanies.length > 1 ? "Selecionar empresa em contexto" : "Sem empresa em contexto")}
-                  {resolved.contactName ? ` - ${resolved.contactName}` : ""}
-                </p>
+                <p className="truncate text-xs text-muted-foreground">{contextLabel}</p>
               </div>
             </div>
           </div>
