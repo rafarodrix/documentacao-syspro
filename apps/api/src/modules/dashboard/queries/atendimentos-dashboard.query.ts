@@ -545,10 +545,14 @@ export class AtendimentosDashboardQuery {
       }));
 
     const topCompaniesMapped = mapRecurrenceItems(
-      Array.from(companyRecurrenceMap.values()).sort((left, right) => right.count - left.count).slice(0, 10),
+      this.mergeRecurrenceItemsByName(Array.from(companyRecurrenceMap.values()))
+        .sort((left, right) => right.count - left.count)
+        .slice(0, 10),
     );
     const topContactsMapped = mapRecurrenceItems(
-      Array.from(contactRecurrenceMap.values()).sort((left, right) => right.count - left.count).slice(0, 10),
+      this.mergeRecurrenceItemsByName(Array.from(contactRecurrenceMap.values()))
+        .sort((left, right) => right.count - left.count)
+        .slice(0, 10),
     );
 
     const unassignedConversations = filteredConversations
@@ -946,6 +950,74 @@ export class AtendimentosDashboardQuery {
     ]);
 
     return invalidValues.has(normalized.toLowerCase()) ? null : normalized;
+  }
+
+  private mergeRecurrenceItemsByName(
+    items: Array<{
+      key: string;
+      name: string;
+      count: number;
+      channel: 'WHATSAPP' | 'EMAIL' | 'PORTAL' | 'PHONE';
+      lastAttendance: Date | null;
+    }>,
+  ) {
+    const merged = new Map<string, {
+      key: string;
+      name: string;
+      count: number;
+      channel: 'WHATSAPP' | 'EMAIL' | 'PORTAL' | 'PHONE';
+      lastAttendance: Date | null;
+    }>();
+
+    for (const item of items) {
+      const normalizedName = this.normalizeRecurrenceName(item.name);
+      const mergeKey = normalizedName ? `name:${normalizedName}` : `key:${item.key}`;
+      const current = merged.get(mergeKey);
+
+      if (!current) {
+        merged.set(mergeKey, { ...item });
+        continue;
+      }
+
+      current.count += item.count;
+      if (this.shouldPreferRecurrenceName(item.name, current.name)) {
+        current.name = item.name;
+      }
+      if (!current.lastAttendance || (item.lastAttendance && item.lastAttendance > current.lastAttendance)) {
+        current.lastAttendance = item.lastAttendance;
+        current.channel = item.channel;
+      }
+    }
+
+    return Array.from(merged.values());
+  }
+
+  private normalizeRecurrenceName(value: string | null | undefined) {
+    const cleaned = this.cleanDisplayName(value);
+    if (!cleaned) return null;
+
+    return cleaned
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  }
+
+  private shouldPreferRecurrenceName(candidate: string, current: string) {
+    const candidateClean = this.cleanDisplayName(candidate);
+    const currentClean = this.cleanDisplayName(current);
+    if (!candidateClean) return false;
+    if (!currentClean) return true;
+    const candidateIsUpper = candidateClean === candidateClean.toUpperCase();
+    const currentIsUpper = currentClean === currentClean.toUpperCase();
+    if (candidateIsUpper !== currentIsUpper) return !candidateIsUpper;
+    const candidateIsLower = candidateClean === candidateClean.toLowerCase();
+    const currentIsLower = currentClean === currentClean.toLowerCase();
+    if (candidateIsLower !== currentIsLower) return !candidateIsLower;
+    if (candidateClean.length !== currentClean.length) return candidateClean.length > currentClean.length;
+    return candidateClean.localeCompare(currentClean) < 0;
   }
 
   private toSeries(dates: Date[]) {
