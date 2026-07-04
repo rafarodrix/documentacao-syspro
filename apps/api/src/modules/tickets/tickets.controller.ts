@@ -43,6 +43,22 @@ export class TicketsController {
     return parsed.data;
   }
 
+  private normalizeUploadedFiles(files: UploadedTicketReplyFile[] | undefined): NormalizedTicketReplyFile[] {
+    return Array.isArray(files)
+      ? files.flatMap((file) => {
+          if (!file?.buffer?.length) {
+            return [];
+          }
+
+          return [{
+            filename: file.originalname || 'arquivo',
+            mimeType: file.mimetype || 'application/octet-stream',
+            buffer: file.buffer,
+          }];
+        })
+      : [];
+  }
+
   @Post()
   @UseInterceptors(FilesInterceptor(TICKET_CREATE_MULTIPART_FIELD_NAMES.attachments, TICKET_REPLY_MAX_ATTACHMENTS))
   create(
@@ -60,19 +76,7 @@ export class TicketsController {
     }
 
     const input = this.parseOrThrow(ticketModuleCreateMultipartBodySchema, normalizedBody);
-    const normalizedFiles: NormalizedTicketCreateFile[] = Array.isArray(files)
-      ? files.flatMap((file) => {
-          if (!file?.buffer?.length) {
-            return [];
-          }
-
-          return [{
-            filename: file.originalname || 'arquivo',
-            mimeType: file.mimetype || 'application/octet-stream',
-            buffer: file.buffer,
-          }];
-        })
-      : [];
+    const normalizedFiles: NormalizedTicketCreateFile[] = this.normalizeUploadedFiles(files);
 
     return this.ticketsService.create(input, req.headers, normalizedFiles);
   }
@@ -100,6 +104,8 @@ export class TicketsController {
     @Query('closedWindow') closedWindow?: string,
     @Query('category') category?: string,
     @Query('module') module?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
     @Query('assignedUserId') assignedUserId?: string,
     @Query('companyId') companyId?: string,
   ) {
@@ -114,6 +120,8 @@ export class TicketsController {
       closedWindow,
       category,
       module,
+      sortBy,
+      sortOrder,
       assignedUserId,
       companyId,
     });
@@ -138,19 +146,7 @@ export class TicketsController {
     @UploadedFiles() files: UploadedTicketReplyFile[] = [],
   ) {
     const parsedBody = this.parseOrThrow(ticketModuleReplyMultipartBodySchema, body);
-    const normalizedFiles: NormalizedTicketReplyFile[] = Array.isArray(files)
-      ? files.flatMap((file) => {
-          if (!file?.buffer?.length) {
-            return [];
-          }
-
-          return [{
-            filename: file.originalname || 'arquivo',
-            mimeType: file.mimetype || 'application/octet-stream',
-            buffer: file.buffer,
-          }];
-        })
-      : [];
+    const normalizedFiles: NormalizedTicketReplyFile[] = this.normalizeUploadedFiles(files);
 
     const input = {
       ...parsedBody,

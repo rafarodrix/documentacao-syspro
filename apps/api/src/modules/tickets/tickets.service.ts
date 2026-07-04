@@ -27,7 +27,6 @@ import {
 import type { IncomingHttpHeaders } from 'node:http';
 import type { Response } from 'express';
 import { createHash } from 'node:crypto';
-import { normalizePhone } from '@dosc-syspro/shared';
 import {
   normalizeReleaseType,
   readReleaseMetadataString,
@@ -62,6 +61,7 @@ import { TarefasTicketBridgeService } from '../tarefas/tarefas-ticket-bridge.ser
 import { TicketSlaService } from './ticket-sla.service';
 import { TicketNotificationService } from './ticket-notification.service';
 import { TicketIntegrationService } from './ticket-integration.service';
+import { TicketMetadataService } from './ticket-metadata.service';
 
 type TicketAttachmentInsertRow = {
   messageId: string;
@@ -98,6 +98,7 @@ export class TicketsService {
     private readonly ticketSlaService: TicketSlaService,
     private readonly ticketNotificationService: TicketNotificationService,
     private readonly ticketIntegrationService: TicketIntegrationService,
+    private readonly ticketMetadataService: TicketMetadataService,
     private readonly r2StorageService: R2StorageService,
     @Optional() private readonly tarefasTicketBridge: TarefasTicketBridgeService | null,
   ) {}
@@ -148,29 +149,25 @@ export class TicketsService {
       slaResolutionMinutes,
     } = this.ticketSlaService.calculateSlaDates(priority, settings, now);
 
-    const metadata = {
-      ...(data.metadata && typeof data.metadata === 'object' ? data.metadata : {}),
+    const metadata = this.ticketMetadataService.buildInitialMetadata({
+      metadata: data.metadata,
       category: normalizedCategory,
       categoryType: normalizedCategoryType,
       module: normalizedModule,
       currentTeam: normalizedTeam,
-      currentOwnerUserId: assignedUserId,
-      currentOwnerName: assignedUserId ? openedByName : null,
-      currentOwnerRole: assignedUserId ? requester.role : null,
-      openedByUserId: requester.userId,
-      openedByName,
-      openedByEmail: requester.email,
-      openedByRole: requester.role,
+      assignedUserId,
+      openedBy: {
+        userId: requester.userId,
+        name: openedByName,
+        email: requester.email,
+        role: requester.role,
+      },
       slaPolicyName,
       slaFirstResponseMinutes,
       slaResolutionMinutes,
       databaseUrl,
       developmentVideoUrl,
-      supportOwnerUserId: normalizedTeam === 'SUPORTE' && assignedUserId ? requester.userId : null,
-      supportOwnerName: normalizedTeam === 'SUPORTE' && assignedUserId ? openedByName : null,
-      developmentOwnerUserId: null,
-      developmentOwnerName: null,
-    } as Prisma.InputJsonValue;
+    });
 
     const normalizedAttachments = await Promise.all(
       attachments.map((attachment) => this.normalizeReplyAttachment(attachment)),
@@ -286,43 +283,9 @@ export class TicketsService {
 
   async getLinkedCompanies(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    
-    const companiesMap = new Map<string, { id: string; name: string }>();
-
-    const memberships = await this.prisma.membership.findMany({
-      where: { userId: requester.userId },
-      include: { company: true },
-    });
-    for (const m of memberships) {
-      if (m.company) {
-        companiesMap.set(m.companyId, {
-          id: m.company.id,
-          name: m.company.nomeFantasia || m.company.razaoSocial,
-        });
-      }
-    }
-
-    const contacts = await this.prisma.companyContact.findMany({
-      where: { email: requester.email },
-      include: {
-        companyLinks: {
-          include: { company: true }
-        }
-      },
-    });
-
-    for (const contact of contacts) {
-      for (const link of contact.companyLinks) {
-        if (link.company) {
-          companiesMap.set(link.company.id, {
-            id: link.company.id,
-            name: link.company.nomeFantasia || link.company.razaoSocial,
-          });
-        }
-      }
-    }
-
-    return serializeLinkedCompaniesResponse(Array.from(companiesMap.values()));
+    const accessScope = await this.getTicketAccessScope(requester);
+    const companies = await this.ticketIntegrationService.getLinkedCompaniesForRequester(requester, accessScope);
+    return serializeLinkedCompaniesResponse(companies);
   }
 
   async findCustomerOptions(input: { q?: string; limit?: string }, rawHeaders?: IncomingHttpHeaders) {
@@ -731,10 +694,7 @@ export class TicketsService {
       }));
     }
 
-    const existingMetadata =
-      exists.metadata && typeof exists.metadata === 'object' && !Array.isArray(exists.metadata)
-        ? { ...(exists.metadata as Record<string, unknown>) }
-        : {};
+    const existingMetadata = this.ticketMetadataService.toRecord(exists.metadata);
     const resolutionSummary = input.resolutionSummary?.trim();
     const resolutionVideoUrl = input.resolutionVideoUrl?.trim();
     const releaseType = input.releaseType?.trim().toUpperCase();
@@ -1416,32 +1376,19 @@ export class TicketsService {
       throw new BadRequestException('Voce ja e o responsavel atual deste ticket.');
     }
 
-    const currentMetadata = ticket.metadata && typeof ticket.metadata === 'object' && !Array.isArray(ticket.metadata) 
-      ? { ...(ticket.metadata as Record<string, unknown>) } 
-      : {};
+    const currentMetadata = this.ticketMetadataService.toRecord(ticket.metadata);
 
     const requesterName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
-    const currentTeam =
-      typeof currentMetadata.currentTeam === 'string' && currentMetadata.currentTeam.trim()
-        ? currentMetadata.currentTeam.trim().toUpperCase()
-        : ticketCapabilities.canOwnDevelopmentQueue && !ticketCapabilities.canOwnSupportQueue
-          ? 'DESENVOLVIMENTO'
-          : 'SUPORTE';
-    
-    currentMetadata.currentOwnerUserId = requester.userId;
-    currentMetadata.currentOwnerName = requesterName;
-    currentMetadata.currentOwnerRole = requester.role;
-    currentMetadata.currentTeam = currentTeam;
+    const currentTeam = this.ticketMetadataService.resolveCurrentTeam(currentMetadata, ticketCapabilities);
 
-    if (ticketCapabilities.canOwnDevelopmentQueue && currentTeam === 'DESENVOLVIMENTO') {
-      currentMetadata.developmentOwnerUserId = requester.userId;
-      currentMetadata.developmentOwnerName = requesterName;
-    }
-    if (ticketCapabilities.canOwnSupportQueue && currentTeam === 'SUPORTE') {
-      currentMetadata.supportOwnerUserId = requester.userId;
-      currentMetadata.supportOwnerName = requesterName;
-    }
+    this.ticketMetadataService.assignCurrentOwner(currentMetadata, {
+      userId: requester.userId,
+      name: requesterName,
+      role: requester.role,
+      currentTeam,
+      capabilities: ticketCapabilities,
+    });
 
     const assignmentBody = this.ticketHistoryService.buildAssignmentBody({
       requesterName,
@@ -1498,9 +1445,7 @@ export class TicketsService {
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(ticket.companyId, accessScope);
 
-    const currentMetadata = ticket.metadata && typeof ticket.metadata === 'object' && !Array.isArray(ticket.metadata) 
-      ? { ...(ticket.metadata as Record<string, unknown>) } 
-      : {};
+    const currentMetadata = this.ticketMetadataService.toRecord(ticket.metadata);
 
     const requesterName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const settings = await this.getTicketModuleSettings();
@@ -1521,8 +1466,15 @@ export class TicketsService {
       resolvedTeam,
     });
 
-    if (input.category) currentMetadata.category = input.category;
-    if (resolvedTeam) currentMetadata.currentTeam = resolvedTeam;
+    const triageTeam = resolvedTeam ?? this.ticketMetadataService.resolveCurrentTeam(currentMetadata, ticketCapabilities);
+    const triageCategory =
+      input.category !== undefined
+        ? input.category?.trim() || null
+        : typeof currentMetadata.category === 'string'
+          ? currentMetadata.category.trim() || null
+          : null;
+    this.ticketMetadataService.syncCategoryMetadata(currentMetadata, settings, triageCategory, triageTeam);
+    currentMetadata.currentTeam = triageTeam;
 
     await this.prisma.$transaction([
       this.prisma.ticket.update({
@@ -1670,10 +1622,6 @@ export class TicketsService {
     });
 
     return user?.name?.trim() || user?.email || email;
-  }
-
-  private getPrimaryCompanyId(contact: { companyLinks?: Array<{ companyId: string }> }) {
-    return contact.companyLinks?.[0]?.companyId;
   }
 
   private async getTicketAccessScope(requester: { userId: string; role: Role; email: string }): Promise<{

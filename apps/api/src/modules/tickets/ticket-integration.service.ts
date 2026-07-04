@@ -10,7 +10,7 @@ export interface ResolveCustomerInput {
   contactWhatsappSnapshot?: string | null;
   contactPhoneSnapshot?: string | null;
   userSelectedCompanyId?: string | null;
-  metadata?: any;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface RequesterInfo {
@@ -24,9 +24,53 @@ export interface AccessScopeInfo {
   companyIds: string[];
 }
 
+export interface LinkedCompanyOption {
+  id: string;
+  name: string;
+}
+
 @Injectable()
 export class TicketIntegrationService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getLinkedCompaniesForRequester(
+    requester: RequesterInfo,
+    accessScope: AccessScopeInfo,
+  ): Promise<LinkedCompanyOption[]> {
+    const companiesMap = new Map<string, LinkedCompanyOption>();
+
+    const memberships = await this.prisma.membership.findMany({
+      where: {
+        userId: requester.userId,
+        company: { deletedAt: null },
+      },
+      include: { company: true },
+    });
+
+    for (const membership of memberships) {
+      this.addCompanyOption(companiesMap, membership.companyId, membership.company, accessScope);
+    }
+
+    const contacts = await this.prisma.companyContact.findMany({
+      where: {
+        email: requester.email,
+        status: 'LINKED',
+      },
+      include: {
+        companyLinks: {
+          include: { company: true },
+        },
+      },
+    });
+
+    for (const contact of contacts) {
+      for (const link of contact.companyLinks) {
+        this.addCompanyOption(companiesMap, link.companyId, link.company, accessScope);
+      }
+    }
+
+    return Array.from(companiesMap.values());
+  }
 
   async resolveAndValidateCustomer(
     data: ResolveCustomerInput,
@@ -103,26 +147,15 @@ export class TicketIntegrationService {
       }
       
       if (data.userSelectedCompanyId) {
-        resolvedCompanyId = data.userSelectedCompanyId;
+        resolvedCompanyId = data.userSelectedCompanyId.trim();
       } else if (selfContact) {
         resolvedCompanyId = this.getPrimaryCompanyId(selfContact);
       } else {
         const membership = await this.prisma.membership.findFirst({
-          where: { userId: requester.userId },
+          where: { userId: requester.userId, company: { deletedAt: null } },
           select: { companyId: true },
         });
         resolvedCompanyId = membership?.companyId;
-      }
-    }
-
-    if (isSystemAdmin && resolvedCompanyId) {
-      const companyExists = await this.prisma.company.findFirst({
-        where: { id: resolvedCompanyId, deletedAt: null },
-        select: { id: true },
-      });
-
-      if (!companyExists) {
-        throw new NotFoundException('Empresa nao encontrada para vincular ao ticket.');
       }
     }
 
@@ -130,20 +163,46 @@ export class TicketIntegrationService {
       throw new BadRequestException('Tickets originados do Chatwoot exigem contato vinculado a uma empresa do portal.');
     }
 
-    if (!accessScope.isGlobal) {
-      if (!resolvedCompanyId) {
-        throw new BadRequestException('Empresa obrigatoria para abrir ticket.');
-      }
-
-      if (!accessScope.companyIds.includes(resolvedCompanyId)) {
-        throw new NotFoundException('Empresa nao encontrada para este usuario.');
-      }
+    if (resolvedCompanyId) {
+      await this.assertCompanyIsActiveAndAccessible(resolvedCompanyId, accessScope);
+    } else if (!accessScope.isGlobal) {
+      throw new BadRequestException('Empresa obrigatoria para abrir ticket.');
     }
 
     return {
       resolvedCompanyId: resolvedCompanyId || null,
       resolvedContactId,
     };
+  }
+
+  private addCompanyOption(
+    companiesMap: Map<string, LinkedCompanyOption>,
+    companyId: string,
+    company: { id: string; nomeFantasia: string | null; razaoSocial: string; deletedAt?: Date | null } | null,
+    accessScope: AccessScopeInfo,
+  ) {
+    if (!company || company.deletedAt) return;
+    if (!accessScope.isGlobal && !accessScope.companyIds.includes(companyId)) return;
+
+    companiesMap.set(company.id, {
+      id: company.id,
+      name: company.nomeFantasia || company.razaoSocial,
+    });
+  }
+
+  private async assertCompanyIsActiveAndAccessible(companyId: string, accessScope: AccessScopeInfo) {
+    const companyExists = await this.prisma.company.findFirst({
+      where: { id: companyId, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (!companyExists) {
+      throw new NotFoundException('Empresa nao encontrada para vincular ao ticket.');
+    }
+
+    if (!accessScope.isGlobal && !accessScope.companyIds.includes(companyId)) {
+      throw new NotFoundException('Empresa nao encontrada para este usuario.');
+    }
   }
 
   private getPrimaryCompanyId(contact: { companyLinks?: Array<{ companyId: string }> }) {

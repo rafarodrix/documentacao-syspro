@@ -11,6 +11,7 @@ import { TarefasModule } from '../tarefas/tarefas.module';
 import { TicketSlaService } from './ticket-sla.service';
 import { TicketNotificationService } from './ticket-notification.service';
 import { TicketIntegrationService } from './ticket-integration.service';
+import { TicketMetadataService } from './ticket-metadata.service';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => AutomationModule), TrpcCoreModule, forwardRef(() => TarefasModule)],
@@ -23,8 +24,8 @@ import { TicketIntegrationService } from './ticket-integration.service';
     TicketSlaService,
     TicketNotificationService,
     TicketIntegrationService,
+    TicketMetadataService,
   ],
   exports: [TicketsService, TicketsRouter, TicketSlaService, TicketNotificationService, TicketIntegrationService],
 })
 export class TicketsModule {}
-
