@@ -923,44 +923,6 @@ export class AtendimentosDashboardQuery {
     return cleanChatwootDisplayName(value);
   }
 
-  private splitDisplayName(value: string) {
-    const normalized = String(value ?? '').trim();
-    if (!normalized) return { contactName: null, companyName: null };
-    const delimiters = [' · ', ' - ', ' | '];
-    for (const delimiter of delimiters) {
-      const idx = normalized.indexOf(delimiter);
-      if (idx <= 0) continue;
-      const left = normalized.slice(0, idx).trim();
-      const right = normalized.slice(idx + delimiter.length).trim();
-      if (left && right) {
-        return { contactName: left, companyName: right };
-      }
-    }
-    return { contactName: normalized, companyName: null };
-  }
-
-  private cleanDisplayName(value: string | null | undefined) {
-    const normalized = String(value ?? '').trim();
-    if (!normalized) return null;
-
-    const invalidValues = new Set([
-      'empresa sem nome',
-      'sem empresa',
-      'empresa nao vinculada',
-      'empresa não vinculada',
-      'contato sem nome',
-      'contato nao identificado',
-      'contato não identificado',
-      'unknown',
-      'undefined',
-      'null',
-      '-',
-      '--',
-    ]);
-
-    return invalidValues.has(normalized.toLowerCase()) ? null : normalized;
-  }
-
   private mergeRecurrenceItemsByName(
     items: Array<{
       key: string;
