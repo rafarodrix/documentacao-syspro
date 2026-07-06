@@ -3,6 +3,10 @@ import { SettingsController } from './settings.controller';
 import { SettingsIntegrationsController } from './settings-integrations.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { IntegrationConnectionsService } from './integration-connections.service';
+import { IntegrationConnectionsRepository } from './integration-connections.repository';
+import { IntegrationConnectionsMapperService } from './integration-connections.mapper.service';
+import { IntegrationConnectionsValidatorService } from './integration-connections-validator.service';
+import { IntegrationConnectionsTesterService } from './integration-connections-tester.service';
 import { IntegrationContextService } from './integration-context.service';
 import { SettingsPermissionsService } from './permissions/permissions.service';
 import { SettingsSefazMonitorService } from './sefaz-monitor.service';
@@ -24,6 +28,10 @@ import { SettingsIntegrationSecretsService } from './settings-integration-secret
   controllers: [SettingsController, SettingsIntegrationsController],
   providers: [
     IntegrationConnectionsService,
+    IntegrationConnectionsRepository,
+    IntegrationConnectionsMapperService,
+    IntegrationConnectionsValidatorService,
+    IntegrationConnectionsTesterService,
     IntegrationContextService,
     SettingsPermissionsService,
     SettingsSefazMonitorService,

@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IntegrationConnectionsService } from '../src/modules/settings/integration-connections.service';
+import { IntegrationConnectionsRepository } from '../src/modules/settings/integration-connections.repository';
+import { IntegrationConnectionsMapperService } from '../src/modules/settings/integration-connections.mapper.service';
+import { IntegrationConnectionsValidatorService } from '../src/modules/settings/integration-connections-validator.service';
+import { IntegrationConnectionsTesterService } from '../src/modules/settings/integration-connections-tester.service';
 import { ensureRequiredEvolutionSubscribe } from '../src/modules/settings/evolution-webhook-subscribe';
+import { SettingsIntegrationSecretsService } from '../src/modules/settings/settings-integration-secrets.service';
 
 describe('ensureRequiredEvolutionSubscribe', () => {
   it('keeps ALL untouched when the provider should emit every event', () => {
@@ -26,12 +31,19 @@ describe('IntegrationConnectionsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', vi.fn());
-    service = new IntegrationConnectionsService(prismaMock as any);
-    vi.spyOn(service as any, 'decrypt').mockImplementation((value: string) => {
+    const settingsSecrets = new SettingsIntegrationSecretsService();
+    vi.spyOn(settingsSecrets, 'decrypt').mockImplementation((value: string) => {
       if (value === 'enc-evo-key') return 'evo-key';
       if (value === 'enc-cw-token') return 'cw-token';
       return value;
     });
+    vi.spyOn(settingsSecrets, 'decryptOptional').mockImplementation((value?: string | null) => value ?? null);
+
+    const repository = new IntegrationConnectionsRepository(prismaMock as any);
+    const mapper = new IntegrationConnectionsMapperService(settingsSecrets);
+    const validator = new IntegrationConnectionsValidatorService(repository);
+    const tester = new IntegrationConnectionsTesterService(settingsSecrets);
+    service = new IntegrationConnectionsService(repository, mapper, validator, tester);
   });
 
   it('reapplies the Evolution webhook with required inbound subscriptions during connection tests', async () => {

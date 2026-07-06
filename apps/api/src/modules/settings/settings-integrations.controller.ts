@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import type { EvolutionSettingsInput } from '@dosc-syspro/contracts/evolution';
 import type { ChatwootBehaviorSettingsInput, ChatwootIntegrationSettingsInput } from '@dosc-syspro/contracts/chatwoot';
 import type { GoogleCalendarSettingsInput, StorageR2SettingsInput } from '@dosc-syspro/contracts/settings';
+import type { IntegrationConnectionUpsertInput } from './integration-connections.types';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { SettingsEvolutionService } from './settings-evolution.service';
 import { SettingsChatwootService } from './settings-chatwoot.service';
@@ -120,12 +121,12 @@ export class SettingsIntegrationsController {
   }
 
   @Post('integrations/connections')
-  async createIntegrationConnection(@Body() body: any) {
+  async createIntegrationConnection(@Body() body: IntegrationConnectionUpsertInput) {
     return this.settingsIntegrationConnectionsAdminService.create(body);
   }
 
   @Put('integrations/connections/:id')
-  async updateIntegrationConnection(@Param('id') id: string, @Body() body: any) {
+  async updateIntegrationConnection(@Param('id') id: string, @Body() body: Partial<IntegrationConnectionUpsertInput>) {
     return this.settingsIntegrationConnectionsAdminService.update(id, body);
   }
 

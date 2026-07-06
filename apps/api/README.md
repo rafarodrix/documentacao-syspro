@@ -57,7 +57,12 @@ Estrutura atual de `settings`:
 - `settings-evolution-connect.service.ts`: chamada externa de connect e conciliacao do retorno com o status persistido
 - `settings-chatwoot.service.ts`: configuracao, comportamento operacional e diagnosticos do Chatwoot
 - `settings-storage-google-calendar.service.ts`: storage R2, Google Calendar e leitura persistida dessas integracoes
-- `settings-integration-connections-admin.service.ts`: CRUD e teste das conexoes de integracao
+- `settings-integration-connections-admin.service.ts`: fachada HTTP para CRUD e teste das conexoes de integracao
+- `integration-connections.service.ts`: orquestracao do subdominio de conexoes de integracao
+- `integration-connections.repository.ts`: acesso persistente e consultas focadas de conexoes
+- `integration-connections-validator.service.ts`: validacoes de unicidade, empresa e escopo Evolution/Chatwoot
+- `integration-connections-tester.service.ts`: testes externos de Evolution e Chatwoot
+- `integration-connections.mapper.service.ts`: merge de update, criptografia e mapeamento de entrada/saida
 - `settings-integration-secrets.service.ts`: criptografia e persistencia segura dos secrets compartilhados
 
 ## Scripts

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { IntegrationConnectionsService } from './integration-connections.service';
+import type { IntegrationConnectionUpsertInput } from './integration-connections.types';
 
 @Injectable()
 export class SettingsIntegrationConnectionsAdminService {
@@ -18,12 +19,12 @@ export class SettingsIntegrationConnectionsAdminService {
     return { success: true, data: row };
   }
 
-  async create(body: any) {
+  async create(body: IntegrationConnectionUpsertInput) {
     const created = await this.integrationConnections.create(body);
     return { success: true, data: created };
   }
 
-  async update(id: string, body: any) {
+  async update(id: string, body: Partial<IntegrationConnectionUpsertInput>) {
     const updated = await this.integrationConnections.update(id, body);
     if (!updated) throw new NotFoundException('Integracao nao encontrada');
     return { success: true, data: updated };

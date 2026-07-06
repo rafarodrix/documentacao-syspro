@@ -140,7 +140,12 @@ Organizacao atual do adapter HTTP:
 - `settings-evolution-connect.service.ts` encapsula a chamada externa de connect e a conciliacao do retorno com o status persistido.
 - `settings-chatwoot.service.ts` encapsula configuracao, comportamento operacional e diagnosticos do Chatwoot.
 - `settings-storage-google-calendar.service.ts` encapsula storage R2, Google Calendar e leitura persistida dessas integracoes.
-- `settings-integration-connections-admin.service.ts` encapsula CRUD e teste das conexoes de integracao.
+- `settings-integration-connections-admin.service.ts` atua como fachada HTTP das conexoes de integracao.
+- `integration-connections.service.ts` orquestra o subdominio de conexoes de integracao.
+- `integration-connections.repository.ts` encapsula consultas e persistencia das conexoes.
+- `integration-connections-validator.service.ts` encapsula validacoes de unicidade, empresa e escopo Evolution/Chatwoot.
+- `integration-connections-tester.service.ts` encapsula os testes externos de Evolution e Chatwoot.
+- `integration-connections.mapper.service.ts` encapsula merge de update, criptografia e mapeamento de entrada/saida.
 - `settings-integration-secrets.service.ts` encapsula criptografia e persistencia segura dos secrets compartilhados.
 
 No contexto de tarefas, os endpoints administrativos oficiais sao:
