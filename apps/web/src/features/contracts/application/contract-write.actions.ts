@@ -1,6 +1,5 @@
 "use server";
 
-import { getProtectedSession } from "@/lib/auth-helpers";
 import {
   batchReadjustContractsSchema,
   createContractSchema,
@@ -10,45 +9,18 @@ import {
   type UpdateContractOutput,
   updateContractSchema,
 } from "@dosc-syspro/contracts/contract";
-import { SYSTEM_ROLES } from "@dosc-syspro/core";
 import type { ContractBlockReason } from "@dosc-syspro/core";
-import { callWebApi } from "@/lib/web-api";
 import { revalidateContractsViews } from "@/lib/cache-invalidation";
+import {
+  canAccessServerAction,
+  createWebApiRequest,
+  parseActionResponse,
+} from "@/lib/server-action-api";
 import type { ContractActionResponse } from "@/features/contracts/domain/contract.types";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
-
-async function apiRequest(path: string, init?: RequestInit) {
-  return callWebApi(`/api${path}`, init);
-}
-
-async function parseActionResponse<T = void>(
-  response: Response,
-  fallbackMessage: string,
-): Promise<ContractActionResponse<T>> {
-  try {
-    const payload = (await response.json()) as Partial<ContractActionResponse<T>>;
-    if (response.ok && payload.success) {
-      return payload as ContractActionResponse<T>;
-    }
-
-    if (payload.success === false && "error" in payload && typeof payload.error === "string") {
-      return { success: false, error: payload.error };
-    }
-
-    return { success: false, error: fallbackMessage };
-  } catch {
-    return { success: false, error: fallbackMessage };
-  }
-}
+const apiRequest = createWebApiRequest("/api");
 
 export async function createContractAction(data: CreateContractOutput): Promise<ContractActionResponse> {
-  const session = await getProtectedSession();
-
-  const canCreate =
-    session &&
-    ((await currentUserHasPermission("contracts:create")) || (await currentUserHasPermission("contracts:edit")));
-
-  if (!canCreate) {
+  if (!(await canAccessServerAction(["contracts:create", "contracts:edit"]))) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -81,8 +53,7 @@ export async function createContractAction(data: CreateContractOutput): Promise<
 }
 
 export async function updateContractAction(data: UpdateContractOutput): Promise<ContractActionResponse> {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("contracts:edit"))) {
+  if (!(await canAccessServerAction("contracts:edit"))) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -117,9 +88,7 @@ export async function updateContractAction(data: UpdateContractOutput): Promise<
 export async function batchReadjustContractsAction(
   newMinimumWage: number,
 ): Promise<ContractActionResponse<{ affected: number }>> {
-  const session = await getProtectedSession();
-
-  if (!session || !(await currentUserHasPermission("contracts:edit"))) {
+  if (!(await canAccessServerAction("contracts:edit"))) {
     return { success: false, error: "Permissao negada. Apenas administradores podem reajustar contratos." };
   }
 
@@ -153,8 +122,7 @@ export async function updateContractStatusAction(
   reason?: ContractBlockReason | null,
   details?: string | null,
 ): Promise<ContractActionResponse> {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("contracts:edit"))) {
+  if (!(await canAccessServerAction("contracts:edit"))) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -182,8 +150,7 @@ export async function updateContractStatusAction(
 }
 
 export async function deleteContractAction(contractId: string): Promise<ContractActionResponse> {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("contracts:delete"))) {
+  if (!(await canAccessServerAction("contracts:delete"))) {
     return { success: false, error: "Permissao negada." };
   }
 

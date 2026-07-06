@@ -8,6 +8,7 @@ import {
 } from "@dosc-syspro/contracts/settings";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
 import { revalidateSettingsViews } from "@/lib/cache-invalidation";
+import { toMessageActionResponse } from "@/lib/server-action-api";
 import type { SettingsActionResponse } from "@/features/settings/domain/settings.types";
 import { updateSettingsPermissionsMatrixVisibilityAction } from "@/features/settings/permissions/application/permissions-actions";
 import {
@@ -24,13 +25,15 @@ export async function updateSettingsAction(data: SettingsOutput): Promise<Settin
   }
 
   try {
-    const response = await updateGeneralSettingsGateway(validation.data);
-    if (!response.success) {
-      return { success: false, error: response.error || "Erro interno ao salvar." };
-    }
+    const result = toMessageActionResponse(
+      await updateGeneralSettingsGateway(validation.data),
+      "Erro interno ao salvar.",
+      "Configuracoes salvas.",
+    );
+    if (!result.success) return result;
 
     revalidateSettingsViews();
-    return { success: true, message: response.message || "Configuracoes salvas." };
+    return result;
   } catch (error) {
     console.error("Erro ao salvar configuracoes:", error);
     return { success: false, error: "Erro interno ao salvar." };
@@ -49,13 +52,15 @@ export async function updateSefazRoutesAction(routes: SefazRoutesInput): Promise
   }
 
   try {
-    const response = await updateSefazRoutesGateway(validation.data);
-    if (!response.success) {
-      return { success: false, error: response.error || "Erro ao salvar rotas SEFAZ." };
-    }
+    const result = toMessageActionResponse(
+      await updateSefazRoutesGateway(validation.data),
+      "Erro ao salvar rotas SEFAZ.",
+      "Rotas SEFAZ salvas com sucesso.",
+    );
+    if (!result.success) return result;
 
     revalidateSettingsViews();
-    return { success: true, message: response.message || "Rotas SEFAZ salvas com sucesso." };
+    return result;
   } catch (error) {
     console.error("Erro ao salvar rotas SEFAZ:", error);
     return { success: false, error: "Erro ao salvar rotas SEFAZ." };
@@ -90,16 +95,15 @@ export async function updateInterstateIcmsSettingsAction(
   }
 
   try {
-    const response = await updateInterstateIcmsSettingsGateway(validation.data);
-    if (!response.success) {
-      return { success: false, error: response.error || "Erro ao salvar configuracao interestadual." };
-    }
+    const result = toMessageActionResponse(
+      await updateInterstateIcmsSettingsGateway(validation.data),
+      "Erro ao salvar configuracao interestadual.",
+      "Configuracao interestadual salva com sucesso.",
+    );
+    if (!result.success) return result;
 
     revalidateSettingsViews();
-    return {
-      success: true,
-      message: response.message || "Configuracao interestadual salva com sucesso.",
-    };
+    return result;
   } catch (error) {
     console.error("Erro ao salvar configuracao interestadual:", error);
     return { success: false, error: "Erro ao salvar configuracao interestadual." };

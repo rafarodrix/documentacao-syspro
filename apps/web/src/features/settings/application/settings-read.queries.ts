@@ -9,6 +9,10 @@ import {
   type SettingsContractsAdminView,
   type SettingsRemoteAdminView,
 } from "@dosc-syspro/contracts/settings";
+import {
+  requireGatewayData,
+  toDataActionResponse,
+} from "@/lib/server-action-api";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/settings.types";
 import {
   getSettingsPermissionsAdminViewAction,
@@ -20,14 +24,10 @@ import {
   fetchInterstateIcmsSettingsGateway,
   fetchSefazRoutesGateway,
 } from "@/features/settings/infrastructure/gateways/settings.gateway";
+
 export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsOutput>> {
   try {
-    const response = await fetchGeneralSettingsGateway();
-    if (!response.success || !response.data) {
-      return { success: false, error: response.error || "Erro ao carregar dados." };
-    }
-
-    return { success: true, data: response.data };
+    return toDataActionResponse(await fetchGeneralSettingsGateway(), "Erro ao carregar dados.");
   } catch (error) {
     console.error("Erro ao buscar configuracoes:", error);
     return { success: false, error: "Erro ao carregar dados." };
@@ -36,12 +36,7 @@ export async function getSettingsAction(): Promise<SettingsActionResponse<Settin
 
 export async function getSefazRoutesAction(): Promise<SettingsActionResponse<SefazRoutesInput>> {
   try {
-    const response = await fetchSefazRoutesGateway();
-    if (!response.success || !response.data) {
-      return { success: false, error: response.error || "Erro ao carregar rotas SEFAZ." };
-    }
-
-    return { success: true, data: response.data };
+    return toDataActionResponse(await fetchSefazRoutesGateway(), "Erro ao carregar rotas SEFAZ.");
   } catch (error) {
     console.error("Erro ao carregar rotas SEFAZ:", error);
     return { success: false, error: "Erro ao carregar rotas SEFAZ." };
@@ -50,12 +45,10 @@ export async function getSefazRoutesAction(): Promise<SettingsActionResponse<Sef
 
 export async function getInterstateIcmsSettingsAction(): Promise<SettingsActionResponse<InterstateIcmsSettings>> {
   try {
-    const response = await fetchInterstateIcmsSettingsGateway();
-    if (!response.success || !response.data) {
-      return { success: false, error: response.error || "Erro ao carregar configuracao interestadual." };
-    }
-
-    return { success: true, data: response.data };
+    return toDataActionResponse(
+      await fetchInterstateIcmsSettingsGateway(),
+      "Erro ao carregar configuracao interestadual.",
+    );
   } catch (error) {
     console.error("Erro ao carregar configuracao interestadual:", error);
     return { success: false, error: "Erro ao carregar configuracao interestadual." };
@@ -94,19 +87,12 @@ export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData>
 }
 
 export async function getSettingsContractsAdminViewData(): Promise<SettingsContractsAdminView> {
-  const response = await fetchSettingsContractsAdminViewGateway();
-  if (!response.success || !response.data) {
-    throw new Error(response.error || "Falha ao carregar contratos.");
-  }
-
-  return response.data;
+  return requireGatewayData(await fetchSettingsContractsAdminViewGateway(), "Falha ao carregar contratos.");
 }
 
 export async function getSettingsRemoteAdminViewData(): Promise<SettingsRemoteAdminView> {
-  const response = await fetchSettingsRemoteAdminViewGateway();
-  if (!response.success || !response.data) {
-    throw new Error(response.error || "Falha ao carregar dados do modulo remoto.");
-  }
-
-  return response.data;
+  return requireGatewayData(
+    await fetchSettingsRemoteAdminViewGateway(),
+    "Falha ao carregar dados do modulo remoto.",
+  );
 }

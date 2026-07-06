@@ -5,9 +5,11 @@ import {
   evolutionSettingsSchema,
   type EvolutionSettingsInput,
 } from "@dosc-syspro/contracts/evolution";
-import { getProtectedSession } from "@/lib/auth-helpers";
-import { callWebApi } from "@/lib/web-api";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import {
+  canAccessServerAction,
+  createWebApiRequest,
+  readJsonResponse,
+} from "@/lib/server-action-api";
 
 export type EvolutionQrCodeResult = {
   instance: string;
@@ -35,13 +37,10 @@ function unauthorizedResponse() {
   return { success: false, error: "UNAUTHORIZED", settings: DEFAULT_EVOLUTION_SETTINGS };
 }
 
-async function apiRequest(path: string, init?: RequestInit) {
-  return callWebApi(`/api/platform/settings/evolution${path}`, init);
-}
+const apiRequest = createWebApiRequest("/api/platform/settings/evolution");
 
 export async function getEvolutionSettingsAction() {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("settings:view"))) {
+  if (!(await canAccessServerAction("settings:view"))) {
     return unauthorizedResponse();
   }
 
@@ -50,7 +49,7 @@ export async function getEvolutionSettingsAction() {
       method: "GET",
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = (await readJsonResponse<any>(res)) ?? {};
     if (!res.ok || !data?.success) {
       return { success: false, error: data?.error || "BACKEND_ERROR", settings: DEFAULT_EVOLUTION_SETTINGS };
     }
@@ -68,8 +67,7 @@ export async function getEvolutionSettingsAction() {
 }
 
 export async function updateEvolutionSettingsAction(input: EvolutionSettingsInput) {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("settings:edit"))) {
+  if (!(await canAccessServerAction("settings:edit"))) {
     return unauthorizedResponse();
   }
 
@@ -87,7 +85,7 @@ export async function updateEvolutionSettingsAction(input: EvolutionSettingsInpu
       body: JSON.stringify(validation.data),
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = (await readJsonResponse<any>(res)) ?? {};
     if (!res.ok || !data?.success) {
       return { success: false, error: data?.error || "BACKEND_ERROR", settings: validation.data };
     }
@@ -108,8 +106,7 @@ export async function getEvolutionInstanceStatusAction(): Promise<
   | { success: true; data: EvolutionInstanceStatus }
   | { success: false; error: string; message: string }
 > {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("settings:view"))) {
+  if (!(await canAccessServerAction("settings:view"))) {
     return { success: false, error: "UNAUTHORIZED", message: "Sessao sem permissao para consultar a Evolution." };
   }
 
@@ -118,7 +115,7 @@ export async function getEvolutionInstanceStatusAction(): Promise<
       method: "GET",
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = (await readJsonResponse<any>(res)) ?? {};
     if (!res.ok || !data?.success) {
       return {
         success: false,
@@ -135,8 +132,7 @@ export async function getEvolutionInstanceStatusAction(): Promise<
 }
 
 export async function requestEvolutionQrCodeAction(): Promise<EvolutionQrCodeActionResult> {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("settings:edit"))) {
+  if (!(await canAccessServerAction("settings:edit"))) {
     return { success: false, error: "UNAUTHORIZED", message: "Sessao sem permissao para gerar QR Code." };
   }
 
@@ -148,7 +144,7 @@ export async function requestEvolutionQrCodeAction(): Promise<EvolutionQrCodeAct
       },
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = (await readJsonResponse<any>(res)) ?? {};
     if (!res.ok || !data?.success) {
       return {
         success: false,

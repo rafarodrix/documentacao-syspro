@@ -1,18 +1,20 @@
 "use server";
 
 import { type DocumentoFormValues, documentoSchema } from "@dosc-syspro/contracts/documento";
-import { callWebApi } from "@/lib/web-api";
+import {
+  createWebApiRequest,
+  parseActionResponse,
+  readJsonResponse,
+} from "@/lib/server-action-api";
 import type { DocumentosListResponse, DocumentoActionResponse } from "@/features/documentos/domain/documento.types";
 import { revalidateDocumentosViews } from "@/lib/cache-invalidation";
 
-async function apiRequest(path: string, init?: RequestInit) {
-  return callWebApi(`/api${path}`, init);
-}
+const apiRequest = createWebApiRequest("/api");
 
 export async function getDocumentos(): Promise<DocumentosListResponse> {
   try {
     const response = await apiRequest("/documentos");
-    const payload = (await response.json().catch(() => null)) as DocumentosListResponse | null;
+    const payload = await readJsonResponse<DocumentosListResponse>(response);
     if (!response.ok || !payload?.success) {
       return { success: false, error: payload?.success === false ? payload.error : "Falha ao carregar dados." };
     }
@@ -37,11 +39,8 @@ export async function saveDocumento(data: DocumentoFormValues): Promise<Document
       body: JSON.stringify(validation.data),
     });
 
-    const payload = (await response.json().catch(() => null)) as DocumentoActionResponse | null;
-    if (!response.ok || !payload?.success) {
-      return { success: false, error: payload?.success === false ? payload.error : "Erro interno ao persistir dados." };
-    }
-
+    const payload = await parseActionResponse<DocumentoActionResponse>(response, "Erro interno ao persistir dados.");
+    if (!payload.success) return payload;
     revalidateDocumentosViews();
     return payload;
   } catch (error) {
@@ -56,11 +55,8 @@ export async function deleteDocumento(id: string): Promise<DocumentoActionRespon
       method: "DELETE",
     });
 
-    const payload = (await response.json().catch(() => null)) as DocumentoActionResponse | null;
-    if (!response.ok || !payload?.success) {
-      return { success: false, error: payload?.success === false ? payload.error : "Erro ao excluir registro." };
-    }
-
+    const payload = await parseActionResponse<DocumentoActionResponse>(response, "Erro ao excluir registro.");
+    if (!payload.success) return payload;
     revalidateDocumentosViews();
     return payload;
   } catch (error) {

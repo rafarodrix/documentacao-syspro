@@ -1,12 +1,15 @@
 "use server";
 
-import { getProtectedSession } from "@/lib/auth-helpers";
 import {
   contractsAdminViewSchema,
   contractSuspendImpactSchema,
   contractSystemParamsSchema,
 } from "@dosc-syspro/contracts/contract";
-import { callWebApi } from "@/lib/web-api";
+import {
+  canAccessServerAction,
+  createWebApiRequest,
+  readJsonResponse,
+} from "@/lib/server-action-api";
 import type {
   ContractActionResponse,
   ContractListItem,
@@ -15,17 +18,16 @@ import type {
   ContractSystemParams,
 } from "@/features/contracts/domain/contract.types";
 
-async function apiRequest(path: string, init?: RequestInit) {
-  return callWebApi(`/api${path}`, init);
-}
+const apiRequest = createWebApiRequest("/api");
 
 export async function getSystemParamsAction(): Promise<ContractActionResponse<ContractSystemParams>> {
-  const session = await getProtectedSession();
-  if (!session) return { success: false, error: "Nao autorizado." };
+  if (!(await canAccessServerAction("contracts:view"))) {
+    return { success: false, error: "Nao autorizado." };
+  }
 
   try {
     const response = await apiRequest("/platform/contracts/system-params");
-    const payload = await response.json().catch(() => null);
+    const payload = await readJsonResponse<any>(response);
     const parsed = contractSystemParamsSchema.safeParse(payload?.data);
 
     if (!response.ok || !parsed.success) {
@@ -40,8 +42,9 @@ export async function getSystemParamsAction(): Promise<ContractActionResponse<Co
 }
 
 export async function getContractsAction(): Promise<ContractActionResponse<ContractListItem[]>> {
-  const session = await getProtectedSession();
-  if (!session) return { success: false, error: "Nao autorizado." };
+  if (!(await canAccessServerAction("contracts:view"))) {
+    return { success: false, error: "Nao autorizado." };
+  }
 
   try {
     const adminView = await getContractsAdminViewData();
@@ -55,14 +58,13 @@ export async function getContractsAction(): Promise<ContractActionResponse<Contr
 export async function getContractSuspendImpactAction(
   contractId: string,
 ): Promise<ContractActionResponse<ContractSuspendImpact>> {
-  const session = await getProtectedSession();
-  if (!session) {
+  if (!(await canAccessServerAction("contracts:view"))) {
     return { success: false, error: "Permissao negada." };
   }
 
   try {
     const response = await apiRequest(`/platform/contracts/${encodeURIComponent(contractId)}/suspend-impact`);
-    const payload = await response.json().catch(() => null);
+    const payload = await readJsonResponse<any>(response);
     const parsed = contractSuspendImpactSchema.safeParse(payload?.data);
 
     if (!response.ok || !parsed.success) {
@@ -82,7 +84,7 @@ export async function getContractSuspendImpactAction(
 export async function getContractsAdminViewData(): Promise<ContractsAdminViewData> {
   try {
     const response = await apiRequest("/platform/contracts/admin-view");
-    const payload = await response.json().catch(() => null);
+    const payload = await readJsonResponse<any>(response);
     const parsed = contractsAdminViewSchema.safeParse(payload?.data);
 
     if (!response.ok || !parsed.success) {

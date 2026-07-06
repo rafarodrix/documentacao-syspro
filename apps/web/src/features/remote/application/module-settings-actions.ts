@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { remoteModuleSettingsSchema } from "@dosc-syspro/contracts/remote";
+import {
+  toDataActionResponse,
+  toMessageActionResponse,
+} from "@/lib/server-action-api";
 import type { RemoteModuleSettings, RemoteModuleSettingsActionResponse } from "@/features/remote/domain/remote-host.types";
 import {
   fetchRemoteModuleSettingsGateway,
@@ -10,12 +14,7 @@ import {
 
 export async function getRemoteModuleSettingsAction(): Promise<RemoteModuleSettingsActionResponse<RemoteModuleSettings>> {
   try {
-    const response = await fetchRemoteModuleSettingsGateway();
-    if (!response.success || !response.data) {
-      return { success: false, error: response.error || "Permissao negada." };
-    }
-
-    return { success: true, data: response.data };
+    return toDataActionResponse(await fetchRemoteModuleSettingsGateway(), "Permissao negada.");
   } catch (error) {
     console.error("Erro ao carregar configuracoes do modulo remoto via backend:", error);
     return { success: false, error: "Erro ao carregar configuracoes do modulo remoto." };
@@ -31,14 +30,16 @@ export async function updateRemoteModuleSettingsAction(
   }
 
   try {
-    const response = await updateRemoteModuleSettingsGateway(validation.data);
-    if (!response.success) {
-      return { success: false, error: response.error || "Erro ao salvar configuracoes do modulo remoto." };
-    }
+    const result = toMessageActionResponse(
+      await updateRemoteModuleSettingsGateway(validation.data),
+      "Erro ao salvar configuracoes do modulo remoto.",
+      "Configuracoes do modulo remoto salvas.",
+    );
+    if (!result.success) return result;
 
     revalidatePath("/portal/configuracoes");
     revalidatePath("/portal/infraestrutura");
-    return { success: true, message: response.message || "Configuracoes do modulo remoto salvas." };
+    return result;
   } catch (error) {
     console.error("Erro ao salvar configuracoes do modulo remoto:", error);
     return { success: false, error: "Erro ao salvar configuracoes do modulo remoto." };
