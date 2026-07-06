@@ -1,20 +1,8 @@
-import type { NextRequest } from "next/server";
-import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
+import { createParamsProxyHandler } from "@/app/api/_shared/backend-proxy";
 
-type RouteContext = {
-  params: Promise<{ id: string }>;
-};
-
-export async function PUT(request: NextRequest, context: RouteContext) {
-  const { id } = await context.params;
-  return proxyToBackend(request, {
-    path: `/settings/contracts/${id}`,
-  });
-}
-
-export async function DELETE(request: NextRequest, context: RouteContext) {
-  const { id } = await context.params;
-  return proxyToBackend(request, {
-    path: `/settings/contracts/${id}`,
-  });
-}
+export const PUT = createParamsProxyHandler<{ id: string }>(
+  ({ id }) => `/settings/contracts/${id}`,
+);
+export const DELETE = createParamsProxyHandler<{ id: string }>(
+  ({ id }) => `/settings/contracts/${id}`,
+);
