@@ -1,4 +1,3 @@
-"use server";
 
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 import { getProtectedSession } from "@/lib/auth-helpers";
