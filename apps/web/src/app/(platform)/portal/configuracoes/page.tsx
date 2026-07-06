@@ -103,7 +103,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const interstateIcmsSettings = settingsView.interstateIcmsSettings;
 
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-8 px-6 pt-6 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <SettingsPageIntro
         icon={Sliders}
         eyebrow="Portal Admin"

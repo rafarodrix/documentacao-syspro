@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function AdminConfiguracaoDocumentosToolPage() {
     return (
-        <div className="w-full max-w-400 mx-auto py-6 px-4">
+        <div className="w-full max-w-400 mx-auto">
             <DocumentosContainer />
         </div>
     );

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ensureRequiredEvolutionSubscribe } from './evolution-webhook-subscribe';
 
 type UpsertConnectionInput = {
   companyId?: string | null;
@@ -190,7 +191,7 @@ export class IntegrationConnectionsService {
 
     return {
       webhookUrl,
-      ...(subscribe.length ? { subscribe } : {}),
+      subscribe: ensureRequiredEvolutionSubscribe(subscribe),
       immediate,
       ...(phone ? { phone } : {}),
       ...(rabbitmqEnable ? { rabbitmqEnable } : {}),

@@ -9,10 +9,10 @@ export const metadata: Metadata = {
 
 export default function AdminConfiguracaoDocumentosToolPage() {
   return (
-    <div className="max-w-4xl mx-auto py-6">
+    <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Configuração de Documentos</h1>
-        <p className="text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Configuração de Documentos</h1>
+        <p className="text-muted-foreground mt-1">
           Defina os modelos de notas fiscais e regras de movimentação de estoque.
         </p>
       </div>

@@ -124,3 +124,10 @@ export function formatSlaDelta(minutes?: number) {
   const mins = absolute % 60;
   return `${sign}${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}h`;
 }
+
+export function formatTicketAttachmentSize(bytes: number) {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}

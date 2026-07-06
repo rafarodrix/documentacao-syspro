@@ -85,14 +85,14 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
 
   return (
     <div className="mx-auto max-w-360 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-4 flex items-center gap-3 px-4 md:px-0">
+      <div className="mb-4 flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full hover:bg-muted/80" onClick={() => router.back()}>
           <ArrowLeft className="h-5 w-5 text-muted-foreground" />
         </Button>
         <span className="font-mono text-xs text-muted-foreground">{ticket.number}</span>
       </div>
 
-      <div className="mb-6 px-4 md:px-0">
+      <div className="mb-6">
         <h1 className="max-w-full wrap-break-word text-xl font-bold leading-snug tracking-tight text-foreground md:text-2xl">{ticket.title}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><Clock3 className="h-3 w-3" /> Criado em {ticket.createdAt}</span>
@@ -101,7 +101,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 px-4 pb-10 md:px-0 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 pb-10 lg:grid-cols-12">
         <div className="min-w-0 space-y-6 lg:col-span-8">
           <TicketChat
             ticketId={String(ticket.id)}

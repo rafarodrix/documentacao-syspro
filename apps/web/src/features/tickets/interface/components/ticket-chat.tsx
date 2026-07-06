@@ -16,7 +16,7 @@ import {
     markdownToPlainText,
     normalizeTicketMarkdownInput,
 } from "@dosc-syspro/tickets-domain";
-import { findOpeningArticleIndex } from "./ticket-details.helpers";
+import { findOpeningArticleIndex, formatTicketAttachmentSize } from "./ticket-details.helpers";
 
 interface TicketChatProps {
     ticketId: string;
@@ -573,11 +573,6 @@ function AttachmentTypeIcon({ mimeType, className }: { mimeType: string; classNa
     return <FileText className={className} />;
 }
 
-function formatTicketAttachmentSize(bytes: number) {
-    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    if (bytes >= 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-    return `${bytes} B`;
-}
 
 function parseHistoryEvent(value: string) {
     const plain = markdownToPlainText(value).replace(/\r/g, "");

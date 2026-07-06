@@ -83,6 +83,7 @@ import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { serializeContractBlockReason, type ContractBlockReason } from '@dosc-syspro/core';
 import { AutomationSettingsService } from '../automation/automation-settings.service';
 import { R2StorageService } from '../integrations/storage/r2-storage.service';
+import { ensureRequiredEvolutionSubscribe } from './evolution-webhook-subscribe';
 
 @Controller('settings')
 export class SettingsController {
@@ -1820,12 +1821,7 @@ export class SettingsController {
   }
 
   private withRequiredEvolutionSubscribe(values?: string[]) {
-    const current = new Set((values?.length ? values : ['MESSAGE']).map((value) => String(value).trim()).filter(Boolean));
-    if (current.has('ALL')) return ['ALL'];
-    current.add('MESSAGE');
-    current.add('QRCODE');
-    current.add('CONNECTION');
-    return Array.from(current);
+    return ensureRequiredEvolutionSubscribe(values);
   }
 
   private async waitForStoredEvolutionQrCode(instanceId: string, minReceivedAt: Date) {

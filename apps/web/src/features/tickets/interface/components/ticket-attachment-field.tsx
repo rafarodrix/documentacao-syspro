@@ -4,6 +4,7 @@ import { FileText, Paperclip, Upload, X } from "lucide-react";
 
 import { Button, Label } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
+import { formatTicketAttachmentSize } from "./ticket-details.helpers";
 
 interface TicketAttachmentFieldProps {
   files: File[];
@@ -12,11 +13,6 @@ interface TicketAttachmentFieldProps {
   onRemove: (index: number) => void;
   accept?: string;
   compact?: boolean;
-}
-
-function formatFileSize(bytes: number) {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 export function TicketAttachmentField({
@@ -57,7 +53,7 @@ export function TicketAttachmentField({
               {files.length ? `${files.length} arquivo(s) prontos para envio` : "Nenhum arquivo selecionado"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {files.length ? `${formatFileSize(totalBytes)} em anexo` : "Imagens, PDF e documentos curtos."}
+              {files.length ? `${formatTicketAttachmentSize(totalBytes)} em anexo` : "Imagens, PDF e documentos curtos."}
             </p>
           </div>
         </div>
@@ -74,7 +70,7 @@ export function TicketAttachmentField({
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-medium text-foreground">{file.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{formatFileSize(file.size)}</p>
+                    <p className="text-[11px] text-muted-foreground">{formatTicketAttachmentSize(file.size)}</p>
                   </div>
                 </div>
                 <Button
