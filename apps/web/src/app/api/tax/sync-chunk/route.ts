@@ -1,8 +1,3 @@
-import type { NextRequest } from "next/server";
-import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
+import { createStaticProxyHandler } from "@/app/api/_shared/backend-proxy";
 
-export async function POST(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/tax/sync-chunk",
-  });
-}
+export const POST = createStaticProxyHandler("/tax/sync-chunk");

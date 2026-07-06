@@ -1,14 +1,4 @@
-import type { NextRequest } from "next/server";
-import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
+import { createStaticProxyHandler } from "@/app/api/_shared/backend-proxy";
 
-export async function GET(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/tax/sync-jobs",
-  });
-}
-
-export async function DELETE(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/tax/sync-jobs",
-  });
-}
+export const GET = createStaticProxyHandler("/tax/sync-jobs");
+export const DELETE = createStaticProxyHandler("/tax/sync-jobs");
