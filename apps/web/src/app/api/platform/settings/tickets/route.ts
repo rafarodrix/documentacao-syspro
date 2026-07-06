@@ -1,14 +1,4 @@
-import type { NextRequest } from "next/server";
-import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
+import { createStaticProxyHandler } from "@/app/api/_shared/backend-proxy";
 
-export async function GET(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/settings/tickets",
-  });
-}
-
-export async function PUT(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/settings/tickets",
-  });
-}
+export const GET = createStaticProxyHandler("/settings/tickets");
+export const PUT = createStaticProxyHandler("/settings/tickets");

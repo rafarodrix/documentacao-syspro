@@ -1,14 +1,4 @@
-import type { NextRequest } from "next/server";
-import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
+import { createStaticProxyHandler } from "@/app/api/_shared/backend-proxy";
 
-export async function GET(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/settings/storage/config",
-  });
-}
-
-export async function PUT(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/settings/storage/config",
-  });
-}
+export const GET = createStaticProxyHandler("/settings/storage/config");
+export const PUT = createStaticProxyHandler("/settings/storage/config");

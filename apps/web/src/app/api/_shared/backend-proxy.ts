@@ -17,6 +17,10 @@ export type CatchAllRouteContext = {
   params: Promise<{ all?: string[] }>;
 };
 
+export type ParamsRouteContext<TParams extends Record<string, string>> = {
+  params: Promise<TParams>;
+};
+
 type ProxyRequest = Request | NextRequest;
 
 type ProxyOptions = {
@@ -28,6 +32,9 @@ type ProxyOptions = {
   // Injeta `x-internal-api-key` para endpoints internos do backend.
   internal?: boolean;
 };
+
+type ProxyHandlerOptions = Omit<ProxyOptions, "path" | "body">;
+type Awaitable<T> = T | Promise<T>;
 
 export async function resolveCatchAllBackendPath(
   context: CatchAllRouteContext,
@@ -56,6 +63,51 @@ export function createBackendProxyHeaders(
   upstreamHeaders.delete("transfer-encoding");
   upstreamHeaders.delete("upgrade");
   return internal ? withInternalApiHeaders(upstreamHeaders) : upstreamHeaders;
+}
+
+export function createStaticProxyHandler(
+  path: string,
+  options?: ProxyHandlerOptions,
+) {
+  return async function staticProxyHandler(request: ProxyRequest): Promise<Response> {
+    return proxyToBackend(request, {
+      ...options,
+      path,
+    });
+  };
+}
+
+export function createParamsProxyHandler<TParams extends Record<string, string>>(
+  buildPath: (params: TParams) => Awaitable<string>,
+  options?: ProxyHandlerOptions,
+) {
+  return async function paramsProxyHandler(
+    request: ProxyRequest,
+    context: ParamsRouteContext<TParams>,
+  ): Promise<Response> {
+    const params = await context.params;
+    const path = await buildPath(params);
+    return proxyToBackend(request, {
+      ...options,
+      path,
+    });
+  };
+}
+
+export function createCatchAllProxyHandler(
+  basePath: string,
+  options?: ProxyHandlerOptions,
+) {
+  return async function catchAllProxyHandler(
+    request: ProxyRequest,
+    context: CatchAllRouteContext,
+  ): Promise<Response> {
+    const path = await resolveCatchAllBackendPath(context, basePath);
+    return proxyToBackend(request, {
+      ...options,
+      path,
+    });
+  };
 }
 
 export async function proxyToBackend(

@@ -1,9 +1,4 @@
-import type { NextRequest } from "next/server";
-import {
-  proxyToBackend,
-  resolveCatchAllBackendPath,
-  type CatchAllRouteContext,
-} from "@/app/api/_shared/backend-proxy";
+import { createCatchAllProxyHandler } from "@/app/api/_shared/backend-proxy";
 
 // Operações que usam tRPC (frontend chama /api/trpc diretamente):
 //   - list tickets              → trpc.tickets.list
@@ -17,17 +12,6 @@ import {
 //   POST /api/tickets/:id/reply                 → responder com anexos
 //   GET  /api/tickets/:id/attachments/:attachmentId → download de anexo
 
-export async function GET(request: NextRequest, context: CatchAllRouteContext) {
-  const path = await resolveCatchAllBackendPath(context, "/tickets");
-  return proxyToBackend(request, { path });
-}
-
-export async function POST(request: NextRequest, context: CatchAllRouteContext) {
-  const path = await resolveCatchAllBackendPath(context, "/tickets");
-  return proxyToBackend(request, { path });
-}
-
-export async function PATCH(request: NextRequest, context: CatchAllRouteContext) {
-  const path = await resolveCatchAllBackendPath(context, "/tickets");
-  return proxyToBackend(request, { path });
-}
+export const GET = createCatchAllProxyHandler("/tickets");
+export const POST = createCatchAllProxyHandler("/tickets");
+export const PATCH = createCatchAllProxyHandler("/tickets");

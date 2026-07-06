@@ -1,21 +1,5 @@
-import type { NextRequest } from "next/server";
-import {
-  proxyToBackend,
-  resolveCatchAllBackendPath,
-  type CatchAllRouteContext,
-} from "@/app/api/_shared/backend-proxy";
+import { createCatchAllProxyHandler } from "@/app/api/_shared/backend-proxy";
 
-export async function GET(request: NextRequest, context: CatchAllRouteContext) {
-  const path = await resolveCatchAllBackendPath(context, "/agents");
-  return proxyToBackend(request, { path });
-}
-
-export async function PATCH(request: NextRequest, context: CatchAllRouteContext) {
-  const path = await resolveCatchAllBackendPath(context, "/agents");
-  return proxyToBackend(request, { path });
-}
-
-export async function DELETE(request: NextRequest, context: CatchAllRouteContext) {
-  const path = await resolveCatchAllBackendPath(context, "/agents");
-  return proxyToBackend(request, { path });
-}
+export const GET = createCatchAllProxyHandler("/agents");
+export const PATCH = createCatchAllProxyHandler("/agents");
+export const DELETE = createCatchAllProxyHandler("/agents");

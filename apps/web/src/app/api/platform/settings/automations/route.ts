@@ -1,15 +1,4 @@
-import type { NextRequest } from "next/server";
-import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
+import { createStaticProxyHandler } from "@/app/api/_shared/backend-proxy";
 
-export async function GET(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/settings/automations",
-  });
-}
-
-export async function PUT(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/settings/automations",
-  });
-}
-
+export const GET = createStaticProxyHandler("/settings/automations");
+export const PUT = createStaticProxyHandler("/settings/automations");
