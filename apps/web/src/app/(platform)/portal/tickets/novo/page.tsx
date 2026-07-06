@@ -16,22 +16,41 @@ export default async function NovoTicketPage({ searchParams }: NovoTicketPagePro
   const hasInternalTicketAccess = await currentUserHasPermission("tickets:view_all");
   const params = searchParams ? await searchParams : undefined;
   const source = readQueryParam(params?.source).toLowerCase();
-  const initialContext = source === "chatwoot"
-    ? {
-        source: "chatwoot",
-        chatwootConversationId: readQueryParam(params?.chatwootConversationId),
-        chatwootContactId: readQueryParam(params?.chatwootContactId),
-        chatwootAccountId: readQueryParam(params?.chatwootAccountId),
-        chatwootConversationUrl: readQueryParam(params?.chatwootConversationUrl),
-        customerName: readQueryParam(params?.customerName),
-        customerPhone: readQueryParam(params?.customerPhone),
-        customerWhatsapp: readQueryParam(params?.customerWhatsapp),
-        customerEmail: readQueryParam(params?.customerEmail),
-        companyId: readQueryParam(params?.companyId),
-        subject: readQueryParam(params?.subject),
-        description: readQueryParam(params?.description),
-      }
-    : undefined;
+  const companyId = readQueryParam(params?.companyId);
+  const subject = readQueryParam(params?.subject);
+  const description = readQueryParam(params?.description);
+  const customerEmail = readQueryParam(params?.customerEmail);
+  const customerName = readQueryParam(params?.customerName);
+  const customerPhone = readQueryParam(params?.customerPhone);
+  const customerWhatsapp = readQueryParam(params?.customerWhatsapp);
+  const initialContext =
+    source === "chatwoot"
+      ? {
+          source: "chatwoot" as const,
+          chatwootConversationId: readQueryParam(params?.chatwootConversationId),
+          chatwootContactId: readQueryParam(params?.chatwootContactId),
+          chatwootAccountId: readQueryParam(params?.chatwootAccountId),
+          chatwootConversationUrl: readQueryParam(params?.chatwootConversationUrl),
+          customerName,
+          customerPhone,
+          customerWhatsapp,
+          customerEmail,
+          companyId,
+          subject,
+          description,
+        }
+      : companyId || subject || description || customerEmail || customerName || customerPhone || customerWhatsapp
+        ? {
+            source: "portal" as const,
+            customerName,
+            customerPhone,
+            customerWhatsapp,
+            customerEmail,
+            companyId,
+            subject,
+            description,
+          }
+        : undefined;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">

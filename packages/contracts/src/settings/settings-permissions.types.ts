@@ -27,6 +27,7 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "companies:view_own", label: "Visualizar empresas do proprio escopo", module: "companies", description: "Restringe a visao as empresas vinculadas." },
   { key: "companies:create", label: "Cadastrar nova empresa", module: "companies", description: "Permite abrir cadastro de nova empresa." },
   { key: "companies:edit", label: "Editar dados da empresa", module: "companies", description: "Permite alterar cadastro empresarial." },
+  { key: "companies:view_cockpit", label: "Visualizar Empresa 360", module: "companies", description: "Permite acessar o cockpit integrado Empresa 360 da empresa." },
   { key: "companies:status", label: "Ativar ou desativar empresa", module: "companies", description: "Permite alterar status operacional da empresa." },
   { key: "companies:delete", label: "Excluir empresa", module: "companies", description: "Permite excluir empresa sem vinculos operacionais." },
   { key: "contacts:view", label: "Visualizar contatos", module: "contacts", description: "Permite acessar o cadastro de contatos." },

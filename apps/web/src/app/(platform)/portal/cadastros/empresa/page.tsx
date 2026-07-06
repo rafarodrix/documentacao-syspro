@@ -59,6 +59,7 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
   if ("error" in result) return <div>Erro: {result.error}</div>;
   const canCreateCompanies = await currentUserHasPermission("companies:create");
   const canEditCompanies = await currentUserHasPermission("companies:edit", { acceptCompanyScope: true });
+  const canOpenCompanyCockpit = await currentUserHasPermission("companies:view_cockpit", { acceptCompanyScope: true });
   const canToggleCompanies = await currentUserHasPermission("companies:status");
   const canDeleteCompanies = await currentUserHasPermission("companies:delete");
 
@@ -92,6 +93,7 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
         initialStatusFilter={normalizedInitialStatus}
         canCreate={canCreateCompanies}
         canEdit={canEditCompanies}
+        canOpenCockpit={canOpenCompanyCockpit}
         canToggleStatus={canToggleCompanies}
         canDelete={canDeleteCompanies}
       />

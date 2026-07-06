@@ -43,6 +43,7 @@ interface CompanyTabProps {
   initialStatusFilter?: CompanyStatusValue | "ALL"
   canCreate: boolean
   canEdit: boolean
+  canOpenCockpit: boolean
   canToggleStatus: boolean
   canDelete: boolean
 }
@@ -98,6 +99,7 @@ function StatusBadge({ status }: { status: CompanyStatusValue }) {
 function CompanyActionsMenu({
   company,
   canEdit,
+  canOpenCockpit,
   canToggleStatus,
   canDelete,
   isLoading,
@@ -107,6 +109,7 @@ function CompanyActionsMenu({
 }: {
   company: CompanyListItem
   canEdit: boolean
+  canOpenCockpit: boolean
   canToggleStatus: boolean
   canDelete: boolean
   isLoading: boolean
@@ -119,15 +122,19 @@ function CompanyActionsMenu({
   const editHref = `/portal/cadastros/empresa/${company.id}/editar?returnTo=${encodeURIComponent(returnHref)}`
   const cockpitHref = `/portal/cadastros/empresa/${company.id}/360?returnTo=${encodeURIComponent(returnHref)}`
 
-  if (!canEdit && !canToggleStatus && !canDelete) return null
+  if (!canEdit && !canOpenCockpit && !canToggleStatus && !canDelete) return null
 
   return (
     <div onClick={stopRecordClick}>
       <DropdownMenu
         onOpenChange={(open) => {
-          if (open && canEdit) {
-            router.prefetch(editHref)
-            router.prefetch(cockpitHref)
+          if (open) {
+            if (canEdit) {
+              router.prefetch(editHref)
+            }
+            if (canOpenCockpit) {
+              router.prefetch(cockpitHref)
+            }
           }
         }}
       >
@@ -174,7 +181,7 @@ function CompanyActionsMenu({
             </DropdownMenuItem>
           )}
 
-          {canEdit && (
+          {canOpenCockpit && (
             <DropdownMenuItem
               className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md"
               onPointerEnter={() => router.prefetch(cockpitHref)}
@@ -236,6 +243,7 @@ export function CompanyTab({
   initialStatusFilter = "ALL",
   canCreate,
   canEdit,
+  canOpenCockpit,
   canToggleStatus,
   canDelete,
 }: CompanyTabProps) {
@@ -572,6 +580,7 @@ export function CompanyTab({
         <CompanyActionsMenu
           company={row.original}
           canEdit={canEdit}
+          canOpenCockpit={canOpenCockpit}
           canToggleStatus={canToggleStatus}
           canDelete={canDelete && !companyHasKnownLinks(row.original)}
           isLoading={loadingId === row.original.id}
@@ -585,7 +594,7 @@ export function CompanyTab({
         />
       ),
     },
-  ], [canDelete, canEdit, canToggleStatus, companyReasonOptions, currentListHref, loadingId])
+  ], [canDelete, canEdit, canOpenCockpit, canToggleStatus, companyReasonOptions, currentListHref, loadingId])
 
   const renderMobileItem = useCallback((company: CompanyListItem) => {
     const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
@@ -602,6 +611,7 @@ export function CompanyTab({
           <CompanyActionsMenu
             company={company}
             canEdit={canEdit}
+            canOpenCockpit={canOpenCockpit}
             canToggleStatus={canToggleStatus}
             canDelete={canDelete && !companyHasKnownLinks(company)}
             isLoading={loadingId === company.id}
@@ -636,7 +646,7 @@ export function CompanyTab({
         )}
       </div>
     )
-  }, [canDelete, canEdit, canToggleStatus, companyReasonOptions, currentListHref, loadingId, openEdit])
+  }, [canDelete, canEdit, canOpenCockpit, canToggleStatus, companyReasonOptions, currentListHref, loadingId, openEdit])
 
   const selectedInactivationReason = companyReasonOptions.find((item) => item.key === inactivationReason) ?? null
   const requiresInactivationDetails = selectedInactivationReason?.requiresDetails ?? false

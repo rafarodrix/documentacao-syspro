@@ -1,7 +1,7 @@
 ---
 title: app/web - Frontend Next.js
 description: O apps/web concentra o portal administrativo, a base de documentacao e os proxies HTTP para o backend.
-lastUpdated: 2026-05-19
+lastUpdated: 2026-07-06
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -55,6 +55,7 @@ apps/web/
 |------|---------|-----------|
 | `/portal` | dashboard | Painel inicial com indicadores |
 | `/portal/cadastros/empresa` | company | Empresas |
+| `/portal/cadastros/empresa/[id]/360` | company | Cockpit integrado Empresa 360 com tickets, tarefas, conversas, hosts e integracoes da conta |
 | `/portal/cadastros/usuarios` | user-access | Usuarios e acessos |
 | `/portal/contatos` | contacts | Contatos |
 | `/portal/tickets` | tickets | Tickets internos |
@@ -78,7 +79,7 @@ apps/web/
 | `agents` | Inventario de dispositivos |
 | `auth` | Autenticacao e perfil |
 | `chatwoot` | Operacao integrada do Chatwoot |
-| `company` | Empresas e cadastro relacionado |
+| `company` | Empresas, cadastro relacionado e cockpit integrado Empresa 360 |
 | `contacts` | Contatos por empresa |
 | `contracts` | Contratos de servico |
 | `crm` | Leads, atividades e tarefas de CRM |

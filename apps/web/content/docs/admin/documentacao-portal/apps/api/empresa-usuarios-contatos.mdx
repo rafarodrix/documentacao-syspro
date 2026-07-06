@@ -1,7 +1,7 @@
 ---
 title: API - Fluxos empresa, usuarios e contatos
 description: Como os modulos companies, contacts e users formam o fluxo real de cadastro, vinculacao e autorizacao no backend.
-lastUpdated: 2026-05-22
+lastUpdated: 2026-07-06
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -67,6 +67,7 @@ UserContactAccessService
 - mudanca de status usa fluxo especifico de ativacao ou inativacao
 - a empresa pode ter hierarquia via `parentCompanyId`
 - a empresa pode concentrar multiplos contatos, usuarios, contratos e hosts
+- o cockpit `Empresa 360` reutiliza esse cadastro como ancora para cruzar contexto de tickets, tarefas, conversas, remoto, integracoes e rotina fiscal
 
 ---
 
@@ -232,6 +233,7 @@ O escopo efetivo e resolvido por:
 - gestor de unidade so manipula usuarios e contatos pertencentes as empresas do seu escopo
 - usuario cliente so enxerga empresas e contatos compativeis com seus vinculos
 - admin global ignora a restricao por empresa quando a permissao assim permite
+- a tela `Empresa 360` usa permissao dedicada `companies:view_cockpit`; edicao continua separada em `companies:edit`
 
 ---
 

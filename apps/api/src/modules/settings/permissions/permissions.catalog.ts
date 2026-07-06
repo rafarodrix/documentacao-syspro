@@ -9,6 +9,7 @@ const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPer
 const DASHBOARD_VIEW_INTERNAL = "dashboard:view_internal" as SettingsPermissionKey;
 const DASHBOARD_VIEW_DEVELOPMENT_SCOPE = "dashboard:view_development_scope" as SettingsPermissionKey;
 const DASHBOARD_VIEW_SUPPORT_CONVERSATIONS = "dashboard:view_support_conversations" as SettingsPermissionKey;
+const COMPANIES_VIEW_COCKPIT = "companies:view_cockpit" as SettingsPermissionKey;
 const TICKETS_ROUTE_DEVELOPMENT = "tickets:route_development" as SettingsPermissionKey;
 const TICKETS_OWN_SUPPORT_QUEUE = "tickets:own_support_queue" as SettingsPermissionKey;
 const TICKETS_OWN_DEVELOPMENT_QUEUE = "tickets:own_development_queue" as SettingsPermissionKey;
@@ -46,6 +47,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "companies:view_all",
     "companies:create",
     "companies:edit",
+    COMPANIES_VIEW_COCKPIT,
     "companies:status",
     "contacts:view",
     "contacts:view_all",
@@ -89,6 +91,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "companies:view",
     "companies:view_own",
     "companies:edit",
+    COMPANIES_VIEW_COCKPIT,
     "contacts:view",
     "contacts:view_team",
     "contacts:create",

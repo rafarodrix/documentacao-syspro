@@ -32,6 +32,7 @@ export default async function TarefasRootPage({ searchParams }: TarefasPageProps
   const dueFromParam = resolvedSearchParams.dueFrom;
   const dueToParam = resolvedSearchParams.dueTo;
   const companyIdParam = resolvedSearchParams.companyId;
+  const newTaskParam = resolvedSearchParams.newTask;
   const pageValue = typeof pageParam === "string" ? Number(pageParam) : Array.isArray(pageParam) ? Number(pageParam[0]) : 1;
   const page = Number.isFinite(pageValue) && pageValue > 0 ? pageValue : 1;
   const search = typeof searchParam === "string" ? searchParam : Array.isArray(searchParam) ? searchParam[0] ?? "" : "";
@@ -46,6 +47,12 @@ export default async function TarefasRootPage({ searchParams }: TarefasPageProps
   const dueTo = typeof dueToParam === "string" ? dueToParam : Array.isArray(dueToParam) ? dueToParam[0] ?? "" : "";
   const companyId =
     typeof companyIdParam === "string" ? companyIdParam : Array.isArray(companyIdParam) ? companyIdParam[0] ?? "" : "";
+  const shouldOpenNewTask =
+    typeof newTaskParam === "string"
+      ? newTaskParam === "true" || newTaskParam === "1"
+      : Array.isArray(newTaskParam)
+        ? newTaskParam[0] === "true" || newTaskParam[0] === "1"
+        : false;
 
   const tasks = await getTarefasItemsQuery({
     page: String(page),
@@ -62,5 +69,20 @@ export default async function TarefasRootPage({ searchParams }: TarefasPageProps
     companyId,
   });
 
-  return <TarefasPage tasks={tasks} search={search} status={status} type={type} origin={origin} year={year} month={month} dueFrom={dueFrom} dueTo={dueTo} canManage={canManage} />;
+  return (
+    <TarefasPage
+      tasks={tasks}
+      search={search}
+      status={status}
+      type={type}
+      origin={origin}
+      year={year}
+      month={month}
+      dueFrom={dueFrom}
+      dueTo={dueTo}
+      canManage={canManage}
+      initialCreateDialogOpen={shouldOpenNewTask}
+      initialCreateCompanyId={companyId || undefined}
+    />
+  );
 }

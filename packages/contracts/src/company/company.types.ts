@@ -302,6 +302,31 @@ export interface CompanyCockpitSlaSummary {
   resolutionDueSoon: number;
 }
 
+export interface CompanyCockpitHealthSummary {
+  score: number;
+  status: "HEALTHY" | "WATCH" | "CRITICAL";
+  label: string;
+  summary: string;
+}
+
+export interface CompanyCockpitAlertItem {
+  id: string;
+  severity: "CRITICAL" | "WARNING" | "INFO";
+  title: string;
+  description: string;
+  href: string | null;
+  ctaLabel: string | null;
+}
+
+export interface CompanyCockpitRecommendationItem {
+  id: string;
+  tone: "danger" | "warning" | "neutral";
+  title: string;
+  description: string;
+  href: string;
+  ctaLabel: string;
+}
+
 export interface CompanyCockpitTicketItem {
   id: string;
   ticketNumber: string | null;
@@ -327,6 +352,7 @@ export interface CompanyCockpitTaskItem {
   assignedToName: string | null;
   ticketNumber: string | null;
   competenceLabel: string | null;
+  nextStepLabel: string | null;
 }
 
 export interface CompanyCockpitMonthlyRoutineItem {
@@ -335,7 +361,10 @@ export interface CompanyCockpitMonthlyRoutineItem {
   status: string;
   dueDate: string;
   updatedAt: string;
+  requestedAt: string | null;
+  receivedAt: string | null;
   lastRequestStatus: string | null;
+  nextStepLabel: string | null;
 }
 
 export interface CompanyCockpitMonthlyRoutineSummary {
@@ -360,6 +389,9 @@ export interface CompanyCockpitConversationItem {
   chatwootUrl: string | null;
   updatedAt: string;
   lastDeliveryStatus: string;
+  lastFailureAt: string | null;
+  lastFailureCode: string | null;
+  isStale: boolean;
 }
 
 export interface CompanyCockpitHostItem {
@@ -406,6 +438,9 @@ export interface CompanyCockpitReleaseItem {
 export interface CompanyCockpitViewData {
   profile: CompanyCockpitProfile;
   sla: CompanyCockpitSlaSummary;
+  health: CompanyCockpitHealthSummary;
+  alerts: CompanyCockpitAlertItem[];
+  recommendedActions: CompanyCockpitRecommendationItem[];
   tickets: CompanyCockpitTicketItem[];
   tasks: CompanyCockpitTaskItem[];
   monthlyRoutine: CompanyCockpitMonthlyRoutineSummary;

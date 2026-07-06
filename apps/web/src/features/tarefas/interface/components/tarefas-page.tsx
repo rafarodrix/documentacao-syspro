@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/patterns";
 import {
   RegistryFilterGroup,
@@ -40,6 +40,8 @@ interface TarefasPageProps {
   dueFrom: string;
   dueTo: string;
   canManage: boolean;
+  initialCreateDialogOpen?: boolean;
+  initialCreateCompanyId?: string;
 }
 
 export function TarefasPage({
@@ -53,8 +55,12 @@ export function TarefasPage({
   dueFrom,
   dueTo,
   canManage,
+  initialCreateDialogOpen = false,
+  initialCreateCompanyId,
 }: TarefasPageProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const [selectedStatusTask, setSelectedStatusTask] = useState<TaskItem | null>(null);
   const [selectedDetailsTaskId, setSelectedDetailsTaskId] = useState<string | null>(null);
@@ -97,6 +103,20 @@ export function TarefasPage({
       return tasks.items[0]?.id ?? null;
     });
   }, [tasks.items]);
+
+  useEffect(() => {
+    if (initialCreateDialogOpen && canManage) {
+      setIsCreateDialogOpen(true);
+    }
+  }, [initialCreateDialogOpen, canManage]);
+
+  useEffect(() => {
+    if (!initialCreateDialogOpen || !searchParams.get("newTask")) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("newTask");
+    router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+  }, [initialCreateDialogOpen, pathname, router, searchParams]);
 
   return (
     <div className="space-y-6">
@@ -329,6 +349,7 @@ export function TarefasPage({
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onCreated={() => router.refresh()}
+        initialCompanyId={initialCreateCompanyId}
       />
 
       <TaskManualRequestDialog

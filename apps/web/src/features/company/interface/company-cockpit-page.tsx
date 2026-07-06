@@ -10,9 +10,12 @@ import {
   HardDrive,
   MessageSquare,
   Pencil,
+  PlusCircle,
   Server,
+  ShieldAlert,
+  Sparkles,
 } from "lucide-react";
-import type { CompanyCockpitViewData } from "@dosc-syspro/contracts/company";
+import type { CompanyCockpitAlertItem, CompanyCockpitRecommendationItem, CompanyCockpitViewData } from "@dosc-syspro/contracts/company";
 import { Badge, Button } from "@dosc-syspro/ui";
 import { EmptyState, MetricCard, PageHeader, PageShell, SectionCard } from "@/components/patterns";
 import { formatCNPJ } from "@/lib/formatters";
@@ -47,6 +50,30 @@ function getStatusBadge(status: CompanyCockpitViewData["profile"]["status"]) {
 function getSlaTone(value: number) {
   if (value > 0) return "danger" as const;
   return "success" as const;
+}
+
+function getHealthTone(status: CompanyCockpitViewData["health"]["status"]) {
+  if (status === "CRITICAL") return "danger" as const;
+  if (status === "WATCH") return "warning" as const;
+  return "success" as const;
+}
+
+function getHealthBadge(status: CompanyCockpitViewData["health"]["status"]) {
+  if (status === "CRITICAL") return { label: "Critica", className: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300" };
+  if (status === "WATCH") return { label: "Atencao", className: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300" };
+  return { label: "Estavel", className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" };
+}
+
+function getAlertBadge(severity: CompanyCockpitAlertItem["severity"]) {
+  if (severity === "CRITICAL") return { label: "Critico", className: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300" };
+  if (severity === "WARNING") return { label: "Atencao", className: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300" };
+  return { label: "Info", className: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300" };
+}
+
+function getRecommendationBadge(tone: CompanyCockpitRecommendationItem["tone"]) {
+  if (tone === "danger") return { label: "Agora", className: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300" };
+  if (tone === "warning") return { label: "Prioridade", className: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300" };
+  return { label: "Proximo passo", className: "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300" };
 }
 
 function CompanyListRow({
@@ -92,19 +119,108 @@ function CompanyListRow({
   );
 }
 
+function PriorityRow({
+  title,
+  description,
+  badgeLabel,
+  badgeClassName,
+  href,
+  ctaLabel,
+}: {
+  title: string;
+  description: string;
+  badgeLabel: string;
+  badgeClassName: string;
+  href?: string | null;
+  ctaLabel?: string | null;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-background/60 p-4 md:flex-row md:items-center md:justify-between">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <Badge variant="outline" className={badgeClassName}>
+            {badgeLabel}
+          </Badge>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      </div>
+      {href && ctaLabel ? (
+        /^https?:\/\//.test(href) ? (
+          <Button asChild variant="outline" size="sm" className="shrink-0">
+            <a href={href} target="_blank" rel="noreferrer">{ctaLabel}</a>
+          </Button>
+        ) : (
+          <Button asChild variant="outline" size="sm" className="shrink-0">
+            <Link href={href}>{ctaLabel}</Link>
+          </Button>
+        )
+      ) : null}
+    </div>
+  );
+}
+
+function QuickAction({
+  href,
+  label,
+  description,
+  external = false,
+}: {
+  href: string;
+  label: string;
+  description: string;
+  external?: boolean;
+}) {
+  if (external) {
+    return (
+      <Button asChild variant="outline" className="h-auto justify-start rounded-xl px-4 py-3 text-left">
+        <a href={href} target="_blank" rel="noreferrer">
+          <div>
+            <p className="text-sm font-semibold">{label}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          </div>
+        </a>
+      </Button>
+    );
+  }
+
+  return (
+    <Button asChild variant="outline" className="h-auto justify-start rounded-xl px-4 py-3 text-left">
+      <Link href={href}>
+        <div>
+          <p className="text-sm font-semibold">{label}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+        </div>
+      </Link>
+    </Button>
+  );
+}
+
 export function CompanyCockpitPage({
   view,
   backHref,
+  canEdit,
   editHref,
 }: {
   view: CompanyCockpitViewData;
   backHref: string;
+  canEdit: boolean;
   editHref: string;
 }) {
   const statusBadge = getStatusBadge(view.profile.status);
+  const healthBadge = getHealthBadge(view.health.status);
   const segmentLabel = view.profile.segment ? getCompanySegmentLabel(view.profile.segment) : "Sem segmento";
+  const ticketsHref = `/portal/tickets?companyId=${view.profile.companyId}`;
+  const newTicketHref = `/portal/tickets/novo?companyId=${view.profile.companyId}&customerCompany=${encodeURIComponent(view.profile.displayName)}`;
   const tasksHref = `/portal/tarefas?companyId=${view.profile.companyId}`;
+  const newTaskHref = `${tasksHref}&newTask=true`;
   const monthlyTasksHref = `${tasksHref}&type=ROTINA_MENSAL`;
+  const hostsHref = `/portal/infraestrutura?tab=hosts&companyId=${view.profile.companyId}`;
+  const newHostHref = `${hostsHref}&newHost=true`;
+  const latestConversationHref = view.conversations[0]?.chatwootUrl || "/portal/configuracoes?tab=integrations";
+  const latestReleaseHref = view.releases[0] ? `/portal/tickets/${view.releases[0].ticketId}` : ticketsHref;
+  const criticalAlerts = view.alerts.filter((item) => item.severity === "CRITICAL").length;
+  const warningAlerts = view.alerts.filter((item) => item.severity === "WARNING").length;
 
   return (
     <PageShell>
@@ -123,17 +239,19 @@ export function CompanyCockpitPage({
                 Voltar
               </Link>
             </Button>
-            <Button asChild size="sm">
-              <Link href={editHref}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Editar empresa
-              </Link>
-            </Button>
+            {canEdit ? (
+              <Button asChild size="sm">
+                <Link href={editHref}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar empresa
+                </Link>
+              </Button>
+            ) : null}
           </>
         }
       />
 
-      <section className="grid gap-4 lg:grid-cols-[1.8fr_1fr]">
+      <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <SectionCard
           title="Contexto da Conta"
           description="Base cadastral e operacional usada para cruzar suporte, remoto e fiscal."
@@ -176,41 +294,66 @@ export function CompanyCockpitPage({
         </SectionCard>
 
         <SectionCard
-          title="Alertas"
-          description="Pontos que merecem atencao antes de abrir mais volume."
+          title="Saude da Conta"
+          description="Leitura resumida para entender se a conta pede atuacao imediata ou manutencao."
         >
-          <div className="space-y-3">
-            {view.profile.blockedReasonLabel ? (
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300">
-                Contrato bloqueado: {view.profile.blockedReasonLabel}
+          <div className="rounded-2xl border border-border/50 bg-background/70 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Health score</p>
+                <p className="mt-2 text-4xl font-semibold tracking-tight text-foreground">{view.health.score}</p>
               </div>
-            ) : null}
-            {view.sla.responseOverdue > 0 || view.sla.resolutionOverdue > 0 ? (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
-                Existem {view.sla.responseOverdue + view.sla.resolutionOverdue} riscos de SLA ativos nesta conta.
-              </div>
-            ) : null}
-            {view.monthlyRoutine.overdueCount > 0 ? (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
-                {view.monthlyRoutine.overdueCount} rotina(s) mensais estao atrasadas.
-              </div>
-            ) : null}
-            {!view.profile.blockedReasonLabel &&
-            view.sla.responseOverdue === 0 &&
-            view.sla.resolutionOverdue === 0 &&
-            view.monthlyRoutine.overdueCount === 0 ? (
-              <EmptyState
-                icon={Building2}
-                title="Sem alertas criticos"
-                description="A conta nao apresenta bloqueio contratual, SLA vencido ou rotina mensal atrasada neste momento."
-                dashed
-              />
+              <Badge variant="outline" className={healthBadge.className}>
+                {healthBadge.label}
+              </Badge>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">{view.health.summary}</p>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border/50 bg-background/60 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Alertas criticos</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{criticalAlerts}</p>
+            </div>
+            <div className="rounded-lg border border-border/50 bg-background/60 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Alertas de atencao</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{warningAlerts}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-border/50 bg-background/60 p-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold text-foreground">Proximo melhor passo</p>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {view.recommendedActions[0]?.title || "Sem proxima acao priorizada no momento."}
+            </p>
+            {view.recommendedActions[0] ? (
+              /^https?:\/\//.test(view.recommendedActions[0].href) ? (
+                <Button asChild size="sm" className="mt-3">
+                  <a href={view.recommendedActions[0].href} target="_blank" rel="noreferrer">
+                    {view.recommendedActions[0].ctaLabel}
+                  </a>
+                </Button>
+              ) : (
+                <Button asChild size="sm" className="mt-3">
+                  <Link href={view.recommendedActions[0].href}>{view.recommendedActions[0].ctaLabel}</Link>
+                </Button>
+              )
             ) : null}
           </div>
         </SectionCard>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricCard
+          title="Health score"
+          value={view.health.score}
+          description={view.health.label}
+          icon={ShieldAlert}
+          tone={getHealthTone(view.health.status)}
+        />
         <MetricCard
           title="Tickets abertos"
           value={view.profile.counts.openTickets}
@@ -228,7 +371,7 @@ export function CompanyCockpitPage({
         <MetricCard
           title="Hosts remotos"
           value={view.profile.counts.remoteHosts}
-          description={`${view.sessions.length} sessoes mais recentes carregadas neste cockpit`}
+          description={`${view.sessions.length} sessoes recentes carregadas neste cockpit`}
           icon={Server}
           tone="neutral"
         />
@@ -241,13 +384,78 @@ export function CompanyCockpitPage({
         />
       </section>
 
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_1.4fr]">
+        <SectionCard
+          title="Acoes Rapidas"
+          description="Atalhos para agir na conta sem perder contexto."
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <QuickAction href={newTicketHref} label="Novo ticket" description="Abrir chamado ja contextualizado na empresa." />
+            <QuickAction href={newTaskHref} label="Nova tarefa" description="Criar backlog operacional ja preso na conta." />
+            <QuickAction href={newHostHref} label="Novo host" description="Cadastrar host manual com empresa preselecionada." />
+            <QuickAction
+              href={latestConversationHref}
+              label="Abrir conversa"
+              description="Voltar para o atendimento mais recente ou revisar integracoes."
+              external={Boolean(view.conversations[0]?.chatwootUrl)}
+            />
+            <QuickAction href={hostsHref} label="Infraestrutura" description="Ver hosts, sessoes e sinais de degradacao remota." />
+            <QuickAction href={latestReleaseHref} label="Releases" description="Abrir a release mais recente ou revisar tickets publicados." />
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Prioridades Agora"
+          description="Alertas priorizados e recomendacoes para orientar a operacao."
+        >
+          <div className="space-y-3">
+            {view.alerts.map((alert) => {
+              const badge = getAlertBadge(alert.severity);
+              return (
+                <PriorityRow
+                  key={alert.id}
+                  title={alert.title}
+                  description={alert.description}
+                  badgeLabel={badge.label}
+                  badgeClassName={badge.className}
+                  href={alert.href}
+                  ctaLabel={alert.ctaLabel}
+                />
+              );
+            })}
+            {view.recommendedActions.map((action) => {
+              const badge = getRecommendationBadge(action.tone);
+              return (
+                <PriorityRow
+                  key={action.id}
+                  title={action.title}
+                  description={action.description}
+                  badgeLabel={badge.label}
+                  badgeClassName={badge.className}
+                  href={action.href}
+                  ctaLabel={action.ctaLabel}
+                />
+              );
+            })}
+            {!view.alerts.length && !view.recommendedActions.length ? (
+              <EmptyState
+                icon={PlusCircle}
+                title="Sem prioridades abertas"
+                description="A conta esta estavel. Use as acoes rapidas para registrar o proximo movimento operacional."
+                dashed
+              />
+            ) : null}
+          </div>
+        </SectionCard>
+      </section>
+
       <section className="grid gap-4 xl:grid-cols-2">
         <SectionCard
           title="Tickets e SLA"
           description="Chamados mais recentes desta empresa com sinalizacao de risco."
           action={
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/portal/tickets?companyId=${view.profile.companyId}`}>Abrir tickets</Link>
+              <Link href={ticketsHref}>Abrir tickets</Link>
             </Button>
           }
         >
@@ -261,6 +469,7 @@ export function CompanyCockpitPage({
                   ticket.status,
                   ticket.priority,
                   ticket.assignedToName || "Sem responsavel",
+                  ticket.isResponseOverdue || ticket.isResolutionOverdue ? "SLA em risco" : null,
                   `Atualizado em ${formatDateTime(ticket.updatedAt)}`,
                 ])}
                 tone={ticket.isResponseOverdue || ticket.isResolutionOverdue ? "warning" : undefined}
@@ -310,6 +519,7 @@ export function CompanyCockpitPage({
                   task.type === "ROTINA_MENSAL" ? "Rotina mensal" : "Tarefa avulsa",
                   task.status,
                   task.competenceLabel || "Sem competencia",
+                  task.nextStepLabel,
                   `Vence em ${formatDate(task.dueDate)}`,
                 ])}
                 href={tasksHref}
@@ -331,7 +541,8 @@ export function CompanyCockpitPage({
                   meta={joinMeta([
                     item.status,
                     item.lastRequestStatus ? `Ultimo envio: ${item.lastRequestStatus}` : null,
-                    `Vence em ${formatDate(item.dueDate)}`,
+                    item.nextStepLabel,
+                    item.receivedAt ? `Recebido em ${formatDateTime(item.receivedAt)}` : `Vence em ${formatDate(item.dueDate)}`,
                   ])}
                   tone={item.status === "OVERDUE" ? "warning" : undefined}
                 />
@@ -346,19 +557,25 @@ export function CompanyCockpitPage({
       <section className="grid gap-4 xl:grid-cols-2">
         <SectionCard
           title="Ultimas Conversas"
-          description="Conversas vinculadas localmente via Chatwoot/Evolution."
+          description="Conversas vinculadas localmente via Chatwoot/Evolution com sinais de follow-up."
         >
           <div className="space-y-3">
             {view.conversations.length ? view.conversations.map((conversation) => (
               <CompanyListRow
                 key={conversation.id}
                 href={conversation.chatwootUrl}
-                title={`Conversa ${conversation.chatwootConversationId}`}
+                title={joinMeta([
+                  `Conversa ${conversation.chatwootConversationId}`,
+                  conversation.whatsappNumber,
+                ])}
                 meta={joinMeta([
                   conversation.connectionName || "Sem conexao",
                   conversation.lastDeliveryStatus,
+                  conversation.lastFailureCode ? `Falha ${conversation.lastFailureCode}` : null,
+                  conversation.isStale ? "Sem atualizacao recente" : null,
                   `Atualizada em ${formatDateTime(conversation.updatedAt)}`,
                 ])}
+                tone={conversation.isStale || Boolean(conversation.lastFailureAt) ? "warning" : undefined}
               />
             )) : (
               <EmptyState title="Sem conversas vinculadas" description="Ainda nao existem mapeamentos locais de conversa para esta empresa." dashed />
@@ -371,7 +588,7 @@ export function CompanyCockpitPage({
           description="Hosts e sessoes recentes da operacao remota."
           action={
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/portal/infraestrutura?tab=hosts&companyId=${view.profile.companyId}`}>Abrir infraestrutura</Link>
+              <Link href={hostsHref}>Abrir infraestrutura</Link>
             </Button>
           }
         >
@@ -388,7 +605,9 @@ export function CompanyCockpitPage({
                       host.status,
                       host.serviceStatus || "Sem servico",
                       host.lastKnownRustDeskAlias || "Sem alias RustDesk",
+                      host.lastHeartbeatSuccessAt ? `Heartbeat ${formatDateTime(host.lastHeartbeatSuccessAt)}` : "Sem heartbeat valido",
                     ])}
+                    tone={!host.lastHeartbeatSuccessAt ? "warning" : undefined}
                   />
                 )) : (
                   <EmptyState title="Nenhum host cadastrado" description="Nao ha hosts remotos vinculados a esta empresa." dashed />
@@ -407,6 +626,7 @@ export function CompanyCockpitPage({
                     meta={joinMeta([
                       session.status,
                       session.ticketNumber ? `Ticket ${session.ticketNumber}` : "Sem ticket",
+                      session.requestedByName ? `Solicitado por ${session.requestedByName}` : null,
                       `Criada em ${formatDateTime(session.createdAt)}`,
                     ])}
                   />
@@ -438,7 +658,9 @@ export function CompanyCockpitPage({
                   integration.status,
                   integration.chatwootInboxLabel || "Inbox nao identificada",
                   integration.evolutionInstance || "Sem instance Evolution",
+                  `Atualizada em ${formatDateTime(integration.updatedAt)}`,
                 ])}
+                tone={integration.status !== "ACTIVE" ? "warning" : undefined}
               />
             )) : (
               <EmptyState title="Nenhuma integracao vinculada" description="Esta empresa ainda nao possui conexoes persistidas de atendimento." dashed />
@@ -459,6 +681,7 @@ export function CompanyCockpitPage({
                 meta={joinMeta([
                   release.type || "Sem tipo",
                   release.module || "Sem modulo",
+                  release.summary ? "Com resumo de entrega" : null,
                   `Publicada em ${formatDate(release.publishedAt)}`,
                 ])}
               />
@@ -478,7 +701,7 @@ export function CompanyCockpitPage({
         <MetricCard
           title="Membros"
           value={view.profile.counts.users}
-          description="Usuarios internos/cliente vinculados por membership"
+          description="Usuarios internos ou cliente vinculados por membership"
           icon={Building2}
           tone="neutral"
         />

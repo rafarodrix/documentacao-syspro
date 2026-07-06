@@ -11,9 +11,10 @@ type PageProps = {
 
 export default async function CompanyCockpitRoute({ params, searchParams }: PageProps) {
   await requireSession();
-  if (!(await currentUserHasPermission("companies:edit", { acceptCompanyScope: true }))) {
+  if (!(await currentUserHasPermission("companies:view_cockpit", { acceptCompanyScope: true }))) {
     return <CadastrosAccessDenied />;
   }
+  const canEditCompany = await currentUserHasPermission("companies:edit", { acceptCompanyScope: true });
 
   const { id } = await params;
   const query = searchParams ? await searchParams : undefined;
@@ -31,6 +32,7 @@ export default async function CompanyCockpitRoute({ params, searchParams }: Page
     <CompanyCockpitPage
       view={view}
       backHref={backHref}
+      canEdit={canEditCompany}
       editHref={`/portal/cadastros/empresa/${id}/editar?returnTo=${encodeURIComponent(backHref)}`}
     />
   );

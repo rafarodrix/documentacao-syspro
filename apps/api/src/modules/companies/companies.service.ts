@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
-import { CompanySegment, CompanyStatus, ConversationStatus, Role, TaskStatus, TaskType } from '@prisma/client';
+import { CompanySegment, CompanyStatus, ConversationStatus, IntegrationConnectionStatus, RemoteHostStatus, Role, TaskStatus, TaskType } from '@prisma/client';
 import { onlyDigits } from '@dosc-syspro/shared';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
@@ -73,6 +73,78 @@ function firstString(...values: unknown[]) {
 
 function sumValues(values: number[]) {
   return values.reduce((acc, value) => acc + value, 0);
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getTaskNextStepLabel(status: string) {
+  switch (status) {
+    case 'OVERDUE':
+      return 'Cobrar cliente e destravar envio';
+    case 'WAITING_CUSTOMER':
+      return 'Aguardar documentos do cliente';
+    case 'RECEIVED':
+      return 'Conferir e encaminhar para contabilidade';
+    case 'SENT_TO_ACCOUNTING':
+      return 'Validar retorno da contabilidade';
+    case 'PENDING':
+      return 'Disparar solicitacao inicial';
+    default:
+      return null;
+  }
+}
+
+function buildCockpitHealthSummary(input: {
+  hasContractBlock: boolean;
+  responseOverdue: number;
+  resolutionOverdue: number;
+  responseDueSoon: number;
+  resolutionDueSoon: number;
+  monthlyOverdue: number;
+  waitingCustomer: number;
+  staleHostCount: number;
+  inactiveIntegrationCount: number;
+  deliveryFailureCount: number;
+}) {
+  const deductions = [
+    input.hasContractBlock ? 35 : 0,
+    Math.min(input.responseOverdue * 8, 24),
+    Math.min(input.resolutionOverdue * 10, 30),
+    Math.min((input.responseDueSoon + input.resolutionDueSoon) * 3, 12),
+    Math.min(input.monthlyOverdue * 10, 20),
+    Math.min(input.waitingCustomer * 3, 9),
+    Math.min(input.staleHostCount * 6, 12),
+    Math.min(input.inactiveIntegrationCount * 8, 16),
+    Math.min(input.deliveryFailureCount * 4, 8),
+  ];
+  const score = clampNumber(100 - sumValues(deductions), 0, 100);
+
+  if (score <= 49) {
+    return {
+      score,
+      status: 'CRITICAL' as const,
+      label: 'Critica',
+      summary: 'A conta exige atuacao imediata em SLA, fiscal, infraestrutura ou bloqueio contratual.',
+    };
+  }
+
+  if (score <= 79) {
+    return {
+      score,
+      status: 'WATCH' as const,
+      label: 'Atencao',
+      summary: 'A conta esta operando com sinais de atrito e precisa de acompanhamento proximo.',
+    };
+  }
+
+  return {
+    score,
+    status: 'HEALTHY' as const,
+    label: 'Estavel',
+    summary: 'A conta esta sob controle e sem gargalos operacionais relevantes no momento.',
+  };
 }
 
 function legacyWhere<T extends object>(where: T) {
@@ -560,8 +632,8 @@ export class CompaniesService {
 
   async getCompanyCockpitView(companyId: string, rawHeaders?: IncomingHttpHeaders): Promise<CompanyCockpitViewData> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const editScope = await this.getCompanyEditScope(requester);
-    await this.assertCompanyAccess(companyId, editScope);
+    const cockpitScope = await this.getCompanyCockpitScope(requester);
+    await this.assertCompanyAccess(companyId, cockpitScope);
 
     const company = await this.prisma.company.findFirst({
       where: {
@@ -618,6 +690,8 @@ export class CompaniesService {
 
     const now = new Date();
     const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const staleConversationThreshold = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const staleHostThreshold = new Date(now.getTime() - 48 * 60 * 60 * 1000);
     const openTicketWhere = {
       companyId,
       status: {
@@ -651,6 +725,9 @@ export class CompaniesService {
       monthlyRoutineOverdueCount,
       monthlyRoutineWaitingCustomerCount,
       monthlyRoutineCompletedCount,
+      staleHostCount,
+      inactiveIntegrationCount,
+      deliveryFailureCount,
     ] = await Promise.all([
       this.prisma.ticket.findMany({
         where: { companyId },
@@ -722,6 +799,8 @@ export class CompaniesService {
           month: true,
           status: true,
           dueDate: true,
+          requestedAt: true,
+          receivedAt: true,
           updatedAt: true,
           requests: {
             orderBy: [{ createdAt: 'desc' }],
@@ -742,6 +821,8 @@ export class CompaniesService {
           whatsappNumber: true,
           updatedAt: true,
           whatsappDeliveryStatus: true,
+          lastDeliveryFailureAt: true,
+          lastDeliveryFailureCode: true,
           connection: {
             select: {
               name: true,
@@ -893,11 +974,185 @@ export class CompaniesService {
           status: TaskStatus.COMPLETED,
         },
       }),
+      this.prisma.remoteHost.count({
+        where: {
+          companyId,
+          OR: [
+            { status: { not: RemoteHostStatus.ACTIVE } },
+            { lastHeartbeatSuccessAt: null },
+            { lastHeartbeatSuccessAt: { lt: staleHostThreshold } },
+          ],
+        },
+      }),
+      this.prisma.integrationConnection.count({
+        where: {
+          companyId,
+          status: { not: IntegrationConnectionStatus.ACTIVE },
+        },
+      }),
+      this.prisma.conversationLink.count({
+        where: {
+          companyId,
+          lastDeliveryFailureAt: { not: null },
+        },
+      }),
     ]);
 
     const address = company.addresses[0];
     const block = parseContractBlockReason(company.observacoes);
     const accountingFirmName = company.accountingFirm?.nomeFantasia?.trim() || company.accountingFirm?.razaoSocial?.trim() || null;
+    const companyTicketsHref = `/portal/tickets?companyId=${companyId}`;
+    const companyNewTaskHref = `/portal/tarefas?companyId=${companyId}&newTask=true`;
+    const companyMonthlyTasksHref = `/portal/tarefas?companyId=${companyId}&type=ROTINA_MENSAL`;
+    const companyInfraHref = `/portal/infraestrutura?tab=hosts&companyId=${companyId}`;
+    const companyIntegrationsHref = '/portal/configuracoes?tab=integrations';
+    const companyEditHref = `/portal/cadastros/empresa/${companyId}/editar`;
+    const health = buildCockpitHealthSummary({
+      hasContractBlock: Boolean(block?.label),
+      responseOverdue: responseOverdueCount,
+      resolutionOverdue: resolutionOverdueCount,
+      responseDueSoon: responseDueSoonCount,
+      resolutionDueSoon: resolutionDueSoonCount,
+      monthlyOverdue: monthlyRoutineOverdueCount,
+      waitingCustomer: monthlyRoutineWaitingCustomerCount,
+      staleHostCount,
+      inactiveIntegrationCount,
+      deliveryFailureCount,
+    });
+
+    const alerts: CompanyCockpitViewData['alerts'] = [];
+    if (block?.label) {
+      alerts.push({
+        id: 'contract-block',
+        severity: 'CRITICAL',
+        title: 'Conta com bloqueio contratual',
+        description: `A empresa esta marcada com bloqueio contratual: ${block.label}.`,
+        href: companyEditHref,
+        ctaLabel: 'Revisar cadastro',
+      });
+    }
+    if (responseOverdueCount > 0 || resolutionOverdueCount > 0) {
+      alerts.push({
+        id: 'sla-overdue',
+        severity: 'CRITICAL',
+        title: 'SLA vencido em tickets ativos',
+        description: `${responseOverdueCount} resposta(s) e ${resolutionOverdueCount} resolucao(oes) estao fora do SLA.`,
+        href: companyTicketsHref,
+        ctaLabel: 'Atuar nos tickets',
+      });
+    }
+    if (monthlyRoutineOverdueCount > 0) {
+      alerts.push({
+        id: 'monthly-routine-overdue',
+        severity: 'WARNING',
+        title: 'Rotina fiscal atrasada',
+        description: `${monthlyRoutineOverdueCount} rotina(s) mensal(is) estao atrasadas para esta conta.`,
+        href: companyMonthlyTasksHref,
+        ctaLabel: 'Abrir rotina fiscal',
+      });
+    }
+    if (staleHostCount > 0) {
+      alerts.push({
+        id: 'stale-hosts',
+        severity: 'WARNING',
+        title: 'Hosts sem heartbeat recente',
+        description: `${staleHostCount} host(s) estao sem heartbeat valido ou com status degradado.`,
+        href: companyInfraHref,
+        ctaLabel: 'Ver infraestrutura',
+      });
+    }
+    if (inactiveIntegrationCount > 0) {
+      alerts.push({
+        id: 'integration-degraded',
+        severity: 'WARNING',
+        title: 'Integracoes degradadas',
+        description: `${inactiveIntegrationCount} integracao(oes) nao estao ativas para esta empresa.`,
+        href: companyIntegrationsHref,
+        ctaLabel: 'Abrir integracoes',
+      });
+    }
+    if (deliveryFailureCount > 0) {
+      alerts.push({
+        id: 'delivery-failure',
+        severity: 'INFO',
+        title: 'Falhas recentes de entrega em conversas',
+        description: `${deliveryFailureCount} conversa(s) possuem registro de falha de entrega.`,
+        href: companyIntegrationsHref,
+        ctaLabel: 'Ver integracoes',
+      });
+    }
+
+    const prioritizedTicket = recentTickets.find((ticket) => {
+      const responseOverdue = Boolean(ticket.slaResponseDueAt && !ticket.slaResponseHitAt && ticket.slaResponseDueAt < now);
+      const resolutionOverdue = Boolean(ticket.slaResolutionDueAt && !ticket.slaResolutionHitAt && ticket.slaResolutionDueAt < now);
+      return responseOverdue || resolutionOverdue;
+    }) ?? recentTickets[0] ?? null;
+
+    const prioritizedRoutine = latestRoutineTasks.find((task) =>
+      task.status === TaskStatus.OVERDUE || task.status === TaskStatus.WAITING_CUSTOMER || task.status === TaskStatus.PENDING,
+    ) ?? latestRoutineTasks[0] ?? null;
+
+    const prioritizedConversation = recentConversations.find((conversation) => Boolean(conversation.lastDeliveryFailureAt))
+      ?? recentConversations[0]
+      ?? null;
+
+    const recommendedActions: CompanyCockpitViewData['recommendedActions'] = [];
+    if (prioritizedTicket && (responseOverdueCount > 0 || resolutionOverdueCount > 0)) {
+      recommendedActions.push({
+        id: 'act-on-ticket',
+        tone: 'danger',
+        title: prioritizedTicket.ticketNumber ? `Responder ticket #${prioritizedTicket.ticketNumber}` : 'Atuar no ticket mais critico',
+        description: 'Existe risco real de SLA nesta conta e esse deve ser o primeiro movimento operacional.',
+        href: `/portal/tickets/${prioritizedTicket.id}`,
+        ctaLabel: 'Abrir ticket',
+      });
+    }
+    if (prioritizedRoutine && monthlyRoutineOverdueCount > 0) {
+      recommendedActions.push({
+        id: 'recover-routine',
+        tone: 'warning',
+        title: `Recuperar competencia ${String(prioritizedRoutine.month ?? 0).padStart(2, '0')}/${prioritizedRoutine.year ?? now.getFullYear()}`,
+        description: 'A rotina fiscal precisa ser retomada para reduzir atraso operacional e dependencia do cliente.',
+        href: companyMonthlyTasksHref,
+        ctaLabel: 'Abrir rotina',
+      });
+    }
+    if (staleHostCount > 0) {
+      recommendedActions.push({
+        id: 'check-hosts',
+        tone: 'warning',
+        title: 'Verificar host sem heartbeat recente',
+        description: 'A operacao remota pode ficar cega se o agente ou o host permanecerem degradados.',
+        href: companyInfraHref,
+        ctaLabel: 'Abrir hosts',
+      });
+    }
+    if (prioritizedConversation) {
+      const chatwootBaseUrl = prioritizedConversation.connection?.chatwootUrl?.trim().replace(/\/+$/, '') || null;
+      const chatwootAccountId = prioritizedConversation.connection?.chatwootAccountId?.trim() || null;
+      if (chatwootBaseUrl && chatwootAccountId) {
+        recommendedActions.push({
+          id: 'follow-conversation',
+          tone: prioritizedConversation.lastDeliveryFailureAt ? 'warning' : 'neutral',
+          title: 'Retomar ultima conversa vinculada',
+          description: prioritizedConversation.lastDeliveryFailureAt
+            ? 'Ha sinal de falha na entrega e vale validar a conversa diretamente no Chatwoot.'
+            : 'Use a ultima conversa vinculada como contexto rapido de atendimento.',
+          href: `${chatwootBaseUrl}/app/accounts/${chatwootAccountId}/conversations/${prioritizedConversation.chatwootConversationId}`,
+          ctaLabel: 'Abrir conversa',
+        });
+      }
+    }
+    if (!recommendedActions.length) {
+      recommendedActions.push({
+        id: 'create-task',
+        tone: 'neutral',
+        title: 'Criar proxima acao da conta',
+        description: 'A conta esta estavel. Registre a proxima tarefa ou chamado para manter a operacao organizada.',
+        href: companyNewTaskHref,
+        ctaLabel: 'Nova tarefa',
+      });
+    }
 
     return {
       profile: {
@@ -936,6 +1191,9 @@ export class CompaniesService {
         responseDueSoon: responseDueSoonCount,
         resolutionDueSoon: resolutionDueSoonCount,
       },
+      health,
+      alerts,
+      recommendedActions,
       tickets: recentTickets.map((ticket) => ({
         id: ticket.id,
         ticketNumber: ticket.ticketNumber ?? null,
@@ -963,6 +1221,7 @@ export class CompaniesService {
           typeof task.year === 'number' && typeof task.month === 'number'
             ? `${String(task.month).padStart(2, '0')}/${task.year}`
             : null,
+        nextStepLabel: getTaskNextStepLabel(task.status),
       })),
       monthlyRoutine: {
         isConfigured: Boolean(taskConfig),
@@ -982,8 +1241,18 @@ export class CompaniesService {
               : 'Sem competencia',
           status: task.status,
           dueDate: task.dueDate.toISOString(),
+          requestedAt: task.requestedAt?.toISOString() ?? null,
+          receivedAt: task.receivedAt?.toISOString() ?? null,
           updatedAt: task.updatedAt.toISOString(),
           lastRequestStatus: task.requests[0]?.status ?? null,
+          nextStepLabel:
+            task.status === TaskStatus.OVERDUE
+              ? 'Cobrar cliente e reenviar solicitacao'
+              : task.status === TaskStatus.WAITING_CUSTOMER
+                ? 'Acompanhar resposta do cliente'
+                : task.status === TaskStatus.RECEIVED
+                  ? 'Conferir documentos recebidos'
+                  : getTaskNextStepLabel(task.status),
         })),
       },
       conversations: recentConversations.map((conversation) => {
@@ -1001,6 +1270,9 @@ export class CompaniesService {
               : null,
           updatedAt: conversation.updatedAt.toISOString(),
           lastDeliveryStatus: conversation.whatsappDeliveryStatus,
+          lastFailureAt: conversation.lastDeliveryFailureAt?.toISOString() ?? null,
+          lastFailureCode: conversation.lastDeliveryFailureCode ?? null,
+          isStale: conversation.updatedAt < staleConversationThreshold,
         };
       }),
       hosts: recentHosts.map((host) => ({
@@ -1999,6 +2271,14 @@ export class CompaniesService {
     return this.authorizationService.resolveCompanyAccessScope(
       requester as { userId: string; role: Role; email: string },
       'companies:edit',
+      'companies:view_all',
+    );
+  }
+
+  private async getCompanyCockpitScope(requester: { userId: string; role: Role; email?: string }) {
+    return this.authorizationService.resolveCompanyAccessScope(
+      requester as { userId: string; role: Role; email: string },
+      'companies:view_cockpit',
       'companies:view_all',
     );
   }
