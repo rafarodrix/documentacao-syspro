@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createCatchAllProxyHandler,
+  createInternalParamsProxyHandler,
+  createInternalStaticProxyHandler,
   createParamsProxyHandler,
   createStaticProxyHandler,
 } from "@/app/api/_shared/backend-proxy";
@@ -46,6 +48,26 @@ describe("backend proxy handler factories", () => {
     expect((options?.headers as Headers).get("x-internal-api-key")).toBe("test-internal-key");
   });
 
+  it("creates an internal static proxy handler", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 204 }),
+    );
+    const handler = createInternalStaticProxyHandler("/remote/sessions");
+
+    await handler(
+      new Request("https://portal.example.com/api/remote/sessions?page=1"),
+    );
+
+    const [, options] = fetchMock.mock.calls[0]!;
+    expect((options?.headers as Headers).get("x-internal-api-key")).toBe("test-internal-key");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://backend.example.com/remote/sessions?page=1",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+
   it("creates a params proxy handler", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(null, { status: 200 }),
@@ -86,5 +108,30 @@ describe("backend proxy handler factories", () => {
         method: "GET",
       }),
     );
+  });
+
+  it("creates an internal params proxy handler with multiple params", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 200 }),
+    );
+    const handler = createInternalParamsProxyHandler<{ id: string; updateId: string }>(
+      ({ id, updateId }) => `/remote/hosts/${id}/syspro-updates/${updateId}`,
+    );
+
+    const response = await handler(
+      new Request("https://portal.example.com/api/remote/hosts/host_1/syspro-updates/update_1"),
+      { params: Promise.resolve({ id: "host_1", updateId: "update_1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://backend.example.com/remote/hosts/host_1/syspro-updates/update_1",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.any(Headers),
+      }),
+    );
+    const [, options] = fetchMock.mock.calls[0]!;
+    expect((options?.headers as Headers).get("x-internal-api-key")).toBe("test-internal-key");
   });
 });

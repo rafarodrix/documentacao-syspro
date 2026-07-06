@@ -1,9 +1,8 @@
-import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
+import { createInternalParamsProxyHandler } from "@/app/api/_shared/backend-proxy";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  return proxyToBackend(request, { path: `/remote/rustdesk/address-book/credentials/${id}/revoke`, internal: true });
-}
+export const POST = createInternalParamsProxyHandler<{ id: string }>(
+  ({ id }) => `/remote/rustdesk/address-book/credentials/${id}/revoke`,
+);
 

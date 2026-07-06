@@ -1,9 +1,5 @@
-import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
+import { createStaticProxyHandler } from "@/app/api/_shared/backend-proxy";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  return proxyToBackend(request, {
-    path: "/remote-admin/hosts/fleet-stats",
-  });
-}
+export const GET = createStaticProxyHandler("/remote-admin/hosts/fleet-stats");

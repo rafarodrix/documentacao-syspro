@@ -1,13 +1,10 @@
-import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
+import { createInternalParamsProxyHandler } from "@/app/api/_shared/backend-proxy";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  return proxyToBackend(request, { path: `/remote/hosts/${id}/agent-token`, internal: true });
-}
-
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  return proxyToBackend(request, { path: `/remote/hosts/${id}/agent-token`, internal: true });
-}
+export const POST = createInternalParamsProxyHandler<{ id: string }>(
+  ({ id }) => `/remote/hosts/${id}/agent-token`,
+);
+export const DELETE = createInternalParamsProxyHandler<{ id: string }>(
+  ({ id }) => `/remote/hosts/${id}/agent-token`,
+);

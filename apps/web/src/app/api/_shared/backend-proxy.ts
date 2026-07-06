@@ -77,6 +77,10 @@ export function createStaticProxyHandler(
   };
 }
 
+export function createInternalStaticProxyHandler(path: string) {
+  return createStaticProxyHandler(path, { internal: true });
+}
+
 export function createParamsProxyHandler<TParams extends Record<string, string>>(
   buildPath: (params: TParams) => Awaitable<string>,
   options?: ProxyHandlerOptions,
@@ -92,6 +96,12 @@ export function createParamsProxyHandler<TParams extends Record<string, string>>
       path,
     });
   };
+}
+
+export function createInternalParamsProxyHandler<TParams extends Record<string, string>>(
+  buildPath: (params: TParams) => Awaitable<string>,
+) {
+  return createParamsProxyHandler(buildPath, { internal: true });
 }
 
 export function createCatchAllProxyHandler(
