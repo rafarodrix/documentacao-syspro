@@ -134,7 +134,11 @@ Organizacao atual do adapter HTTP:
 
 - `settings.controller.ts` concentra configuracoes gerais, contratos, permissoes, tarefas, tickets, SEFAZ e notificacoes operacionais.
 - `settings-integrations.controller.ts` concentra Evolution, Chatwoot, Google Calendar, storage e conexoes de integracao.
-- `settings-integrations.service.ts` encapsula leitura/escrita de secrets, criptografia e diagnosticos das integracoes.
+- `settings-evolution.service.ts` encapsula configuracao, status, QR Code e diagnosticos da Evolution.
+- `settings-chatwoot.service.ts` encapsula configuracao, comportamento operacional e diagnosticos do Chatwoot.
+- `settings-storage-google-calendar.service.ts` encapsula storage R2, Google Calendar e leitura persistida dessas integracoes.
+- `settings-integration-connections-admin.service.ts` encapsula CRUD e teste das conexoes de integracao.
+- `settings-integration-secrets.service.ts` encapsula criptografia e persistencia segura dos secrets compartilhados.
 
 No contexto de tarefas, os endpoints administrativos oficiais sao:
 

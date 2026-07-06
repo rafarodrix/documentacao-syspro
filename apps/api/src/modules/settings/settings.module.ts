@@ -10,7 +10,11 @@ import { TicketsModule } from '../tickets/tickets.module';
 import { ChatwootModule } from '../integrations/chatwoot/chatwoot.module';
 import { AutomationModule } from '../automation/automation.module';
 import { R2StorageService } from '../integrations/storage/r2-storage.service';
-import { SettingsIntegrationsService } from './settings-integrations.service';
+import { SettingsEvolutionService } from './settings-evolution.service';
+import { SettingsChatwootService } from './settings-chatwoot.service';
+import { SettingsStorageGoogleCalendarService } from './settings-storage-google-calendar.service';
+import { SettingsIntegrationConnectionsAdminService } from './settings-integration-connections-admin.service';
+import { SettingsIntegrationSecretsService } from './settings-integration-secrets.service';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => TicketsModule), forwardRef(() => ChatwootModule), forwardRef(() => AutomationModule)],
@@ -21,7 +25,11 @@ import { SettingsIntegrationsService } from './settings-integrations.service';
     SettingsPermissionsService,
     SettingsSefazMonitorService,
     R2StorageService,
-    SettingsIntegrationsService,
+    SettingsEvolutionService,
+    SettingsChatwootService,
+    SettingsStorageGoogleCalendarService,
+    SettingsIntegrationConnectionsAdminService,
+    SettingsIntegrationSecretsService,
   ],
   exports: [IntegrationConnectionsService, IntegrationContextService, SettingsPermissionsService, SettingsSefazMonitorService, R2StorageService],
 })
