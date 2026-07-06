@@ -146,7 +146,7 @@ function CompanyActionsMenu({
               "h-8 w-8 rounded-md transition-all",
               "text-muted-foreground hover:text-foreground",
               "border border-transparent hover:border-border/50 hover:bg-muted",
-              "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
+              "opacity-100 focus:opacity-100",
             )}
             disabled={isLoading}
             onClick={stopRecordClick}
