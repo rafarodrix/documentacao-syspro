@@ -157,10 +157,13 @@ export class IntegrationContextService {
       ['info', 'Chat'],
     ]);
     const hasExplicitMatchInput = Boolean(instanceId || instance);
-    const orFilters = [
-      ...(instanceId ? [{ evolutionInstanceId: instanceId }] : []),
-      ...(instance ? [{ evolutionInstance: instance }] : []),
-    ];
+    const orFilters: Record<string, string>[] = [];
+    if (instanceId) {
+      orFilters.push({ evolutionInstanceId: instanceId });
+    }
+    if (instance) {
+      orFilters.push({ evolutionInstance: instance });
+    }
 
     const candidates = await this.tryReadConnections(
       'resolveForEvolutionWebhook',
