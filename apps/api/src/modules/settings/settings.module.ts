@@ -8,6 +8,7 @@ import { IntegrationConnectionsMapperService } from './integration-connections.m
 import { IntegrationConnectionsValidatorService } from './integration-connections-validator.service';
 import { IntegrationConnectionsTesterService } from './integration-connections-tester.service';
 import { IntegrationContextService } from './integration-context.service';
+import { IntegrationContextMapperService } from './integration-context-mapper.service';
 import { SettingsPermissionsService } from './permissions/permissions.service';
 import { SettingsSefazMonitorService } from './sefaz-monitor.service';
 import { TicketsModule } from '../tickets/tickets.module';
@@ -19,6 +20,7 @@ import { SettingsEvolutionConfigService } from './settings-evolution-config.serv
 import { SettingsEvolutionStatusStoreService } from './settings-evolution-status-store.service';
 import { SettingsEvolutionConnectService } from './settings-evolution-connect.service';
 import { SettingsChatwootService } from './settings-chatwoot.service';
+import { SettingsChatwootConfigStoreService } from './settings-chatwoot-config-store.service';
 import { SettingsStorageGoogleCalendarService } from './settings-storage-google-calendar.service';
 import { SettingsIntegrationConnectionsAdminService } from './settings-integration-connections-admin.service';
 import { SettingsIntegrationSecretsService } from './settings-integration-secrets.service';
@@ -33,6 +35,7 @@ import { SettingsIntegrationSecretsService } from './settings-integration-secret
     IntegrationConnectionsValidatorService,
     IntegrationConnectionsTesterService,
     IntegrationContextService,
+    IntegrationContextMapperService,
     SettingsPermissionsService,
     SettingsSefazMonitorService,
     R2StorageService,
@@ -41,6 +44,7 @@ import { SettingsIntegrationSecretsService } from './settings-integration-secret
     SettingsEvolutionStatusStoreService,
     SettingsEvolutionConnectService,
     SettingsChatwootService,
+    SettingsChatwootConfigStoreService,
     SettingsStorageGoogleCalendarService,
     SettingsIntegrationConnectionsAdminService,
     SettingsIntegrationSecretsService,

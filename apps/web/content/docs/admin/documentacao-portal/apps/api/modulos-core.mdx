@@ -146,6 +146,9 @@ Organizacao atual do adapter HTTP:
 - `integration-connections-validator.service.ts` encapsula validacoes de unicidade, empresa e escopo Evolution/Chatwoot.
 - `integration-connections-tester.service.ts` encapsula os testes externos de Evolution e Chatwoot.
 - `integration-connections.mapper.service.ts` encapsula merge de update, criptografia e mapeamento de entrada/saida.
+- `integration-context.service.ts` orquestra a resolucao de contexto efetivo para runtime e webhooks.
+- `integration-context-mapper.service.ts` encapsula o mapeamento tipado da conexao persistida para o contexto consumido pelo bridge.
+- `settings-chatwoot-config-store.service.ts` encapsula a leitura compartilhada da configuracao persistida do Chatwoot com secrets descriptografados.
 - `settings-integration-secrets.service.ts` encapsula criptografia e persistencia segura dos secrets compartilhados.
 
 No contexto de tarefas, os endpoints administrativos oficiais sao:

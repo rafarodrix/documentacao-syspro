@@ -23,6 +23,36 @@ export class IntegrationConnectionsRepository {
     return (row as IntegrationConnectionRecord | null) ?? null;
   }
 
+  async findFirstActive(): Promise<IntegrationConnectionRecord | null> {
+    const row = await this.integrationConnectionTable().findFirst({
+      where: { status: 'ACTIVE' },
+      orderBy: [{ companyId: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    return (row as IntegrationConnectionRecord | null) ?? null;
+  }
+
+  async listActive(filters?: {
+    companyIds?: string[];
+    accountId?: string;
+    orFilters?: Array<Record<string, string>>;
+    orderBy?: 'companyThenCreatedAtAsc' | 'createdAtAsc';
+  }): Promise<IntegrationConnectionRecord[]> {
+    const rows = await this.integrationConnectionTable().findMany({
+      where: {
+        status: 'ACTIVE',
+        ...(filters?.companyIds?.length ? { companyId: { in: filters.companyIds } } : {}),
+        ...(filters?.accountId ? { chatwootAccountId: filters.accountId } : {}),
+        ...(filters?.orFilters?.length ? { OR: filters.orFilters } : {}),
+      },
+      orderBy: filters?.orderBy === 'createdAtAsc'
+        ? [{ createdAt: 'asc' }]
+        : [{ companyId: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    return rows as IntegrationConnectionRecord[];
+  }
+
   async create(data: IntegrationConnectionDatabaseInput): Promise<IntegrationConnectionRecord> {
     const row = await this.integrationConnectionTable().create({ data });
     return row as IntegrationConnectionRecord;

@@ -63,6 +63,9 @@ Estrutura atual de `settings`:
 - `integration-connections-validator.service.ts`: validacoes de unicidade, empresa e escopo Evolution/Chatwoot
 - `integration-connections-tester.service.ts`: testes externos de Evolution e Chatwoot
 - `integration-connections.mapper.service.ts`: merge de update, criptografia e mapeamento de entrada/saida
+- `integration-context.service.ts`: orquestracao da resolucao de contexto efetivo para runtime e webhooks
+- `integration-context-mapper.service.ts`: mapeamento tipado da conexao persistida para o contexto consumido pelo bridge
+- `settings-chatwoot-config-store.service.ts`: leitura compartilhada da configuracao persistida do Chatwoot com secrets descriptografados
 - `settings-integration-secrets.service.ts`: criptografia e persistencia segura dos secrets compartilhados
 
 ## Scripts

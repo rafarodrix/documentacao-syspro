@@ -1,17 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import {
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
-  DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
   chatwootBehaviorSettingsSchema,
   chatwootIntegrationSettingsSchema,
   type ChatwootBehaviorSettingsInput,
   type ChatwootIntegrationSettingsInput,
 } from '@dosc-syspro/contracts/chatwoot';
-import { readChatwootRuntimeConfig } from '@dosc-syspro/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationContextService } from './integration-context.service';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { SettingsIntegrationSecretsService } from './settings-integration-secrets.service';
+import { SettingsChatwootConfigStoreService } from './settings-chatwoot-config-store.service';
 
 @Injectable()
 export class SettingsChatwootService {
@@ -27,6 +26,7 @@ export class SettingsChatwootService {
     private readonly integrationContext: IntegrationContextService,
     private readonly chatwootClient: ChatwootClient,
     private readonly settingsSecrets: SettingsIntegrationSecretsService,
+    private readonly chatwootConfigStore: SettingsChatwootConfigStoreService,
   ) {}
 
   async getBehaviorSettings() {
@@ -39,7 +39,7 @@ export class SettingsChatwootService {
   async getIntegrationSettings() {
     return {
       success: true,
-      data: await this.readStoredIntegrationSettings(),
+      data: await this.chatwootConfigStore.readStoredIntegrationSettings(),
     };
   }
 
@@ -131,7 +131,7 @@ export class SettingsChatwootService {
       this.integrationContext.getDefaultContext(),
       this.integrationContext.listActiveContexts(),
       this.readStoredBehaviorSettings(),
-      this.readStoredIntegrationSettings(),
+      this.chatwootConfigStore.readStoredIntegrationSettings(),
     ]);
 
     const chatwootDiagnostics = defaultContext
@@ -183,58 +183,6 @@ export class SettingsChatwootService {
       const validation = chatwootBehaviorSettingsSchema.safeParse({
         ...parsed,
         systemMessageApiToken: this.settingsSecrets.decryptOptional(systemBotTokenSetting?.value) ?? '',
-      });
-      return validation.success ? validation.data : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  private async readStoredIntegrationSettings() {
-    const [configSetting, apiTokenSetting, platformApiTokenSetting, webhookSecretSetting] = await Promise.all([
-      this.prisma.systemSetting.findUnique({
-        where: { key: SettingsChatwootService.CHATWOOT_CONFIG_KEY },
-        select: { value: true },
-      }),
-      this.prisma.systemSetting.findUnique({
-        where: { key: SettingsChatwootService.CHATWOOT_API_TOKEN_KEY },
-        select: { value: true },
-      }),
-      this.prisma.systemSetting.findUnique({
-        where: { key: SettingsChatwootService.CHATWOOT_PLATFORM_API_TOKEN_KEY },
-        select: { value: true },
-      }),
-      this.prisma.systemSetting.findUnique({
-        where: { key: SettingsChatwootService.CHATWOOT_WEBHOOK_SECRET_KEY },
-        select: { value: true },
-      }),
-    ]);
-
-    const runtime = readChatwootRuntimeConfig();
-    const fallback = {
-      ...DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
-      url: runtime.url,
-      accountId: runtime.accountId,
-      apiToken: this.settingsSecrets.decryptOptional(apiTokenSetting?.value) ?? runtime.apiToken,
-      platformApiToken: this.settingsSecrets.decryptOptional(platformApiTokenSetting?.value) ?? runtime.platformApiToken,
-      inboxId: runtime.inboxId,
-      inboxIdentifier: runtime.inboxIdentifier,
-      webhookSecret: this.settingsSecrets.decryptOptional(webhookSecretSetting?.value) ?? runtime.webhookSecret,
-      webhookMaxSkewSeconds: runtime.webhookMaxSkewSeconds ?? DEFAULT_CHATWOOT_INTEGRATION_SETTINGS.webhookMaxSkewSeconds,
-      incomingMediaMode: runtime.incomingMediaMode,
-    };
-
-    if (!configSetting?.value) {
-      return fallback;
-    }
-
-    try {
-      const parsed = JSON.parse(configSetting.value);
-      const validation = chatwootIntegrationSettingsSchema.safeParse({
-        ...parsed,
-        apiToken: this.settingsSecrets.decryptOptional(apiTokenSetting?.value) ?? runtime.apiToken,
-        platformApiToken: this.settingsSecrets.decryptOptional(platformApiTokenSetting?.value) ?? runtime.platformApiToken,
-        webhookSecret: this.settingsSecrets.decryptOptional(webhookSecretSetting?.value) ?? runtime.webhookSecret,
       });
       return validation.success ? validation.data : fallback;
     } catch {
