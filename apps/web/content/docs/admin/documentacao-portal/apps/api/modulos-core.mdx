@@ -130,6 +130,12 @@ Organiza changelogs e releases do produto.
 
 Configuracoes globais, integracoes, permissao, automacoes, SEFAZ e configuracao dos modulos.
 
+Organizacao atual do adapter HTTP:
+
+- `settings.controller.ts` concentra configuracoes gerais, contratos, permissoes, tarefas, tickets, SEFAZ e notificacoes operacionais.
+- `settings-integrations.controller.ts` concentra Evolution, Chatwoot, Google Calendar, storage e conexoes de integracao.
+- `settings-integrations.service.ts` encapsula leitura/escrita de secrets, criptografia e diagnosticos das integracoes.
+
 No contexto de tarefas, os endpoints administrativos oficiais sao:
 
 ```text

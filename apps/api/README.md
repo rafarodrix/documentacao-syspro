@@ -47,6 +47,12 @@ Em outras palavras: `apps/api` deixou de ser o lugar para utilitário transversa
 - centralizar a fonte efetiva de autorização usada pelo portal
 - manter o bridge operacional entre Evolution Go e Chatwoot
 
+Estrutura atual de `settings`:
+
+- `settings.controller.ts`: configuracoes gerais, contratos, permissoes, notificacoes e modulos administrativos
+- `settings-integrations.controller.ts`: endpoints HTTP de Evolution, Chatwoot, Google Calendar, storage e conexoes de integracao
+- `settings-integrations.service.ts`: secrets, criptografia, leitura persistida e diagnosticos das integracoes
+
 ## Scripts
 
 ```bash
