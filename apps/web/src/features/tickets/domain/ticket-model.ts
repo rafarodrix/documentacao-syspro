@@ -62,6 +62,7 @@ export interface TicketQueryParams {
     pageSize?: number;
     queue?: QueueKey;
     search?: string;
+    companyId?: string;
     statusGroup?: TicketStatusGroup | "all";
     team?: Exclude<TicketTeamFilter, "all">;
     closedWindow?: ClosedTicketsWindow;

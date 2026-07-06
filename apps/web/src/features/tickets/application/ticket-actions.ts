@@ -129,6 +129,7 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
       ...(params.sortBy ? { sortBy: params.sortBy } : {}),
       ...(params.sortOrder ? { sortOrder: params.sortOrder } : {}),
       ...(params.search?.trim() ? { search: params.search.trim() } : {}),
+      ...(params.companyId?.trim() ? { companyId: params.companyId.trim() } : {}),
     });
     
     if (!response.success || !response.data) {

@@ -34,6 +34,7 @@ export async function getTarefasItemsQuery(input: {
   dueTo?: string;
   reconcileCurrentCompetence?: boolean;
   search?: string;
+  companyId?: string;
 }) {
   return (await trpc.tarefas.listTasks.query(input)) as TaskItemListResponse;
 }

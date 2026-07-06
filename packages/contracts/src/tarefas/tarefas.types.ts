@@ -155,6 +155,7 @@ export const taskItemListQuerySchema = paginationQuerySchema.extend({
   dueTo: z.string().optional(),
   reconcileCurrentCompetence: z.boolean().optional(),
   search: z.string().trim().optional(),
+  companyId: z.string().trim().optional(),
 });
 
 const taskManualRequestItemSchema = z.object({

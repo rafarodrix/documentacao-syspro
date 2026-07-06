@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/api/trpc-client";
 import type {
   CompanyAdminView,
+  CompanyCockpitViewData,
   CompanyEditViewData,
   CompanyListResponse,
   CompanyOption,
@@ -56,4 +57,8 @@ export async function getCadastrosCompaniesAdminViewData(filters?: {
 
 export async function getCompanyEditViewData(companyId: string): Promise<CompanyEditViewData> {
   return (await trpc.companies.getEditView.query({ id: companyId })) as CompanyEditViewData;
+}
+
+export async function getCompanyCockpitViewData(companyId: string): Promise<CompanyCockpitViewData> {
+  return (await trpc.companies.getCockpitView.query({ id: companyId })) as CompanyCockpitViewData;
 }

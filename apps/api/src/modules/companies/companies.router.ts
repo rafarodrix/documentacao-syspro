@@ -57,6 +57,12 @@ export class CompaniesRouter {
           return this.companiesService.getCompanyEditView(input.id, ctx.headers);
         }),
 
+      getCockpitView: this.trpc.publicProcedure
+        .input(z.object({ id: z.string() }))
+        .query(({ input, ctx }) => {
+          return this.companiesService.getCompanyCockpitView(input.id, ctx.headers);
+        }),
+
       create: this.trpc.publicProcedure
         .input(z.object({ data: createCompanySchema }))
         .mutation(({ input, ctx }) => {

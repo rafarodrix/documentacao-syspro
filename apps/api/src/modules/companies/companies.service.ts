@@ -1,9 +1,10 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
-import { CompanySegment, CompanyStatus, Role } from '@prisma/client';
+import { CompanySegment, CompanyStatus, ConversationStatus, Role, TaskStatus, TaskType } from '@prisma/client';
 import { onlyDigits } from '@dosc-syspro/shared';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
+  type CompanyCockpitViewData,
   companyStatusUpdateSchema,
   type CompanyAdminView,
   type CompanyStatusUpdateInput,
@@ -554,6 +555,491 @@ export class CompaniesService {
               codigoIbgeEstado: '',
             },
       },
+    };
+  }
+
+  async getCompanyCockpitView(companyId: string, rawHeaders?: IncomingHttpHeaders): Promise<CompanyCockpitViewData> {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const editScope = await this.getCompanyEditScope(requester);
+    await this.assertCompanyAccess(companyId, editScope);
+
+    const company = await this.prisma.company.findFirst({
+      where: {
+        id: companyId,
+        OR: [
+          { deletedAt: null },
+          { status: CompanyStatus.INACTIVE },
+        ],
+      },
+      select: {
+        id: true,
+        cnpj: true,
+        razaoSocial: true,
+        nomeFantasia: true,
+        status: true,
+        segment: true,
+        regimeTributario: true,
+        observacoes: true,
+        serverType: true,
+        serverPort: true,
+        serverHost: true,
+        serverProtocol: true,
+        installationDirectory: true,
+        accountingFirm: {
+          select: {
+            razaoSocial: true,
+            nomeFantasia: true,
+          },
+        },
+        addresses: {
+          take: 1,
+          orderBy: { id: 'asc' },
+          select: {
+            cidade: true,
+            estado: true,
+          },
+        },
+        _count: {
+          select: {
+            memberships: true,
+            contactLinks: true,
+            contracts: true,
+            remoteHosts: true,
+            integrationConnections: true,
+            conversationLinks: true,
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Empresa nao encontrada.');
+    }
+
+    const now = new Date();
+    const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const openTicketWhere = {
+      companyId,
+      status: {
+        notIn: [ConversationStatus.RESOLVED, ConversationStatus.ARCHIVED],
+      },
+    };
+    const openTaskWhere = {
+      companyId,
+      status: {
+        notIn: [TaskStatus.COMPLETED, TaskStatus.CANCELED],
+      },
+    };
+
+    const [
+      recentTickets,
+      recentTasks,
+      taskConfig,
+      latestRoutineTasks,
+      recentConversations,
+      recentHosts,
+      recentSessions,
+      recentIntegrations,
+      releaseTickets,
+      openTicketsCount,
+      openTasksCount,
+      responseOverdueCount,
+      resolutionOverdueCount,
+      responseDueSoonCount,
+      resolutionDueSoonCount,
+      monthlyRoutinePendingCount,
+      monthlyRoutineOverdueCount,
+      monthlyRoutineWaitingCustomerCount,
+      monthlyRoutineCompletedCount,
+    ] = await Promise.all([
+      this.prisma.ticket.findMany({
+        where: { companyId },
+        orderBy: [{ updatedAt: 'desc' }],
+        take: 5,
+        select: {
+          id: true,
+          ticketNumber: true,
+          subject: true,
+          status: true,
+          priority: true,
+          updatedAt: true,
+          lastMessageAt: true,
+          slaResponseDueAt: true,
+          slaResponseHitAt: true,
+          slaResolutionDueAt: true,
+          slaResolutionHitAt: true,
+          assignedUser: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      this.prisma.task.findMany({
+        where: { companyId },
+        orderBy: [{ dueDate: 'asc' }, { updatedAt: 'desc' }],
+        take: 6,
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          status: true,
+          dueDate: true,
+          updatedAt: true,
+          year: true,
+          month: true,
+          ticket: {
+            select: {
+              ticketNumber: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      this.prisma.taskConfig.findUnique({
+        where: { companyId },
+        select: {
+          isActive: true,
+          title: true,
+          dueDay: true,
+          reminderDays: true,
+        },
+      }),
+      this.prisma.task.findMany({
+        where: {
+          companyId,
+          type: TaskType.ROTINA_MENSAL,
+        },
+        orderBy: [{ year: 'desc' }, { month: 'desc' }, { updatedAt: 'desc' }],
+        take: 4,
+        select: {
+          id: true,
+          year: true,
+          month: true,
+          status: true,
+          dueDate: true,
+          updatedAt: true,
+          requests: {
+            orderBy: [{ createdAt: 'desc' }],
+            take: 1,
+            select: {
+              status: true,
+            },
+          },
+        },
+      }),
+      this.prisma.conversationLink.findMany({
+        where: { companyId },
+        orderBy: [{ updatedAt: 'desc' }],
+        take: 5,
+        select: {
+          id: true,
+          chatwootConversationId: true,
+          whatsappNumber: true,
+          updatedAt: true,
+          whatsappDeliveryStatus: true,
+          connection: {
+            select: {
+              name: true,
+              status: true,
+              chatwootUrl: true,
+              chatwootAccountId: true,
+            },
+          },
+        },
+      }),
+      this.prisma.remoteHost.findMany({
+        where: { companyId },
+        orderBy: [{ lastHeartbeatSuccessAt: 'desc' }, { updatedAt: 'desc' }],
+        take: 4,
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          serviceStatus: true,
+          lastHeartbeatSuccessAt: true,
+          lastKnownRustDeskAlias: true,
+          agentVersion: true,
+        },
+      }),
+      this.prisma.remoteSession.findMany({
+        where: { companyId },
+        orderBy: [{ createdAt: 'desc' }],
+        take: 5,
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+          startedAt: true,
+          endedAt: true,
+          ticketNumber: true,
+          host: {
+            select: {
+              name: true,
+            },
+          },
+          requestedByUser: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      this.prisma.integrationConnection.findMany({
+        where: { companyId },
+        orderBy: [{ updatedAt: 'desc' }],
+        take: 4,
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          updatedAt: true,
+          chatwootInboxId: true,
+          chatwootInboxIdentifier: true,
+          evolutionInstance: true,
+        },
+      }),
+      this.prisma.ticket.findMany({
+        where: {
+          companyId,
+          publishToReleases: true,
+        },
+        orderBy: [{ closedAt: 'desc' }, { updatedAt: 'desc' }],
+        take: 5,
+        select: {
+          id: true,
+          ticketNumber: true,
+          subject: true,
+          resolutionSummary: true,
+          releaseType: true,
+          releaseModule: true,
+          closedAt: true,
+          resolutionVideoUrl: true,
+        },
+      }),
+      this.prisma.ticket.count({ where: openTicketWhere }),
+      this.prisma.task.count({ where: openTaskWhere }),
+      this.prisma.ticket.count({
+        where: {
+          ...openTicketWhere,
+          slaResponseHitAt: null,
+          slaResponseDueAt: { lt: now },
+        },
+      }),
+      this.prisma.ticket.count({
+        where: {
+          ...openTicketWhere,
+          slaResolutionHitAt: null,
+          slaResolutionDueAt: { lt: now },
+        },
+      }),
+      this.prisma.ticket.count({
+        where: {
+          ...openTicketWhere,
+          slaResponseHitAt: null,
+          slaResponseDueAt: {
+            gte: now,
+            lt: next24Hours,
+          },
+        },
+      }),
+      this.prisma.ticket.count({
+        where: {
+          ...openTicketWhere,
+          slaResolutionHitAt: null,
+          slaResolutionDueAt: {
+            gte: now,
+            lt: next24Hours,
+          },
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          companyId,
+          type: TaskType.ROTINA_MENSAL,
+          status: TaskStatus.PENDING,
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          companyId,
+          type: TaskType.ROTINA_MENSAL,
+          OR: [
+            { status: TaskStatus.OVERDUE },
+            {
+              status: {
+                notIn: [TaskStatus.COMPLETED, TaskStatus.CANCELED],
+              },
+              dueDate: { lt: now },
+            },
+          ],
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          companyId,
+          type: TaskType.ROTINA_MENSAL,
+          status: TaskStatus.WAITING_CUSTOMER,
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          companyId,
+          type: TaskType.ROTINA_MENSAL,
+          status: TaskStatus.COMPLETED,
+        },
+      }),
+    ]);
+
+    const address = company.addresses[0];
+    const block = parseContractBlockReason(company.observacoes);
+    const accountingFirmName = company.accountingFirm?.nomeFantasia?.trim() || company.accountingFirm?.razaoSocial?.trim() || null;
+
+    return {
+      profile: {
+        companyId: company.id,
+        displayName: company.nomeFantasia?.trim() || company.razaoSocial,
+        razaoSocial: company.razaoSocial,
+        nomeFantasia: company.nomeFantasia ?? null,
+        cnpj: company.cnpj,
+        status: company.status,
+        segment: company.segment ?? null,
+        regimeTributario: company.regimeTributario ?? null,
+        city: address?.cidade ?? null,
+        state: address?.estado ?? null,
+        accountingFirmName,
+        blockedReasonLabel: block?.label ?? null,
+        installationDirectory: company.installationDirectory ?? null,
+        serverHost: company.serverHost ?? null,
+        serverType: company.serverType ?? null,
+        serverProtocol: company.serverProtocol ?? null,
+        serverPort: company.serverPort ?? null,
+        counts: {
+          users: company._count.memberships,
+          contacts: company._count.contactLinks,
+          contracts: company._count.contracts,
+          remoteHosts: company._count.remoteHosts,
+          integrationConnections: company._count.integrationConnections,
+          conversationLinks: company._count.conversationLinks,
+          openTickets: openTicketsCount,
+          openTasks: openTasksCount,
+        },
+      },
+      sla: {
+        openTickets: openTicketsCount,
+        responseOverdue: responseOverdueCount,
+        resolutionOverdue: resolutionOverdueCount,
+        responseDueSoon: responseDueSoonCount,
+        resolutionDueSoon: resolutionDueSoonCount,
+      },
+      tickets: recentTickets.map((ticket) => ({
+        id: ticket.id,
+        ticketNumber: ticket.ticketNumber ?? null,
+        subject: ticket.subject ?? null,
+        status: ticket.status,
+        priority: ticket.priority,
+        assignedToName: ticket.assignedUser?.name?.trim() || null,
+        updatedAt: ticket.updatedAt.toISOString(),
+        lastMessageAt: ticket.lastMessageAt?.toISOString() ?? null,
+        slaResponseDueAt: ticket.slaResponseDueAt?.toISOString() ?? null,
+        slaResolutionDueAt: ticket.slaResolutionDueAt?.toISOString() ?? null,
+        isResponseOverdue: Boolean(ticket.slaResponseDueAt && !ticket.slaResponseHitAt && ticket.slaResponseDueAt < now),
+        isResolutionOverdue: Boolean(ticket.slaResolutionDueAt && !ticket.slaResolutionHitAt && ticket.slaResolutionDueAt < now),
+      })),
+      tasks: recentTasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        type: task.type,
+        status: task.status,
+        dueDate: task.dueDate.toISOString(),
+        updatedAt: task.updatedAt.toISOString(),
+        assignedToName: task.assignedTo?.name?.trim() || null,
+        ticketNumber: task.ticket?.ticketNumber ?? null,
+        competenceLabel:
+          typeof task.year === 'number' && typeof task.month === 'number'
+            ? `${String(task.month).padStart(2, '0')}/${task.year}`
+            : null,
+      })),
+      monthlyRoutine: {
+        isConfigured: Boolean(taskConfig),
+        isActive: Boolean(taskConfig?.isActive),
+        title: taskConfig?.title ?? null,
+        dueDay: taskConfig?.dueDay ?? null,
+        reminderDays: taskConfig?.reminderDays ?? null,
+        pendingCount: monthlyRoutinePendingCount,
+        overdueCount: monthlyRoutineOverdueCount,
+        waitingCustomerCount: monthlyRoutineWaitingCustomerCount,
+        completedCount: monthlyRoutineCompletedCount,
+        latestItems: latestRoutineTasks.map((task) => ({
+          id: task.id,
+          competenceLabel:
+            typeof task.year === 'number' && typeof task.month === 'number'
+              ? `${String(task.month).padStart(2, '0')}/${task.year}`
+              : 'Sem competencia',
+          status: task.status,
+          dueDate: task.dueDate.toISOString(),
+          updatedAt: task.updatedAt.toISOString(),
+          lastRequestStatus: task.requests[0]?.status ?? null,
+        })),
+      },
+      conversations: recentConversations.map((conversation) => {
+        const chatwootBaseUrl = conversation.connection?.chatwootUrl?.trim().replace(/\/+$/, '') || null;
+        const accountId = conversation.connection?.chatwootAccountId?.trim() || null;
+        return {
+          id: conversation.id,
+          chatwootConversationId: conversation.chatwootConversationId,
+          whatsappNumber: conversation.whatsappNumber,
+          connectionName: conversation.connection?.name ?? null,
+          connectionStatus: conversation.connection?.status ?? null,
+          chatwootUrl:
+            chatwootBaseUrl && accountId
+              ? `${chatwootBaseUrl}/app/accounts/${accountId}/conversations/${conversation.chatwootConversationId}`
+              : null,
+          updatedAt: conversation.updatedAt.toISOString(),
+          lastDeliveryStatus: conversation.whatsappDeliveryStatus,
+        };
+      }),
+      hosts: recentHosts.map((host) => ({
+        id: host.id,
+        name: host.name,
+        status: host.status,
+        serviceStatus: host.serviceStatus ?? null,
+        lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt?.toISOString() ?? null,
+        lastKnownRustDeskAlias: host.lastKnownRustDeskAlias ?? null,
+        agentVersion: host.agentVersion ?? null,
+      })),
+      sessions: recentSessions.map((session) => ({
+        id: session.id,
+        status: session.status,
+        createdAt: session.createdAt.toISOString(),
+        startedAt: session.startedAt?.toISOString() ?? null,
+        endedAt: session.endedAt?.toISOString() ?? null,
+        hostName: session.host.name,
+        requestedByName: session.requestedByUser?.name?.trim() || null,
+        ticketNumber: session.ticketNumber ?? null,
+      })),
+      integrations: recentIntegrations.map((connection) => ({
+        id: connection.id,
+        name: connection.name,
+        status: connection.status,
+        updatedAt: connection.updatedAt.toISOString(),
+        chatwootInboxLabel: connection.chatwootInboxIdentifier || connection.chatwootInboxId || null,
+        evolutionInstance: connection.evolutionInstance || null,
+      })),
+      releases: releaseTickets.map((ticket) => ({
+        ticketId: ticket.id,
+        ticketNumber: ticket.ticketNumber ?? null,
+        type: ticket.releaseType ?? null,
+        module: ticket.releaseModule ?? null,
+        title: ticket.subject?.trim() || `Release ${ticket.ticketNumber ?? ticket.id}`,
+        summary: ticket.resolutionSummary ?? null,
+        publishedAt: ticket.closedAt?.toISOString() ?? null,
+        resolutionVideoUrl: ticket.resolutionVideoUrl ?? null,
+      })),
     };
   }
 

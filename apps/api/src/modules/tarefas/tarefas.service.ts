@@ -599,6 +599,7 @@ export class TarefasService {
         : undefined;
     const typeFilter = input.type && input.type !== 'ALL' ? input.type : undefined;
     const search = input.search?.trim();
+    const companyId = input.companyId?.trim();
     const dueFrom = this.parseOptionalDateInput(input.dueFrom, 'start');
     const dueTo = this.parseOptionalDateInput(input.dueTo, 'end');
     const page = this.parsePage(input.page);
@@ -643,6 +644,9 @@ export class TarefasService {
     const baseConditions: any[] = [];
     if (!scope.isGlobal) {
       baseConditions.push(scopeWhere);
+    }
+    if (companyId) {
+      baseConditions.push({ companyId });
     }
 
     if (originFilter === 'MONTHLY') {

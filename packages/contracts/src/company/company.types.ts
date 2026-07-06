@@ -264,6 +264,158 @@ export interface CompanyEditViewData {
   initialData: CompanyEditInitialData;
 }
 
+export interface CompanyCockpitProfile {
+  companyId: string;
+  displayName: string;
+  razaoSocial: string;
+  nomeFantasia: string | null;
+  cnpj: string;
+  status: CompanyStatusValue;
+  segment?: CompanySegmentValue | null;
+  regimeTributario?: TaxRegimeValue | null;
+  city?: string | null;
+  state?: string | null;
+  accountingFirmName?: string | null;
+  blockedReasonLabel?: string | null;
+  installationDirectory?: string | null;
+  serverHost?: string | null;
+  serverType?: "SYSPRO_SERVER" | "IIS" | null;
+  serverProtocol?: "HTTP" | "HTTPS" | null;
+  serverPort?: number | null;
+  counts: {
+    users: number;
+    contacts: number;
+    contracts: number;
+    remoteHosts: number;
+    integrationConnections: number;
+    conversationLinks: number;
+    openTickets: number;
+    openTasks: number;
+  };
+}
+
+export interface CompanyCockpitSlaSummary {
+  openTickets: number;
+  responseOverdue: number;
+  resolutionOverdue: number;
+  responseDueSoon: number;
+  resolutionDueSoon: number;
+}
+
+export interface CompanyCockpitTicketItem {
+  id: string;
+  ticketNumber: string | null;
+  subject: string | null;
+  status: string;
+  priority: string;
+  assignedToName: string | null;
+  updatedAt: string;
+  lastMessageAt: string | null;
+  slaResponseDueAt: string | null;
+  slaResolutionDueAt: string | null;
+  isResponseOverdue: boolean;
+  isResolutionOverdue: boolean;
+}
+
+export interface CompanyCockpitTaskItem {
+  id: string;
+  title: string;
+  type: "ROTINA_MENSAL" | "TAREFA";
+  status: string;
+  dueDate: string;
+  updatedAt: string;
+  assignedToName: string | null;
+  ticketNumber: string | null;
+  competenceLabel: string | null;
+}
+
+export interface CompanyCockpitMonthlyRoutineItem {
+  id: string;
+  competenceLabel: string;
+  status: string;
+  dueDate: string;
+  updatedAt: string;
+  lastRequestStatus: string | null;
+}
+
+export interface CompanyCockpitMonthlyRoutineSummary {
+  isConfigured: boolean;
+  isActive: boolean;
+  title: string | null;
+  dueDay: number | null;
+  reminderDays: number | null;
+  pendingCount: number;
+  overdueCount: number;
+  waitingCustomerCount: number;
+  completedCount: number;
+  latestItems: CompanyCockpitMonthlyRoutineItem[];
+}
+
+export interface CompanyCockpitConversationItem {
+  id: string;
+  chatwootConversationId: string;
+  whatsappNumber: string;
+  connectionName: string | null;
+  connectionStatus: string | null;
+  chatwootUrl: string | null;
+  updatedAt: string;
+  lastDeliveryStatus: string;
+}
+
+export interface CompanyCockpitHostItem {
+  id: string;
+  name: string;
+  status: string;
+  serviceStatus: string | null;
+  lastHeartbeatSuccessAt: string | null;
+  lastKnownRustDeskAlias: string | null;
+  agentVersion: string | null;
+}
+
+export interface CompanyCockpitSessionItem {
+  id: string;
+  status: string;
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  hostName: string;
+  requestedByName: string | null;
+  ticketNumber: string | null;
+}
+
+export interface CompanyCockpitIntegrationItem {
+  id: string;
+  name: string;
+  status: string;
+  updatedAt: string;
+  chatwootInboxLabel: string | null;
+  evolutionInstance: string | null;
+}
+
+export interface CompanyCockpitReleaseItem {
+  ticketId: string;
+  ticketNumber: string | null;
+  type: string | null;
+  module: string | null;
+  title: string;
+  summary: string | null;
+  publishedAt: string | null;
+  resolutionVideoUrl: string | null;
+}
+
+export interface CompanyCockpitViewData {
+  profile: CompanyCockpitProfile;
+  sla: CompanyCockpitSlaSummary;
+  tickets: CompanyCockpitTicketItem[];
+  tasks: CompanyCockpitTaskItem[];
+  monthlyRoutine: CompanyCockpitMonthlyRoutineSummary;
+  conversations: CompanyCockpitConversationItem[];
+  hosts: CompanyCockpitHostItem[];
+  sessions: CompanyCockpitSessionItem[];
+  integrations: CompanyCockpitIntegrationItem[];
+  releases: CompanyCockpitReleaseItem[];
+}
+
 export const companyAddressViewSchema = z.object({
   description: z.string().nullable().optional(),
   cep: z.string().nullable().optional(),

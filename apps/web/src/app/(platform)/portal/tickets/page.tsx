@@ -22,6 +22,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const queueParam = typeof params?.queue === "string" ? params.queue : "all";
   const search = typeof params?.search === "string" ? params.search : "";
+  const companyId = typeof params?.companyId === "string" ? params.companyId : "";
   const statusParam = typeof params?.status === "string" ? params.status : "open";
   const teamParam = typeof params?.team === "string" ? params.team : undefined;
   const categoryParam = typeof params?.category === "string" ? params.category : "";
@@ -74,6 +75,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     sortBy,
     sortOrder,
     hasSearch: Boolean(search.trim()),
+    companyId: companyId || undefined,
   });
 
   const { data, success, pagination, staleWarning, queueCounts, statusCounts } = await getTicketsAction({
@@ -82,6 +84,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     queue,
     team: team === "all" ? undefined : team,
     search,
+    companyId: companyId || undefined,
     statusGroup,
     closedWindow,
     category: categoryParam || undefined,

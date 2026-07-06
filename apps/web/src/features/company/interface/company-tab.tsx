@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Button, DataTable, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, DropdownMenuCheckboxItem } from "@dosc-syspro/ui";
-import { MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil, SlidersHorizontal } from "lucide-react"
+import { MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil, SlidersHorizontal, PanelsTopLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
@@ -117,6 +117,7 @@ function CompanyActionsMenu({
   const router = useRouter()
   const [isNavigating, startNavigation] = useTransition()
   const editHref = `/portal/cadastros/empresa/${company.id}/editar?returnTo=${encodeURIComponent(returnHref)}`
+  const cockpitHref = `/portal/cadastros/empresa/${company.id}/360?returnTo=${encodeURIComponent(returnHref)}`
 
   if (!canEdit && !canToggleStatus && !canDelete) return null
 
@@ -126,6 +127,7 @@ function CompanyActionsMenu({
         onOpenChange={(open) => {
           if (open && canEdit) {
             router.prefetch(editHref)
+            router.prefetch(cockpitHref)
           }
         }}
       >
@@ -169,6 +171,24 @@ function CompanyActionsMenu({
             >
               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-sm">Editar empresa</span>
+            </DropdownMenuItem>
+          )}
+
+          {canEdit && (
+            <DropdownMenuItem
+              className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md"
+              onPointerEnter={() => router.prefetch(cockpitHref)}
+              onSelect={(event) => {
+                event.preventDefault()
+                stopRecordClick(event)
+                startNavigation(() => {
+                  router.push(cockpitHref)
+                })
+              }}
+              disabled={isNavigating}
+            >
+              <PanelsTopLeft className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm">Abrir Empresa 360</span>
             </DropdownMenuItem>
           )}
 
