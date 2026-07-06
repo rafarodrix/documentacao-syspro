@@ -51,7 +51,10 @@ Estrutura atual de `settings`:
 
 - `settings.controller.ts`: configuracoes gerais, contratos, permissoes, notificacoes e modulos administrativos
 - `settings-integrations.controller.ts`: endpoints HTTP de Evolution, Chatwoot, Google Calendar, storage e conexoes de integracao
-- `settings-evolution.service.ts`: configuracao, status, QR Code e diagnosticos da Evolution
+- `settings-evolution.service.ts`: fachada do subdominio Evolution usada pelo controller
+- `settings-evolution-config.service.ts`: persistencia e leitura tipada da configuracao Evolution
+- `settings-evolution-status-store.service.ts`: armazenamento e consulta de status e QR Code da Evolution
+- `settings-evolution-connect.service.ts`: chamada externa de connect e conciliacao do retorno com o status persistido
 - `settings-chatwoot.service.ts`: configuracao, comportamento operacional e diagnosticos do Chatwoot
 - `settings-storage-google-calendar.service.ts`: storage R2, Google Calendar e leitura persistida dessas integracoes
 - `settings-integration-connections-admin.service.ts`: CRUD e teste das conexoes de integracao

@@ -11,6 +11,9 @@ import { ChatwootModule } from '../integrations/chatwoot/chatwoot.module';
 import { AutomationModule } from '../automation/automation.module';
 import { R2StorageService } from '../integrations/storage/r2-storage.service';
 import { SettingsEvolutionService } from './settings-evolution.service';
+import { SettingsEvolutionConfigService } from './settings-evolution-config.service';
+import { SettingsEvolutionStatusStoreService } from './settings-evolution-status-store.service';
+import { SettingsEvolutionConnectService } from './settings-evolution-connect.service';
 import { SettingsChatwootService } from './settings-chatwoot.service';
 import { SettingsStorageGoogleCalendarService } from './settings-storage-google-calendar.service';
 import { SettingsIntegrationConnectionsAdminService } from './settings-integration-connections-admin.service';
@@ -26,6 +29,9 @@ import { SettingsIntegrationSecretsService } from './settings-integration-secret
     SettingsSefazMonitorService,
     R2StorageService,
     SettingsEvolutionService,
+    SettingsEvolutionConfigService,
+    SettingsEvolutionStatusStoreService,
+    SettingsEvolutionConnectService,
     SettingsChatwootService,
     SettingsStorageGoogleCalendarService,
     SettingsIntegrationConnectionsAdminService,

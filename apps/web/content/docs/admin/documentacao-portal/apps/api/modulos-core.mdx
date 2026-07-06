@@ -134,7 +134,10 @@ Organizacao atual do adapter HTTP:
 
 - `settings.controller.ts` concentra configuracoes gerais, contratos, permissoes, tarefas, tickets, SEFAZ e notificacoes operacionais.
 - `settings-integrations.controller.ts` concentra Evolution, Chatwoot, Google Calendar, storage e conexoes de integracao.
-- `settings-evolution.service.ts` encapsula configuracao, status, QR Code e diagnosticos da Evolution.
+- `settings-evolution.service.ts` atua como fachada do subdominio Evolution.
+- `settings-evolution-config.service.ts` encapsula persistencia e leitura tipada da configuracao Evolution.
+- `settings-evolution-status-store.service.ts` encapsula armazenamento e consulta de status e QR Code da Evolution.
+- `settings-evolution-connect.service.ts` encapsula a chamada externa de connect e a conciliacao do retorno com o status persistido.
 - `settings-chatwoot.service.ts` encapsula configuracao, comportamento operacional e diagnosticos do Chatwoot.
 - `settings-storage-google-calendar.service.ts` encapsula storage R2, Google Calendar e leitura persistida dessas integracoes.
 - `settings-integration-connections-admin.service.ts` encapsula CRUD e teste das conexoes de integracao.
