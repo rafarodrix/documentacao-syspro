@@ -12,6 +12,9 @@ export default async function CadastrosRootPage() {
   if (await currentUserHasAnyPermission(["companies:view", "companies:view_own", "companies:view_all"], { acceptCompanyScope: true })) {
     redirect("/portal/cadastros/empresa")
   }
+  if (await currentUserHasAnyPermission(["companies:view_cockpit"], { acceptCompanyScope: true })) {
+    redirect("/portal/cadastros/empresa")
+  }
   if (await currentUserHasAnyPermission(["users:view", "users:view_team", "users:view_all"], { acceptCompanyScope: true })) {
     redirect("/portal/cadastros/usuarios")
   }

@@ -35,9 +35,12 @@ export async function PortalShellLayout({
 
   const navigationAccess = {
     dashboard: await currentUserHasPermission("dashboard:view"),
-    companies: await currentUserHasAnyPermission(["companies:view", "companies:view_own", "companies:view_all"], {
-      acceptCompanyScope: true,
-    }),
+    companies: await currentUserHasAnyPermission(
+      ["companies:view", "companies:view_own", "companies:view_all", "companies:view_cockpit"],
+      {
+        acceptCompanyScope: true,
+      },
+    ),
     users: await currentUserHasAnyPermission(["users:view", "users:view_team", "users:view_all"], {
       acceptCompanyScope: true,
     }),

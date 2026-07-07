@@ -44,9 +44,12 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
       : "ALL";
 
   await requireSession();
-  const canViewCompanies = await currentUserHasAnyPermission(["companies:view", "companies:view_own", "companies:view_all"], {
-    acceptCompanyScope: true,
-  });
+  const canViewCompanies = await currentUserHasAnyPermission(
+    ["companies:view", "companies:view_own", "companies:view_all", "companies:view_cockpit"],
+    {
+      acceptCompanyScope: true,
+    },
+  );
   if (!canViewCompanies) return <CadastrosAccessDenied />;
 
   const result = await getCadastrosCompaniesAdminViewData({

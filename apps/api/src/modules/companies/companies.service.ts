@@ -2446,9 +2446,19 @@ export class CompaniesService {
       return primaryScope;
     }
 
-    return this.authorizationService.resolveCompanyAccessScope(
+    const secondaryScope = await this.authorizationService.resolveCompanyAccessScope(
       requester as { userId: string; role: Role; email: string },
       'companies:view',
+      'companies:view_all',
+    );
+
+    if (secondaryScope.isGlobal || secondaryScope.companyIds.length > 0) {
+      return secondaryScope;
+    }
+
+    return this.authorizationService.resolveCompanyAccessScope(
+      requester as { userId: string; role: Role; email: string },
+      'companies:view_cockpit',
       'companies:view_all',
     );
   }

@@ -4,6 +4,7 @@ import { getDashboardData, getOperacionalData } from "@/features/dashboard/appli
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { AdminDashboard } from "@/features/dashboard/interface/admin-dashboard";
 import { ClientDashboard } from "@/features/dashboard/interface/client-dashboard";
+import { redirect } from "next/navigation";
 
 const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPermissionKey;
 const DASHBOARD_VIEW_INTERNAL = "dashboard:view_internal" as SettingsPermissionKey;
@@ -17,6 +18,7 @@ export default async function DashboardPage() {
         "companies:view",
         "companies:view_own",
         "companies:view_all",
+        "companies:view_cockpit",
         "contacts:view",
         "contacts:view_team",
         "contacts:view_all",
@@ -46,6 +48,14 @@ export default async function DashboardPage() {
         }}
       />
     );
+  }
+
+  if (canAccessCadastros) {
+    redirect("/portal/cadastros");
+  }
+
+  if (canAccessCrm) {
+    redirect("/portal/comercial/leads");
   }
 
   const data = await getDashboardData();
