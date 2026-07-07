@@ -34,6 +34,80 @@ function formatDate(value: string | null | undefined) {
   return formatDateSafe(value, "Sem data");
 }
 
+function normalizeCompanyCockpitView(view: CompanyCockpitViewData): CompanyCockpitViewData {
+  const profile = view?.profile ?? ({} as CompanyCockpitViewData["profile"]);
+  const counts = profile.counts ?? ({} as CompanyCockpitViewData["profile"]["counts"]);
+  const sla = view?.sla ?? ({} as CompanyCockpitViewData["sla"]);
+  const health = view?.health ?? ({} as CompanyCockpitViewData["health"]);
+  const monthlyRoutine = view?.monthlyRoutine ?? ({} as CompanyCockpitViewData["monthlyRoutine"]);
+
+  return {
+    profile: {
+      companyId: typeof profile.companyId === "string" && profile.companyId.trim() ? profile.companyId : "unknown-company",
+      displayName: typeof profile.displayName === "string" && profile.displayName.trim() ? profile.displayName : "Empresa",
+      razaoSocial: typeof profile.razaoSocial === "string" && profile.razaoSocial.trim() ? profile.razaoSocial : "Empresa",
+      nomeFantasia: typeof profile.nomeFantasia === "string" && profile.nomeFantasia.trim() ? profile.nomeFantasia : null,
+      cnpj: typeof profile.cnpj === "string" ? profile.cnpj : "",
+      status: profile.status ?? "ACTIVE",
+      segment: profile.segment ?? null,
+      regimeTributario: profile.regimeTributario ?? null,
+      city: typeof profile.city === "string" && profile.city.trim() ? profile.city : null,
+      state: typeof profile.state === "string" && profile.state.trim() ? profile.state : null,
+      accountingFirmName: typeof profile.accountingFirmName === "string" && profile.accountingFirmName.trim() ? profile.accountingFirmName : null,
+      blockedReasonLabel: typeof profile.blockedReasonLabel === "string" && profile.blockedReasonLabel.trim() ? profile.blockedReasonLabel : null,
+      installationDirectory: typeof profile.installationDirectory === "string" && profile.installationDirectory.trim() ? profile.installationDirectory : null,
+      serverHost: typeof profile.serverHost === "string" && profile.serverHost.trim() ? profile.serverHost : null,
+      serverType: profile.serverType ?? null,
+      serverProtocol: profile.serverProtocol ?? null,
+      serverPort: typeof profile.serverPort === "number" && Number.isFinite(profile.serverPort) ? profile.serverPort : null,
+      counts: {
+        users: typeof counts.users === "number" && Number.isFinite(counts.users) ? counts.users : 0,
+        contacts: typeof counts.contacts === "number" && Number.isFinite(counts.contacts) ? counts.contacts : 0,
+        contracts: typeof counts.contracts === "number" && Number.isFinite(counts.contracts) ? counts.contracts : 0,
+        remoteHosts: typeof counts.remoteHosts === "number" && Number.isFinite(counts.remoteHosts) ? counts.remoteHosts : 0,
+        integrationConnections: typeof counts.integrationConnections === "number" && Number.isFinite(counts.integrationConnections) ? counts.integrationConnections : 0,
+        conversationLinks: typeof counts.conversationLinks === "number" && Number.isFinite(counts.conversationLinks) ? counts.conversationLinks : 0,
+        openTickets: typeof counts.openTickets === "number" && Number.isFinite(counts.openTickets) ? counts.openTickets : 0,
+        openTasks: typeof counts.openTasks === "number" && Number.isFinite(counts.openTasks) ? counts.openTasks : 0,
+      },
+    },
+    sla: {
+      openTickets: typeof sla.openTickets === "number" && Number.isFinite(sla.openTickets) ? sla.openTickets : 0,
+      responseOverdue: typeof sla.responseOverdue === "number" && Number.isFinite(sla.responseOverdue) ? sla.responseOverdue : 0,
+      resolutionOverdue: typeof sla.resolutionOverdue === "number" && Number.isFinite(sla.resolutionOverdue) ? sla.resolutionOverdue : 0,
+      responseDueSoon: typeof sla.responseDueSoon === "number" && Number.isFinite(sla.responseDueSoon) ? sla.responseDueSoon : 0,
+      resolutionDueSoon: typeof sla.resolutionDueSoon === "number" && Number.isFinite(sla.resolutionDueSoon) ? sla.resolutionDueSoon : 0,
+    },
+    health: {
+      score: typeof health.score === "number" && Number.isFinite(health.score) ? health.score : 0,
+      status: health.status ?? "WATCH",
+      label: typeof health.label === "string" && health.label.trim() ? health.label : "Sem diagnostico",
+      summary: typeof health.summary === "string" && health.summary.trim() ? health.summary : "Os dados consolidados desta conta nao estao disponiveis no momento.",
+    },
+    alerts: Array.isArray(view?.alerts) ? view.alerts : [],
+    recommendedActions: Array.isArray(view?.recommendedActions) ? view.recommendedActions : [],
+    tickets: Array.isArray(view?.tickets) ? view.tickets : [],
+    tasks: Array.isArray(view?.tasks) ? view.tasks : [],
+    monthlyRoutine: {
+      isConfigured: Boolean(monthlyRoutine.isConfigured),
+      isActive: Boolean(monthlyRoutine.isActive),
+      title: typeof monthlyRoutine.title === "string" && monthlyRoutine.title.trim() ? monthlyRoutine.title : null,
+      dueDay: typeof monthlyRoutine.dueDay === "number" && Number.isFinite(monthlyRoutine.dueDay) ? monthlyRoutine.dueDay : null,
+      reminderDays: typeof monthlyRoutine.reminderDays === "number" && Number.isFinite(monthlyRoutine.reminderDays) ? monthlyRoutine.reminderDays : null,
+      pendingCount: typeof monthlyRoutine.pendingCount === "number" && Number.isFinite(monthlyRoutine.pendingCount) ? monthlyRoutine.pendingCount : 0,
+      overdueCount: typeof monthlyRoutine.overdueCount === "number" && Number.isFinite(monthlyRoutine.overdueCount) ? monthlyRoutine.overdueCount : 0,
+      waitingCustomerCount: typeof monthlyRoutine.waitingCustomerCount === "number" && Number.isFinite(monthlyRoutine.waitingCustomerCount) ? monthlyRoutine.waitingCustomerCount : 0,
+      completedCount: typeof monthlyRoutine.completedCount === "number" && Number.isFinite(monthlyRoutine.completedCount) ? monthlyRoutine.completedCount : 0,
+      latestItems: Array.isArray(monthlyRoutine.latestItems) ? monthlyRoutine.latestItems : [],
+    },
+    conversations: Array.isArray(view?.conversations) ? view.conversations : [],
+    hosts: Array.isArray(view?.hosts) ? view.hosts : [],
+    sessions: Array.isArray(view?.sessions) ? view.sessions : [],
+    integrations: Array.isArray(view?.integrations) ? view.integrations : [],
+    releases: Array.isArray(view?.releases) ? view.releases : [],
+  };
+}
+
 function getStatusBadge(status: CompanyCockpitViewData["profile"]["status"]) {
   if (status === "ACTIVE") return { label: "Ativa", variant: "success" as const };
   if (status === "PENDING_DOCS") return { label: "Pendente", variant: "warning" as const };
@@ -191,7 +265,7 @@ function QuickAction({
 }
 
 export function CompanyCockpitPage({
-  view,
+  view: rawView,
   backHref,
   canEdit,
   editHref,
@@ -201,6 +275,7 @@ export function CompanyCockpitPage({
   canEdit: boolean;
   editHref: string;
 }) {
+  const view = normalizeCompanyCockpitView(rawView);
   const statusBadge = getStatusBadge(view.profile.status);
   const healthBadge = getHealthBadge(view.health.status);
   const segmentLabel = view.profile.segment ? getCompanySegmentLabel(view.profile.segment) : "Sem segmento";
