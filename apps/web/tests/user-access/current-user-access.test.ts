@@ -60,4 +60,24 @@ describe("current user company access", () => {
     await expect(currentUserCanAccessCompany("company_a", "companies:view_cockpit", "companies:view_all")).resolves.toBe(true);
     await expect(currentUserCanAccessCompany("company_b", "companies:view_cockpit", "companies:view_all")).resolves.toBe(false);
   });
+
+  it("treats a global assignment of the scoped permission as global company access", async () => {
+    getProtectedSessionMock.mockResolvedValue({ user: { id: "user-3" } });
+    fetchSettingsAuthorizationContextGatewayMock.mockResolvedValue({
+      success: true,
+      data: {
+        userId: "user-3",
+        role: "SUPORTE",
+        fallbackPermissions: [],
+        globalPermissions: ["companies:view_cockpit"],
+        companyPermissions: {},
+        membershipCompanyIds: [],
+      },
+    });
+
+    const { currentUserCanAccessCompany } = await import("../../src/features/user-access/application/current-user-access");
+
+    await expect(currentUserCanAccessCompany("company_a", "companies:view_cockpit", "companies:view_all")).resolves.toBe(true);
+    await expect(currentUserCanAccessCompany("company_b", "companies:view_cockpit", "companies:view_all")).resolves.toBe(true);
+  });
 });

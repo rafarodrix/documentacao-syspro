@@ -98,8 +98,9 @@ export async function resolveCurrentUserCompanyAccessScope(
   }
 
   if (
-    globalPermission &&
-    (context.basePermissions.has(globalPermission) || context.globalPermissions.has(globalPermission))
+    context.globalPermissions.has(scopedPermission) ||
+    (globalPermission &&
+      (context.basePermissions.has(globalPermission) || context.globalPermissions.has(globalPermission)))
   ) {
     return { isGlobalView: true, companyIds: [] as string[], companyCount: 0 };
   }

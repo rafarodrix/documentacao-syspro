@@ -63,6 +63,12 @@ export class CompaniesRouter {
           return this.companiesService.getCompanyCockpitView(input.id, ctx.headers);
         }),
 
+      getCockpitFallbackView: this.trpc.publicProcedure
+        .input(z.object({ id: z.string() }))
+        .query(({ input, ctx }) => {
+          return this.companiesService.getCompanyCockpitFallbackView(input.id, ctx.headers);
+        }),
+
       create: this.trpc.publicProcedure
         .input(z.object({ data: createCompanySchema }))
         .mutation(({ input, ctx }) => {

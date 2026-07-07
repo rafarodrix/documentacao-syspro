@@ -110,6 +110,98 @@ function formatRequiredDateAttribute(value?: Date | string | null, fallback?: Da
   );
 }
 
+function buildPartialCockpitView(input: {
+  companyId: string;
+  razaoSocial: string;
+  nomeFantasia?: string | null;
+  cnpj?: string | null;
+  status: CompanyStatus;
+  segment?: CompanySegment | null;
+  regimeTributario?: string | null;
+  city?: string | null;
+  state?: string | null;
+  installationDirectory?: string | null;
+  serverHost?: string | null;
+  serverType?: 'SYSPRO_SERVER' | 'IIS' | null;
+  serverProtocol?: 'HTTP' | 'HTTPS' | null;
+  serverPort?: number | null;
+}): CompanyCockpitViewData {
+  return {
+    profile: {
+      companyId: input.companyId,
+      displayName: input.nomeFantasia?.trim() || input.razaoSocial,
+      razaoSocial: input.razaoSocial,
+      nomeFantasia: input.nomeFantasia?.trim() || null,
+      cnpj: input.cnpj?.trim() || '',
+      status: input.status,
+      segment: input.segment ?? null,
+      regimeTributario: (input.regimeTributario as any) ?? null,
+      city: input.city ?? null,
+      state: input.state ?? null,
+      accountingFirmName: null,
+      blockedReasonLabel: null,
+      installationDirectory: input.installationDirectory ?? null,
+      serverHost: input.serverHost ?? null,
+      serverType: input.serverType ?? null,
+      serverProtocol: input.serverProtocol ?? null,
+      serverPort: input.serverPort ?? null,
+      counts: {
+        users: 0,
+        contacts: 0,
+        contracts: 0,
+        remoteHosts: 0,
+        integrationConnections: 0,
+        conversationLinks: 0,
+        openTickets: 0,
+        openTasks: 0,
+      },
+    },
+    sla: {
+      openTickets: 0,
+      responseOverdue: 0,
+      resolutionOverdue: 0,
+      responseDueSoon: 0,
+      resolutionDueSoon: 0,
+    },
+    health: {
+      score: 70,
+      status: 'WATCH',
+      label: 'Visao parcial',
+      summary: 'O cockpit completo nao conseguiu consolidar todos os blocos desta empresa. A base cadastral segue disponivel.',
+    },
+    alerts: [
+      {
+        id: 'partial-cockpit',
+        severity: 'WARNING',
+        title: 'Cockpit carregado em modo parcial',
+        description: 'Alguns blocos operacionais nao puderam ser consolidados agora. Continue pela base cadastral e pelos atalhos da conta.',
+        href: null,
+        ctaLabel: null,
+      },
+    ],
+    recommendedActions: [],
+    tickets: [],
+    tasks: [],
+    monthlyRoutine: {
+      isConfigured: false,
+      isActive: false,
+      title: null,
+      dueDay: null,
+      reminderDays: null,
+      pendingCount: 0,
+      overdueCount: 0,
+      waitingCustomerCount: 0,
+      completedCount: 0,
+      latestItems: [],
+    },
+    conversations: [],
+    hosts: [],
+    sessions: [],
+    integrations: [],
+    releases: [],
+  };
+}
+
 function buildCockpitHealthSummary(input: {
   hasContractBlock: boolean;
   responseOverdue: number;
@@ -1347,6 +1439,66 @@ export class CompaniesService {
       );
       throw error;
     }
+  }
+
+  async getCompanyCockpitFallbackView(companyId: string, rawHeaders?: IncomingHttpHeaders): Promise<CompanyCockpitViewData> {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const cockpitScope = await this.getCompanyCockpitScope(requester);
+    await this.assertCompanyAccess(companyId, cockpitScope);
+
+    const company = await this.prisma.company.findFirst({
+      where: {
+        id: companyId,
+        OR: [
+          { deletedAt: null },
+          { status: CompanyStatus.INACTIVE },
+        ],
+      },
+      select: {
+        id: true,
+        cnpj: true,
+        razaoSocial: true,
+        nomeFantasia: true,
+        status: true,
+        segment: true,
+        regimeTributario: true,
+        installationDirectory: true,
+        serverHost: true,
+        serverType: true,
+        serverProtocol: true,
+        serverPort: true,
+        addresses: {
+          take: 1,
+          orderBy: { id: 'asc' },
+          select: {
+            cidade: true,
+            estado: true,
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Empresa nao encontrada.');
+    }
+
+    const address = company.addresses[0];
+    return buildPartialCockpitView({
+      companyId: company.id,
+      cnpj: company.cnpj,
+      razaoSocial: company.razaoSocial,
+      nomeFantasia: company.nomeFantasia,
+      status: company.status,
+      segment: company.segment,
+      regimeTributario: company.regimeTributario,
+      city: address?.cidade ?? null,
+      state: address?.estado ?? null,
+      installationDirectory: company.installationDirectory ?? null,
+      serverHost: company.serverHost ?? null,
+      serverType: company.serverType as 'SYSPRO_SERVER' | 'IIS' | null,
+      serverProtocol: company.serverProtocol as 'HTTP' | 'HTTPS' | null,
+      serverPort: company.serverPort ?? null,
+    });
   }
 
   async canAccessByCompanySegment(requiredSegments: CompanySegment[], rawHeaders?: IncomingHttpHeaders) {

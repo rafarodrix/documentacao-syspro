@@ -62,3 +62,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
 export async function getCompanyCockpitViewData(companyId: string): Promise<CompanyCockpitViewData> {
   return (await trpc.companies.getCockpitView.query({ id: companyId })) as CompanyCockpitViewData;
 }
+
+export async function getCompanyCockpitFallbackViewData(companyId: string): Promise<CompanyCockpitViewData> {
+  return (await trpc.companies.getCockpitFallbackView.query({ id: companyId })) as CompanyCockpitViewData;
+}
