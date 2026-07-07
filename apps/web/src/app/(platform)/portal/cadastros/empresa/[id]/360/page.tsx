@@ -25,7 +25,10 @@ export default async function CompanyCockpitRoute({ params, searchParams }: Page
         ? returnToParam[0] ?? "/portal/cadastros/empresa"
         : "/portal/cadastros/empresa";
 
-  const view = await getCompanyCockpitViewData(id);
+  const view = await getCompanyCockpitViewData(id).catch((error) => {
+    console.error("[company-360] Falha ao carregar cockpit.", { companyId: id, error });
+    throw error;
+  });
 
   return (
     <CompanyCockpitPage

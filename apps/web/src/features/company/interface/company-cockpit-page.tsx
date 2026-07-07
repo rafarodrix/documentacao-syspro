@@ -18,6 +18,7 @@ import {
 import type { CompanyCockpitAlertItem, CompanyCockpitRecommendationItem, CompanyCockpitViewData } from "@dosc-syspro/contracts/company";
 import { Badge, Button } from "@dosc-syspro/ui";
 import { EmptyState, MetricCard, PageHeader, PageShell, SectionCard } from "@/components/patterns";
+import { formatDate as formatDateSafe, formatDateTimeSafe } from "@/lib/date";
 import { formatCNPJ } from "@/lib/formatters";
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments";
 
@@ -26,18 +27,11 @@ function joinMeta(parts: Array<string | null | undefined>) {
 }
 
 function formatDateTime(value: string | null | undefined) {
-  if (!value) return "Sem registro";
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatDateTimeSafe(value, "Sem registro");
 }
 
 function formatDate(value: string | null | undefined) {
-  if (!value) return "Sem data";
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-  }).format(new Date(value));
+  return formatDateSafe(value, "Sem data");
 }
 
 function getStatusBadge(status: CompanyCockpitViewData["profile"]["status"]) {

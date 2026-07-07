@@ -96,6 +96,20 @@ function getTaskNextStepLabel(status: string) {
   }
 }
 
+function formatDateAttribute(value?: Date | string | null): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function formatRequiredDateAttribute(value?: Date | string | null, fallback?: Date | string | null): string {
+  return (
+    formatDateAttribute(value) ??
+    formatDateAttribute(fallback) ??
+    new Date(0).toISOString()
+  );
+}
+
 function buildCockpitHealthSummary(input: {
   hasContractBlock: boolean;
   responseOverdue: number;
@@ -635,6 +649,7 @@ export class CompaniesService {
     const cockpitScope = await this.getCompanyCockpitScope(requester);
     await this.assertCompanyAccess(companyId, cockpitScope);
 
+    try {
     const company = await this.prisma.company.findFirst({
       where: {
         id: companyId,
@@ -1198,23 +1213,23 @@ export class CompaniesService {
         id: ticket.id,
         ticketNumber: ticket.ticketNumber ?? null,
         subject: ticket.subject ?? null,
-        status: ticket.status,
-        priority: ticket.priority,
+        status: String(ticket.status ?? 'UNKNOWN'),
+        priority: String(ticket.priority ?? 'UNKNOWN'),
         assignedToName: ticket.assignedUser?.name?.trim() || null,
-        updatedAt: ticket.updatedAt.toISOString(),
-        lastMessageAt: ticket.lastMessageAt?.toISOString() ?? null,
-        slaResponseDueAt: ticket.slaResponseDueAt?.toISOString() ?? null,
-        slaResolutionDueAt: ticket.slaResolutionDueAt?.toISOString() ?? null,
+        updatedAt: formatRequiredDateAttribute(ticket.updatedAt),
+        lastMessageAt: formatDateAttribute(ticket.lastMessageAt),
+        slaResponseDueAt: formatDateAttribute(ticket.slaResponseDueAt),
+        slaResolutionDueAt: formatDateAttribute(ticket.slaResolutionDueAt),
         isResponseOverdue: Boolean(ticket.slaResponseDueAt && !ticket.slaResponseHitAt && ticket.slaResponseDueAt < now),
         isResolutionOverdue: Boolean(ticket.slaResolutionDueAt && !ticket.slaResolutionHitAt && ticket.slaResolutionDueAt < now),
       })),
       tasks: recentTasks.map((task) => ({
         id: task.id,
         title: task.title,
-        type: task.type,
-        status: task.status,
-        dueDate: task.dueDate.toISOString(),
-        updatedAt: task.updatedAt.toISOString(),
+        type: task.type === TaskType.TAREFA ? 'TAREFA' : 'ROTINA_MENSAL',
+        status: String(task.status ?? 'UNKNOWN'),
+        dueDate: formatRequiredDateAttribute(task.dueDate, task.updatedAt),
+        updatedAt: formatRequiredDateAttribute(task.updatedAt, task.dueDate),
         assignedToName: task.assignedTo?.name?.trim() || null,
         ticketNumber: task.ticket?.ticketNumber ?? null,
         competenceLabel:
@@ -1239,12 +1254,12 @@ export class CompaniesService {
             typeof task.year === 'number' && typeof task.month === 'number'
               ? `${String(task.month).padStart(2, '0')}/${task.year}`
               : 'Sem competencia',
-          status: task.status,
-          dueDate: task.dueDate.toISOString(),
-          requestedAt: task.requestedAt?.toISOString() ?? null,
-          receivedAt: task.receivedAt?.toISOString() ?? null,
-          updatedAt: task.updatedAt.toISOString(),
-          lastRequestStatus: task.requests[0]?.status ?? null,
+          status: String(task.status ?? 'UNKNOWN'),
+          dueDate: formatRequiredDateAttribute(task.dueDate, task.updatedAt),
+          requestedAt: formatDateAttribute(task.requestedAt),
+          receivedAt: formatDateAttribute(task.receivedAt),
+          updatedAt: formatRequiredDateAttribute(task.updatedAt, task.dueDate),
+          lastRequestStatus: task.requests[0]?.status ? String(task.requests[0].status) : null,
           nextStepLabel:
             task.status === TaskStatus.OVERDUE
               ? 'Cobrar cliente e reenviar solicitacao'
@@ -1268,9 +1283,9 @@ export class CompaniesService {
             chatwootBaseUrl && accountId
               ? `${chatwootBaseUrl}/app/accounts/${accountId}/conversations/${conversation.chatwootConversationId}`
               : null,
-          updatedAt: conversation.updatedAt.toISOString(),
-          lastDeliveryStatus: conversation.whatsappDeliveryStatus,
-          lastFailureAt: conversation.lastDeliveryFailureAt?.toISOString() ?? null,
+          updatedAt: formatRequiredDateAttribute(conversation.updatedAt),
+          lastDeliveryStatus: String(conversation.whatsappDeliveryStatus ?? 'UNKNOWN'),
+          lastFailureAt: formatDateAttribute(conversation.lastDeliveryFailureAt),
           lastFailureCode: conversation.lastDeliveryFailureCode ?? null,
           isStale: conversation.updatedAt < staleConversationThreshold,
         };
@@ -1278,27 +1293,27 @@ export class CompaniesService {
       hosts: recentHosts.map((host) => ({
         id: host.id,
         name: host.name,
-        status: host.status,
+        status: String(host.status ?? 'UNKNOWN'),
         serviceStatus: host.serviceStatus ?? null,
-        lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt?.toISOString() ?? null,
+        lastHeartbeatSuccessAt: formatDateAttribute(host.lastHeartbeatSuccessAt),
         lastKnownRustDeskAlias: host.lastKnownRustDeskAlias ?? null,
         agentVersion: host.agentVersion ?? null,
       })),
       sessions: recentSessions.map((session) => ({
         id: session.id,
-        status: session.status,
-        createdAt: session.createdAt.toISOString(),
-        startedAt: session.startedAt?.toISOString() ?? null,
-        endedAt: session.endedAt?.toISOString() ?? null,
-        hostName: session.host.name,
+        status: String(session.status ?? 'UNKNOWN'),
+        createdAt: formatRequiredDateAttribute(session.createdAt),
+        startedAt: formatDateAttribute(session.startedAt),
+        endedAt: formatDateAttribute(session.endedAt),
+        hostName: session.host?.name?.trim() || 'Host remoto',
         requestedByName: session.requestedByUser?.name?.trim() || null,
         ticketNumber: session.ticketNumber ?? null,
       })),
       integrations: recentIntegrations.map((connection) => ({
         id: connection.id,
-        name: connection.name,
-        status: connection.status,
-        updatedAt: connection.updatedAt.toISOString(),
+        name: connection.name?.trim() || 'Conexao sem nome',
+        status: String(connection.status ?? 'UNKNOWN'),
+        updatedAt: formatRequiredDateAttribute(connection.updatedAt),
         chatwootInboxLabel: connection.chatwootInboxIdentifier || connection.chatwootInboxId || null,
         evolutionInstance: connection.evolutionInstance || null,
       })),
@@ -1309,10 +1324,17 @@ export class CompaniesService {
         module: ticket.releaseModule ?? null,
         title: ticket.subject?.trim() || `Release ${ticket.ticketNumber ?? ticket.id}`,
         summary: ticket.resolutionSummary ?? null,
-        publishedAt: ticket.closedAt?.toISOString() ?? null,
+        publishedAt: formatDateAttribute(ticket.closedAt),
         resolutionVideoUrl: ticket.resolutionVideoUrl ?? null,
       })),
     };
+    } catch (error) {
+      this.logger.error(
+        `Falha ao montar Empresa 360 para companyId=${companyId} e userId=${requester.userId}.`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
   }
 
   async canAccessByCompanySegment(requiredSegments: CompanySegment[], rawHeaders?: IncomingHttpHeaders) {
