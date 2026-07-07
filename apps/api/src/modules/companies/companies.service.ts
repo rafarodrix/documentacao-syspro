@@ -650,6 +650,18 @@ export class CompaniesService {
     await this.assertCompanyAccess(companyId, cockpitScope);
 
     try {
+    const safeCockpitQuery = async <T>(label: string, factory: () => Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await factory();
+      } catch (error) {
+        this.logger.error(
+          `Falha ao carregar bloco ${label} do Empresa 360 para companyId=${companyId}.`,
+          error instanceof Error ? error.stack : String(error),
+        );
+        return fallback;
+      }
+    };
+
     const company = await this.prisma.company.findFirst({
       where: {
         id: companyId,
@@ -744,7 +756,7 @@ export class CompaniesService {
       inactiveIntegrationCount,
       deliveryFailureCount,
     ] = await Promise.all([
-      this.prisma.ticket.findMany({
+      safeCockpitQuery('recentTickets', () => this.prisma.ticket.findMany({
         where: { companyId },
         orderBy: [{ updatedAt: 'desc' }],
         take: 5,
@@ -766,8 +778,8 @@ export class CompaniesService {
             },
           },
         },
-      }),
-      this.prisma.task.findMany({
+      }), []),
+      safeCockpitQuery('recentTasks', () => this.prisma.task.findMany({
         where: { companyId },
         orderBy: [{ dueDate: 'asc' }, { updatedAt: 'desc' }],
         take: 6,
@@ -791,8 +803,8 @@ export class CompaniesService {
             },
           },
         },
-      }),
-      this.prisma.taskConfig.findUnique({
+      }), []),
+      safeCockpitQuery('taskConfig', () => this.prisma.taskConfig.findUnique({
         where: { companyId },
         select: {
           isActive: true,
@@ -800,8 +812,8 @@ export class CompaniesService {
           dueDay: true,
           reminderDays: true,
         },
-      }),
-      this.prisma.task.findMany({
+      }), null),
+      safeCockpitQuery('latestRoutineTasks', () => this.prisma.task.findMany({
         where: {
           companyId,
           type: TaskType.ROTINA_MENSAL,
@@ -825,8 +837,8 @@ export class CompaniesService {
             },
           },
         },
-      }),
-      this.prisma.conversationLink.findMany({
+      }), []),
+      safeCockpitQuery('recentConversations', () => this.prisma.conversationLink.findMany({
         where: { companyId },
         orderBy: [{ updatedAt: 'desc' }],
         take: 5,
@@ -847,8 +859,8 @@ export class CompaniesService {
             },
           },
         },
-      }),
-      this.prisma.remoteHost.findMany({
+      }), []),
+      safeCockpitQuery('recentHosts', () => this.prisma.remoteHost.findMany({
         where: { companyId },
         orderBy: [{ lastHeartbeatSuccessAt: 'desc' }, { updatedAt: 'desc' }],
         take: 4,
@@ -861,8 +873,8 @@ export class CompaniesService {
           lastKnownRustDeskAlias: true,
           agentVersion: true,
         },
-      }),
-      this.prisma.remoteSession.findMany({
+      }), []),
+      safeCockpitQuery('recentSessions', () => this.prisma.remoteSession.findMany({
         where: { companyId },
         orderBy: [{ createdAt: 'desc' }],
         take: 5,
@@ -884,8 +896,8 @@ export class CompaniesService {
             },
           },
         },
-      }),
-      this.prisma.integrationConnection.findMany({
+      }), []),
+      safeCockpitQuery('recentIntegrations', () => this.prisma.integrationConnection.findMany({
         where: { companyId },
         orderBy: [{ updatedAt: 'desc' }],
         take: 4,
@@ -898,8 +910,8 @@ export class CompaniesService {
           chatwootInboxIdentifier: true,
           evolutionInstance: true,
         },
-      }),
-      this.prisma.ticket.findMany({
+      }), []),
+      safeCockpitQuery('releaseTickets', () => this.prisma.ticket.findMany({
         where: {
           companyId,
           publishToReleases: true,
@@ -916,24 +928,24 @@ export class CompaniesService {
           closedAt: true,
           resolutionVideoUrl: true,
         },
-      }),
-      this.prisma.ticket.count({ where: openTicketWhere }),
-      this.prisma.task.count({ where: openTaskWhere }),
-      this.prisma.ticket.count({
+      }), []),
+      safeCockpitQuery('openTicketsCount', () => this.prisma.ticket.count({ where: openTicketWhere }), 0),
+      safeCockpitQuery('openTasksCount', () => this.prisma.task.count({ where: openTaskWhere }), 0),
+      safeCockpitQuery('responseOverdueCount', () => this.prisma.ticket.count({
         where: {
           ...openTicketWhere,
           slaResponseHitAt: null,
           slaResponseDueAt: { lt: now },
         },
-      }),
-      this.prisma.ticket.count({
+      }), 0),
+      safeCockpitQuery('resolutionOverdueCount', () => this.prisma.ticket.count({
         where: {
           ...openTicketWhere,
           slaResolutionHitAt: null,
           slaResolutionDueAt: { lt: now },
         },
-      }),
-      this.prisma.ticket.count({
+      }), 0),
+      safeCockpitQuery('responseDueSoonCount', () => this.prisma.ticket.count({
         where: {
           ...openTicketWhere,
           slaResponseHitAt: null,
@@ -942,8 +954,8 @@ export class CompaniesService {
             lt: next24Hours,
           },
         },
-      }),
-      this.prisma.ticket.count({
+      }), 0),
+      safeCockpitQuery('resolutionDueSoonCount', () => this.prisma.ticket.count({
         where: {
           ...openTicketWhere,
           slaResolutionHitAt: null,
@@ -952,15 +964,15 @@ export class CompaniesService {
             lt: next24Hours,
           },
         },
-      }),
-      this.prisma.task.count({
+      }), 0),
+      safeCockpitQuery('monthlyRoutinePendingCount', () => this.prisma.task.count({
         where: {
           companyId,
           type: TaskType.ROTINA_MENSAL,
           status: TaskStatus.PENDING,
         },
-      }),
-      this.prisma.task.count({
+      }), 0),
+      safeCockpitQuery('monthlyRoutineOverdueCount', () => this.prisma.task.count({
         where: {
           companyId,
           type: TaskType.ROTINA_MENSAL,
@@ -974,22 +986,22 @@ export class CompaniesService {
             },
           ],
         },
-      }),
-      this.prisma.task.count({
+      }), 0),
+      safeCockpitQuery('monthlyRoutineWaitingCustomerCount', () => this.prisma.task.count({
         where: {
           companyId,
           type: TaskType.ROTINA_MENSAL,
           status: TaskStatus.WAITING_CUSTOMER,
         },
-      }),
-      this.prisma.task.count({
+      }), 0),
+      safeCockpitQuery('monthlyRoutineCompletedCount', () => this.prisma.task.count({
         where: {
           companyId,
           type: TaskType.ROTINA_MENSAL,
           status: TaskStatus.COMPLETED,
         },
-      }),
-      this.prisma.remoteHost.count({
+      }), 0),
+      safeCockpitQuery('staleHostCount', () => this.prisma.remoteHost.count({
         where: {
           companyId,
           OR: [
@@ -998,19 +1010,19 @@ export class CompaniesService {
             { lastHeartbeatSuccessAt: { lt: staleHostThreshold } },
           ],
         },
-      }),
-      this.prisma.integrationConnection.count({
+      }), 0),
+      safeCockpitQuery('inactiveIntegrationCount', () => this.prisma.integrationConnection.count({
         where: {
           companyId,
           status: { not: IntegrationConnectionStatus.ACTIVE },
         },
-      }),
-      this.prisma.conversationLink.count({
+      }), 0),
+      safeCockpitQuery('deliveryFailureCount', () => this.prisma.conversationLink.count({
         where: {
           companyId,
           lastDeliveryFailureAt: { not: null },
         },
-      }),
+      }), 0),
     ]);
 
     const address = company.addresses[0];
