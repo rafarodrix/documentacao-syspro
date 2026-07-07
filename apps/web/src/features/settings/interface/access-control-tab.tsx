@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Layers3, ListChecks, Lock, Pencil, Plus, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
@@ -80,6 +80,14 @@ function getInitials(name: string) {
   return name.trim().split(/\s+/).map(n => n[0]).slice(0, 2).join("").toUpperCase();
 }
 
+function formatRoleLabel(role: string) {
+  return role.replaceAll("_", " ");
+}
+
+function buildPermissionSet(permissions: SettingsPermissionKey[] | undefined) {
+  return new Set<SettingsPermissionKey>(permissions ?? []);
+}
+
 export function AccessControlTab({ adminView }: AccessControlTabProps) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(adminView.catalog.matrixEnabled);
@@ -123,6 +131,125 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
       return acc;
     }, {});
   }, [selectedPermissions]);
+  const profileById = useMemo(
+    () => new Map(adminView.profiles.map((profile) => [profile.id, profile])),
+    [adminView.profiles],
+  );
+  const [diagnosticUserId, setDiagnosticUserId] = useState(adminView.users[0]?.id ?? "");
+
+  useEffect(() => {
+    if (!diagnosticUserId && adminView.users[0]?.id) {
+      setDiagnosticUserId(adminView.users[0].id);
+    }
+  }, [adminView.users, diagnosticUserId]);
+
+  useEffect(() => {
+    if (assignmentForm.userId) {
+      setDiagnosticUserId(assignmentForm.userId);
+    }
+  }, [assignmentForm.userId]);
+
+  const accessDiagnostic = useMemo(() => {
+    const selectedUser = adminView.users.find((user) => user.id === diagnosticUserId) ?? null;
+    if (!selectedUser) return null;
+
+    const fallbackProfile = adminView.profiles.find((profile) => profile.isSystem && profile.key === selectedUser.role) ?? null;
+    const fallbackPermissions = buildPermissionSet(fallbackProfile?.permissions);
+    const selectedAssignments = adminView.assignments.filter((assignment) => assignment.userId === selectedUser.id);
+    const globalPermissionSet = new Set<SettingsPermissionKey>();
+    const companyAssignments = new Map<
+      string,
+      {
+        companyName: string;
+        permissions: Set<SettingsPermissionKey>;
+        profiles: string[];
+      }
+    >();
+
+    for (const assignment of selectedAssignments) {
+      const profile = profileById.get(assignment.profileId);
+      const permissionSet = buildPermissionSet(profile?.permissions);
+
+      if (assignment.scopeType === "GLOBAL") {
+        permissionSet.forEach((permission) => globalPermissionSet.add(permission));
+        continue;
+      }
+
+      if (!assignment.companyId) continue;
+      const current = companyAssignments.get(assignment.companyId) ?? {
+        companyName: assignment.companyName ?? "Empresa sem nome",
+        permissions: new Set<SettingsPermissionKey>(),
+        profiles: [],
+      };
+      permissionSet.forEach((permission) => current.permissions.add(permission));
+      current.profiles.push(profile?.label ?? assignment.profileLabel);
+      companyAssignments.set(assignment.companyId, current);
+    }
+
+    const hasFallback = (permission: SettingsPermissionKey) => fallbackPermissions.has(permission);
+    const hasGlobalAssignment = (permission: SettingsPermissionKey) => globalPermissionSet.has(permission);
+    const hasAnyCompanyAssignment = (permission: SettingsPermissionKey) =>
+      Array.from(companyAssignments.values()).some((company) => company.permissions.has(permission));
+    const hasAnyPermission = (permissions: SettingsPermissionKey[]) =>
+      permissions.some((permission) => hasFallback(permission) || hasGlobalAssignment(permission) || hasAnyCompanyAssignment(permission));
+
+    const companyScopeFromAssignments = (permissions: SettingsPermissionKey[]) =>
+      Array.from(companyAssignments.entries())
+        .filter(([, assignment]) => permissions.some((permission) => assignment.permissions.has(permission)))
+        .map(([companyId, assignment]) => ({
+          companyId,
+          companyName: assignment.companyName,
+          profiles: assignment.profiles,
+        }));
+
+    const company360AssignmentScope = companyScopeFromAssignments(["companies:view_cockpit", "companies:view_all"]);
+    const cadastrosAssignmentScope = companyScopeFromAssignments([
+      "companies:view",
+      "companies:view_own",
+      "companies:view_all",
+      "companies:view_cockpit",
+      "contacts:view",
+      "contacts:view_team",
+      "contacts:view_all",
+      "users:view",
+      "users:view_team",
+      "users:view_all",
+      "users:manage_internal",
+    ]);
+    const crmAssignmentScope = companyScopeFromAssignments(["crm:view", "crm:manage"]);
+
+    const hasGlobalCompany360 =
+      hasFallback("companies:view_all") ||
+      hasGlobalAssignment("companies:view_all") ||
+      hasGlobalAssignment("companies:view_cockpit");
+    const hasMembershipDependentCompany360 = hasFallback("companies:view_cockpit") && !hasFallback("companies:view_all");
+
+    return {
+      user: selectedUser,
+      fallbackProfile,
+      selectedAssignments,
+      hasDashboardInternal: hasFallback("dashboard:view_internal") || hasGlobalAssignment("dashboard:view_internal"),
+      canAccessCadastros: hasAnyPermission([
+        "companies:view",
+        "companies:view_own",
+        "companies:view_all",
+        "companies:view_cockpit",
+        "contacts:view",
+        "contacts:view_team",
+        "contacts:view_all",
+        "users:view",
+        "users:view_team",
+        "users:view_all",
+        "users:manage_internal",
+      ]),
+      canAccessCrm: hasAnyPermission(["crm:view", "crm:manage"]),
+      hasGlobalCompany360,
+      hasMembershipDependentCompany360,
+      company360AssignmentScope,
+      cadastrosAssignmentScope,
+      crmAssignmentScope,
+    };
+  }, [adminView.assignments, adminView.profiles, adminView.users, diagnosticUserId, profileById]);
 
   const handleToggle = (nextValue: boolean) => {
     setEnabled(nextValue);
@@ -288,6 +415,21 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
         </TabsList>
 
         <TabsContent value="profiles" className="space-y-6">
+          <Card className="border-amber-500/20 bg-amber-500/5 shadow-sm">
+            <CardContent className="flex items-start gap-3 p-4 text-sm text-muted-foreground">
+              <div className="mt-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 p-1 text-amber-700">
+                <Lock className="h-3.5 w-3.5" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">Salvar um perfil nao concede acesso sozinho.</p>
+                <p>
+                  O usuario recebe acesso efetivo por um destes caminhos: `role` do usuario casando com um perfil de sistema
+                  (`ADMIN`, `SUPORTE`, `CLIENTE_ADMIN`, `CLIENTE_USER`, `DEVELOPER`) ou um vinculo ativo na aba `Vinculos`.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
             <Card className="border-border/50 shadow-sm bg-background/60 backdrop-blur-sm">
               <CardHeader>
@@ -515,7 +657,7 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                     <SelectContent>
                       {adminView.users.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
-                          {user.name} ({user.email})
+                          [{formatRoleLabel(user.role)}] {user.name} ({user.email})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -604,84 +746,200 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
               </CardContent>
             </Card>
 
-            <Card className="border-border/50 shadow-sm bg-background/60 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Vinculos Ativos</CardTitle>
-                <CardDescription>
-                  Visoes efetivas atribuidas diretamente aos usuarios por escopo.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {adminView.assignments.length === 0 ? (
-                  <div className="rounded-md border border-dashed p-6 text-sm text-muted-foreground">
-                    Nenhum vinculo customizado encontrado. O sistema segue no fallback dos roles legados.
-                  </div>
-                ) : (
-                  <div className="rounded-md border overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-muted/40">
-                        <TableRow>
-                          <TableHead>Usuario</TableHead>
-                          <TableHead>Perfil</TableHead>
-                          <TableHead>Escopo</TableHead>
-                          <TableHead>Motivo</TableHead>
-                          <TableHead className="w-22.5 text-right">Acao</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {adminView.assignments.map((assignment) => (
-                          <TableRow key={assignment.id} className="hover:bg-muted/30">
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-9 w-9 rounded-md border border-border/50">
-                                  <AvatarFallback className="rounded-md bg-primary/10 text-xs font-semibold text-primary">
-                                    {getInitials(assignment.userName)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="space-y-1">
-                                  <div className="font-medium leading-none">{assignment.userName}</div>
-                                  <div className="text-[11px] text-muted-foreground">{assignment.userEmail}</div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="font-medium">{assignment.profileLabel}</div>
-                                <div className="text-[11px] font-mono text-muted-foreground">{assignment.profileKey}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <Badge variant="outline" className={assignment.scopeType === "GLOBAL" ? "bg-slate-500/10 text-slate-600 border-slate-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"}>
-                                  {assignment.scopeType === "GLOBAL" ? "Global" : "Empresa"}
-                                </Badge>
-                                {assignment.companyName ? (
-                                  <div className="max-w-37.5 truncate text-[11px] text-muted-foreground" title={assignment.companyName}>{assignment.companyName}</div>
-                                ) : null}
-                              </div>
-                            </TableCell>
-                            <TableCell className="max-w-50 truncate text-xs text-muted-foreground" title={assignment.reason || "Sem motivo informado."}>
-                              {assignment.reason || "Sem motivo informado."}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                disabled={isPending}
-                                onClick={() => handleRemoveAssignment(assignment.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
+            <div className="space-y-6">
+              <Card className="border-border/50 shadow-sm bg-background/60 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle>Diagnostico do Usuario</CardTitle>
+                  <CardDescription>
+                    Reveja o acesso efetivo pelo role base e pelos vinculos ativos. Isso evita confundir perfil salvo com permissao realmente aplicada.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Usuario para diagnostico</Label>
+                    <Select value={diagnosticUserId} onValueChange={setDiagnosticUserId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um usuario" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {adminView.users.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            [{formatRoleLabel(user.role)}] {user.name} ({user.email})
+                          </SelectItem>
                         ))}
-                      </TableBody>
-                    </Table>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  {accessDiagnostic ? (
+                    <div className="space-y-4">
+                      <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">Role {accessDiagnostic.user.role}</Badge>
+                          {accessDiagnostic.fallbackProfile ? (
+                            <Badge variant="secondary">Perfil base {accessDiagnostic.fallbackProfile.label}</Badge>
+                          ) : (
+                            <Badge variant="destructive">Sem perfil base correspondente ao role</Badge>
+                          )}
+                          <Badge variant="outline">
+                            {accessDiagnostic.selectedAssignments.length} vinculo(s) ativo(s)
+                          </Badge>
+                        </div>
+                        <p className="mt-3 text-xs text-muted-foreground">
+                          Se o acesso esperado nao vier do role base, ele precisa aparecer em `Vinculos` como `Global` ou `Empresa`.
+                        </p>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dashboard interno</p>
+                          <p className="mt-2 text-sm font-medium text-foreground">
+                            {accessDiagnostic.hasDashboardInternal ? "Liberado" : "Bloqueado"}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cadastros</p>
+                          <p className="mt-2 text-sm font-medium text-foreground">
+                            {accessDiagnostic.canAccessCadastros ? "Liberado" : "Bloqueado"}
+                          </p>
+                          {accessDiagnostic.cadastrosAssignmentScope.length > 0 ? (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Existe vinculo por empresa relacionado a cadastros em {accessDiagnostic.cadastrosAssignmentScope.length} empresa(s).
+                            </p>
+                          ) : null}
+                          {!accessDiagnostic.canAccessCadastros ? (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Exige permissao de empresas, contatos ou usuarios no role base ou em algum vinculo ativo.
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Empresa 360</p>
+                          <p className="mt-2 text-sm font-medium text-foreground">
+                            {accessDiagnostic.hasGlobalCompany360
+                              ? "Liberado globalmente"
+                              : accessDiagnostic.company360AssignmentScope.length > 0
+                                ? "Liberado por empresa"
+                                : accessDiagnostic.hasMembershipDependentCompany360
+                                  ? "Depende das empresas vinculadas ao usuario"
+                                  : "Bloqueado"}
+                          </p>
+                          {accessDiagnostic.company360AssignmentScope.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {accessDiagnostic.company360AssignmentScope.map((assignment) => (
+                                <Badge key={assignment.companyId} variant="outline">
+                                  {assignment.companyName}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Comercial / CRM</p>
+                          <p className="mt-2 text-sm font-medium text-foreground">
+                            {accessDiagnostic.canAccessCrm ? "Liberado" : "Bloqueado"}
+                          </p>
+                          {accessDiagnostic.crmAssignmentScope.length > 0 ? (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Existe vinculo por empresa para CRM em {accessDiagnostic.crmAssignmentScope.length} empresa(s).
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {accessDiagnostic.selectedAssignments.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+                          Nenhum vinculo ativo encontrado para este usuario. Nesse caso, o acesso depende exclusivamente do `role` base e do perfil de sistema com a mesma chave.
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="rounded-md border border-dashed p-6 text-sm text-muted-foreground">
+                      Selecione um usuario para diagnosticar o acesso efetivo.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 shadow-sm bg-background/60 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle>Vinculos Ativos</CardTitle>
+                  <CardDescription>
+                    Visoes efetivas atribuidas diretamente aos usuarios por escopo.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {adminView.assignments.length === 0 ? (
+                    <div className="rounded-md border border-dashed p-6 text-sm text-muted-foreground">
+                      Nenhum vinculo customizado encontrado. O sistema segue no fallback dos roles legados.
+                    </div>
+                  ) : (
+                    <div className="rounded-md border overflow-hidden">
+                      <Table>
+                        <TableHeader className="bg-muted/40">
+                          <TableRow>
+                            <TableHead>Usuario</TableHead>
+                            <TableHead>Perfil</TableHead>
+                            <TableHead>Escopo</TableHead>
+                            <TableHead>Motivo</TableHead>
+                            <TableHead className="w-22.5 text-right">Acao</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {adminView.assignments.map((assignment) => (
+                            <TableRow key={assignment.id} className="hover:bg-muted/30">
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-9 w-9 rounded-md border border-border/50">
+                                    <AvatarFallback className="rounded-md bg-primary/10 text-xs font-semibold text-primary">
+                                      {getInitials(assignment.userName)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="space-y-1">
+                                    <div className="font-medium leading-none">{assignment.userName}</div>
+                                    <div className="text-[11px] text-muted-foreground">{assignment.userEmail}</div>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <div className="font-medium">{assignment.profileLabel}</div>
+                                  <div className="text-[11px] font-mono text-muted-foreground">{assignment.profileKey}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <Badge variant="outline" className={assignment.scopeType === "GLOBAL" ? "bg-slate-500/10 text-slate-600 border-slate-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"}>
+                                    {assignment.scopeType === "GLOBAL" ? "Global" : "Empresa"}
+                                  </Badge>
+                                  {assignment.companyName ? (
+                                    <div className="max-w-37.5 truncate text-[11px] text-muted-foreground" title={assignment.companyName}>{assignment.companyName}</div>
+                                  ) : null}
+                                </div>
+                              </TableCell>
+                              <TableCell className="max-w-50 truncate text-xs text-muted-foreground" title={assignment.reason || "Sem motivo informado."}>
+                                {assignment.reason || "Sem motivo informado."}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  disabled={isPending}
+                                  onClick={() => handleRemoveAssignment(assignment.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 
