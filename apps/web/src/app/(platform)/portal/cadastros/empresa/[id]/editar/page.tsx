@@ -2,7 +2,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { getCompanyEditViewData } from "@/features/company/application/company-read.queries";
 import { CreateCompanyPageForm } from "@/features/company/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
-import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { currentUserCanAccessCompany, currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { getTarefasCompanyConfigQuery } from "@/features/tarefas/application/tarefas-read.queries";
 
 type PageProps = {
@@ -12,11 +12,10 @@ type PageProps = {
 
 export default async function CadastrosEmpresaEditarPage({ params, searchParams }: PageProps) {
   await requireSession();
-  if (!(await currentUserHasPermission("companies:edit", { acceptCompanyScope: true }))) {
+  const { id } = await params;
+  if (!(await currentUserCanAccessCompany(id, "companies:edit", "companies:view_all"))) {
     return <CadastrosAccessDenied />;
   }
-
-  const { id } = await params;
   const query = searchParams ? await searchParams : undefined;
   const returnToParam = query?.returnTo;
   const backHref =

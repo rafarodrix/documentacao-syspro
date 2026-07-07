@@ -126,3 +126,12 @@ export async function resolveCurrentUserCompanyAccessScope(
 
   return { isGlobalView: false, companyIds: [] as string[], companyCount: 0 };
 }
+
+export async function currentUserCanAccessCompany(
+  companyId: string,
+  scopedPermission: SettingsPermissionKey,
+  globalPermission?: SettingsPermissionKey,
+) {
+  const scope = await resolveCurrentUserCompanyAccessScope(scopedPermission, globalPermission);
+  return scope.isGlobalView || scope.companyIds.includes(companyId);
+}

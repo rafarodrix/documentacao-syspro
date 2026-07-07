@@ -2,7 +2,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { getCompanyCockpitViewData } from "@/features/company/application/company-read.queries";
 import { CompanyCockpitPage } from "@/features/company/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { currentUserCanAccessCompany } from "@/features/user-access/application/current-user-access";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -11,12 +11,11 @@ type PageProps = {
 
 export default async function CompanyCockpitRoute({ params, searchParams }: PageProps) {
   await requireSession();
-  if (!(await currentUserHasPermission("companies:view_cockpit", { acceptCompanyScope: true }))) {
+  const { id } = await params;
+  if (!(await currentUserCanAccessCompany(id, "companies:view_cockpit", "companies:view_all"))) {
     return <CadastrosAccessDenied />;
   }
-  const canEditCompany = await currentUserHasPermission("companies:edit", { acceptCompanyScope: true });
-
-  const { id } = await params;
+  const canEditCompany = await currentUserCanAccessCompany(id, "companies:edit", "companies:view_all");
   const query = searchParams ? await searchParams : undefined;
   const returnToParam = query?.returnTo;
   const backHref =
