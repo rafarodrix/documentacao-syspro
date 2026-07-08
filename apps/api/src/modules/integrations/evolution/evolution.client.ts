@@ -129,6 +129,7 @@ export class EvolutionClient {
     number: string,
     text: string,
     clientMessageId?: string,
+    quotedMessageId?: string,
   ): Promise<{ messageId?: string; resolvedWhatsappNumber?: string }> {
     if (!config.apiUrl || !config.apiKey) {
       console.warn('[EvolutionClient] Credenciais ausentes. Envio de mensagem ignorado.');
@@ -156,6 +157,7 @@ export class EvolutionClient {
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
         whatsappNumber: attemptNumber,
+        quotedMessageId: quotedMessageId ?? null,
         contentLength: text.length,
         attempt: index + 1,
         totalAttempts: normalizedNumbers.length,
@@ -169,6 +171,7 @@ export class EvolutionClient {
           number: attemptNumber,
           text,
           delay: 1200,
+          ...(quotedMessageId ? { quoted: { key: { id: quotedMessageId } } } : {}),
         }),
       });
 
@@ -185,6 +188,7 @@ export class EvolutionClient {
           evolutionBaseUrl: baseUrl,
           evolutionInstance: instance,
           whatsappNumber: attemptNumber,
+          quotedMessageId: quotedMessageId ?? null,
           providerMessageId: messageId ?? null,
           attempt: index + 1,
           totalAttempts: normalizedNumbers.length,
@@ -249,6 +253,7 @@ export class EvolutionClient {
     fileName?: string,
     caption?: string,
     clientMessageId?: string,
+    quotedMessageId?: string,
   ): Promise<{ messageId?: string; resolvedWhatsappNumber?: string }> {
     if (!config.apiUrl || !config.apiKey) {
       console.warn('[EvolutionClient] Credenciais ausentes. Envio de midia ignorado.');
@@ -281,6 +286,7 @@ export class EvolutionClient {
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
         whatsappNumber: attemptNumber,
+        quotedMessageId: quotedMessageId ?? null,
         mediaType: evMediaType,
         fileName: resolvedFileName,
         hasCaption: Boolean(caption),
@@ -301,6 +307,7 @@ export class EvolutionClient {
           filename: resolvedFileName,
           caption: caption || '',
           delay: 1200,
+          ...(quotedMessageId ? { quoted: { key: { id: quotedMessageId } } } : {}),
         }),
       });
 
@@ -317,6 +324,7 @@ export class EvolutionClient {
           evolutionBaseUrl: baseUrl,
           evolutionInstance: instance,
           whatsappNumber: attemptNumber,
+          quotedMessageId: quotedMessageId ?? null,
           providerMessageId: messageId ?? null,
           attempt: index + 1,
           totalAttempts: normalizedNumbers.length,
@@ -378,6 +386,7 @@ export class EvolutionClient {
     number: string,
     stickerUrlOrBase64: string,
     clientMessageId?: string,
+    quotedMessageId?: string,
   ): Promise<{ messageId?: string; resolvedWhatsappNumber?: string }> {
     if (!config.apiUrl || !config.apiKey) {
       console.warn('[EvolutionClient] Credenciais ausentes. Envio de figurinha ignorado.');
@@ -407,6 +416,7 @@ export class EvolutionClient {
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
         whatsappNumber: attemptNumber,
+        quotedMessageId: quotedMessageId ?? null,
         mediaInputKind: normalizedSticker.kind,
         mediaLength: normalizedSticker.value.length,
         attempt: index + 1,
@@ -421,6 +431,7 @@ export class EvolutionClient {
           number: attemptNumber,
           sticker: normalizedSticker.value,
           delay: 1200,
+          ...(quotedMessageId ? { quoted: { key: { id: quotedMessageId } } } : {}),
         }),
       });
 
@@ -437,6 +448,7 @@ export class EvolutionClient {
           evolutionBaseUrl: baseUrl,
           evolutionInstance: instance,
           whatsappNumber: attemptNumber,
+          quotedMessageId: quotedMessageId ?? null,
           providerMessageId: messageId ?? null,
           attempt: index + 1,
           totalAttempts: normalizedNumbers.length,

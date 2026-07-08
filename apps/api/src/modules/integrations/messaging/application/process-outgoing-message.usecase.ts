@@ -184,12 +184,21 @@ export class ProcessOutgoingMessageUseCase {
       chatwootContactId: resolvedLink.chatwootContactId,
     }));
 
+    const quotedMessageId = await this.resolveQuotedEvolutionMessageId({
+      connectionKey: resolvedLink.connectionKey,
+      messageId,
+      chatwootConversationId,
+      replyToChatwootMessageId: messagePayload.replyToChatwootMessageId,
+      replyToExternalMessageId: messagePayload.replyToExternalMessageId,
+    });
+
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'sending',
       messageId,
       chatwootConversationId,
       whatsappNumber: phone,
+      quotedMessageId: quotedMessageId ?? null,
     }));
 
     // Se houver arquivo anexado pelo atendente do Chatwoot
@@ -279,12 +288,14 @@ export class ProcessOutgoingMessageUseCase {
 
         const normalizedMimeType = String(mediaPayload.mimetype || fileType || '').toLowerCase();
         const clientMessageId = this.buildAttachmentClientMessageId(messageId, attachmentIndex, attachments.length);
+        const quotedMessageIdForAttachment = attachmentIndex === 0 ? quotedMessageId : undefined;
         const sendResult = normalizedMimeType === 'image/webp'
           ? await this.evolutionClient.sendStickerMessage(
               linkContext.evolution,
               phone,
               mediaPayload.dataUrl,
               clientMessageId,
+              quotedMessageIdForAttachment,
             )
           : await this.evolutionClient.sendMedia(
               linkContext.evolution,
@@ -294,6 +305,7 @@ export class ProcessOutgoingMessageUseCase {
               mediaPayload.filename || fileName,
               attachmentIndex === 0 ? (content || '') : '',
               clientMessageId,
+              quotedMessageIdForAttachment,
             );
         await this.reconcileWhatsappNumberIfNeeded(
           link,
@@ -358,6 +370,7 @@ export class ProcessOutgoingMessageUseCase {
         phone,
         outboundContent,
         messageId ?? undefined,
+        quotedMessageId,
       );
     } catch (error: any) {
       const knownProviderCode =
@@ -449,6 +462,8 @@ export class ProcessOutgoingMessageUseCase {
     senderName?: string;
     systemSenderName?: string;
     chatwootConversationId?: string;
+    replyToChatwootMessageId?: string;
+    replyToExternalMessageId?: string;
     attachments: any[];
   } {
     const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
@@ -474,6 +489,8 @@ export class ProcessOutgoingMessageUseCase {
         message?.conversation_id ??
         message?.conversation?.id
       ),
+      replyToChatwootMessageId: this.extractReplyToChatwootMessageId(payload, message, conversationMessage),
+      replyToExternalMessageId: this.extractReplyToExternalMessageId(payload, message, conversationMessage),
       attachments,
     };
   }
@@ -534,6 +551,96 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     return 'unknown';
+  }
+
+  private extractReplyToChatwootMessageId(payload: any, message: any, conversationMessage: any): string | undefined {
+    return this.readFirstOptionalString(
+      payload?.content_attributes?.in_reply_to,
+      message?.content_attributes?.in_reply_to,
+      conversationMessage?.content_attributes?.in_reply_to,
+      payload?.content_attributes?.reply_to,
+      message?.content_attributes?.reply_to,
+      conversationMessage?.content_attributes?.reply_to,
+      payload?.content_attributes?.inReplyTo,
+      message?.content_attributes?.inReplyTo,
+      conversationMessage?.content_attributes?.inReplyTo,
+    );
+  }
+
+  private extractReplyToExternalMessageId(payload: any, message: any, conversationMessage: any): string | undefined {
+    return this.readFirstOptionalString(
+      payload?.content_attributes?.in_reply_to_external_id,
+      message?.content_attributes?.in_reply_to_external_id,
+      conversationMessage?.content_attributes?.in_reply_to_external_id,
+      payload?.content_attributes?.reply_to_external_id,
+      message?.content_attributes?.reply_to_external_id,
+      conversationMessage?.content_attributes?.reply_to_external_id,
+      payload?.content_attributes?.inReplyToExternalId,
+      message?.content_attributes?.inReplyToExternalId,
+      conversationMessage?.content_attributes?.inReplyToExternalId,
+      payload?.content_attributes?.quoted_message_id,
+      message?.content_attributes?.quoted_message_id,
+      conversationMessage?.content_attributes?.quoted_message_id,
+    );
+  }
+
+  private async resolveQuotedEvolutionMessageId(input: {
+    connectionKey: string;
+    messageId?: string;
+    chatwootConversationId: string;
+    replyToChatwootMessageId?: string;
+    replyToExternalMessageId?: string;
+  }): Promise<string | undefined> {
+    const directExternalId = this.toOptionalString(input.replyToExternalMessageId);
+    if (directExternalId) {
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'quoted_message_resolved_from_payload',
+        messageId: input.messageId ?? null,
+        chatwootConversationId: input.chatwootConversationId,
+        quotedMessageId: directExternalId,
+        resolutionSource: 'in_reply_to_external_id',
+      }));
+      return directExternalId;
+    }
+
+    const replyToChatwootMessageId = this.toOptionalString(input.replyToChatwootMessageId);
+    if (!replyToChatwootMessageId) {
+      return undefined;
+    }
+
+    const linkedMessage = await this.prisma.messageLink.findUnique({
+      where: {
+        connectionKey_chatwootMessageId: {
+          connectionKey: input.connectionKey,
+          chatwootMessageId: replyToChatwootMessageId,
+        },
+      },
+    });
+
+    const quotedMessageId = this.toOptionalString(linkedMessage?.evolutionMessageId);
+    if (!quotedMessageId) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'quoted_message_link_not_found',
+        messageId: input.messageId ?? null,
+        chatwootConversationId: input.chatwootConversationId,
+        replyToChatwootMessageId,
+        connectionKey: input.connectionKey,
+      }));
+      return undefined;
+    }
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'quoted_message_resolved_from_link',
+      messageId: input.messageId ?? null,
+      chatwootConversationId: input.chatwootConversationId,
+      quotedMessageId,
+      replyToChatwootMessageId,
+      connectionKey: input.connectionKey,
+    }));
+    return quotedMessageId;
   }
 
   private async resolvePhoneFromConversationDetails(
@@ -895,6 +1002,15 @@ export class ProcessOutgoingMessageUseCase {
   private truncateLog(value: string): string {
     const normalized = String(value ?? '');
     return normalized.length > 600 ? `${normalized.slice(0, 597)}...` : normalized;
+  }
+
+  private readFirstOptionalString(...candidates: unknown[]): string | undefined {
+    for (const candidate of candidates) {
+      const normalized = this.toOptionalString(candidate);
+      if (normalized) return normalized;
+    }
+
+    return undefined;
   }
 
   private resolveOutgoingContent(payload: any, message: any): string | undefined {
