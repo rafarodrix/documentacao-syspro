@@ -3,6 +3,8 @@ import { CRM_STAGE_LABELS, getLeadAttentionState, DUE_SOON_DAYS, STALE_LEAD_DAYS
 import { PIPELINE_COLUMNS } from "./lead-management.constants";
 import type { LeadAttentionFilter } from "./lead-management.types";
 
+export { getLeadAttentionState, DUE_SOON_DAYS, STALE_LEAD_DAYS };
+
 export function getPipelineStageLabel(stage: CrmLeadStage) {
   if (stage === "MQL" || stage === "SQL") return "Validacao";
   return CRM_STAGE_LABELS[stage];
