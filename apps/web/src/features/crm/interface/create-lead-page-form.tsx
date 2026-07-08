@@ -15,65 +15,13 @@ import { formatCNPJ, isValidCnpj } from "@/lib/formatters";
 import { PageHeader } from "@/components/patterns";
 import { trpc } from "@/lib/api/trpc-client";
 import { useSafeMutation } from "@/hooks/use-safe-mutation";
-
-type LeadFormState = {
-  title: string;
-  stage: string;
-  source: string;
-  companyName: string;
-  tradeName: string;
-  document: string;
-  industry: string;
-  companySize: string;
-  city: string;
-  state: string;
-  estimatedValue: string;
-  licenseValue: string;
-  monthlyFee: string;
-  minimumWagePercentage: string;
-  expectedCloseAt: string;
-  nextStep: string;
-  qualificationNotes: string;
-  lostReason: string;
-};
-
-const DEFAULT_FORM_STATE: LeadFormState = {
-  title: "",
-  stage: "LEAD",
-  source: "MANUAL",
-  companyName: "",
-  tradeName: "",
-  document: "",
-  industry: "",
-  companySize: "",
-  city: "",
-  state: "",
-  estimatedValue: "",
-  licenseValue: "",
-  monthlyFee: "",
-  minimumWagePercentage: "",
-  expectedCloseAt: "",
-  nextStep: "",
-  qualificationNotes: "",
-  lostReason: "",
-};
-
-const EMPTY_CONTACT: CrmLeadManualContact = {
-  name: "",
-  role: "",
-  email: "",
-  phone: "",
-  whatsapp: "",
-  isPrimary: true,
-  notes: "",
-};
-
-function parseNullableNumber(value: string) {
-  const normalized = value.trim().replace(",", ".");
-  if (!normalized) return null;
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : null;
-}
+import {
+  type LeadFormState,
+  DEFAULT_FORM_STATE,
+  EMPTY_CONTACT,
+  parseNullableNumber,
+  mapLeadToFormState,
+} from "./lead-management/lead-management.types";
 
 function hasContactContent(contact: CrmLeadManualContact) {
   return Boolean(
@@ -104,31 +52,6 @@ type CreateLeadPageFormProps = {
   leadId?: string;
   initialData?: CrmLead | null;
 };
-
-function mapLeadToFormState(lead?: CrmLead | null): LeadFormState {
-  if (!lead) return DEFAULT_FORM_STATE;
-
-  return {
-    title: lead.title ?? "",
-    stage: lead.stage ?? "LEAD",
-    source: lead.source ?? "MANUAL",
-    companyName: lead.companyName ?? "",
-    tradeName: lead.tradeName ?? "",
-    document: lead.document ? formatCNPJ(lead.document) : "",
-    industry: lead.industry ?? "",
-    companySize: lead.companySize ?? "",
-    city: lead.city ?? "",
-    state: lead.state ?? "",
-    estimatedValue: typeof lead.estimatedValue === "number" ? String(lead.estimatedValue) : "",
-    licenseValue: typeof lead.licenseValue === "number" ? String(lead.licenseValue) : "",
-    monthlyFee: typeof lead.monthlyFee === "number" ? String(lead.monthlyFee) : "",
-    minimumWagePercentage: typeof lead.minimumWagePercentage === "number" ? String(lead.minimumWagePercentage) : "",
-    expectedCloseAt: lead.expectedCloseAt ? lead.expectedCloseAt.slice(0, 10) : "",
-    nextStep: lead.nextStep ?? "",
-    qualificationNotes: lead.qualificationNotes ?? "",
-    lostReason: lead.lostReason ?? "",
-  };
-}
 
 export function CreateLeadPageForm({ mode = "create", leadId, initialData = null }: CreateLeadPageFormProps) {
   const router = useRouter();
