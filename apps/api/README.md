@@ -117,6 +117,8 @@ Exemplo versionado:
 - `GET /health/integrations/chatwoot`
 - `POST /rpc/:namespace/:procedure`
 - `POST /api/webhooks/evolution`
+- `POST /api/webhooks/chatwoot`
+- `POST /webhooks/chatwoot` (alias legado para compatibilidade operacional)
 - `POST /integrations/evolution/messages/send`
 - `GET /settings/evolution`
 - `PUT /settings/evolution`

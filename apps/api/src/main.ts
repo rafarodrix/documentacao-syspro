@@ -53,6 +53,10 @@ async function bootstrap() {
   app.useLogger(app.get(PinoLogger));
   app.use(json({ limit: '50mb', verify: captureRawBody }));
   app.use(urlencoded({ extended: true, limit: '50mb', verify: captureRawBody }));
+  app.use('/webhooks/chatwoot', (req: any, _res: any, next: () => void) => {
+    req.url = '/api/webhooks/chatwoot';
+    next();
+  });
 
   // Prefixo universal para as rotas do NestJS
   app.setGlobalPrefix('api');
