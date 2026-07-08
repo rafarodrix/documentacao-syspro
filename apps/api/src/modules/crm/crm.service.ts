@@ -18,6 +18,7 @@ import {
   type CrmActivityCreateInput,
   type CrmTaskCreateInput,
   type CrmTaskUpdateInput,
+  type CrmProposalSaveInput,
 } from '@dosc-syspro/contracts/crm';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import { leadInclude, serializeLead, normalizeContactsArray } from '@dosc-syspro/crm-domain';
@@ -784,5 +785,137 @@ export class CrmService {
       throw new ForbiddenException('Modulo CRM disponivel apenas para equipe interna.');
     }
     return requester;
+  }
+
+  async getProposalByLeadId(leadId: string, rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+    
+    const proposal = await this.prisma.crmProposal.findUnique({
+      where: { leadId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!proposal) {
+      return null;
+    }
+
+    return {
+      success: true,
+      data: {
+        ...proposal,
+        setupValue: Number(proposal.setupValue),
+        recurringValue: Number(proposal.recurringValue),
+        validUntil: proposal.validUntil.toISOString(),
+        createdAt: proposal.createdAt.toISOString(),
+        updatedAt: proposal.updatedAt.toISOString(),
+        items: proposal.items.map(item => ({
+          ...item,
+          unitPrice: Number(item.unitPrice),
+        })),
+      },
+    };
+  }
+
+  async saveProposal(input: CrmProposalSaveInput, rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+
+    const lead = await this.prisma.crmLead.findUnique({
+      where: { id: input.leadId },
+    });
+
+    if (!lead) {
+      throw new NotFoundException('Lead não encontrado.');
+    }
+
+    const validUntilDate = new Date(input.validUntil);
+    if (Number.isNaN(validUntilDate.getTime())) {
+      throw new BadRequestException('Data de validade inválida.');
+    }
+
+    const proposal = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.crmProposal.findUnique({
+        where: { leadId: input.leadId },
+      });
+
+      const nextVersion = existing ? existing.version + 1 : 1;
+
+      if (existing) {
+        await tx.crmProposalItem.deleteMany({
+          where: { proposalId: existing.id },
+        });
+        
+        const updated = await tx.crmProposal.update({
+          where: { id: existing.id },
+          data: {
+            version: nextVersion,
+            setupValue: input.setupValue,
+            recurringValue: input.recurringValue,
+            validUntil: validUntilDate,
+            items: {
+              create: input.items.map((item) => ({
+                serviceName: item.serviceName,
+                quantityLimit: item.quantityLimit,
+                unitPrice: item.unitPrice,
+              })),
+            },
+          },
+          include: {
+            items: true,
+          },
+        });
+
+        return updated;
+      } else {
+        const created = await tx.crmProposal.create({
+          data: {
+            leadId: input.leadId,
+            version: 1,
+            status: 'DRAFT',
+            setupValue: input.setupValue,
+            recurringValue: input.recurringValue,
+            validUntil: validUntilDate,
+            items: {
+              create: input.items.map((item) => ({
+                serviceName: item.serviceName,
+                quantityLimit: item.quantityLimit,
+                unitPrice: item.unitPrice,
+              })),
+            },
+          },
+          include: {
+            items: true,
+          },
+        });
+
+        return created;
+      }
+    });
+
+    await this.prisma.crmActivity.create({
+      data: {
+        leadId: input.leadId,
+        type: 'SYSTEM_EVENT',
+        title: 'Proposta Comercial Atualizada',
+        body: `A proposta comercial (Versão ${proposal.version}) foi salva com o valor recorrente de R$ ${Number(proposal.recurringValue).toFixed(2)}/mês e taxa de setup de R$ ${Number(proposal.setupValue).toFixed(2)}.`,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        ...proposal,
+        setupValue: Number(proposal.setupValue),
+        recurringValue: Number(proposal.recurringValue),
+        validUntil: proposal.validUntil.toISOString(),
+        createdAt: proposal.createdAt.toISOString(),
+        updatedAt: proposal.updatedAt.toISOString(),
+        items: proposal.items.map(item => ({
+          ...item,
+          unitPrice: Number(item.unitPrice),
+        })),
+      },
+    };
   }
 }

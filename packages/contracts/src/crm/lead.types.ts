@@ -231,3 +231,39 @@ export type CrmTaskStatus = z.output<typeof crmTaskStatusSchema>;
 export type CrmTask = z.output<typeof crmTaskSchema>;
 export type CrmTaskCreateInput = z.output<typeof crmTaskCreateSchema>;
 export type CrmTaskUpdateInput = z.output<typeof crmTaskUpdateSchema>;
+
+export const crmProposalStatusSchema = z.enum(["DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"]);
+
+export const crmProposalItemSchema = z.object({
+  id: z.string().optional(),
+  serviceName: z.string().min(1, "Nome do serviço é obrigatório"),
+  quantityLimit: z.number().nullable().optional(),
+  unitPrice: z.number().nonnegative(),
+});
+
+export const crmProposalSchema = z.object({
+  id: z.string(),
+  leadId: z.string(),
+  version: z.number(),
+  status: crmProposalStatusSchema,
+  setupValue: z.number().nonnegative(),
+  recurringValue: z.number().nonnegative(),
+  validUntil: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  items: z.array(crmProposalItemSchema),
+  contractId: z.string().nullable().optional(),
+});
+
+export const crmProposalSaveSchema = z.object({
+  leadId: z.string(),
+  setupValue: z.number().nonnegative(),
+  recurringValue: z.number().nonnegative(),
+  validUntil: z.string(),
+  items: z.array(crmProposalItemSchema),
+});
+
+export type CrmProposalStatus = z.output<typeof crmProposalStatusSchema>;
+export type CrmProposalItem = z.output<typeof crmProposalItemSchema>;
+export type CrmProposal = z.output<typeof crmProposalSchema>;
+export type CrmProposalSaveInput = z.output<typeof crmProposalSaveSchema>;

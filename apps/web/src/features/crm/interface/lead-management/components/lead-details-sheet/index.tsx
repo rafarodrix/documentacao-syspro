@@ -3,7 +3,7 @@
 import type { FormEvent, MouseEvent } from "react";
 import Link from "next/link";
 import { Badge, Button, Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import { BadgeCheck, ExternalLink } from "lucide-react";
+import { BadgeCheck, ExternalLink, FileText } from "lucide-react";
 import type { CrmActivity, CrmLead, CrmLeadManualContact, CrmTask } from "@dosc-syspro/contracts/crm";
 import { CRM_STAGE_LABELS } from "@/features/crm/domain/crm.types";
 import type { LeadFormState } from "../../lead-management.types";
@@ -99,9 +99,16 @@ export function LeadDetailsSheet({
               </SheetDescription>
             </div>
             {leadDetails && (
-              <Badge variant={leadDetails.stage === "WON" ? "default" : "outline"} className="text-xs">
-                {CRM_STAGE_LABELS[leadDetails.stage]}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Button asChild size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/5 hover:text-primary">
+                  <Link href={`/portal/comercial/leads/${leadDetails.id}/proposta`}>
+                    <FileText className="h-3.5 w-3.5" /> Proposta
+                  </Link>
+                </Button>
+                <Badge variant={leadDetails.stage === "WON" ? "default" : "outline"} className="text-xs">
+                  {CRM_STAGE_LABELS[leadDetails.stage]}
+                </Badge>
+              </div>
             )}
           </div>
         </SheetHeader>

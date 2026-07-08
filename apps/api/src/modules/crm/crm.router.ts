@@ -9,6 +9,7 @@ import {
   crmActivityCreateSchema,
   crmTaskCreateSchema,
   crmTaskUpdateSchema,
+  crmProposalSaveSchema,
 } from '@dosc-syspro/contracts/crm';
 
 @Injectable()
@@ -98,6 +99,18 @@ export class CrmRouter {
         .input(z.object({ id: z.string() }))
         .mutation(({ input, ctx }) =>
           this.crmService.deleteTask(input.id, ctx.headers),
+        ),
+
+      getProposalByLeadId: this.trpc.publicProcedure
+        .input(z.object({ leadId: z.string() }))
+        .query(({ input, ctx }) =>
+          this.crmService.getProposalByLeadId(input.leadId, ctx.headers),
+        ),
+
+      saveProposal: this.trpc.publicProcedure
+        .input(crmProposalSaveSchema)
+        .mutation(({ input, ctx }) =>
+          this.crmService.saveProposal(input, ctx.headers),
         ),
     });
   }

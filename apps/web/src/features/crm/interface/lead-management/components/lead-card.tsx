@@ -1,8 +1,9 @@
 "use client";
 
 import type { DragEvent } from "react";
+import Link from "next/link";
 import { Badge, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator } from "@dosc-syspro/ui";
-import { GripVertical, PencilLine } from "lucide-react";
+import { GripVertical, PencilLine, FileText } from "lucide-react";
 import type { CrmLead, CrmLeadStage } from "@dosc-syspro/contracts/crm";
 import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/crm.types";
 import { formatLeadCurrency } from "@/features/crm/domain/crm.types";
@@ -244,6 +245,17 @@ export function LeadCard({ lead, isSaving, onEdit, onStageChange, onDragStart, o
       {!attention.hasNextStep && !attention.isClosed && (
         <div className="mt-3">
           <QuickTaskScheduler leadId={lead.id} />
+        </div>
+      )}
+
+      {/* Proposal Builder Shortcut */}
+      {lead.stage === "PROPOSAL" && (
+        <div className="mt-3">
+          <Button asChild size="sm" variant="outline" className="w-full text-[11px] gap-1.5 h-8 border-primary/30 text-primary hover:bg-primary/5 hover:text-primary">
+            <Link href={`/portal/comercial/leads/${lead.id}/proposta`}>
+              <FileText className="h-3.5 w-3.5" /> Proposal Builder
+            </Link>
+          </Button>
         </div>
       )}
 
