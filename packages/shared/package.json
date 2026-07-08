@@ -12,6 +12,7 @@
     "./remote-operational-status": "./src/remote-operational-status.ts",
     "./request-auth": "./src/request-auth.ts",
     "./action-rate-limit": "./src/action-rate-limit.ts",
-    "./action-error-handler": "./src/action-error-handler.ts"
+    "./action-error-handler": "./src/action-error-handler.ts",
+    "./chatwoot-contact-presentation": "./src/chatwoot-contact-presentation.ts"
   }
 }

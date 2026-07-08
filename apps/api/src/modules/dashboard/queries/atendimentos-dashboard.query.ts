@@ -546,7 +546,14 @@ export class AtendimentosDashboardQuery {
       }));
 
     const topCompaniesMapped = mapRecurrenceItems(
-      this.mergeRecurrenceItemsByName(Array.from(companyRecurrenceMap.values()))
+      this.mergeRecurrenceItemsByName(
+        Array.from(companyRecurrenceMap.values()).filter(
+          (item) =>
+            item.key !== 'Empresa nao vinculada' &&
+            item.name !== 'Empresa nao vinculada' &&
+            !item.key.startsWith('conversation:'),
+        ),
+      )
         .sort((left, right) => right.count - left.count)
         .slice(0, 10),
     );

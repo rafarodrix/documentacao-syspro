@@ -1,4 +1,4 @@
-import { FileText, Headset, KeyRound } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { TicketFlowChart } from "../components/ticket-flow-chart";
@@ -56,7 +56,7 @@ export async function OperacionalTab() {
           title="Total em aberto"
           value={ticketCounts.total}
           helper="Tickets ativos no momento"
-          icon={Headset as any}
+          icon="headset"
           tone="blue"
           trend={{ delta: activityDelta, label: "movimentos vs ontem", downIsGood: true }}
         />
@@ -65,7 +65,7 @@ export async function OperacionalTab() {
           <DashboardMetricCard
             title="Contratos ativos"
             value={contracts.activeContracts}
-            icon={FileText as any}
+            icon="fileText"
             tone="emerald"
           />
         ) : null}

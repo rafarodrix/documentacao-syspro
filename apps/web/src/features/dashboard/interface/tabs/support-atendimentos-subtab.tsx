@@ -16,14 +16,10 @@ import {
   SelectValue,
 } from "@dosc-syspro/ui";
 import {
-  CheckCircle2,
   Clock3,
-  Inbox,
   Loader2,
-  MessageSquareText,
   RefreshCw,
   Search,
-  ShieldAlert,
 } from "lucide-react";
 import { SectionCard } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
@@ -265,11 +261,11 @@ export function SupportAtendimentosSubtab() {
       ) : null}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Conversas reais do Chatwoot no periodo" icon={Inbox as any} tone="blue" />
-        <DashboardMetricCard title="Em aberto" value={data?.openCount ?? 0} helper="Fila ativa e em acompanhamento" icon={Loader2 as any} tone="amber" />
-        <DashboardMetricCard title="Sem responsavel" value={data?.unassignedCount ?? 0} helper="Ainda sem atribuicao" icon={ShieldAlert as any} tone={(data?.unassignedCount ?? 0) > 0 ? "red" : "blue"} />
-        <DashboardMetricCard title="Resolvidos" value={data?.resolvedCount ?? 0} helper="Encerrados no fluxo" icon={CheckCircle2 as any} tone="emerald" />
-        <DashboardMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} avaliacoes`} icon={MessageSquareText as any} tone="emerald" />
+        <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Conversas reais do Chatwoot no periodo" icon="inbox" tone="blue" />
+        <DashboardMetricCard title="Em aberto" value={data?.openCount ?? 0} helper="Fila ativa e em acompanhamento" icon="loader" tone="amber" />
+        <DashboardMetricCard title="Sem responsavel" value={data?.unassignedCount ?? 0} helper="Ainda sem atribuicao" icon="shieldAlert" tone={(data?.unassignedCount ?? 0) > 0 ? "red" : "blue"} />
+        <DashboardMetricCard title="Resolvidos" value={data?.resolvedCount ?? 0} helper="Encerrados no fluxo" icon="checkCircle" tone="emerald" />
+        <DashboardMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} avaliacoes`} icon="messageSquareText" tone="emerald" />
       </div>
 
       <ActivityChart

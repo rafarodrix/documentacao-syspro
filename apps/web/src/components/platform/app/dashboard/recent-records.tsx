@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Badge, Button } from "@dosc-syspro/ui";
-import { ArrowUpRight, UserRound, Users } from "lucide-react"
+import { ArrowUpRight } from "lucide-react"
 import { EmptyState, SectionCard } from "@/components/patterns";
 import { formatRelativeDate } from "@/lib/utils";
 
@@ -44,10 +44,8 @@ export function RecentRecords({
   createHref,
   createLabel,
   items,
-  icon = "contact",
+  icon: _icon = "contact",
 }: RecentRecordsProps) {
-  const Icon = icon === "user" ? Users : UserRound
-
   return (
     <SectionCard
       title={title}
@@ -64,7 +62,6 @@ export function RecentRecords({
     >
       {items.length === 0 ? (
           <EmptyState
-            icon={Icon}
             title={emptyTitle}
             description={emptyDescription}
             className="h-full min-h-48"

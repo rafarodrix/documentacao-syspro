@@ -86,7 +86,7 @@ export function ClientDashboard({
           title="Chamados em aberto"
           value={data.totalOpen}
           helper={`${data.kpis.pending} em desenvolvimento ou testes`}
-          icon={Headset as any}
+          icon="headset"
           tone="blue"
         />
 
@@ -94,7 +94,7 @@ export function ClientDashboard({
           title="Resolvidos"
           value={data.kpis.resolved}
           helper="Historico recente de chamados concluido"
-          icon={BookOpen as any}
+          icon="bookOpen"
           tone="emerald"
         />
 

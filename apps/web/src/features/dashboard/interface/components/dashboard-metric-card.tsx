@@ -1,7 +1,29 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
-import { TrendingDown, TrendingUp, Minus } from "lucide-react";
-import type { Target } from "lucide-react";
+import {
+  AlertTriangle,
+  BookOpen,
+  Building2,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  DollarSign,
+  FileText,
+  Headset,
+  Inbox,
+  Loader2,
+  MessageSquareText,
+  Minus,
+  ShieldAlert,
+  Sparkles,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  UserRound,
+  Users,
+} from "lucide-react";
 
 const toneClasses = {
   blue: "bg-sky-500/10 text-sky-500",
@@ -15,6 +37,30 @@ type Trend = {
   label: string;
   downIsGood?: boolean;
 };
+
+const iconMap = {
+  alertTriangle: AlertTriangle,
+  bookOpen: BookOpen,
+  building: Building2,
+  checkCircle: CheckCircle2,
+  clipboardList: ClipboardList,
+  clock: Clock,
+  dollar: DollarSign,
+  fileText: FileText,
+  headset: Headset,
+  inbox: Inbox,
+  loader: Loader2,
+  messageSquareText: MessageSquareText,
+  shieldAlert: ShieldAlert,
+  sparkles: Sparkles,
+  target: Target,
+  trendingDown: TrendingDown,
+  trendingUp: TrendingUp,
+  user: UserRound,
+  users: Users,
+} as const;
+
+export type DashboardMetricIconKey = keyof typeof iconMap;
 
 function TrendIndicator({ delta, label, downIsGood }: Trend) {
   if (delta === 0) {
@@ -34,7 +80,8 @@ function TrendIndicator({ delta, label, downIsGood }: Trend) {
   return (
     <p className={cn("mt-1 flex items-center gap-1 text-xs font-medium", colorClass)}>
       <Icon className="h-3 w-3" />
-      {isPositive ? "+" : ""}{delta} {label}
+      {isPositive ? "+" : ""}
+      {delta} {label}
     </p>
   );
 }
@@ -43,17 +90,19 @@ export function DashboardMetricCard({
   title,
   value,
   helper,
-  icon: Icon,
+  icon,
   tone,
   trend,
 }: {
   title: string;
   value: number | string;
   helper?: string;
-  icon: typeof Target;
+  icon: DashboardMetricIconKey;
   tone: keyof typeof toneClasses;
   trend?: Trend;
 }) {
+  const Icon = iconMap[icon];
+
   return (
     <Card className="border-border/50 bg-card">
       <CardHeader className="flex flex-row items-start justify-between gap-3 px-4 pb-1 pt-4">
@@ -68,9 +117,9 @@ export function DashboardMetricCard({
         <div className="text-2xl font-bold tracking-tight tabular-nums text-foreground">{value}</div>
         {trend ? (
           <TrendIndicator {...trend} />
-        ) : (
-          helper ? <p className="text-xs leading-relaxed text-muted-foreground/80">{helper}</p> : null
-        )}
+        ) : helper ? (
+          <p className="text-xs leading-relaxed text-muted-foreground/80">{helper}</p>
+        ) : null}
         {trend && helper ? <p className="text-xs leading-relaxed text-muted-foreground/80">{helper}</p> : null}
       </CardContent>
     </Card>

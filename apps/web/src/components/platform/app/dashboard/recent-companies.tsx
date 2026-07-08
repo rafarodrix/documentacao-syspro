@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Badge, Button } from "@dosc-syspro/ui";
-import { Building2, ArrowUpRight, MapPin } from "lucide-react"
+import { ArrowUpRight, MapPin } from "lucide-react"
 import { cn, formatRelativeDate } from "@/lib/utils"
 import { EmptyState, SectionCard } from "@/components/patterns";
 import { formatCNPJ } from "@/lib/formatters";
@@ -57,7 +57,6 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
     >
       {companies.length === 0 ? (
           <EmptyState
-            icon={Building2}
             title="Nenhuma empresa recente"
             description="Os novos registros de empresa serao exibidos aqui."
             className="h-full min-h-48"

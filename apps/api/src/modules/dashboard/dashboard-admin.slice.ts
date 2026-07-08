@@ -5,11 +5,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { getLast7DaysRange, toSeries } from './dashboard.shared';
 import {
-  buildCrmSummary,
   type DashboardRequester,
   DashboardSupportService,
   mergeTicketWarnings,
-  summarizeActiveContracts,
 } from './dashboard.support';
 
 @Injectable()
@@ -39,10 +37,9 @@ export class DashboardAdminSliceService {
       canViewUsersDirect,
       canViewUsersScoped,
       canViewUsersGlobal,
-      companyScope,
+      crmAccess,
       contactScope,
       userScope,
-      canViewCrm,
       dashboardTicketTeam,
       sefazData,
     ] = await Promise.all([
@@ -53,21 +50,19 @@ export class DashboardAdminSliceService {
       this.authorizationService.userHasPermission(requester, 'users:view', { acceptCompanyScope: true }),
       this.authorizationService.userHasPermission(requester, 'users:view_team', { acceptCompanyScope: true }),
       this.authorizationService.userHasPermission(requester, 'users:view_all'),
-      this.authorizationService.resolveCompanyAccessScope(requester, 'companies:view_own', 'companies:view_all'),
+      this.dashboardSupport.resolveDashboardCrmAccess(requester),
       this.authorizationService.resolveCompanyAccessScope(requester, 'contacts:view_team', 'contacts:view_all'),
       this.authorizationService.resolveCompanyAccessScope(requester, 'users:view_team', 'users:view_all'),
-      this.dashboardSupport.canViewDashboardCrm(requester),
       this.dashboardSupport.getDashboardTicketTeam(requester),
       this.dashboardSupport.fetchSefazStatusData(dashboardUFs),
     ]);
 
     const canViewContactsModule = canViewContactsDirect || canViewContactsScoped || canViewContactsGlobal;
     const canViewUsersModule = canViewUsersGlobal || canViewUsersScoped || canViewUsersDirect;
-    const scopedCompanyIds = companyScope.isGlobal ? undefined : companyScope.companyIds;
+    const scopedCompanyIds = crmAccess.scopedCompanyIds;
     const scopedContactIds = contactScope.isGlobal ? undefined : contactScope.companyIds;
     const scopedUserIds = userScope.isGlobal ? undefined : userScope.companyIds;
     const companyBaseWhere = this.dashboardSupport.buildScopedCompaniesWhere(scopedCompanyIds);
-    const contractsBaseWhere = this.dashboardSupport.buildScopedContractsWhere(scopedCompanyIds);
     const userBaseWhere = this.dashboardSupport.buildScopedUsersWhere(scopedUserIds);
 
     const [
@@ -81,8 +76,8 @@ export class DashboardAdminSliceService {
       recentContacts,
       recentUsers,
       companyActivity,
-      crmLeads,
-      activeContracts,
+      crm,
+      contracts,
       usersThisMonth,
       contactsThisMonth,
       inactivatedCompaniesThisMonth,
@@ -198,26 +193,8 @@ export class DashboardAdminSliceService {
             select: { createdAt: true },
           })
         : Promise.resolve([]),
-      canViewCrm
-        ? (this.prisma as any).crmLead
-            .findMany({
-              select: {
-                stage: true,
-                estimatedValue: true,
-                expectedCloseAt: true,
-                nextStep: true,
-              },
-            })
-            .catch(() => [])
-        : Promise.resolve([]),
-      canViewCrm
-        ? this.prisma.contract
-            .findMany({
-              where: { status: 'ACTIVE', ...contractsBaseWhere },
-              select: { totalValue: true, minimumWage: true, percentage: true, taxRate: true, programmerRate: true },
-            })
-            .catch(() => [])
-        : Promise.resolve([]),
+      crmAccess.canViewCrm ? this.dashboardSupport.loadCrmSummary() : Promise.resolve(undefined),
+      crmAccess.canViewCrm ? this.dashboardSupport.loadScopedContractsSummary(scopedCompanyIds) : Promise.resolve(undefined),
       this.prisma.user.count({ where: { ...userBaseWhere, createdAt: { gte: monthStart } } }),
       canViewContactsModule
         ? (this.prisma as any).companyContact.count({
@@ -349,8 +326,8 @@ export class DashboardAdminSliceService {
         openTicketRecords: ticketData.openTicketRecords,
         totalOpen,
         activity: toSeries(companyActivity.map((company) => company.createdAt)),
-        crm: canViewCrm ? buildCrmSummary(crmLeads) : undefined,
-        contracts: canViewCrm ? summarizeActiveContracts(activeContracts) : undefined,
+        crm,
+        contracts,
         cadastros: {
           companies: {
             total: companiesCount,

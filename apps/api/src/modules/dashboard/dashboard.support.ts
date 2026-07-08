@@ -50,6 +50,15 @@ export type DashboardRequester = {
   email: string;
 };
 
+export type DashboardCrmAccessContext = {
+  canViewCrm: boolean;
+  companyScope: {
+    isGlobal: boolean;
+    companyIds: string[];
+  };
+  scopedCompanyIds: string[] | undefined;
+};
+
 export type DashboardTicketTeam = 'SUPORTE' | 'DESENVOLVIMENTO';
 
 export type DashboardTicketsResponse = Awaited<ReturnType<TicketsService['findAll']>>;
@@ -61,6 +70,21 @@ export type DashboardMembershipStateSource = {
     }>;
   } | null;
 };
+
+const DASHBOARD_CRM_LEAD_SELECT = {
+  stage: true,
+  estimatedValue: true,
+  expectedCloseAt: true,
+  nextStep: true,
+} as const;
+
+const DASHBOARD_ACTIVE_CONTRACT_SELECT = {
+  totalValue: true,
+  minimumWage: true,
+  percentage: true,
+  taxRate: true,
+  programmerRate: true,
+} as const;
 
 function toDecimalNumber(value: DashboardContractRecord[keyof DashboardContractRecord]) {
   if (typeof value === 'number') return value;
@@ -257,6 +281,43 @@ export class DashboardSupportService {
     });
 
     return allowed ? getDailyPasswordForDate() : null;
+  }
+
+  async resolveDashboardCrmAccess(requester: DashboardRequester): Promise<DashboardCrmAccessContext> {
+    const [canViewCrm, companyScope] = await Promise.all([
+      this.canViewDashboardCrm(requester),
+      this.authorizationService.resolveCompanyAccessScope(requester, 'companies:view_own', 'companies:view_all'),
+    ]);
+
+    return {
+      canViewCrm,
+      companyScope,
+      scopedCompanyIds: companyScope.isGlobal ? undefined : companyScope.companyIds,
+    };
+  }
+
+  async loadCrmSummary(): Promise<DashboardCrmSummary> {
+    const crmLeads = await (this.prisma as any)
+      .crmLead.findMany({ select: DASHBOARD_CRM_LEAD_SELECT })
+      .catch(() => []);
+
+    return buildCrmSummary(crmLeads);
+  }
+
+  async loadScopedActiveContracts(scopedCompanyIds?: string[]): Promise<DashboardContractRecord[]> {
+    const contractsBaseWhere = this.buildScopedContractsWhere(scopedCompanyIds);
+
+    return this.prisma.contract
+      .findMany({
+        where: { status: 'ACTIVE', ...contractsBaseWhere },
+        select: DASHBOARD_ACTIVE_CONTRACT_SELECT,
+      })
+      .catch(() => []);
+  }
+
+  async loadScopedContractsSummary(scopedCompanyIds?: string[]) {
+    const contracts = await this.loadScopedActiveContracts(scopedCompanyIds);
+    return summarizeActiveContracts(contracts);
   }
 
   async getConfiguredSefazRoutes() {

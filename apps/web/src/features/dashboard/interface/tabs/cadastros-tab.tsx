@@ -1,4 +1,3 @@
-import { Building2, UserRound, Users } from "lucide-react";
 import { formatNumber } from "@/lib/formatters";
 import { RecentCompanies } from "@/components/platform/app/dashboard/recent-companies";
 import { RecentRecords } from "@/components/platform/app/dashboard/recent-records";
@@ -49,7 +48,7 @@ export async function CadastrosTab() {
             title="Empresas ativas"
             value={formatNumber(cadastros?.companies.total ?? companiesCount)}
             helper={`${cadastros?.companies.registeredThisMonth ?? 0} novas no mes · ${cadastros?.companies.inactivatedThisMonth ?? 0} inativadas`}
-            icon={Building2 as any}
+            icon="building"
             tone="blue"
           />
         ) : null}
@@ -59,7 +58,7 @@ export async function CadastrosTab() {
             title="Contatos vinculados"
             value={formatNumber(cadastros?.contacts.total ?? contactsCount)}
             helper={`${cadastros?.contacts.registeredThisMonth ?? 0} novos no mes · ${cadastros?.contacts.inactivatedThisMonth ?? 0} inativados`}
-            icon={Users as any}
+            icon="users"
             tone="amber"
           />
         ) : null}
@@ -69,7 +68,7 @@ export async function CadastrosTab() {
             title="Usuarios ativos"
             value={formatNumber(cadastros?.users.total ?? usersCount)}
             helper={`${cadastros?.users.registeredThisMonth ?? 0} novos no mes · ${cadastros?.users.inactivatedThisMonth ?? 0} inativados`}
-            icon={UserRound as any}
+            icon="user"
             tone="emerald"
           />
         ) : null}

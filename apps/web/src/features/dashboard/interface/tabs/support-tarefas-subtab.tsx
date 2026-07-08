@@ -1,9 +1,3 @@
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ClipboardList,
-  Clock,
-} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
@@ -49,14 +43,14 @@ export async function SupportTarefasSubtab() {
           title="Total de tarefas"
           value={summary.total}
           helper={`Competencia ${competencia}`}
-          icon={ClipboardList}
+          icon="clipboardList"
           tone="blue"
         />
         <DashboardMetricCard
           title="Vencidas"
           value={summary.overdue}
           helper="Tarefas com prazo expirado"
-          icon={AlertTriangle}
+          icon="alertTriangle"
           tone="red"
           trend={
             summary.total > 0
@@ -68,14 +62,14 @@ export async function SupportTarefasSubtab() {
           title="Aguardando cliente"
           value={summary.waitingCustomer}
           helper="Aguardando retorno do cliente"
-          icon={Clock}
+          icon="clock"
           tone="amber"
         />
         <DashboardMetricCard
           title="Concluidas"
           value={summary.completed}
           helper={`${completionRate}% de conclusao no mes`}
-          icon={CheckCircle2}
+          icon="checkCircle"
           tone="emerald"
           trend={
             summary.total > 0

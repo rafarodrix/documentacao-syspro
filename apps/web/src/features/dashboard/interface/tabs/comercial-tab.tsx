@@ -1,4 +1,4 @@
-import { ArrowUpRight, DollarSign, FileText, Sparkles, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@dosc-syspro/ui";
 import { SectionCard } from "@/components/patterns";
@@ -30,28 +30,28 @@ export async function ComercialTab() {
           title="Contratos ativos"
           value={contracts?.activeContracts ?? 0}
           helper="Clientes com contrato ativo"
-          icon={FileText as any}
+          icon="fileText"
           tone="blue"
         />
         <DashboardMetricCard
           title="MRR estimado"
           value={contracts ? formatCurrency(contracts.totalValue) : "Sem dados"}
           helper="Receita recorrente mensal liquida estimada"
-          icon={DollarSign as any}
+          icon="dollar"
           tone="emerald"
         />
         <DashboardMetricCard
           title="MRR medio"
           value={contracts ? formatCurrency(averageContractMrr) : "Sem dados"}
           helper="Receita media por contrato ativo"
-          icon={FileText as any}
+          icon="fileText"
           tone="blue"
         />
         <DashboardMetricCard
           title="Cobertura do pipeline"
           value={`${formatNumber(pipelineCoverage, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`}
           helper="Pipeline bruto sobre o MRR atual"
-          icon={Target as any}
+          icon="target"
           tone="amber"
         />
       </div>
@@ -61,28 +61,28 @@ export async function ComercialTab() {
           title="Pipeline ativo"
           value={crm?.activeLeads ?? 0}
           helper={crm ? formatCurrency(crm.pipelineValue) : "Sem dados"}
-          icon={Target as any}
+          icon="target"
           tone="blue"
         />
         <DashboardMetricCard
           title="Em proposta"
           value={crm?.proposalLeads ?? 0}
           helper={`${crm?.negotiationLeads ?? 0} em negociacao`}
-          icon={TrendingUp as any}
+          icon="trendingUp"
           tone="amber"
         />
         <DashboardMetricCard
           title="Ganhos"
           value={crm?.wonLeads ?? 0}
           helper={crm ? formatCurrency(crm.wonValue) : "Sem dados"}
-          icon={Sparkles as any}
+          icon="sparkles"
           tone="emerald"
         />
         <DashboardMetricCard
           title="Risco operacional"
           value={(crm?.overdueLeads ?? 0) + (crm?.noNextStepLeads ?? 0)}
           helper={`${crm?.overdueLeads ?? 0} atrasados · ${crm?.noNextStepLeads ?? 0} sem proximo passo`}
-          icon={TrendingDown as any}
+          icon="trendingDown"
           tone="red"
         />
       </div>

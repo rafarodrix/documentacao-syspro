@@ -1,14 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import type { IncomingHttpHeaders } from 'node:http';
-import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { toSeries } from './dashboard.shared';
-import { DashboardSupportService, summarizeActiveContracts } from './dashboard.support';
+import { DashboardSupportService } from './dashboard.support';
 
 @Injectable()
 export class DashboardOperacionalSliceService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
     private readonly dashboardSupport: DashboardSupportService,
   ) {}
@@ -21,10 +19,9 @@ export class DashboardOperacionalSliceService {
       this.dashboardSupport.getUserDashboardUFs(requester.userId),
     ]);
 
-    const [dashboardTicketTeam, canViewCrm, companyScope, sefazData] = await Promise.all([
+    const [dashboardTicketTeam, crmAccess, sefazData] = await Promise.all([
       this.dashboardSupport.getDashboardTicketTeam(requester),
-      this.dashboardSupport.canViewDashboardCrm(requester),
-      this.authorizationService.resolveCompanyAccessScope(requester, 'companies:view_own', 'companies:view_all'),
+      this.dashboardSupport.resolveDashboardCrmAccess(requester),
       this.dashboardSupport.fetchSefazStatusData(dashboardUFs),
     ]);
     const ticketData = await this.dashboardSupport.fetchDashboardTickets(
@@ -36,18 +33,10 @@ export class DashboardOperacionalSliceService {
     const scopedTicketRecords = dashboardTicketTeam
       ? ticketData.openTicketRecords.filter((record) => record.team === dashboardTicketTeam)
       : ticketData.openTicketRecords;
-    const contractsBaseWhere = this.dashboardSupport.buildScopedContractsWhere(
-      companyScope.isGlobal ? undefined : companyScope.companyIds,
-    );
     const sefazRecords = sefazData.sefazRecords;
-    const activeContracts = canViewCrm
-      ? await this.prisma.contract
-          .findMany({
-            where: { status: 'ACTIVE', ...contractsBaseWhere },
-            select: { totalValue: true, minimumWage: true, percentage: true, taxRate: true, programmerRate: true },
-          })
-          .catch(() => [])
-      : [];
+    const contracts = crmAccess.canViewCrm
+      ? await this.dashboardSupport.loadScopedContractsSummary(crmAccess.scopedCompanyIds)
+      : undefined;
 
     const tickets = ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').slice(0, 5);
     const totalOpen =
@@ -101,7 +90,7 @@ export class DashboardOperacionalSliceService {
         },
         sefazHealth: sefazHealth as 'online' | 'unstable' | 'offline' | 'unknown',
         sefazRoutesCount: sefazData.configuredSefazRoutes.filter((route) => route.active).length,
-        contracts: canViewCrm ? summarizeActiveContracts(activeContracts) : undefined,
+        contracts,
         ticketFlow,
         tickets,
         totalOpen,
