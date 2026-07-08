@@ -36,6 +36,8 @@ type Props = {
   // atividades tab
   newActivityBody: string;
   setNewActivityBody: (v: string) => void;
+  newActivityType: "NOTE" | "CALL" | "MEETING" | "EMAIL" | "WHATSAPP";
+  setNewActivityType: (type: "NOTE" | "CALL" | "MEETING" | "EMAIL" | "WHATSAPP") => void;
   isPostingActivity: boolean;
   onAddActivity: () => void;
   // tarefas tab
@@ -70,6 +72,8 @@ export function LeadDetailsSheet({
   onRemoveContact,
   newActivityBody,
   setNewActivityBody,
+  newActivityType,
+  setNewActivityType,
   isPostingActivity,
   onAddActivity,
   newTaskTitle,
@@ -164,6 +168,8 @@ export function LeadDetailsSheet({
                   activities={activities}
                   newActivityBody={newActivityBody}
                   setNewActivityBody={setNewActivityBody}
+                  newActivityType={newActivityType}
+                  setNewActivityType={setNewActivityType}
                   isPostingActivity={isPostingActivity}
                   onAddActivity={onAddActivity}
                 />

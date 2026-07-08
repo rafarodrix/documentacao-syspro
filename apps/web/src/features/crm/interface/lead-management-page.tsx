@@ -334,6 +334,8 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
         onRemoveContact={details.handleRemoveContact}
         newActivityBody={details.newActivityBody}
         setNewActivityBody={details.setNewActivityBody}
+        newActivityType={details.newActivityType}
+        setNewActivityType={details.setNewActivityType}
         isPostingActivity={details.isPostingActivity}
         onAddActivity={details.handleAddActivity}
         newTaskTitle={details.newTaskTitle}

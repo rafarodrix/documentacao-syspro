@@ -6,6 +6,7 @@ import { TrustReleaseCard } from "../components/trust-release-card";
 import { DocsInsightsPanel } from "../components/docs-insights-panel";
 import { ExecutiveSummaryCard } from "../components/executive-summary-card";
 import { ExecutiveLine } from "../components/executive-line";
+import { DashboardNextActionCard } from "../components/dashboard-next-action-card";
 import { getOperacionalData } from "../../application/operacional-dashboard.queries";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
@@ -38,7 +39,7 @@ export async function OperacionalTab() {
     <div className="space-y-4">
       <ExecutiveSummaryCard
         title="Leitura executiva da operacao"
-        description="Esta aba concentra a saude da fila interna, o ritmo de movimentacao dos tickets e os blocos operacionais que exigem acao imediata da equipe."
+        description="Use esta aba para acompanhar a saude da fila interna, o ritmo de movimentacao dos tickets e os blocos operacionais que exigem acao imediata da equipe."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine label="Tickets em aberto" value={`${ticketCounts.total}`} />
@@ -112,6 +113,14 @@ export async function OperacionalTab() {
       </div>
 
       <DocsInsightsPanel latestUpdates={latestDocs} />
+
+      <DashboardNextActionCard
+        description="Feche este ciclo entrando na fila operacional e valide a documentacao interna quando houver duvida de processo ou contexto tecnico."
+        primaryHref="/portal/tickets"
+        primaryLabel="Ir para fila operacional"
+        secondaryHref="/portal/docs/admin"
+        secondaryLabel="Abrir documentacao interna"
+      />
     </div>
   );
 }

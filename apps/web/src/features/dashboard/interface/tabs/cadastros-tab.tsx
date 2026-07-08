@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
 import { ExecutiveSummaryCard } from "../components/executive-summary-card";
 import { ExecutiveLine } from "../components/executive-line";
+import { DashboardNextActionCard } from "../components/dashboard-next-action-card";
 import { RegistryTimelineColumn } from "../components/registry-timeline-column";
 import { getCadastrosData } from "../../application/cadastros-dashboard.queries";
 
@@ -118,7 +119,7 @@ export async function CadastrosTab() {
     <div className="space-y-6">
       <ExecutiveSummaryCard
         title="Leitura executiva dos cadastros"
-        description="Aqui o foco e manter base ativa, vinculos consistentes e pendencias visiveis antes que afetem atendimento, comercial e operacao."
+        description="Use esta aba para manter a base ativa, os vinculos consistentes e as pendencias visiveis antes que elas afetem atendimento, comercial e operacao."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine
@@ -278,6 +279,14 @@ export async function CadastrosTab() {
           ) : null}
         </RegistryTimelineColumn>
       </div>
+
+      <DashboardNextActionCard
+        description="Feche este ciclo limpando pendencias de cadastro na lista principal e avance para a abertura de nova empresa quando o saneamento da base estiver sob controle."
+        primaryHref="/portal/cadastros/empresa"
+        primaryLabel="Ir para empresas"
+        secondaryHref="/portal/cadastros/empresa/novo"
+        secondaryLabel="Cadastrar nova empresa"
+      />
     </div>
   );
 }

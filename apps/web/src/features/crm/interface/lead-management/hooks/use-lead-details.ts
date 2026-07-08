@@ -36,6 +36,7 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
   const [isLookupLoading, setIsLookupLoading] = useState(false);
 
   const [newActivityBody, setNewActivityBody] = useState("");
+  const [newActivityType, setNewActivityType] = useState<"NOTE" | "CALL" | "MEETING" | "EMAIL" | "WHATSAPP">("NOTE");
   const [isPostingActivity, setIsPostingActivity] = useState(false);
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -183,9 +184,10 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
     if (!newActivityBody.trim() || !leadDetails) return;
     setIsPostingActivity(true);
     try {
-      const res = await trpc.crm.createActivity.mutate({ leadId: leadDetails.id, type: "NOTE", body: newActivityBody.trim() });
+      const res = await trpc.crm.createActivity.mutate({ leadId: leadDetails.id, type: newActivityType, body: newActivityBody.trim() });
       if (res.success) {
         setNewActivityBody("");
+        setNewActivityType("NOTE");
         toast.success("Anotação adicionada!");
         const activitiesRes = await trpc.crm.listActivities.query({ leadId: leadDetails.id });
         setActivities(unwrapCollectionResponse<CrmActivity>(activitiesRes));
@@ -321,6 +323,8 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
     isLookupLoading,
     newActivityBody,
     setNewActivityBody,
+    newActivityType,
+    setNewActivityType,
     isPostingActivity,
     newTaskTitle,
     setNewTaskTitle,

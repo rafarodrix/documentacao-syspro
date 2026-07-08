@@ -1,10 +1,8 @@
-import { ArrowUpRight } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@dosc-syspro/ui";
 import { SectionCard } from "@/components/patterns";
 import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
 import { ExecutiveSummaryCard } from "../components/executive-summary-card";
 import { ExecutiveLine } from "../components/executive-line";
+import { DashboardNextActionCard } from "../components/dashboard-next-action-card";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
 import { CrmStageChart } from "../components/crm-stage-chart";
 import { getComercialData } from "../../application/comercial-dashboard.queries";
@@ -38,7 +36,7 @@ export async function ComercialTab() {
     <div className="space-y-4">
       <ExecutiveSummaryCard
         title="Leitura executiva do comercial"
-        description="A prioridade aqui e responder rapido se o pipeline sustenta a receita atual, onde o funil esta travando e quanto valor esta exposto por falta de acompanhamento."
+        description="Use esta aba para responder rapido se o pipeline sustenta a receita atual, onde o funil esta travando e quanto valor esta exposto por falta de acompanhamento."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine
@@ -168,17 +166,16 @@ export async function ComercialTab() {
               </p>
             )}
           </div>
-
-          <div className="pt-2">
-            <Button asChild variant="outline" className="w-full gap-2">
-              <Link href="/portal/comercial/leads">
-                <ArrowUpRight className="h-4 w-4" />
-                Acessar pipeline de vendas
-              </Link>
-            </Button>
-          </div>
         </SectionCard>
       </div>
+
+      <DashboardNextActionCard
+        description="Feche este ciclo abrindo o pipeline para remover gargalos imediatos e registre um novo lead quando a cobertura comercial ainda nao sustentar a meta de receita."
+        primaryHref="/portal/comercial/leads"
+        primaryLabel="Ir para pipeline"
+        secondaryHref="/portal/comercial/leads/novo"
+        secondaryLabel="Cadastrar novo lead"
+      />
     </div>
   );
 }

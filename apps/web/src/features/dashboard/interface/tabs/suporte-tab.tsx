@@ -5,6 +5,7 @@ import { currentUserHasPermission } from "@/features/user-access/application/cur
 import { TabListSkeleton } from "../components/tab-skeleton";
 import { ExecutiveSummaryCard } from "../components/executive-summary-card";
 import { ExecutiveLine } from "../components/executive-line";
+import { DashboardNextActionCard } from "../components/dashboard-next-action-card";
 import { SupportTicketsSubtab } from "./support-tickets-subtab";
 import { SupportAtendimentosSubtab } from "./support-atendimentos-subtab";
 import { SupportTarefasSubtab } from "./support-tarefas-subtab";
@@ -25,7 +26,7 @@ export async function SuporteTab() {
     <div className="space-y-4">
       <ExecutiveSummaryCard
         title="Leitura executiva do suporte"
-        description="Use esta aba para separar backlog operacional de tickets, carga de tarefas internas e saude das conversas do Chatwoot, sem perder o contexto da fila."
+        description="Use esta aba para separar backlog operacional de tickets, carga de tarefas internas e saude das conversas do Chatwoot sem perder o contexto da fila."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine label="Tickets" value="Fila e distribuicao" />
@@ -76,6 +77,14 @@ export async function SuporteTab() {
           </TabsContent>
         ) : null}
       </Tabs>
+
+      <DashboardNextActionCard
+        description="Feche este ciclo abrindo a frente com maior risco agora e, se necessario, registre o proximo atendimento diretamente pela fila de suporte."
+        primaryHref="/portal/tickets"
+        primaryLabel="Ir para suporte"
+        secondaryHref="/portal/tickets/novo"
+        secondaryLabel="Abrir novo ticket"
+      />
     </div>
   );
 }
