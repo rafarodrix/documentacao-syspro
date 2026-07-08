@@ -4,9 +4,9 @@ import { Button } from "@dosc-syspro/ui";
 import { SectionCard } from "@/components/patterns";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
-import { ExecutiveLine } from "../components/executive-line";
 import { CrmStageChart } from "../components/crm-stage-chart";
 import { getComercialData } from "../../application/comercial-dashboard.queries";
+import { cn } from "@/lib/utils";
 
 export async function ComercialTab() {
   const data = await getComercialData();
@@ -21,6 +21,16 @@ export async function ComercialTab() {
     ? (contracts?.totalValue ?? 0) / (contracts?.activeContracts ?? 1)
     : 0;
   const pipelineCoverage = (contracts?.totalValue ?? 0) > 0 ? (crm?.pipelineValue ?? 0) / (contracts?.totalValue ?? 1) : 0;
+
+  const pipelineValueFormatted = crm ? formatCurrency(crm.pipelineValue) : "R$ 0,00";
+  const averagePipelineTicketFormatted = crm ? formatCurrency(averagePipelineTicket) : "R$ 0,00";
+  const averageWonTicketFormatted = crm ? formatCurrency(averageWonTicket) : "R$ 0,00";
+  const winRateFormatted = formatNumber(winRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const pipelineCoverageFormatted = formatNumber(pipelineCoverage, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const overdueLeads = crm?.overdueLeads ?? 0;
+  const noNextStepLeads = crm?.noNextStepLeads ?? 0;
+  const wonValueFormatted = crm ? formatCurrency(crm.wonValue) : "R$ 0,00";
+  const totalMrrFormatted = contracts ? formatCurrency(contracts.totalValue) : "R$ 0,00";
 
   return (
     <div className="space-y-4">
@@ -90,35 +100,54 @@ export async function ComercialTab() {
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
         <CrmStageChart distribution={stageDistribution} />
 
-        <SectionCard title="Leitura executiva" className="border-border/50 bg-card" contentClassName="space-y-3 text-sm">
-          <ExecutiveLine
-            label="MRR estimado"
-            value={contracts ? formatCurrency(contracts.totalValue) : "Sem dados"}
-            emphasis="text-emerald-500"
-          />
-          <ExecutiveLine label="Leads ativos" value={`${crm?.activeLeads ?? 0}`} emphasis="text-foreground" />
-          <ExecutiveLine label="Propostas abertas" value={`${crm?.proposalLeads ?? 0}`} />
-          <ExecutiveLine label="Em negociacao" value={`${crm?.negotiationLeads ?? 0}`} />
-          <ExecutiveLine label="Ticket medio do pipeline" value={crm ? formatCurrency(averagePipelineTicket) : "Sem dados"} />
-          <ExecutiveLine label="Ticket medio ganho" value={crm ? formatCurrency(averageWonTicket) : "Sem dados"} />
-          <ExecutiveLine label="Taxa de ganho" value={`${formatNumber(winRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
-          <ExecutiveLine label="Cobertura do pipeline" value={`${formatNumber(pipelineCoverage, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`} />
-          <ExecutiveLine label="Perdidos" value={`${crm?.lostLeads ?? 0}`} />
-          <ExecutiveLine
-            label="Atrasados"
-            value={`${crm?.overdueLeads ?? 0}`}
-            emphasis={(crm?.overdueLeads ?? 0) > 0 ? "text-amber-500" : "text-foreground"}
-          />
-          <ExecutiveLine
-            label="Sem proximo passo"
-            value={`${crm?.noNextStepLeads ?? 0}`}
-            emphasis={(crm?.noNextStepLeads ?? 0) > 0 ? "text-red-500" : "text-foreground"}
-          />
+        <SectionCard
+          title="Narrativa e Saúde do Pipeline"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
+          contentClassName="space-y-4 text-sm leading-relaxed"
+        >
+          <div className="rounded-lg border border-border/40 bg-muted/20 p-3.5 space-y-2.5">
+            <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">Desempenho Comercial</h4>
+            <p className="text-foreground text-xs leading-normal">
+              Nosso pipeline comercial conta atualmente com <strong className="text-foreground font-semibold">{crm?.activeLeads ?? 0} leads ativos</strong>, totalizando um volume bruto de <strong className="text-primary font-semibold">{pipelineValueFormatted}</strong>. O ticket médio do pipeline está em <span className="font-medium text-foreground">{averagePipelineTicketFormatted}</span>.
+            </p>
+            <p className="text-foreground text-xs leading-normal">
+              Historicamente, temos uma <strong className="font-medium">taxa de conversão de {winRateFormatted}%</strong> nos fechamentos. Com base nisso, o ticket médio ganho real atinge <strong className="font-semibold text-emerald-500">{averageWonTicketFormatted}</strong>, com um acumulado de <strong className="font-semibold text-emerald-500">{wonValueFormatted}</strong> ({crm?.wonLeads ?? 0} negócios fechados).
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-border/40 bg-muted/20 p-3.5 space-y-2.5">
+            <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">Cobertura de Receita</h4>
+            <p className="text-foreground text-xs leading-normal">
+              O pipeline ativo cobre <strong className="font-medium">{pipelineCoverageFormatted}x</strong> a nossa receita recorrente mensal (MRR) atual de <strong className="font-medium">{totalMrrFormatted}</strong>. Isso fornece uma cobertura saudável para alimentar as metas de expansão do trimestre.
+            </p>
+          </div>
+
+          <div className={cn(
+            "rounded-lg border p-3.5 space-y-2",
+            (overdueLeads > 0 || noNextStepLeads > 0)
+              ? "border-rose-500/20 bg-rose-500/5 text-rose-200"
+              : "border-emerald-500/20 bg-emerald-500/5 text-emerald-200"
+          )}>
+            <div className="flex items-center gap-1.5 font-semibold text-xs uppercase tracking-wider">
+              <span className={cn("h-2 w-2 rounded-full", (overdueLeads > 0 || noNextStepLeads > 0) ? "bg-rose-500 animate-pulse" : "bg-emerald-500")} />
+              <span>Análise de Risco Operacional</span>
+            </div>
+            {(overdueLeads > 0 || noNextStepLeads > 0) ? (
+              <p className="text-xs leading-normal text-muted-foreground">
+                Atenção comercial necessária! Identificamos <strong className="font-bold text-rose-400">{overdueLeads} lead(s) com atividades em atraso</strong> e <strong className="font-bold text-rose-400">{noNextStepLeads} lead(s) sem nenhuma próxima ação</strong> agendada. A falta de acompanhamento coloca em risco cerca de <strong className="font-semibold text-foreground">{crm ? formatCurrency((overdueLeads + noNextStepLeads) * averagePipelineTicket) : "R$ 0,00"}</strong> em receita potencial de novos contratos.
+              </p>
+            ) : (
+              <p className="text-xs leading-normal text-muted-foreground">
+                Excelente controle operacional! Todas as oportunidades no funil possuem atividades futuras agendadas e não há pendências de atraso registradas.
+              </p>
+            )}
+          </div>
+
           <div className="pt-2">
             <Button asChild variant="outline" className="w-full gap-2">
               <Link href="/portal/comercial/leads">
                 <ArrowUpRight className="h-4 w-4" />
-                Abrir pipeline comercial
+                Acessar Pipeline de Vendas
               </Link>
             </Button>
           </div>

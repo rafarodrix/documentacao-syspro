@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
-import { getDashboardData, getOperacionalData } from "@/features/dashboard/application/server";
+import { getDashboardData, getOperacionalData, getCadastrosData, getComercialData } from "@/features/dashboard/application/server";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { AdminDashboard } from "@/features/dashboard/interface/admin-dashboard";
 import { ClientDashboard } from "@/features/dashboard/interface/client-dashboard";
@@ -34,7 +34,11 @@ export default async function DashboardPage() {
   ]);
 
   if (hasInternalDashboard) {
-    const operacionalData = await getOperacionalData();
+    const [operacionalData, cadastrosData, comercialData] = await Promise.all([
+      getOperacionalData(),
+      canAccessCadastros ? getCadastrosData().catch(() => null) : null,
+      canAccessCrm ? getComercialData().catch(() => null) : null,
+    ]);
 
     return (
       <AdminDashboard
@@ -46,6 +50,12 @@ export default async function DashboardPage() {
           sefazHealth: operacionalData.sefazHealth,
           sefazRoutesCount: operacionalData.sefazRoutesCount,
         }}
+        cadastrosSummary={cadastrosData ? {
+          companiesCount: cadastrosData.cadastros?.companies.total ?? cadastrosData.companiesCount,
+        } : undefined}
+        comercialSummary={comercialData ? {
+          activeLeadsCount: comercialData.crm?.activeLeads ?? 0,
+        } : undefined}
       />
     );
   }

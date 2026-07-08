@@ -3,6 +3,8 @@ import { ActivityChart } from "@/components/platform/app/dashboard/activity-char
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { getTarefasData } from "../../application/tarefas-dashboard.queries";
 import type { DashboardTarefasOverdueItem } from "@dosc-syspro/contracts/dashboard";
+import { EmptyState } from "@/components/patterns";
+import { CheckCircle2 } from "lucide-react";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
@@ -106,9 +108,14 @@ export async function SupportTarefasSubtab() {
                   ))}
                 </div>
               ) : (
-                <div className="flex h-[160px] items-center justify-center rounded-lg border border-border/50 bg-background">
-                  <p className="text-sm text-muted-foreground">Nenhuma tarefa vencida.</p>
-                </div>
+                <EmptyState
+                  icon={CheckCircle2}
+                  title="Tudo em dia!"
+                  description="Nenhuma tarefa vencida nesta competência."
+                  compact
+                  dashed
+                  className="h-[160px] border-border/40"
+                />
               )}
             </CardContent>
           </Card>

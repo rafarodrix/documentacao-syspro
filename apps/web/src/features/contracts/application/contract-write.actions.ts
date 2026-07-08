@@ -40,7 +40,7 @@ export async function createContractAction(data: CreateContractOutput): Promise<
       }),
     });
 
-    const result = await parseActionResponse(response, "Erro interno ao salvar contrato.");
+    const result = await parseActionResponse<ContractActionResponse>(response, "Erro interno ao salvar contrato.");
     if (result.success) {
       revalidateContractsViews();
     }
@@ -73,7 +73,7 @@ export async function updateContractAction(data: UpdateContractOutput): Promise<
       }),
     });
 
-    const result = await parseActionResponse(response, "Erro ao atualizar contrato.");
+    const result = await parseActionResponse<ContractActionResponse>(response, "Erro ao atualizar contrato.");
     if (result.success) {
       revalidateContractsViews();
     }
@@ -104,7 +104,7 @@ export async function batchReadjustContractsAction(
       body: JSON.stringify(validation.data),
     });
 
-    const result = await parseActionResponse<{ affected: number }>(response, "Erro ao aplicar reajuste em massa.");
+    const result = await parseActionResponse<ContractActionResponse<{ affected: number }>>(response, "Erro ao aplicar reajuste em massa.");
     if (result.success) {
       revalidateContractsViews(false);
     }
@@ -137,7 +137,7 @@ export async function updateContractStatusAction(
       }),
     });
 
-    const result = await parseActionResponse(response, "Erro ao atualizar status do contrato.");
+    const result = await parseActionResponse<ContractActionResponse>(response, "Erro ao atualizar status do contrato.");
     if (result.success) {
       revalidateContractsViews();
     }
@@ -159,7 +159,7 @@ export async function deleteContractAction(contractId: string): Promise<Contract
       method: "DELETE",
     });
 
-    const result = await parseActionResponse(response, "Erro ao excluir contrato.");
+    const result = await parseActionResponse<ContractActionResponse>(response, "Erro ao excluir contrato.");
     if (result.success) {
       revalidateContractsViews();
     }

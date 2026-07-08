@@ -21,7 +21,11 @@ export interface RecentCompanyItem {
 }
 
 interface RecentCompaniesProps {
+  title?: string
   companies: RecentCompanyItem[]
+  emptyTitle?: string
+  emptyDescription?: string
+  createHref?: string
 }
 
 const STATUS_CONFIG: Record<CompanyStatusValue, { label: string; class: string }> = {
@@ -40,10 +44,16 @@ function getInitials(name: string): string {
   return name.trim().split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
 }
 
-export function RecentCompanies({ companies }: RecentCompaniesProps) {
+export function RecentCompanies({
+  title = "Empresas recentes",
+  companies,
+  emptyTitle = "Nenhuma empresa recente",
+  emptyDescription = "Os novos registros de empresa aparecerão aqui.",
+  createHref = "/portal/cadastros/empresa/novo",
+}: RecentCompaniesProps) {
   return (
     <SectionCard
-      title="Empresas recentes"
+      title={title}
       action={
         <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
           <Link href="/portal/cadastros">
@@ -57,10 +67,10 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
     >
       {companies.length === 0 ? (
           <EmptyState
-            title="Nenhuma empresa recente"
-            description="Os novos registros de empresa serao exibidos aqui."
+            title={emptyTitle}
+            description={emptyDescription}
             className="h-full min-h-48"
-            action={{ label: "Nova empresa", href: "/portal/cadastros" }}
+            action={{ label: "Adicionar empresa", href: createHref }}
           />
         ) : (
           <div className="space-y-1">

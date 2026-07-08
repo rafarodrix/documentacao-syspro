@@ -6,7 +6,13 @@ import { SuporteTab } from "./tabs/suporte-tab";
 import { SefazTab } from "./tabs/sefaz-tab";
 import { CadastrosTab } from "./tabs/cadastros-tab";
 import { ComercialTab } from "./tabs/comercial-tab";
-import { TabSkeleton, TabListSkeleton } from "./components/tab-skeleton";
+import {
+  OperacionalTabSkeleton,
+  SuporteTabSkeleton,
+  CadastrosTabSkeleton,
+  ComercialTabSkeleton,
+  TabSkeleton,
+} from "./components/tab-skeleton";
 import { AdminStatusBar } from "./components/admin-status-bar";
 import type { AdminOperacionalData } from "@dosc-syspro/contracts/dashboard";
 
@@ -21,12 +27,20 @@ export function AdminDashboard({
   canAccessCadastros,
   canViewAvailability,
   statusSummary,
+  cadastrosSummary,
+  comercialSummary,
 }: {
   canAccessCrm: boolean;
   canAccessCadastros: boolean;
   canViewAvailability: boolean;
   statusSummary: Pick<AdminOperacionalData, "ticketCounts" | "sefazHealth" | "sefazRoutesCount">;
+  cadastrosSummary?: { companiesCount: number };
+  comercialSummary?: { activeLeadsCount: number };
 }) {
+  const activeTicketsCount = statusSummary.ticketCounts.total;
+  const activeLeadsCount = comercialSummary?.activeLeadsCount ?? 0;
+  const activeCompaniesCount = cadastrosSummary?.companiesCount ?? 0;
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
       <AdminStatusBar summary={statusSummary} />
@@ -39,6 +53,11 @@ export function AdminDashboard({
           <TabsTrigger value="suporte" className={primaryTriggerClassName}>
             <Headset className="h-4 w-4" />
             Suporte
+            {activeTicketsCount > 0 ? (
+              <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                {activeTicketsCount}
+              </span>
+            ) : null}
           </TabsTrigger>
           <TabsTrigger value="sefaz" className={primaryTriggerClassName}>
             <Activity className="h-4 w-4" />
@@ -48,24 +67,34 @@ export function AdminDashboard({
             <TabsTrigger value="cadastros" className={primaryTriggerClassName}>
               <Building2 className="h-4 w-4" />
               Cadastros
+              {activeCompaniesCount > 0 ? (
+                <span className="ml-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
+                  {activeCompaniesCount}
+                </span>
+              ) : null}
             </TabsTrigger>
           ) : null}
           {canAccessCrm ? (
             <TabsTrigger value="comercial" className={primaryTriggerClassName}>
               <Target className="h-4 w-4" />
               Comercial
+              {activeLeadsCount > 0 ? (
+                <span className="ml-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
+                  {activeLeadsCount}
+                </span>
+              ) : null}
             </TabsTrigger>
           ) : null}
         </TabsList>
 
         <TabsContent value="operacional">
-          <Suspense fallback={<TabSkeleton cards={8} />}>
+          <Suspense fallback={<OperacionalTabSkeleton />}>
             <OperacionalTab />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="suporte">
-          <Suspense fallback={<TabListSkeleton />}>
+          <Suspense fallback={<SuporteTabSkeleton />}>
             <SuporteTab />
           </Suspense>
         </TabsContent>
@@ -78,7 +107,7 @@ export function AdminDashboard({
 
         {canAccessCadastros ? (
           <TabsContent value="cadastros">
-            <Suspense fallback={<TabListSkeleton />}>
+            <Suspense fallback={<CadastrosTabSkeleton />}>
               <CadastrosTab />
             </Suspense>
           </TabsContent>
@@ -86,7 +115,7 @@ export function AdminDashboard({
 
         {canAccessCrm ? (
           <TabsContent value="comercial">
-            <Suspense fallback={<TabListSkeleton />}>
+            <Suspense fallback={<ComercialTabSkeleton />}>
               <ComercialTab />
             </Suspense>
           </TabsContent>
