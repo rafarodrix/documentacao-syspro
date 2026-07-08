@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
-  BookCopy,
   Boxes,
   Building2,
   Cable,
@@ -10,7 +9,6 @@ import {
   HardDrive,
   MessageSquare,
   Pencil,
-  PlusCircle,
   Server,
   ShieldAlert,
   Sparkles,
@@ -711,7 +709,6 @@ export function CompanyCockpitPage({
               })}
               {!view.alerts.length && !view.recommendedActions.length ? (
                 <EmptyState
-                  icon={PlusCircle}
                   title="Sem prioridades abertas"
                   description="A conta esta estavel. Use as acoes rapidas para registrar o proximo movimento operacional."
                   dashed
@@ -958,12 +955,11 @@ export function CompanyCockpitPage({
                   ])}
                 />
               )) : (
-                <EmptyState
-                  icon={BookCopy}
-                  title="Sem releases especificas"
-                  description="Ainda nao existem tickets desta empresa publicados nas notas de release."
-                  dashed
-                />
+              <EmptyState
+                title="Sem releases especificas"
+                description="Ainda nao existem tickets desta empresa publicados nas notas de release."
+                dashed
+              />
               )}
             </div>
           </SectionCard>
