@@ -1,7 +1,6 @@
 import type { CrmLead, CrmLeadStage } from "@dosc-syspro/contracts/crm";
-import { CRM_STAGE_LABELS } from "@/features/crm/domain/crm.types";
-import { differenceInDays, getStartOfDay } from "@/lib/date";
-import { DUE_SOON_DAYS, PIPELINE_COLUMNS, STALE_LEAD_DAYS } from "./lead-management.constants";
+import { CRM_STAGE_LABELS, getLeadAttentionState, DUE_SOON_DAYS, STALE_LEAD_DAYS } from "@/features/crm/domain/crm.types";
+import { PIPELINE_COLUMNS } from "./lead-management.constants";
 import type { LeadAttentionFilter } from "./lead-management.types";
 
 export function getPipelineStageLabel(stage: CrmLeadStage) {
@@ -18,30 +17,6 @@ export function resolveLeadContactName(lead: CrmLead) {
   const primaryManualContact = contacts.find((c) => c.isPrimary)?.name?.trim();
   const firstManualContact = contacts.find((c) => c.name?.trim())?.name?.trim();
   return lead.primaryContactName || primaryManualContact || firstManualContact || "Sem contato vinculado";
-}
-
-export function getLeadAttentionState(lead: CrmLead) {
-  const today = getStartOfDay();
-  const expectedCloseAt = lead.expectedCloseAt ? new Date(lead.expectedCloseAt) : null;
-  const updatedAt = new Date(lead.updatedAt);
-  const daysWithoutUpdate = differenceInDays(new Date(), updatedAt, "floor");
-  const expectedDiffDays = expectedCloseAt ? differenceInDays(expectedCloseAt, today, "ceil") : null;
-
-  return {
-    isClosed: lead.stage === "WON" || lead.stage === "LOST",
-    isOverdue: Boolean(expectedCloseAt && expectedCloseAt < today && lead.stage !== "WON" && lead.stage !== "LOST"),
-    isDueSoon: Boolean(
-      expectedDiffDays !== null &&
-        expectedDiffDays >= 0 &&
-        expectedDiffDays <= DUE_SOON_DAYS &&
-        lead.stage !== "WON" &&
-        lead.stage !== "LOST",
-    ),
-    hasNextStep: Boolean(lead.nextStep?.trim()),
-    isStale: daysWithoutUpdate >= STALE_LEAD_DAYS && lead.stage !== "WON" && lead.stage !== "LOST",
-    daysWithoutUpdate,
-    expectedDiffDays,
-  };
 }
 
 export function matchesAttentionFilter(lead: CrmLead, filter: LeadAttentionFilter) {

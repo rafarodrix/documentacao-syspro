@@ -6,6 +6,7 @@ import { getDailyPasswordForDate } from '@dosc-syspro/contracts/dashboard';
 import { buildDefaultSefazRoutes } from '@dosc-syspro/contracts/sefaz-endpoints';
 import { sefazRoutesSchema } from '@dosc-syspro/contracts/sefaz-routes';
 import { SETTING_KEYS } from '@dosc-syspro/contracts/settings';
+import { CRM_STAGE_LABELS, CRM_STAGE_ORDER } from '@dosc-syspro/crm-domain';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { TicketsService } from '../tickets/tickets.service';
@@ -173,27 +174,8 @@ export function mergeTicketWarnings(...warnings: Array<string | undefined>) {
   const unique = Array.from(new Set(warnings.filter(Boolean)));
   return unique.length > 0 ? unique.join(' ') : undefined;
 }
-
 export function buildCrmSummary(leads: any[]): DashboardCrmSummary {
   const today = startOfDay();
-  const stages: Array<'LEAD' | 'MQL' | 'SQL' | 'PROPOSAL' | 'NEGOTIATION' | 'WON' | 'LOST'> = [
-    'LEAD',
-    'MQL',
-    'SQL',
-    'PROPOSAL',
-    'NEGOTIATION',
-    'WON',
-    'LOST',
-  ];
-  const stageLabels: Record<string, string> = {
-    LEAD: 'Lead',
-    MQL: 'MQL',
-    SQL: 'SQL',
-    PROPOSAL: 'Proposta',
-    NEGOTIATION: 'Negociacao',
-    WON: 'Ganho',
-    LOST: 'Perdido',
-  };
 
   const activeLeads = leads.filter((lead) => lead.stage !== 'WON' && lead.stage !== 'LOST');
   const wonLeads = leads.filter((lead) => lead.stage === 'WON');
@@ -216,14 +198,13 @@ export function buildCrmSummary(leads: any[]): DashboardCrmSummary {
     noNextStepLeads: noNextStepLeads.length,
     pipelineValue: activeLeads.reduce((sum, lead) => sum + Number(lead.estimatedValue ?? 0), 0),
     wonValue: wonLeads.reduce((sum, lead) => sum + Number(lead.estimatedValue ?? 0), 0),
-    stageDistribution: stages.map((stage) => ({
+    stageDistribution: CRM_STAGE_ORDER.map((stage) => ({
       stage,
-      label: stageLabels[stage],
+      label: CRM_STAGE_LABELS[stage],
       count: leads.filter((lead) => lead.stage === stage).length,
     })),
   };
 }
-
 export function summarizeActiveContracts(contracts: DashboardContractRecord[]) {
   return {
     activeContracts: contracts.length,

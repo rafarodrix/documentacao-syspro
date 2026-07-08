@@ -2,9 +2,6 @@ import type { CrmLeadStage } from "@dosc-syspro/contracts/crm";
 import { CRM_STAGE_LABELS } from "@/features/crm/domain/crm.types";
 import type { PipelineColumnId } from "./lead-management.types";
 
-export const DUE_SOON_DAYS = 7;
-export const STALE_LEAD_DAYS = 7;
-
 export const PIPELINE_COLUMNS: Array<{
   id: PipelineColumnId;
   label: string;

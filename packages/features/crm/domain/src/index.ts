@@ -7,3 +7,5 @@ export {
   CRM_SOURCE_LABELS,
 } from './crm-stage';
 export { leadInclude, serializeLead, normalizeContactsArray } from './crm-contract.mapper';
+export { getLeadAttentionState, DUE_SOON_DAYS, STALE_LEAD_DAYS, type LeadAttentionState } from './crm-attention';
+

@@ -9,6 +9,9 @@ export {
   CRM_STAGE_LABELS,
   CRM_STAGE_DESCRIPTIONS,
   CRM_SOURCE_LABELS,
+  getLeadAttentionState,
+  DUE_SOON_DAYS,
+  STALE_LEAD_DAYS,
 } from "@dosc-syspro/crm-domain";
 
 export type LeadDashboardData = {

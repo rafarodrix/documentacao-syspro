@@ -6,6 +6,7 @@ import type { ApexOptions } from "apexcharts";
 import { useTheme } from "next-themes";
 import type { DashboardOpenTicketRecord } from "@dosc-syspro/contracts/dashboard";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { EmptyState } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
@@ -143,9 +144,7 @@ function createHorizontalChartOptions(
         fontWeight: 700,
       },
       offsetX: 8,
-      background: {
-        enabled: false,
-      },
+      background: { enabled: false },
     },
     xaxis: {
       categories: items.map((item) => item.label),
@@ -206,9 +205,7 @@ export function OpenTicketsInsights({
   );
 
   const scopedRecords = useMemo(() => {
-    if (scopeMode === "development") {
-      return records.filter((record) => record.team === "DESENVOLVIMENTO");
-    }
+    if (scopeMode === "development") return records.filter((record) => record.team === "DESENVOLVIMENTO");
     return records;
   }, [records, scopeMode]);
 
@@ -236,9 +233,7 @@ export function OpenTicketsInsights({
       createHorizontalChartOptions(
         moduleBreakdown,
         selectedModule,
-        (item) => {
-          setSelectedModule((current) => (current === item.queryValue ? "" : item.queryValue));
-        },
+        (item) => setSelectedModule((current) => (current === item.queryValue ? "" : item.queryValue)),
         chartPalette,
       ),
     [chartPalette, moduleBreakdown, selectedModule],
@@ -249,9 +244,7 @@ export function OpenTicketsInsights({
       createHorizontalChartOptions(
         categoryBreakdown,
         selectedCategory,
-        (item) => {
-          setSelectedCategory((current) => (current === item.queryValue ? "" : item.queryValue));
-        },
+        (item) => setSelectedCategory((current) => (current === item.queryValue ? "" : item.queryValue)),
         chartPalette,
       ),
     [categoryBreakdown, chartPalette, selectedCategory],
@@ -361,6 +354,11 @@ function BreakdownCard({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-sm">{title}</CardTitle>
+            {topItem ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Maior concentracao atual em <span className="font-medium text-foreground">{topItem.label}</span> com {topItem.value} ticket{topItem.value === 1 ? "" : "s"}.
+              </p>
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             {selectedLabel ? (
@@ -385,7 +383,13 @@ function BreakdownCard({
             />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Nenhum ticket aberto neste recorte.</p>
+          <EmptyState
+            title="Nenhum ticket aberto"
+            description="Nao ha itens neste recorte para distribuir por modulo ou categoria."
+            compact
+            dashed
+            className="min-h-48 border-border/40"
+          />
         )}
       </CardContent>
     </Card>

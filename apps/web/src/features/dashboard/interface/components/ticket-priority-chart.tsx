@@ -6,6 +6,7 @@ import type { ApexOptions } from "apexcharts";
 import { useTheme } from "next-themes";
 import type { DashboardOpenTicketRecord } from "@dosc-syspro/contracts/dashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
+import { EmptyState } from "@/components/patterns";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -15,9 +16,10 @@ function buildBuckets(records: DashboardOpenTicketRecord[], isDark: boolean): Pr
   let alta = 0;
   let media = 0;
   let baixa = 0;
-  for (const r of records) {
-    if (r.priority === "Alta") alta++;
-    else if (r.priority === "Média") media++;
+  for (const record of records) {
+    const normalizedPriority = String(record.priority ?? "").trim().toLowerCase();
+    if (normalizedPriority === "alta") alta++;
+    else if (normalizedPriority.startsWith("m")) media++;
     else baixa++;
   }
   return [
@@ -43,8 +45,8 @@ export function TicketPriorityChart({ records }: { records: DashboardOpenTicketR
         background: "transparent",
         fontFamily: "inherit",
       },
-      colors: buckets.map((b) => b.color),
-      labels: buckets.map((b) => b.label),
+      colors: buckets.map((bucket) => bucket.color),
+      labels: buckets.map((bucket) => bucket.label),
       legend: {
         show: true,
         position: "bottom",
@@ -117,13 +119,17 @@ export function TicketPriorityChart({ records }: { records: DashboardOpenTicketR
             <ReactApexChart
               type="donut"
               height={260}
-              series={buckets.map((b) => b.count)}
+              series={buckets.map((bucket) => bucket.count)}
               options={options}
             />
           ) : (
-            <div className="flex h-[260px] items-center justify-center">
-              <p className="text-sm text-muted-foreground">Nenhum ticket aberto no momento.</p>
-            </div>
+            <EmptyState
+              title="Nenhuma prioridade em aberto"
+              description="A fila atual nao possui tickets ativos para comparar criticidade."
+              compact
+              dashed
+              className="h-[260px] border-border/40"
+            />
           )}
         </div>
       </CardContent>
