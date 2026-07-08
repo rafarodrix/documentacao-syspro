@@ -33,10 +33,10 @@ export async function SefazTab({ canViewAvailability }: { canViewAvailability: b
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <ExecutiveSummaryCard
         title="Leitura executiva da SEFAZ"
-        description="Use esta aba para consolidar risco fiscal por rota ativa, cobertura das UFs prioritarias e a leitura nacional de disponibilidade antes do detalhamento operacional."
+        description="Leia primeiro cobertura por rota ativa, depois degradacao nas UFs prioritarias e so entao aprofunde no detalhe operacional."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine label="Rotas ativas" value={`${activeRoutes.length}`} />
@@ -58,7 +58,7 @@ export async function SefazTab({ canViewAvailability }: { canViewAvailability: b
       />
 
       <DashboardNextActionCard
-        description="Feche este ciclo revisando as rotas fiscais configuradas e registre um tratamento operacional imediato quando houver degradacao em ambiente critico."
+        description="Feche a leitura revisando as rotas fiscais configuradas e abra tratamento operacional imediato quando houver degradacao em ambiente critico."
         primaryHref="/portal/configuracoes"
         primaryLabel="Revisar configuracoes fiscais"
         secondaryHref="/portal/tickets/novo"

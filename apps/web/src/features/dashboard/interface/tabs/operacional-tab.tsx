@@ -36,10 +36,10 @@ export async function OperacionalTab() {
     .slice(0, 5);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <ExecutiveSummaryCard
         title="Leitura executiva da operacao"
-        description="Use esta aba para acompanhar a saude da fila interna, o ritmo de movimentacao dos tickets e os blocos operacionais que exigem acao imediata da equipe."
+        description="Leia primeiro a saude da fila, depois o ritmo de movimentacao e, por fim, os blocos utilitarios que exigem resposta operacional imediata."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine label="Tickets em aberto" value={`${ticketCounts.total}`} />
@@ -58,9 +58,9 @@ export async function OperacionalTab() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {dailyPassword ? (
-          <Card className="border-border/50 bg-card shadow-none">
+          <Card className="border-border/50 bg-card/85 shadow-none">
             <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
-              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Senha do dia
               </CardTitle>
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500/10">
@@ -71,6 +71,9 @@ export async function OperacionalTab() {
               <div className="rounded-lg border border-border/50 bg-background/80 px-3 py-2 text-center font-mono text-lg font-semibold tracking-[0.16em]">
                 {dailyPassword.password}
               </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                Bloco utilitario para liberacoes operacionais do dia.
+              </p>
             </CardContent>
           </Card>
         ) : null}
@@ -115,7 +118,7 @@ export async function OperacionalTab() {
       <DocsInsightsPanel latestUpdates={latestDocs} />
 
       <DashboardNextActionCard
-        description="Feche este ciclo entrando na fila operacional e valide a documentacao interna quando houver duvida de processo ou contexto tecnico."
+        description="Feche a leitura entrando na fila operacional e use a documentacao interna apenas quando houver bloqueio de processo ou contexto tecnico."
         primaryHref="/portal/tickets"
         primaryLabel="Ir para fila operacional"
         secondaryHref="/portal/docs/admin"

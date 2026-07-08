@@ -36,10 +36,10 @@ export async function SupportTarefasSubtab() {
   const completionRate = summary.total > 0 ? Math.round((summary.completed / summary.total) * 100) : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <ExecutiveSummaryCard
         title="Leitura executiva das tarefas"
-        description="A prioridade desta subaba e expor prazo vencido, dependencia de retorno do cliente e ritmo real de entrega na competencia atual."
+        description="Priorize prazo vencido, dependencia de retorno do cliente e ritmo real de entrega na competencia atual."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine label="Competencia" value={competencia} />
@@ -106,7 +106,7 @@ export async function SupportTarefasSubtab() {
         <div className="min-w-0">
           <Card className="h-full border-border/60 bg-card shadow-sm">
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <CardTitle className="text-sm">Tarefas vencidas</CardTitle>
+              <CardTitle className="text-base">Tarefas vencidas</CardTitle>
               <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
                 {summary.overdue} vencidas
               </Badge>

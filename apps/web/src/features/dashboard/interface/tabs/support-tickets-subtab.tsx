@@ -13,10 +13,10 @@ export async function SupportTicketsSubtab() {
   const unassignedModuleCount = openTicketRecords.filter((record) => !record.module?.trim()).length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <ExecutiveSummaryCard
         title="Leitura executiva dos tickets"
-        description="Aqui a meta e enxergar rapidamente o tamanho da fila aberta, a distribuicao entre suporte e desenvolvimento e onde a classificacao ainda esta fraca."
+        description="Leia o tamanho da fila, a distribuicao entre suporte e desenvolvimento e os pontos onde a classificacao ainda enfraquece a triagem."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine label="Fila aberta" value={`${openTicketRecords.length}`} />

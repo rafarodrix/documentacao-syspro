@@ -23,17 +23,17 @@ export async function SuporteTab() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <ExecutiveSummaryCard
         title="Leitura executiva do suporte"
-        description="Use esta aba para separar backlog operacional de tickets, carga de tarefas internas e saude das conversas do Chatwoot sem perder o contexto da fila."
+        description="Comece por tickets, confirme prazos em tarefas e finalize em atendimentos. A leitura precisa mostrar risco de fila, atraso e dono antes do detalhe."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
-          <ExecutiveLine label="Tickets" value="Fila e distribuicao" />
-          <ExecutiveLine label="Tarefas" value="Prazos e execucao" />
+          <ExecutiveLine label="Tickets" value="Fila, prioridade e modulo" />
+          <ExecutiveLine label="Tarefas" value="Prazos, atraso e retorno" />
           <ExecutiveLine
             label="Atendimentos"
-            value={canViewAtendimentos ? "Chatwoot e CSAT" : "Sem permissao"}
+            value={canViewAtendimentos ? "Carga, dono e CSAT" : "Sem permissao"}
             emphasis={canViewAtendimentos ? "text-foreground" : "font-bold text-amber-500"}
           />
         </div>
@@ -79,7 +79,7 @@ export async function SuporteTab() {
       </Tabs>
 
       <DashboardNextActionCard
-        description="Feche este ciclo abrindo a frente com maior risco agora e, se necessario, registre o proximo atendimento diretamente pela fila de suporte."
+        description="Feche a leitura abrindo a frente com maior risco agora e registre um novo ticket apenas quando a demanda ainda nao estiver na fila."
         primaryHref="/portal/tickets"
         primaryLabel="Ir para suporte"
         secondaryHref="/portal/tickets/novo"

@@ -33,10 +33,10 @@ export async function ComercialTab() {
   const totalMrrFormatted = contracts ? formatCurrency(contracts.totalValue) : "R$ 0,00";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <ExecutiveSummaryCard
         title="Leitura executiva do comercial"
-        description="Use esta aba para responder rapido se o pipeline sustenta a receita atual, onde o funil esta travando e quanto valor esta exposto por falta de acompanhamento."
+        description="Esta leitura precisa responder rapido se o pipeline sustenta a receita atual, onde o funil trava e quanto valor esta exposto por falta de acompanhamento."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine
@@ -130,17 +130,17 @@ export async function ComercialTab() {
           <div className="space-y-2.5 rounded-lg border border-border/40 bg-muted/20 p-3.5">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Desempenho comercial</h4>
             <p className="text-xs leading-normal text-foreground">
-              O pipeline hoje concentra <strong className="font-semibold text-foreground">{crm?.activeLeads ?? 0} leads ativos</strong> e <strong className="font-semibold text-primary">{pipelineValueFormatted}</strong> em valor bruto. O ticket medio atual esta em <span className="font-medium text-foreground">{averagePipelineTicketFormatted}</span>.
+              Hoje o pipeline concentra <strong className="font-semibold text-foreground">{crm?.activeLeads ?? 0} leads ativos</strong>, <strong className="font-semibold text-primary">{pipelineValueFormatted}</strong> em valor bruto e ticket medio de <span className="font-medium text-foreground">{averagePipelineTicketFormatted}</span>.
             </p>
             <p className="text-xs leading-normal text-foreground">
-              A conversao historica esta em <strong className="font-medium">{winRateFormatted}%</strong>. Cada negocio ganho entrega em media <strong className="font-semibold text-emerald-500">{averageWonTicketFormatted}</strong>, somando <strong className="font-semibold text-emerald-500">{wonValueFormatted}</strong> em {crm?.wonLeads ?? 0} fechamentos.
+              A conversao historica esta em <strong className="font-medium">{winRateFormatted}%</strong>. Cada ganho entrega em media <strong className="font-semibold text-emerald-500">{averageWonTicketFormatted}</strong>, somando <strong className="font-semibold text-emerald-500">{wonValueFormatted}</strong>.
             </p>
           </div>
 
           <div className="space-y-2.5 rounded-lg border border-border/40 bg-muted/20 p-3.5">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cobertura de receita</h4>
             <p className="text-xs leading-normal text-foreground">
-              O pipeline ativo cobre <strong className="font-medium">{pipelineCoverageFormatted}x</strong> o MRR atual de <strong className="font-medium">{totalMrrFormatted}</strong>. Esse numero mostra se a esteira comercial sustenta o ritmo de expansao sem depender de leitura detalhada do funil.
+              O pipeline ativo cobre <strong className="font-medium">{pipelineCoverageFormatted}x</strong> o MRR atual de <strong className="font-medium">{totalMrrFormatted}</strong>. Esse numero resume se a esteira comercial sustenta a receita sem depender da leitura completa do funil.
             </p>
           </div>
 
@@ -158,7 +158,7 @@ export async function ComercialTab() {
             </div>
             {overdueLeads > 0 || noNextStepLeads > 0 ? (
               <p className="text-xs leading-normal text-muted-foreground">
-                Ha risco real de execucao: <strong className="font-bold text-rose-400">{overdueLeads} lead(s) estao com atividades em atraso</strong> e <strong className="font-bold text-rose-400">{noNextStepLeads} lead(s) seguem sem proxima acao</strong>. Isso expoe cerca de <strong className="font-semibold text-foreground">{crm ? formatCurrency((overdueLeads + noNextStepLeads) * averagePipelineTicket) : "R$ 0,00"}</strong> em receita potencial.
+                Ha risco real de execucao: <strong className="font-bold text-rose-400">{overdueLeads} lead(s) em atraso</strong> e <strong className="font-bold text-rose-400">{noNextStepLeads} sem proxima acao</strong>. Isso expoe cerca de <strong className="font-semibold text-foreground">{crm ? formatCurrency((overdueLeads + noNextStepLeads) * averagePipelineTicket) : "R$ 0,00"}</strong> em receita potencial.
               </p>
             ) : (
               <p className="text-xs leading-normal text-muted-foreground">
@@ -170,7 +170,7 @@ export async function ComercialTab() {
       </div>
 
       <DashboardNextActionCard
-        description="Feche este ciclo abrindo o pipeline para remover gargalos imediatos e registre um novo lead quando a cobertura comercial ainda nao sustentar a meta de receita."
+        description="Feche a leitura abrindo o pipeline para remover gargalos imediatos e registre novo lead quando a cobertura comercial ainda nao sustentar a meta de receita."
         primaryHref="/portal/comercial/leads"
         primaryLabel="Ir para pipeline"
         secondaryHref="/portal/comercial/leads/novo"

@@ -13,10 +13,15 @@ export function ExecutiveSummaryCard({
   return (
     <SectionCard
       title={title}
-      className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
-      contentClassName="space-y-4"
+      className="border-border/50 bg-linear-to-br from-card via-card/95 to-primary/[0.03] shadow-sm backdrop-blur"
+      contentClassName="space-y-5"
     >
-      <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+      <div className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80">
+          Cockpit executivo
+        </p>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+      </div>
       {children}
     </SectionCard>
   );

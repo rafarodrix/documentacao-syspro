@@ -116,10 +116,10 @@ export async function CadastrosTab() {
   const colsClass = canViewUsers || canViewCompanies || canViewContacts ? "xl:grid-cols-3" : "xl:grid-cols-1";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <ExecutiveSummaryCard
         title="Leitura executiva dos cadastros"
-        description="Use esta aba para manter a base ativa, os vinculos consistentes e as pendencias visiveis antes que elas afetem atendimento, comercial e operacao."
+        description="Use esta leitura para manter a base ativa, corrigir vinculos quebrados e impedir que pendencias de cadastro contaminem suporte, comercial e operacao."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine
@@ -281,7 +281,7 @@ export async function CadastrosTab() {
       </div>
 
       <DashboardNextActionCard
-        description="Feche este ciclo limpando pendencias de cadastro na lista principal e avance para a abertura de nova empresa quando o saneamento da base estiver sob controle."
+        description="Feche a leitura saneando pendencias de cadastro na lista principal e abra nova empresa apenas quando a base estiver sob controle."
         primaryHref="/portal/cadastros/empresa"
         primaryLabel="Ir para empresas"
         secondaryHref="/portal/cadastros/empresa/novo"

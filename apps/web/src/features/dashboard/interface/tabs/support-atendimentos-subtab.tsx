@@ -155,10 +155,13 @@ export function SupportAtendimentosSubtab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <Card className="border-border/60 bg-card shadow-sm">
         <CardHeader className="gap-3 pb-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80">
+              Controle do recorte
+            </p>
             <CardTitle className="text-base">Atendimentos</CardTitle>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -246,7 +249,7 @@ export function SupportAtendimentosSubtab() {
 
       <ExecutiveSummaryCard
         title="Leitura executiva dos atendimentos"
-        description="Acompanhe o volume real do Chatwoot, a parcela sem dono definido e os sinais de satisfacao do cliente antes de aprofundar na produtividade da equipe."
+        description="Leia o volume real do Chatwoot, a parcela sem dono definido e os sinais de satisfacao do cliente antes de aprofundar na produtividade da equipe."
       >
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <ExecutiveLine
@@ -282,7 +285,7 @@ export function SupportAtendimentosSubtab() {
         emptyLabel="Sem conversas no recorte"
       />
 
-      <SectionCard title="Status do Chatwoot" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="space-y-3">
+      <SectionCard title="Status do Chatwoot" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="space-y-4">
         <div className="flex flex-wrap gap-2">
           {statusHighlights.length ? (
             statusHighlights.map((item) => {
@@ -364,7 +367,7 @@ export function SupportAtendimentosSubtab() {
       </SectionCard>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Saude do CSAT" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="grid gap-3.5 text-sm sm:grid-cols-2">
+        <SectionCard title="Saude do CSAT" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="grid gap-4 text-sm sm:grid-cols-2">
           <div className="space-y-3.5">
             <ExecutiveLine label="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} emphasis="text-base font-extrabold text-emerald-500" />
             <ExecutiveLine label="Conversas elegiveis" value={`${data?.csatEligibleResolvedCount ?? 0}`} />
@@ -397,7 +400,7 @@ export function SupportAtendimentosSubtab() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Distribuicao das notas" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="space-y-2.5">
+        <SectionCard title="Distribuicao das notas" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="space-y-3">
           {([...(data?.csatScoreDistribution ?? [])].sort((left, right) => right.score - left.score)).map((item) => (
             <div key={item.score} className="space-y-1">
               <div className="flex items-center justify-between gap-3 text-xs">

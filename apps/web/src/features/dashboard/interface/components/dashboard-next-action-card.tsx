@@ -19,11 +19,16 @@ export function DashboardNextActionCard({
   return (
     <SectionCard
       title="Proximo passo recomendado"
-      className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
-      contentClassName="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+      className="border-border/50 bg-linear-to-r from-card via-card/95 to-primary/[0.04] shadow-sm backdrop-blur"
+      contentClassName="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
     >
-      <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80">
+          Encerramento da leitura
+        </p>
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
         <Button asChild className="gap-2">
           <Link href={primaryHref}>
             <ArrowUpRight className="h-4 w-4" />

@@ -31,14 +31,14 @@ export function SectionCard({
   return (
     <Card className={cn("relative overflow-hidden border-border/40 bg-card/75 backdrop-blur-md dark:bg-card/60 shadow-sm", className)}>
       <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
-      <CardHeader className="px-5 pb-3 pt-5">
+      <CardHeader className="px-5 pb-3.5 pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle className="text-sm font-semibold leading-tight">
+            <CardTitle className="text-base font-semibold leading-tight tracking-[-0.01em]">
               {title}
             </CardTitle>
             {description && (
-              <CardDescription className="mt-0.5 text-xs">
+              <CardDescription className="mt-1 text-xs leading-relaxed">
                 {description}
               </CardDescription>
             )}

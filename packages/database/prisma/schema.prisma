@@ -1227,6 +1227,7 @@ model CrmLead {
 
   activities CrmActivity[]
   tasks      CrmTask[]
+  proposal   CrmProposal?
 
   @@index([stage, createdAt])
   @@index([source, createdAt])
@@ -1278,6 +1279,45 @@ model CrmTask {
   @@index([assigneeUserId, status])
   @@index([dueDate])
   @@map("crm_task")
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model CrmProposal {
+  id             String         @id @default(cuid())
+  leadId         String         @unique
+  lead           CrmLead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  version        Int            @default(1)
+  status         ProposalStatus @default(DRAFT)
+  
+  setupValue     Decimal        @default(0.00) @db.Decimal(12, 2)
+  recurringValue Decimal        @default(0.00) @db.Decimal(12, 2)
+  validUntil     DateTime
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  
+  items          CrmProposalItem[]
+  contractId     String?        @unique
+
+  @@map("crm_proposal")
+}
+
+model CrmProposalItem {
+  id            String      @id @default(cuid())
+  proposalId    String
+  proposal      CrmProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  serviceName   String
+  quantityLimit Int?
+  unitPrice     Decimal     @default(0.00) @db.Decimal(12, 2)
+
+  @@map("crm_proposal_item")
 }
 
 model TaskConfig {

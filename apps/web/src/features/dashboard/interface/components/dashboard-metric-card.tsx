@@ -106,23 +106,25 @@ export function DashboardMetricCard({
   const Icon = iconMap[icon];
 
   return (
-    <Card className="border-border/50 bg-card">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 px-4 pb-1 pt-4">
-        <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+    <Card className="border-border/50 bg-linear-to-b from-card to-card/90 shadow-sm">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 px-4 pb-2 pt-4">
+        <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           {title}
         </CardTitle>
         <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md", toneClasses[tone])}>
           <Icon className="h-3.5 w-3.5" />
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-0.5 px-4 pb-4">
-        <div className="text-2xl font-bold tracking-tight tabular-nums text-foreground">{value}</div>
+      <CardContent className="flex min-h-[104px] flex-col justify-between gap-2 px-4 pb-4">
+        <div className="text-[28px] font-bold leading-none tracking-tight tabular-nums text-foreground">
+          {value}
+        </div>
         {trend ? (
           <TrendIndicator {...trend} />
         ) : helper ? (
-          <p className="text-xs leading-relaxed text-muted-foreground/80">{helper}</p>
+          <p className="max-w-[28ch] text-xs leading-relaxed text-muted-foreground/80">{helper}</p>
         ) : null}
-        {trend && helper ? <p className="text-xs leading-relaxed text-muted-foreground/80">{helper}</p> : null}
+        {trend && helper ? <p className="max-w-[28ch] text-xs leading-relaxed text-muted-foreground/80">{helper}</p> : null}
       </CardContent>
     </Card>
   );

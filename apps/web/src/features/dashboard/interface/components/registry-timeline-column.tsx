@@ -13,7 +13,7 @@ export function RegistryTimelineColumn({
 }: RegistryTimelineColumnProps) {
   return (
     <div className="space-y-4">
-      <h3 className="flex items-center gap-1.5 px-1 text-xs font-bold uppercase tracking-wider text-foreground">
+      <h3 className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-foreground">
         <span className={accentClassName} />
         {title}
       </h3>
