@@ -3,7 +3,9 @@ import { RecentCompanies } from "@/components/platform/app/dashboard/recent-comp
 import { RecentRecords, type RecentRecordItem } from "@/components/platform/app/dashboard/recent-records";
 import { SectionCard } from "@/components/patterns";
 import { cn } from "@/lib/utils";
-import { DashboardMetricCard } from "../components/dashboard-metric-card";
+import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
+import { ExecutiveSummaryCard } from "../components/executive-summary-card";
+import { ExecutiveLine } from "../components/executive-line";
 import { RegistryTimelineColumn } from "../components/registry-timeline-column";
 import { getCadastrosData } from "../../application/cadastros-dashboard.queries";
 
@@ -65,10 +67,7 @@ export async function CadastrosTab() {
     data = await getCadastrosData();
   } catch {
     return (
-      <SectionCard
-        title="Cadastros indisponiveis"
-        className="border-border/50 bg-card"
-      >
+      <SectionCard title="Cadastros indisponiveis" className="border-border/50 bg-card">
         <p className="text-sm text-muted-foreground">
           Revise as permissoes de empresas, contatos e usuarios para este perfil e tente novamente.
         </p>
@@ -94,14 +93,13 @@ export async function CadastrosTab() {
   const reviewCompanies = companies.filter(
     (company) => company.status === "PENDING_DOCS" || company.status === "SUSPENDED",
   );
-
   const inactiveContacts = cadastros?.recentInactivatedContacts ?? [];
   const unlinkedContacts = recentContacts.filter((contact) => !contact.companyNames?.length);
-
   const inactiveUsers = cadastros?.recentInactivatedUsers ?? [];
   const unlinkedUsers = recentUsers.filter(
     (user) => !user.companyNames?.length && user.role !== "DEVELOPER" && user.role !== "ADMIN",
   );
+  const reviewCount = reviewCompanies.length + unlinkedContacts.length + unlinkedUsers.length;
 
   const formattedRecentContacts = recentContacts.map((contact) => mapContactRecord(contact));
   const formattedRecentUsers = recentUsers.map((user) => mapUserRecord(user));
@@ -118,43 +116,64 @@ export async function CadastrosTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        {canViewCompanies ? (
-          <DashboardMetricCard
-            title="Empresas ativas"
-            value={formatNumber(cadastros?.companies.total ?? companiesCount)}
-            helper={`${cadastros?.companies.registeredThisMonth ?? 0} novas no mes | ${cadastros?.companies.inactivatedThisMonth ?? 0} inativadas`}
-            icon="building"
-            tone="blue"
+      <ExecutiveSummaryCard
+        title="Leitura executiva dos cadastros"
+        description="Aqui o foco e manter base ativa, vinculos consistentes e pendencias visiveis antes que afetem atendimento, comercial e operacao."
+      >
+        <div className="grid gap-3 text-sm md:grid-cols-3">
+          <ExecutiveLine
+            label="Empresas sob revisao"
+            value={`${reviewCompanies.length}`}
+            emphasis={reviewCompanies.length > 0 ? "font-bold text-rose-500" : "text-foreground"}
           />
-        ) : null}
+          <ExecutiveLine
+            label="Contatos sem vinculo"
+            value={`${unlinkedContacts.length}`}
+            emphasis={unlinkedContacts.length > 0 ? "font-bold text-amber-500" : "text-foreground"}
+          />
+          <ExecutiveLine
+            label="Itens para saneamento"
+            value={`${reviewCount}`}
+            emphasis={reviewCount > 0 ? "font-bold text-amber-500" : "text-foreground"}
+          />
+        </div>
+      </ExecutiveSummaryCard>
 
-        {canViewContacts ? (
-          <DashboardMetricCard
-            title="Contatos vinculados"
-            value={formatNumber(cadastros?.contacts.total ?? contactsCount)}
-            helper={`${cadastros?.contacts.registeredThisMonth ?? 0} novos no mes | ${cadastros?.contacts.inactivatedThisMonth ?? 0} inativados`}
-            icon="users"
-            tone="amber"
-          />
-        ) : null}
-
-        {canViewUsers ? (
-          <DashboardMetricCard
-            title="Usuarios ativos"
-            value={formatNumber(cadastros?.users.total ?? usersCount)}
-            helper={`${cadastros?.users.registeredThisMonth ?? 0} novos no mes | ${cadastros?.users.inactivatedThisMonth ?? 0} inativados`}
-            icon="user"
-            tone="emerald"
-          />
-        ) : null}
-      </div>
+      <DashboardMetricGrid
+        className="md:grid-cols-3 xl:grid-cols-3"
+        metrics={[
+          ...(canViewCompanies
+            ? [{
+                title: "Empresas ativas",
+                value: formatNumber(cadastros?.companies.total ?? companiesCount),
+                helper: `${cadastros?.companies.registeredThisMonth ?? 0} novas no mes | ${cadastros?.companies.inactivatedThisMonth ?? 0} inativadas`,
+                icon: "building" as const,
+                tone: "blue" as const,
+              }]
+            : []),
+          ...(canViewContacts
+            ? [{
+                title: "Contatos vinculados",
+                value: formatNumber(cadastros?.contacts.total ?? contactsCount),
+                helper: `${cadastros?.contacts.registeredThisMonth ?? 0} novos no mes | ${cadastros?.contacts.inactivatedThisMonth ?? 0} inativados`,
+                icon: "users" as const,
+                tone: "amber" as const,
+              }]
+            : []),
+          ...(canViewUsers
+            ? [{
+                title: "Usuarios ativos",
+                value: formatNumber(cadastros?.users.total ?? usersCount),
+                helper: `${cadastros?.users.registeredThisMonth ?? 0} novos no mes | ${cadastros?.users.inactivatedThisMonth ?? 0} inativados`,
+                icon: "user" as const,
+                tone: "emerald" as const,
+              }]
+            : []),
+        ]}
+      />
 
       <div className={cn("grid grid-cols-1 gap-6", colsClass)}>
-        <RegistryTimelineColumn
-          title="Novos no mes"
-          accentClassName="h-2 w-2 rounded-full bg-emerald-500"
-        >
+        <RegistryTimelineColumn title="Novos no mes" accentClassName="h-2 w-2 rounded-full bg-emerald-500">
           {canViewCompanies ? (
             <RecentCompanies
               title="Empresas ativas"
@@ -191,10 +210,7 @@ export async function CadastrosTab() {
           ) : null}
         </RegistryTimelineColumn>
 
-        <RegistryTimelineColumn
-          title="Inativados recentes"
-          accentClassName="h-2 w-2 rounded-full bg-muted-foreground/60"
-        >
+        <RegistryTimelineColumn title="Inativados recentes" accentClassName="h-2 w-2 rounded-full bg-muted-foreground/60">
           {canViewCompanies ? (
             <RecentCompanies
               title="Empresas inativas"
@@ -228,10 +244,7 @@ export async function CadastrosTab() {
           ) : null}
         </RegistryTimelineColumn>
 
-        <RegistryTimelineColumn
-          title="Precisam de revisao"
-          accentClassName="h-2 w-2 rounded-full animate-pulse bg-rose-500"
-        >
+        <RegistryTimelineColumn title="Precisam de revisao" accentClassName="h-2 w-2 rounded-full animate-pulse bg-rose-500">
           {canViewCompanies ? (
             <RecentCompanies
               title="Atencao: empresas"

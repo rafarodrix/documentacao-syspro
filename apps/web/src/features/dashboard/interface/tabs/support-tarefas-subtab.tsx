@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
-import { DashboardMetricCard } from "../components/dashboard-metric-card";
+import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
 import { getTarefasData } from "../../application/tarefas-dashboard.queries";
 import type { DashboardTarefasOverdueItem } from "@dosc-syspro/contracts/dashboard";
 import { EmptyState } from "@/components/patterns";
 import { CheckCircle2 } from "lucide-react";
+import { ExecutiveSummaryCard } from "../components/executive-summary-card";
+import { ExecutiveLine } from "../components/executive-line";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
@@ -17,9 +19,7 @@ function OverdueItem({ item }: { item: DashboardTarefasOverdueItem }) {
       <div className="min-w-0 flex-1 space-y-0.5">
         <p className="truncate text-sm font-medium">{item.title}</p>
         <p className="truncate text-xs text-muted-foreground">{item.companyName}</p>
-        {item.assignedToName ? (
-          <p className="text-xs text-muted-foreground">{item.assignedToName}</p>
-        ) : null}
+        {item.assignedToName ? <p className="text-xs text-muted-foreground">{item.assignedToName}</p> : null}
       </div>
       <Badge variant="destructive" className="shrink-0 text-[10px]">
         {item.daysOverdue}d atraso
@@ -33,53 +33,64 @@ export async function SupportTarefasSubtab() {
   const { summary, activity, overdueItems, year, month } = data;
 
   const competencia = `${MONTH_NAMES[month - 1]} ${year}`;
-  const completionRate =
-    summary.total > 0
-      ? Math.round((summary.completed / summary.total) * 100)
-      : 0;
+  const completionRate = summary.total > 0 ? Math.round((summary.completed / summary.total) * 100) : 0;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <DashboardMetricCard
-          title="Total de tarefas"
-          value={summary.total}
-          helper={`Competencia ${competencia}`}
-          icon="clipboardList"
-          tone="blue"
-        />
-        <DashboardMetricCard
-          title="Vencidas"
-          value={summary.overdue}
-          helper="Tarefas com prazo expirado"
-          icon="alertTriangle"
-          tone="red"
-          trend={
-            summary.total > 0
-              ? { delta: summary.overdue, label: "vencidas no mes", downIsGood: true }
-              : undefined
-          }
-        />
-        <DashboardMetricCard
-          title="Aguardando cliente"
-          value={summary.waitingCustomer}
-          helper="Aguardando retorno do cliente"
-          icon="clock"
-          tone="amber"
-        />
-        <DashboardMetricCard
-          title="Concluidas"
-          value={summary.completed}
-          helper={`${completionRate}% de conclusao no mes`}
-          icon="checkCircle"
-          tone="emerald"
-          trend={
-            summary.total > 0
-              ? { delta: summary.completed, label: "concluidas no mes", downIsGood: false }
-              : undefined
-          }
-        />
-      </div>
+      <ExecutiveSummaryCard
+        title="Leitura executiva das tarefas"
+        description="A prioridade desta subaba e expor prazo vencido, dependencia de retorno do cliente e ritmo real de entrega na competencia atual."
+      >
+        <div className="grid gap-3 text-sm md:grid-cols-3">
+          <ExecutiveLine label="Competencia" value={competencia} />
+          <ExecutiveLine
+            label="Conclusao"
+            value={`${completionRate}%`}
+            emphasis={completionRate >= 70 ? "font-bold text-emerald-500" : "font-bold text-amber-500"}
+          />
+          <ExecutiveLine
+            label="Vencidas"
+            value={`${summary.overdue}`}
+            emphasis={summary.overdue > 0 ? "font-bold text-rose-500" : "text-foreground"}
+          />
+        </div>
+      </ExecutiveSummaryCard>
+
+      <DashboardMetricGrid
+        className="grid-cols-2 lg:grid-cols-4 xl:grid-cols-4"
+        metrics={[
+          {
+            title: "Total de tarefas",
+            value: summary.total,
+            helper: `Competencia ${competencia}`,
+            icon: "clipboardList",
+            tone: "blue",
+          },
+          {
+            title: "Vencidas",
+            value: summary.overdue,
+            helper: "Tarefas com prazo expirado",
+            icon: "alertTriangle",
+            tone: "red",
+            trend: summary.total > 0 ? { delta: summary.overdue, label: "vencidas no mes", downIsGood: true } : undefined,
+          },
+          {
+            title: "Aguardando cliente",
+            value: summary.waitingCustomer,
+            helper: "Aguardando retorno do cliente",
+            icon: "clock",
+            tone: "amber",
+          },
+          {
+            title: "Concluidas",
+            value: summary.completed,
+            helper: `${completionRate}% de conclusao no mes`,
+            icon: "checkCircle",
+            tone: "emerald",
+            trend: summary.total > 0 ? { delta: summary.completed, label: "concluidas no mes", downIsGood: false } : undefined,
+          },
+        ]}
+      />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="min-w-0">
@@ -111,7 +122,7 @@ export async function SupportTarefasSubtab() {
                 <EmptyState
                   icon={CheckCircle2}
                   title="Tudo em dia!"
-                  description="Nenhuma tarefa vencida nesta competência."
+                  description="Nenhuma tarefa vencida nesta competencia."
                   compact
                   dashed
                   className="h-[160px] border-border/40"

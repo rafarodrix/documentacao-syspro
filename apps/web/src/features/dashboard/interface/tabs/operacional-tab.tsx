@@ -1,9 +1,11 @@
 import { KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { DashboardMetricCard } from "../components/dashboard-metric-card";
+import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
 import { TicketFlowChart } from "../components/ticket-flow-chart";
 import { TrustReleaseCard } from "../components/trust-release-card";
 import { DocsInsightsPanel } from "../components/docs-insights-panel";
+import { ExecutiveSummaryCard } from "../components/executive-summary-card";
+import { ExecutiveLine } from "../components/executive-line";
 import { getOperacionalData } from "../../application/operacional-dashboard.queries";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
@@ -20,6 +22,7 @@ export async function OperacionalTab() {
   const todayActivity = (ticketFlow.opened.at(-1)?.value ?? 0) + (ticketFlow.inProgress.at(-1)?.value ?? 0);
   const yesterdayActivity = (ticketFlow.opened.at(-2)?.value ?? 0) + (ticketFlow.inProgress.at(-2)?.value ?? 0);
   const activityDelta = todayActivity - yesterdayActivity;
+  const waitingShare = ticketCounts.total > 0 ? Math.round((ticketCounts.waiting / ticketCounts.total) * 100) : 0;
   const latestDocs = source
     .getPages()
     .filter((page) => !["/portal/docs/cliente", "/portal/docs/suporte", "/portal/docs/admin"].includes(page.url))
@@ -33,6 +36,25 @@ export async function OperacionalTab() {
 
   return (
     <div className="space-y-4">
+      <ExecutiveSummaryCard
+        title="Leitura executiva da operacao"
+        description="Esta aba concentra a saude da fila interna, o ritmo de movimentacao dos tickets e os blocos operacionais que exigem acao imediata da equipe."
+      >
+        <div className="grid gap-3 text-sm md:grid-cols-3">
+          <ExecutiveLine label="Tickets em aberto" value={`${ticketCounts.total}`} />
+          <ExecutiveLine
+            label="Aguardando retorno"
+            value={`${ticketCounts.waiting} (${waitingShare}%)`}
+            emphasis={ticketCounts.waiting > 0 ? "font-bold text-amber-500" : "text-foreground"}
+          />
+          <ExecutiveLine
+            label="Movimento vs ontem"
+            value={`${activityDelta > 0 ? "+" : ""}${activityDelta}`}
+            emphasis={activityDelta > 0 ? "font-bold text-red-500" : "font-bold text-emerald-500"}
+          />
+        </div>
+      </ExecutiveSummaryCard>
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {dailyPassword ? (
           <Card className="border-border/50 bg-card shadow-none">
@@ -52,23 +74,30 @@ export async function OperacionalTab() {
           </Card>
         ) : null}
 
-        <DashboardMetricCard
-          title="Total em aberto"
-          value={ticketCounts.total}
-          helper="Tickets ativos no momento"
-          icon="headset"
-          tone="blue"
-          trend={{ delta: activityDelta, label: "movimentos vs ontem", downIsGood: true }}
-        />
-
-        {contracts ? (
-          <DashboardMetricCard
-            title="Contratos ativos"
-            value={contracts.activeContracts}
-            icon="fileText"
-            tone="emerald"
+        <div className="col-span-1 md:col-span-2">
+          <DashboardMetricGrid
+            className="grid-cols-1 md:grid-cols-2 xl:grid-cols-2"
+            metrics={[
+              {
+                title: "Total em aberto",
+                value: ticketCounts.total,
+                helper: "Tickets ativos no momento",
+                icon: "headset",
+                tone: "blue",
+                trend: { delta: activityDelta, label: "movimentos vs ontem", downIsGood: true },
+              },
+              ...(contracts
+                ? [{
+                    title: "Contratos ativos",
+                    value: contracts.activeContracts,
+                    helper: "Base recorrente em operacao",
+                    icon: "fileText" as const,
+                    tone: "emerald" as const,
+                  }]
+                : []),
+            ]}
           />
-        ) : null}
+        </div>
 
         {canReleaseInTrust ? <TrustReleaseCard /> : null}
       </div>

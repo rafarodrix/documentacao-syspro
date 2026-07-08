@@ -6,11 +6,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@dosc-syspro/ui";
-import { ArrowRight, Info, KanbanSquare } from "lucide-react";
+import { ArrowRight, Info, KanbanSquare, CheckCircle2, XCircle } from "lucide-react";
 import type { CrmLead, CrmLeadStage } from "@dosc-syspro/contracts/crm";
 import type { LeadDashboardData } from "@/features/crm/domain/crm.types";
+import { formatLeadCurrency } from "@/features/crm/domain/crm.types";
+import { formatNumber } from "@/lib/formatters";
 import { RegistryDataTable, RegistryFilterGroup, RegistryToolbar } from "@/components/platform/shared/registry-list-scaffold";
 import { PageHeader } from "@/components/patterns";
+import { DashboardMetricCard } from "@/features/dashboard/interface/components/dashboard-metric-card";
 import { trpc } from "@/lib/api/trpc-client";
 import { useLeadFilters } from "./lead-management/hooks/use-lead-filters";
 import { useLeadDetails } from "./lead-management/hooks/use-lead-details";
@@ -19,6 +22,7 @@ import { LeadBoardSection } from "./lead-management/components/lead-board-sectio
 import { LeadDetailsSheet } from "./lead-management/components/lead-details-sheet";
 import { LeadStageGuideDialog } from "./lead-management/components/lead-stage-guide-dialog";
 import type { LeadAttentionFilter, LeadStatusFilter } from "./lead-management/lead-management.types";
+import { cn } from "@/lib/utils";
 
 export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   const router = useRouter();
@@ -41,6 +45,10 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
     attentionSummaryFilters,
     paginationSummary,
     hasActiveLeadsInFilter,
+    conversionRate,
+    weightedPipelineValue,
+    overdueCount,
+    noNextStepCount,
   } = useLeadFilters(leads, search, statusFilter, attentionFilter, data.pagination);
 
   const details = useLeadDetails({ setLeads, router, startTransition });
@@ -131,6 +139,88 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
           }
         />
 
+        {/* Top KPIs Metric Panel */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            className={cn(
+              "cursor-pointer transition-all hover:translate-y-[-2px]",
+              attentionFilter === "ALL" && statusFilter === "ACTIVE" && "ring-2 ring-primary ring-offset-2 rounded-lg"
+            )}
+            onClick={() => {
+              setAttentionFilter("ALL");
+              setStatusFilter("ACTIVE");
+            }}
+          >
+            <DashboardMetricCard
+              title="Pipeline Ponderado"
+              value={formatLeadCurrency(weightedPipelineValue)}
+              helper={`${leads.filter(l => !["WON", "LOST"].includes(l.stage)).length} leads ativos no funil`}
+              icon="dollar"
+              tone="blue"
+            />
+          </div>
+
+          <div
+            className={cn(
+              "cursor-pointer transition-all hover:translate-y-[-2px]",
+              attentionFilter === "OVERDUE" && "ring-2 ring-red-500 ring-offset-2 rounded-lg"
+            )}
+            onClick={() => {
+              setAttentionFilter("OVERDUE");
+              setStatusFilter("ACTIVE");
+            }}
+          >
+            <DashboardMetricCard
+              title="Leads Atrasados"
+              value={overdueCount}
+              helper="Fechamento expirado"
+              icon="alertTriangle"
+              tone={overdueCount > 0 ? "red" : "blue"}
+            />
+          </div>
+
+          <div
+            className={cn(
+              "cursor-pointer transition-all hover:translate-y-[-2px]",
+              attentionFilter === "NO_NEXT_STEP" && "ring-2 ring-amber-500 ring-offset-2 rounded-lg"
+            )}
+            onClick={() => {
+              setAttentionFilter("NO_NEXT_STEP");
+              setStatusFilter("ACTIVE");
+            }}
+          >
+            <DashboardMetricCard
+              title="Sem Próxima Ação"
+              value={noNextStepCount}
+              helper="Sem tarefa agendada"
+              icon="clock"
+              tone={noNextStepCount > 0 ? "amber" : "blue"}
+            />
+          </div>
+
+          <div
+            className={cn(
+              "cursor-pointer transition-all hover:translate-y-[-2px]",
+              statusFilter !== "ACTIVE" && "ring-2 ring-emerald-500 ring-offset-2 rounded-lg"
+            )}
+            onClick={() => {
+              if (statusFilter === "ACTIVE") {
+                setStatusFilter("WON");
+              } else {
+                setStatusFilter("ACTIVE");
+              }
+            }}
+          >
+            <DashboardMetricCard
+              title="Taxa de Conversão"
+              value={`${formatNumber(conversionRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
+              helper={`${leads.filter(l => l.stage === "WON").length} ganhos | ${leads.filter(l => l.stage === "LOST").length} perdidos`}
+              icon="sparkles"
+              tone="emerald"
+            />
+          </div>
+        </div>
+
         <RegistryToolbar
           searchValue={search}
           searchPlaceholder="Buscar empresa, titulo, contato ou proximo passo..."
@@ -176,6 +266,52 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
           }
         />
       </div>
+
+      {/* Dynamic Bottom Drop Zones for Won and Lost leads */}
+      {draggedLeadId && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full border border-border/80 bg-background/95 p-3.5 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5 duration-300">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (hoveredStage !== "WON") setHoveredStage("WON");
+            }}
+            onDragLeave={() => setHoveredStage(null)}
+            onDrop={async (e) => {
+              e.preventDefault();
+              await handleDrop("WON");
+            }}
+            className={cn(
+              "flex items-center gap-2 rounded-full border border-dashed px-6 py-3 text-xs font-semibold transition-colors cursor-pointer select-none",
+              hoveredStage === "WON"
+                ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "border-emerald-500/30 text-emerald-500"
+            )}
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Marcar como Ganho
+          </div>
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (hoveredStage !== "LOST") setHoveredStage("LOST");
+            }}
+            onDragLeave={() => setHoveredStage(null)}
+            onDrop={async (e) => {
+              e.preventDefault();
+              await handleDrop("LOST");
+            }}
+            className={cn(
+              "flex items-center gap-2 rounded-full border border-dashed px-6 py-3 text-xs font-semibold transition-colors cursor-pointer select-none",
+              hoveredStage === "LOST"
+                ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                : "border-rose-500/30 text-rose-500"
+            )}
+          >
+            <XCircle className="h-4 w-4" />
+            Marcar como Perdido
+          </div>
+        </div>
+      )}
 
       <LeadDetailsSheet
         open={!!details.selectedLeadId}

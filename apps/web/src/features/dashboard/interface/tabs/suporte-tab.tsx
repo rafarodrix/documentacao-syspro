@@ -3,6 +3,8 @@ import { ClipboardList, Headset, Ticket } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { TabListSkeleton } from "../components/tab-skeleton";
+import { ExecutiveSummaryCard } from "../components/executive-summary-card";
+import { ExecutiveLine } from "../components/executive-line";
 import { SupportTicketsSubtab } from "./support-tickets-subtab";
 import { SupportAtendimentosSubtab } from "./support-atendimentos-subtab";
 import { SupportTarefasSubtab } from "./support-tarefas-subtab";
@@ -20,43 +22,60 @@ export async function SuporteTab() {
   );
 
   return (
-    <Tabs defaultValue="tickets" className="space-y-4">
-      <TabsList className={supportTabsClassName}>
-        <TabsTrigger value="tickets" className={supportTriggerClassName}>
-          <Ticket className="h-4 w-4" />
-          Tickets
-        </TabsTrigger>
-        <TabsTrigger value="tarefas" className={supportTriggerClassName}>
-          <ClipboardList className="h-4 w-4" />
-          Tarefas
-        </TabsTrigger>
-        {canViewAtendimentos ? (
-          <TabsTrigger value="atendimentos" className={supportTriggerClassName}>
-            <Headset className="h-4 w-4" />
-            Atendimentos
+    <div className="space-y-4">
+      <ExecutiveSummaryCard
+        title="Leitura executiva do suporte"
+        description="Use esta aba para separar backlog operacional de tickets, carga de tarefas internas e saude das conversas do Chatwoot, sem perder o contexto da fila."
+      >
+        <div className="grid gap-3 text-sm md:grid-cols-3">
+          <ExecutiveLine label="Tickets" value="Fila e distribuicao" />
+          <ExecutiveLine label="Tarefas" value="Prazos e execucao" />
+          <ExecutiveLine
+            label="Atendimentos"
+            value={canViewAtendimentos ? "Chatwoot e CSAT" : "Sem permissao"}
+            emphasis={canViewAtendimentos ? "text-foreground" : "font-bold text-amber-500"}
+          />
+        </div>
+      </ExecutiveSummaryCard>
+
+      <Tabs defaultValue="tickets" className="space-y-4">
+        <TabsList className={supportTabsClassName}>
+          <TabsTrigger value="tickets" className={supportTriggerClassName}>
+            <Ticket className="h-4 w-4" />
+            Tickets
           </TabsTrigger>
-        ) : null}
-      </TabsList>
+          <TabsTrigger value="tarefas" className={supportTriggerClassName}>
+            <ClipboardList className="h-4 w-4" />
+            Tarefas
+          </TabsTrigger>
+          {canViewAtendimentos ? (
+            <TabsTrigger value="atendimentos" className={supportTriggerClassName}>
+              <Headset className="h-4 w-4" />
+              Atendimentos
+            </TabsTrigger>
+          ) : null}
+        </TabsList>
 
-      <TabsContent value="tickets">
-        <Suspense fallback={<TabListSkeleton />}>
-          <SupportTicketsSubtab />
-        </Suspense>
-      </TabsContent>
-
-      <TabsContent value="tarefas">
-        <Suspense fallback={<TabListSkeleton />}>
-          <SupportTarefasSubtab />
-        </Suspense>
-      </TabsContent>
-
-      {canViewAtendimentos ? (
-        <TabsContent value="atendimentos">
+        <TabsContent value="tickets">
           <Suspense fallback={<TabListSkeleton />}>
-            <SupportAtendimentosSubtab />
+            <SupportTicketsSubtab />
           </Suspense>
         </TabsContent>
-      ) : null}
-    </Tabs>
+
+        <TabsContent value="tarefas">
+          <Suspense fallback={<TabListSkeleton />}>
+            <SupportTarefasSubtab />
+          </Suspense>
+        </TabsContent>
+
+        {canViewAtendimentos ? (
+          <TabsContent value="atendimentos">
+            <Suspense fallback={<TabListSkeleton />}>
+              <SupportAtendimentosSubtab />
+            </Suspense>
+          </TabsContent>
+        ) : null}
+      </Tabs>
+    </div>
   );
 }

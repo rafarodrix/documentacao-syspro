@@ -91,6 +91,29 @@ export function useLeadFilters(
   const hasActiveLeadsInFilter =
     filteredLeads.filter((l) => CRM_ACTIVE_STAGE_ORDER.includes(l.stage)).length > 0;
 
+  const wonCount = grouped.WON.length;
+  const lostCount = grouped.LOST.length;
+  const totalClosed = wonCount + lostCount;
+  const conversionRate = totalClosed > 0 ? (wonCount / totalClosed) * 100 : 0;
+
+  const stageProbabilities: Record<string, number> = {
+    LEAD: 0.1,
+    MQL: 0.2,
+    SQL: 0.35,
+    PROPOSAL: 0.6,
+    NEGOTIATION: 0.8,
+    WON: 1.0,
+    LOST: 0.0,
+  };
+
+  const weightedPipelineValue = activeLeads.reduce((sum, lead) => {
+    const prob = stageProbabilities[lead.stage] ?? 0.1;
+    return sum + (lead.estimatedValue ?? 0) * prob;
+  }, 0);
+
+  const overdueCount = activeLeads.filter((l) => getLeadAttentionState(l).isOverdue).length;
+  const noNextStepCount = activeLeads.filter((l) => !getLeadAttentionState(l).hasNextStep).length;
+
   return {
     grouped,
     activeLeads,
@@ -103,5 +126,9 @@ export function useLeadFilters(
     attentionSummaryFilters,
     paginationSummary,
     hasActiveLeadsInFilter,
+    conversionRate,
+    weightedPipelineValue,
+    overdueCount,
+    noNextStepCount,
   };
 }

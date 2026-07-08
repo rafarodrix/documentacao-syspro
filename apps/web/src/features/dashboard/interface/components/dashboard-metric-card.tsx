@@ -62,6 +62,15 @@ const iconMap = {
 
 export type DashboardMetricIconKey = keyof typeof iconMap;
 
+export type DashboardMetricCardProps = {
+  title: string;
+  value: number | string;
+  helper?: string;
+  icon: DashboardMetricIconKey;
+  tone: keyof typeof toneClasses;
+  trend?: Trend;
+};
+
 function TrendIndicator({ delta, label, downIsGood }: Trend) {
   if (delta === 0) {
     return (
@@ -93,14 +102,7 @@ export function DashboardMetricCard({
   icon,
   tone,
   trend,
-}: {
-  title: string;
-  value: number | string;
-  helper?: string;
-  icon: DashboardMetricIconKey;
-  tone: keyof typeof toneClasses;
-  trend?: Trend;
-}) {
+}: DashboardMetricCardProps) {
   const Icon = iconMap[icon];
 
   return (
@@ -109,7 +111,7 @@ export function DashboardMetricCard({
         <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {title}
         </CardTitle>
-        <div className={cn("flex h-7 w-7 items-center justify-center rounded-md flex-shrink-0", toneClasses[tone])}>
+        <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md", toneClasses[tone])}>
           <Icon className="h-3.5 w-3.5" />
         </div>
       </CardHeader>

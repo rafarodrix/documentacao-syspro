@@ -26,8 +26,9 @@ import { ActivityChart } from "@/components/platform/app/dashboard/activity-char
 import { formatDateTimeSafe } from "@/lib/date";
 import { formatNumber } from "@/lib/formatters";
 import { getAtendimentosData } from "../../application/client";
-import { DashboardMetricCard } from "../components/dashboard-metric-card";
+import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
 import { ExecutiveLine } from "../components/executive-line";
+import { ExecutiveSummaryCard } from "../components/executive-summary-card";
 
 function toDateInputValue(date: Date) {
   const year = date.getFullYear();
@@ -101,11 +102,8 @@ export function SupportAtendimentosSubtab() {
     const isManualRefresh = forceRefreshRef.current;
     forceRefreshRef.current = false;
 
-    if (isManualRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
+    if (isManualRefresh) setRefreshing(true);
+    else setLoading(true);
     setError(null);
 
     getAtendimentosData({ from, to, assigneeId, contact, refresh: isManualRefresh })
@@ -136,12 +134,14 @@ export function SupportAtendimentosSubtab() {
   }, []);
 
   const csatBase = useMemo(() => Math.max(data?.csatResponseCount ?? 0, 1), [data?.csatResponseCount]);
-  const statusHighlights = useMemo(() => {
-    return (data?.statusCounts ?? [])
-      .filter((item) => item.count > 0)
-      .sort((left, right) => right.count - left.count)
-      .slice(0, 6);
-  }, [data?.statusCounts]);
+  const statusHighlights = useMemo(
+    () =>
+      (data?.statusCounts ?? [])
+        .filter((item) => item.count > 0)
+        .sort((left, right) => right.count - left.count)
+        .slice(0, 6),
+    [data?.statusCounts],
+  );
 
   const applyPreset = (preset: "today" | "7d" | "30d") => {
     const next = buildRangePreset(preset);
@@ -185,25 +185,13 @@ export function SupportAtendimentosSubtab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant={isPresetActive("today") ? "default" : "outline"}
-              size="sm"
-              onClick={() => applyPreset("today")}
-            >
+            <Button variant={isPresetActive("today") ? "default" : "outline"} size="sm" onClick={() => applyPreset("today")}>
               Hoje
             </Button>
-            <Button
-              variant={isPresetActive("7d") ? "default" : "outline"}
-              size="sm"
-              onClick={() => applyPreset("7d")}
-            >
+            <Button variant={isPresetActive("7d") ? "default" : "outline"} size="sm" onClick={() => applyPreset("7d")}>
               Ultimos 7 dias
             </Button>
-            <Button
-              variant={isPresetActive("30d") ? "default" : "outline"}
-              size="sm"
-              onClick={() => applyPreset("30d")}
-            >
+            <Button variant={isPresetActive("30d") ? "default" : "outline"} size="sm" onClick={() => applyPreset("30d")}>
               Ultimos 30 dias
             </Button>
           </div>
@@ -251,22 +239,40 @@ export function SupportAtendimentosSubtab() {
       </Card>
 
       {error ? (
-        <SectionCard
-          title="Falha na carga"
-          className="border-rose-500/30 bg-rose-500/10"
-          contentClassName="text-sm text-rose-200"
-        >
+        <SectionCard title="Falha na carga" className="border-rose-500/30 bg-rose-500/10" contentClassName="text-sm text-rose-200">
           {error}
         </SectionCard>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Conversas reais do Chatwoot no periodo" icon="inbox" tone="blue" />
-        <DashboardMetricCard title="Em aberto" value={data?.openCount ?? 0} helper="Fila ativa e em acompanhamento" icon="loader" tone="amber" />
-        <DashboardMetricCard title="Sem responsavel" value={data?.unassignedCount ?? 0} helper="Ainda sem atribuicao" icon="shieldAlert" tone={(data?.unassignedCount ?? 0) > 0 ? "red" : "blue"} />
-        <DashboardMetricCard title="Resolvidos" value={data?.resolvedCount ?? 0} helper="Encerrados no fluxo" icon="checkCircle" tone="emerald" />
-        <DashboardMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} avaliacoes`} icon="messageSquareText" tone="emerald" />
-      </div>
+      <ExecutiveSummaryCard
+        title="Leitura executiva dos atendimentos"
+        description="Acompanhe o volume real do Chatwoot, a parcela sem dono definido e os sinais de satisfacao do cliente antes de aprofundar na produtividade da equipe."
+      >
+        <div className="grid gap-3 text-sm md:grid-cols-3">
+          <ExecutiveLine
+            label="Conversas abertas"
+            value={`${data?.openCount ?? 0}`}
+            emphasis={(data?.openCount ?? 0) > 0 ? "font-bold text-amber-500" : "text-foreground"}
+          />
+          <ExecutiveLine
+            label="Sem responsavel"
+            value={`${data?.unassignedCount ?? 0}`}
+            emphasis={(data?.unassignedCount ?? 0) > 0 ? "font-bold text-rose-500" : "text-foreground"}
+          />
+          <ExecutiveLine label="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} emphasis="font-bold text-emerald-500" />
+        </div>
+      </ExecutiveSummaryCard>
+
+      <DashboardMetricGrid
+        className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5"
+        metrics={[
+          { title: "Total", value: data?.totalCount ?? 0, helper: "Conversas reais do Chatwoot no periodo", icon: "inbox", tone: "blue" },
+          { title: "Em aberto", value: data?.openCount ?? 0, helper: "Fila ativa e em acompanhamento", icon: "loader", tone: "amber" },
+          { title: "Sem responsavel", value: data?.unassignedCount ?? 0, helper: "Ainda sem atribuicao", icon: "shieldAlert", tone: (data?.unassignedCount ?? 0) > 0 ? "red" : "blue" },
+          { title: "Resolvidos", value: data?.resolvedCount ?? 0, helper: "Encerrados no fluxo", icon: "checkCircle", tone: "emerald" },
+          { title: "CSAT medio", value: formatScore(data?.csatAverageScore ?? null), helper: `${data?.csatResponseCount ?? 0} avaliacoes`, icon: "messageSquareText", tone: "emerald" },
+        ]}
+      />
 
       <ActivityChart
         title="Volume de atendimentos"
@@ -276,11 +282,7 @@ export function SupportAtendimentosSubtab() {
         emptyLabel="Sem conversas no recorte"
       />
 
-      <SectionCard
-        title="Status do Chatwoot"
-        className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
-        contentClassName="space-y-3"
-      >
+      <SectionCard title="Status do Chatwoot" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="space-y-3">
         <div className="flex flex-wrap gap-2">
           {statusHighlights.length ? (
             statusHighlights.map((item) => {
@@ -289,10 +291,7 @@ export function SupportAtendimentosSubtab() {
                 tone: "border-border/60 bg-muted/30 text-foreground",
               };
               return (
-                <div
-                  key={item.status}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${meta.tone}`}
-                >
+                <div key={item.status} className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${meta.tone}`}>
                   <span>{meta.label}</span>
                   <span className="tabular-nums text-foreground">{item.count}</span>
                 </div>
@@ -304,18 +303,9 @@ export function SupportAtendimentosSubtab() {
         </div>
 
         <div className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
-          <ExecutiveLine
-            label="Aguardando cliente"
-            value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando cliente")?.count ?? 0}`}
-          />
-          <ExecutiveLine
-            label="Em espera interna"
-            value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`}
-          />
-          <ExecutiveLine
-            label="Arquivados"
-            value={`${(data?.statusCounts ?? []).find((item) => item.status === "Arquivado")?.count ?? 0}`}
-          />
+          <ExecutiveLine label="Aguardando cliente" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando cliente")?.count ?? 0}`} />
+          <ExecutiveLine label="Em espera interna" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`} />
+          <ExecutiveLine label="Arquivados" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Arquivado")?.count ?? 0}`} />
           <ExecutiveLine
             label="Sem vinculo Syspro"
             value={`${data?.unlinkedCount ?? 0}`}
@@ -324,11 +314,7 @@ export function SupportAtendimentosSubtab() {
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Produtividade da equipe"
-        className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
-        contentClassName="overflow-x-auto"
-      >
+      <SectionCard title="Produtividade da equipe" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-border/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -378,11 +364,7 @@ export function SupportAtendimentosSubtab() {
       </SectionCard>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard
-          title="Saude do CSAT"
-          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
-          contentClassName="grid gap-3.5 text-sm sm:grid-cols-2"
-        >
+        <SectionCard title="Saude do CSAT" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="grid gap-3.5 text-sm sm:grid-cols-2">
           <div className="space-y-3.5">
             <ExecutiveLine label="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} emphasis="text-base font-extrabold text-emerald-500" />
             <ExecutiveLine label="Conversas elegiveis" value={`${data?.csatEligibleResolvedCount ?? 0}`} />
@@ -415,11 +397,7 @@ export function SupportAtendimentosSubtab() {
           </div>
         </SectionCard>
 
-        <SectionCard
-          title="Distribuicao das notas"
-          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
-          contentClassName="space-y-2.5"
-        >
+        <SectionCard title="Distribuicao das notas" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="space-y-2.5">
           {([...(data?.csatScoreDistribution ?? [])].sort((left, right) => right.score - left.score)).map((item) => (
             <div key={item.score} className="space-y-1">
               <div className="flex items-center justify-between gap-3 text-xs">
@@ -438,11 +416,7 @@ export function SupportAtendimentosSubtab() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard
-          title="Contatos com mais atendimentos (Top 10)"
-          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
-          contentClassName="overflow-x-auto"
-        >
+        <SectionCard title="Contatos com mais atendimentos (Top 10)" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="overflow-x-auto">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="border-b border-border/40 font-semibold uppercase tracking-wider text-muted-foreground">
@@ -457,7 +431,7 @@ export function SupportAtendimentosSubtab() {
                 (data?.topContacts ?? []).map((item) => (
                   <tr key={item.key} className="transition-colors hover:bg-muted/10">
                     <td className="flex items-center gap-1.5 px-3 py-3 font-semibold text-foreground">
-                      <span className="text-primary">•</span> {item.name}
+                      <span className="text-primary">*</span> {item.name}
                     </td>
                     <td className="px-3 py-3 text-center font-bold text-amber-500 tabular-nums">{item.count} atend.</td>
                     <td className="px-3 py-3 text-muted-foreground">{getChannelLabel(item.channel)}</td>
@@ -475,11 +449,7 @@ export function SupportAtendimentosSubtab() {
           </table>
         </SectionCard>
 
-        <SectionCard
-          title="Empresas com mais atendimentos (Top 10)"
-          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
-          contentClassName="overflow-x-auto"
-        >
+        <SectionCard title="Empresas com mais atendimentos (Top 10)" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="overflow-x-auto">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="border-b border-border/40 font-semibold uppercase tracking-wider text-muted-foreground">
@@ -494,7 +464,7 @@ export function SupportAtendimentosSubtab() {
                 (data?.topCompanies ?? []).map((item) => (
                   <tr key={item.key} className="transition-colors hover:bg-muted/10">
                     <td className="flex items-center gap-1.5 px-3 py-3 font-semibold text-foreground">
-                      <span className="text-emerald-500">•</span> {item.name}
+                      <span className="text-emerald-500">*</span> {item.name}
                     </td>
                     <td className="px-3 py-3 text-center font-bold text-emerald-500 tabular-nums">{item.count} atend.</td>
                     <td className="px-3 py-3 text-muted-foreground">{getChannelLabel(item.channel)}</td>

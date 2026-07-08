@@ -2,7 +2,9 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@dosc-syspro/ui";
 import { SectionCard } from "@/components/patterns";
-import { DashboardMetricCard } from "../components/dashboard-metric-card";
+import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
+import { ExecutiveSummaryCard } from "../components/executive-summary-card";
+import { ExecutiveLine } from "../components/executive-line";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
 import { CrmStageChart } from "../components/crm-stage-chart";
 import { getComercialData } from "../../application/comercial-dashboard.queries";
@@ -34,67 +36,90 @@ export async function ComercialTab() {
 
   return (
     <div className="space-y-4">
-      <div className="mb-2 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <DashboardMetricCard
-          title="Contratos ativos"
-          value={contracts?.activeContracts ?? 0}
-          helper="Clientes com contrato ativo"
-          icon="fileText"
-          tone="blue"
-        />
-        <DashboardMetricCard
-          title="MRR estimado"
-          value={contracts ? formatCurrency(contracts.totalValue) : "Sem dados"}
-          helper="Receita recorrente mensal liquida estimada"
-          icon="dollar"
-          tone="emerald"
-        />
-        <DashboardMetricCard
-          title="MRR medio"
-          value={contracts ? formatCurrency(averageContractMrr) : "Sem dados"}
-          helper="Receita media por contrato ativo"
-          icon="fileText"
-          tone="blue"
-        />
-        <DashboardMetricCard
-          title="Cobertura do pipeline"
-          value={`${formatNumber(pipelineCoverage, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`}
-          helper="Pipeline bruto sobre o MRR atual"
-          icon="target"
-          tone="amber"
-        />
-      </div>
+      <ExecutiveSummaryCard
+        title="Leitura executiva do comercial"
+        description="A prioridade aqui e responder rapido se o pipeline sustenta a receita atual, onde o funil esta travando e quanto valor esta exposto por falta de acompanhamento."
+      >
+        <div className="grid gap-3 text-sm md:grid-cols-3">
+          <ExecutiveLine
+            label="Cobertura do pipeline"
+            value={`${pipelineCoverageFormatted}x`}
+            emphasis={pipelineCoverage >= 1 ? "font-bold text-emerald-500" : "font-bold text-amber-500"}
+          />
+          <ExecutiveLine label="Conversao historica" value={`${winRateFormatted}%`} />
+          <ExecutiveLine
+            label="Risco no funil"
+            value={`${overdueLeads + noNextStepLeads} lead(s)`}
+            emphasis={overdueLeads + noNextStepLeads > 0 ? "font-bold text-rose-500" : "text-foreground"}
+          />
+        </div>
+      </ExecutiveSummaryCard>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <DashboardMetricCard
-          title="Pipeline ativo"
-          value={crm?.activeLeads ?? 0}
-          helper={crm ? formatCurrency(crm.pipelineValue) : "Sem dados"}
-          icon="target"
-          tone="blue"
-        />
-        <DashboardMetricCard
-          title="Em proposta"
-          value={crm?.proposalLeads ?? 0}
-          helper={`${crm?.negotiationLeads ?? 0} em negociacao`}
-          icon="trendingUp"
-          tone="amber"
-        />
-        <DashboardMetricCard
-          title="Ganhos"
-          value={crm?.wonLeads ?? 0}
-          helper={crm ? formatCurrency(crm.wonValue) : "Sem dados"}
-          icon="sparkles"
-          tone="emerald"
-        />
-        <DashboardMetricCard
-          title="Risco operacional"
-          value={(crm?.overdueLeads ?? 0) + (crm?.noNextStepLeads ?? 0)}
-          helper={`${crm?.overdueLeads ?? 0} atrasados | ${crm?.noNextStepLeads ?? 0} sem proximo passo`}
-          icon="trendingDown"
-          tone="red"
-        />
-      </div>
+      <DashboardMetricGrid
+        metrics={[
+          {
+            title: "Contratos ativos",
+            value: contracts?.activeContracts ?? 0,
+            helper: "Clientes com contrato ativo",
+            icon: "fileText",
+            tone: "blue",
+          },
+          {
+            title: "MRR estimado",
+            value: contracts ? formatCurrency(contracts.totalValue) : "Sem dados",
+            helper: "Receita recorrente mensal liquida estimada",
+            icon: "dollar",
+            tone: "emerald",
+          },
+          {
+            title: "MRR medio",
+            value: contracts ? formatCurrency(averageContractMrr) : "Sem dados",
+            helper: "Receita media por contrato ativo",
+            icon: "fileText",
+            tone: "blue",
+          },
+          {
+            title: "Cobertura do pipeline",
+            value: `${formatNumber(pipelineCoverage, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`,
+            helper: "Pipeline bruto sobre o MRR atual",
+            icon: "target",
+            tone: "amber",
+          },
+        ]}
+      />
+
+      <DashboardMetricGrid
+        metrics={[
+          {
+            title: "Pipeline ativo",
+            value: crm?.activeLeads ?? 0,
+            helper: crm ? formatCurrency(crm.pipelineValue) : "Sem dados",
+            icon: "target",
+            tone: "blue",
+          },
+          {
+            title: "Em proposta",
+            value: crm?.proposalLeads ?? 0,
+            helper: `${crm?.negotiationLeads ?? 0} em negociacao`,
+            icon: "trendingUp",
+            tone: "amber",
+          },
+          {
+            title: "Ganhos",
+            value: crm?.wonLeads ?? 0,
+            helper: crm ? formatCurrency(crm.wonValue) : "Sem dados",
+            icon: "sparkles",
+            tone: "emerald",
+          },
+          {
+            title: "Risco operacional",
+            value: (crm?.overdueLeads ?? 0) + (crm?.noNextStepLeads ?? 0),
+            helper: `${crm?.overdueLeads ?? 0} atrasados | ${crm?.noNextStepLeads ?? 0} sem proximo passo`,
+            icon: "trendingDown",
+            tone: "red",
+          },
+        ]}
+      />
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
         <CrmStageChart distribution={stageDistribution} />
