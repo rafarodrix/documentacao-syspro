@@ -1,7 +1,7 @@
 ---
 title: Tabela CST do ICMS
-description: Guia sobre CST e CSOSN do ICMS
-lastUpdated: 2026-03-22
+description: Guia pratico sobre CST e CSOSN no Syspro ERP
+lastUpdated: 2026-07-09
 owner: Equipe de Documentacao
 status: published
 tags:
@@ -10,93 +10,151 @@ tags:
   - cst
 ---
 
-import { Cards, Card } from 'fumadocs-ui/components/card';
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { ChecklistPanel, CodeBadge, GuidanceNotice } from '@/components/docs/mdx';
 
-## Introdução
+## Visao geral
 
-O **Código de Situação Tributária (CST)** e o **Código de Situação da Operação no Simples Nacional (CSOSN)** são usados no Syspro ERP para classificar a tributação de mercadorias. O CST é essencial para empresas no regime normal (Lucro Presumido ou Real), enquanto o CSOSN aplica-se a empresas no Simples Nacional com CRT 1. Em 2024, novos códigos CST foram introduzidos, como 02, 15, 53 e 61, para tributação monofásica de combustíveis, conforme o Ajuste SINIEF 39/23, vigente desde 1º de outubro de 2024.
+O **CST** e o **CSOSN** definem como o ICMS deve ser tratado no documento fiscal e na parametrizacao do Syspro ERP. A leitura correta desses codigos evita erro de tributacao, escolha incorreta de operacao fiscal e divergencia entre cadastro, regra fiscal e emissao.
 
-Este guia apresenta as tabelas atualizadas, configurações no Syspro ERP e dicas práticas para garantir conformidade fiscal.
+Em 2024, a tabela ganhou novos codigos ligados a **tributacao monofasica de combustiveis**, como `02`, `15`, `53` e `61`, conforme o Ajuste SINIEF 39/23, com vigencia a partir de **1 de outubro de 2024**.
 
-## O que é CST e CSOSN?
+<GuidanceNotice title="Regra pratica para nao misturar os codigos">
+  Use <CodeBadge code="CST" tone="blue" /> para empresas no regime normal e
+  <CodeBadge code="CSOSN" tone="green" /> para empresas do Simples Nacional com
+  CRT 1. A decisao depende do regime tributario da empresa, nao apenas do produto.
+</GuidanceNotice>
 
-- **CST:** Código de 3 dígitos (ex.: 00, 10) usado por empresas no regime normal. O 1º dígito indica a origem da mercadoria (Tabela A), e os 2 últimos a tributação do ICMS (Tabela B).
-- **CSOSN:** Código de 4 dígitos (ex.: 101, 201) para empresas no Simples Nacional (CRT 1), com estrutura similar ao CST.
-- **Atualização 2024:** Novos códigos CST para combustíveis (02, 15, 53, 61) foram adicionados pelo Ajuste SINIEF 39/23.
+<Cards>
+  <Card title="Regime normal">
+    Empresas em Lucro Presumido ou Lucro Real trabalham com
+    {' '}<CodeBadge code="CST" tone="blue" />.
+  </Card>
+  <Card title="Simples Nacional">
+    Empresas com CRT 1 usam
+    {' '}<CodeBadge code="CSOSN" tone="green" /> no lugar do CST.
+  </Card>
+  <Card title="Atualizacao 2024">
+    Combustiveis passaram a exigir leitura atenta de codigos como
+    {' '}<CodeBadge code="02" tone="amber" />
+    {' '}<CodeBadge code="15" tone="amber" />
+    {' '}<CodeBadge code="53" tone="amber" />
+    {' '}<CodeBadge code="61" tone="amber" />.
+  </Card>
+</Cards>
 
-Ter clareza sobre esses códigos ajuda a configurar corretamente o módulo **Fiscal** do Syspro ERP.
+## Como ler CST e CSOSN
 
-## Tabela Origem (Tabela A)
+- **CST:** codigo de 3 digitos usado por empresas no regime normal.
+- **CSOSN:** codigo de 4 digitos usado por empresas no Simples Nacional.
+- No **CST**, o primeiro digito representa a **origem da mercadoria** e os dois ultimos representam a **tributacao do ICMS**.
+- No **CSOSN**, a logica muda, mas o objetivo continua sendo indicar como a operacao deve ser tributada.
 
-Define a origem da mercadoria, usada no 1º dígito do CST e CSOSN.
+## Quando usar cada um
 
-| Origem | Descrição                                                                                     |
-|--------|-----------------------------------------------------------------------------------------------|
-| 0      | Nacional, exceto as indicadas nos códigos 3, 4, 5 e 8.                                       |
-| 1      | Estrangeira, Importação direta, exceto a indicada no código 6.                              |
-| 2      | Estrangeira, Adquirida no mercado interno, exceto a indicada no código 7.                   |
-| 3      | Nacional, com Conteúdo de Importação superior a 40% e inferior ou igual a 70%.               |
-| 4      | Nacional, produzida conforme processos produtivos básicos (PPB).                             |
-| 5      | Nacional, com Conteúdo de Importação inferior ou igual a 40%.                                |
-| 6      | Estrangeira, Importação direta, sem similar nacional, conforme Resolução CAMEX.             |
-| 7      | Estrangeira, Adquirida no mercado interno, sem similar nacional, conforme Resolução CAMEX.  |
-| 8      | Nacional, com Conteúdo de Importação superior a 70%.                                         |
+| Cenario | Codigo correto | Observacao |
+| --- | --- | --- |
+| Empresa em Lucro Presumido ou Lucro Real | `CST` | Considera origem da mercadoria + tributacao do ICMS |
+| Empresa no Simples Nacional com CRT 1 | `CSOSN` | Nao combina CST na saida normal desse regime |
+| Operacao com combustiveis apos a atualizacao de 2024 | `CST` especifico do cenario | Validar se ha tributacao monofasica, retencao ou diferimento |
+
+## Tabela de origem (Tabela A)
+
+Define a origem da mercadoria, usada no primeiro digito do CST e CSOSN.
+
+| Origem | Descricao |
+| --- | --- |
+| 0 | Nacional, exceto as indicadas nos codigos 3, 4, 5 e 8 |
+| 1 | Estrangeira, importacao direta, exceto a indicada no codigo 6 |
+| 2 | Estrangeira, adquirida no mercado interno, exceto a indicada no codigo 7 |
+| 3 | Nacional, com conteudo de importacao superior a 40% e inferior ou igual a 70% |
+| 4 | Nacional, produzida conforme processos produtivos basicos (PPB) |
+| 5 | Nacional, com conteudo de importacao inferior ou igual a 40% |
+| 6 | Estrangeira, importacao direta, sem similar nacional, conforme resolucao CAMEX |
+| 7 | Estrangeira, adquirida no mercado interno, sem similar nacional, conforme resolucao CAMEX |
+| 8 | Nacional, com conteudo de importacao superior a 70% |
 
 ## Tabela CST (Tabela B)
 
-Especifica a tributação do ICMS para empresas no regime normal. Inclui novos códigos de 2024.
+Especifica a tributacao do ICMS para empresas no regime normal.
 
-| Código | Descrição                                                                                     |
-|--------|-----------------------------------------------------------------------------------------------|
-| 00     | Tributada integralmente                                                                       |
-| 02     | Tributação monofásica própria sobre combustíveis                                              |
-| 10     | Tributada e com cobrança do ICMS por substituição tributária                                  |
-| 15     | Tributação monofásica própria sobre combustíveis com retenção do imposto                      |
-| 20     | Com redução de base de cálculo                                                                |
-| 30     | Isenta ou não tributada e com cobrança do ICMS por substituição tributária                    |
-| 40     | Isenta                                                                                        |
-| 41     | Não tributada                                                                                 |
-| 50     | Suspensão                                                                                     |
-| 51     | Diferimento                                                                                   |
-| 53     | Tributação monofásica sobre combustíveis com diferimento                                      |
-| 60     | ICMS cobrado anteriormente por substituição tributária                                        |
-| 61     | Tributação monofásica sobre combustíveis cobrada anteriormente                                |
-| 70     | Com redução de base de cálculo e cobrança do ICMS por substituição tributária                 |
-| 90     | Outras                                                                                        |
+| Codigo | Descricao |
+| --- | --- |
+| 00 | Tributada integralmente |
+| 02 | Tributacao monofasica propria sobre combustiveis |
+| 10 | Tributada e com cobranca do ICMS por substituicao tributaria |
+| 15 | Tributacao monofasica propria sobre combustiveis com retencao do imposto |
+| 20 | Com reducao de base de calculo |
+| 30 | Isenta ou nao tributada e com cobranca do ICMS por substituicao tributaria |
+| 40 | Isenta |
+| 41 | Nao tributada |
+| 50 | Suspensao |
+| 51 | Diferimento |
+| 53 | Tributacao monofasica sobre combustiveis com diferimento |
+| 60 | ICMS cobrado anteriormente por substituicao tributaria |
+| 61 | Tributacao monofasica sobre combustiveis cobrada anteriormente |
+| 70 | Com reducao de base de calculo e cobranca do ICMS por substituicao tributaria |
+| 90 | Outras |
 
-## Tabela CSOSN (Tabela B)
+## Tabela CSOSN
 
-Especifica a tributação para empresas no Simples Nacional (CRT 1).
+Especifica a tributacao do ICMS para empresas do Simples Nacional com CRT 1.
 
-| CSOSN | Descrição                                                                                                            |
-|-------|----------------------------------------------------------------------------------------------------------------------|
-| 101   | Tributada com permissão de crédito                                                                                   |
-| 102   | Tributada sem permissão de crédito                                                                                   |
-| 103   | Isenção do ICMS para faixa de receita bruta                                                                          |
-| 201   | Tributada com permissão de crédito e cobrança do ICMS por substituição tributária                                    |
-| 202   | Tributada sem permissão de crédito e cobrança do ICMS por substituição tributária                                    |
-| 203   | Isenção do ICMS para faixa de receita bruta e cobrança do ICMS por substituição tributária                           |
-| 300   | Imune                                                                                                                |
-| 400   | Não tributada                                                                                                        |
-| 500   | ICMS cobrado anteriormente por substituição tributária ou antecipação                                                |
-| 900   | Outras                                                                                                               |
+| CSOSN | Descricao |
+| --- | --- |
+| 101 | Tributada com permissao de credito |
+| 102 | Tributada sem permissao de credito |
+| 103 | Isencao do ICMS para faixa de receita bruta |
+| 201 | Tributada com permissao de credito e cobranca do ICMS por substituicao tributaria |
+| 202 | Tributada sem permissao de credito e cobranca do ICMS por substituicao tributaria |
+| 203 | Isencao do ICMS para faixa de receita bruta e cobranca do ICMS por substituicao tributaria |
+| 300 | Imune |
+| 400 | Nao tributada |
+| 500 | ICMS cobrado anteriormente por substituicao tributaria ou antecipacao |
+| 900 | Outras |
 
+## Reflexo no Syspro ERP
 
-## Tabela Tributação Produto
+No Syspro ERP, os codigos **CST** e **CSOSN** sao configurados no modulo **Fiscal > Tributacao**. Essa parametrizacao define como o produto ou a operacao sera tratado na emissao fiscal.
 
-No Syspro ERP, os códigos **CST** e **CSOSN** são configurados no módulo **Fiscal > Tributação**. Esse processo permite criar regras tributarias para cada produto ou operação.
+| CST | CSOSN | Tributacao a ser utilizada |
+| --- | --- | --- |
+| `_00`, `_20` | `_101`, `_102` | Tributado a 18% PIS e COFINS (Entrada 50, Saida 01) |
+| `_10`, `_60`, `_70` | `_201`, `_202`, `_500` | Substituicao Tributaria PIS e COFINS (Entrada 70, Saida 04) |
+| `_10`, `_60`, `_70` | `_201`, `_202`, `_500` | Substituicao Tributaria PIS e COFINS (Entrada 50, Saida 01) |
+| `_30` | `_300` | Produtos isentos ou nao tributados com ST |
+| `_40` | `_400` | Isento PIS e COFINS (Entrada 73, Saida 06) |
+| `_41` |  | Nao tributado PIS e COFINS (Entrada 73, Saida 06) |
 
-| CST                  | CSOSN                          | Tributação a ser Utilizada                               |
-|----------------------|--------------------------------|----------------------------------------------------------|
-| _00, _20             | _101, _102                     | Tributado a 18% PIS e COFINS (Entrada 50, Saída 01)      |
-| _10, _60, _70        | _201, _202, _500               | Substituição Tributária PIS e COFINS (Entrada 70, Saída 04) |
-| _10, _60, _70        | _201, _202, _500               | Substituição Tributária PIS e COFINS (Entrada 50, Saída 01) |
-| _30                  | _300                           | Produtos Isentos ou Não Tributados com ST                |
-| _40                  | _400                           | Isento PIS e COFINS (Entrada 73, Saída 06)               |
-| _41                  |                                | Não Tributado PIS e COFINS (Entrada 73, Saída 06)        |
+<ChecklistPanel
+  title="Checklist antes de salvar a tributacao no Syspro"
+  items={[
+    'Confirmar o regime tributario da empresa antes de escolher entre CST e CSOSN.',
+    'Validar se a operacao envolve substituicao tributaria, diferimento, isencao ou monofasia.',
+    'Revisar se a origem da mercadoria foi cadastrada corretamente.',
+    'Conferir se a regra fiscal do produto esta coerente com a natureza da operacao.',
+    'Validar a parametrizacao com a contabilidade antes de emitir em producao.',
+  ]}
+/>
 
-<Callout title="Nota Importante" type="info">
-  Antes de configurar, consulte seu contador para garantir a classificação tributária correta. Uma configuração inadequada pode levar ao pagamento incorreto de impostos, resultando em multas ou perdas financeiras para a empresa.
-</Callout>
+## Duvidas frequentes
+
+<Accordions>
+  <Accordion title="Posso usar CST e CSOSN ao mesmo tempo no mesmo cadastro?">
+    Nao como regra principal da mesma operacao. O codigo aplicado depende do regime tributario da empresa que esta emitindo o documento.
+  </Accordion>
+  <Accordion title="O CST 60 e o CSOSN 500 sao a mesma coisa?">
+    Eles se aproximam no efeito pratico de indicar imposto cobrado anteriormente, mas pertencem a tabelas diferentes. O CST 60 e do regime normal; o CSOSN 500 e do Simples Nacional.
+  </Accordion>
+  <Accordion title="Quando devo revisar os novos codigos de combustiveis?">
+    Sempre que o cliente operar com combustiveis ou mercadorias sujeitas a tributacao monofasica. Nesses casos, nao basta repetir uma regra antiga sem revisar a legislacao e o cadastro fiscal.
+  </Accordion>
+  <Accordion title="Quem deve validar a configuracao final?">
+    O time fiscal ou a contabilidade responsavel pela empresa. O sistema ajuda na parametrizacao, mas nao substitui a validacao tecnica da regra tributaria.
+  </Accordion>
+</Accordions>
+
+<GuidanceNotice title="Ponto de atencao final">
+  Antes de configurar ou alterar CST e CSOSN, valide a classificacao com a contabilidade. Uma escolha incorreta pode levar a recolhimento indevido, falta de imposto ou rejeicao do documento fiscal.
+</GuidanceNotice>

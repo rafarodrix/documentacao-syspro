@@ -50,89 +50,11 @@ Este documento trata do cenário em que:
 5. o frigorífico torna-se proprietário e registra os miúdos como estoque próprio;
 6. posteriormente, o próprio marchante recompra esses miúdos do frigorífico para nova comercialização.
 
-<Callout type="error" title="Conclusão central">
-  O imposto relacionado ao **gado vivo** não acoberta automaticamente o ICMS-ST dos
-  **miúdos resultantes do abate**. A tributação dos produtos do abate precisa ser
-  analisada separadamente, conforme NCM, CEST, CNAE principal do encomendante e
-  momento da saída.
-</Callout>
-
 <Callout type="info" title="A operação possui duas transferências de propriedade">
   A entrega dos miúdos ao frigorífico como pagamento e a recompra posterior pelo
   marchante são operações comerciais distintas. Cada uma deve possuir documento,
   valor, movimentação de estoque e registro financeiro próprios.
 </Callout>
-
----
-
-## Premissas do cenário
-
-<TypeTable
-  type={{
-    proprietario_gado: {
-      description: 'Titular do bovino antes e durante o abate',
-      type: 'Marchante/encomendante',
-    },
-    industrializador: {
-      description: 'Estabelecimento que executa o abate',
-      type: 'Frigorífico',
-    },
-    carcasas: {
-      description: 'Destino principal após o abate',
-      type: 'Retorno ao encomendante',
-    },
-    miudos_primeira_transferencia: {
-      description: 'Primeira mudança de propriedade',
-      type: 'Encomendante → frigorífico, como pagamento',
-    },
-    miudos_recompra: {
-      description: 'Segunda mudança de propriedade',
-      type: 'Frigorífico → marchante, por nova venda',
-    },
-    cnae_principal: {
-      description: 'Hipótese principal analisada',
-      type: '4634-6/01, 4634-6/02 ou 4634-6/99',
-    },
-    abrangencia: {
-      description: 'Escopo territorial',
-      type: 'Operações internas em Minas Gerais',
-    },
-  }}
-/>
-
-<ValidationNotice title="A realidade contratual deve coincidir com a documentação">
-  A dação em pagamento somente deve ser utilizada quando o frigorífico se torna
-  efetivamente proprietário dos miúdos, assume o risco de conservação e preço e pode
-  vendê-los a qualquer comprador. A recompra posterior pelo marchante deve ser uma
-  nova negociação, e não uma devolução automática previamente simulada.
-</ValidationNotice>
-
----
-
-## O imposto do gado vivo cobre os miúdos?
-
-**Não.** O RICMS/MG trata separadamente o animal vivo e os produtos resultantes do abate.
-
-O tratamento tributário aplicado ao gado bovino vivo está relacionado ao animal antes da industrialização. Após o abate, surgem mercadorias com classificações fiscais próprias, como carnes e miúdos nas posições `0201`, `0202` e `0206`. ([Anexo VIII do RICMS/MG][ricms-viii])
-
-Os produtos comestíveis frescos, refrigerados ou congelados classificados nas posições `0201`, `0202`, `0204` e `0206` constam no item `84.0` do Capítulo 17 da Parte 2 do Anexo VII, sob o CEST `17.084.00`, com MVA interna de `15%`. ([Anexo VII do RICMS/MG][ricms-vii])
-
-<Cards>
-  <Card title="Etapa 1 — bovino vivo" icon={<Landmark />}>
-    A operação envolve o animal vivo e o tratamento aplicável à sua aquisição, remessa
-    ou encerramento do diferimento.
-  </Card>
-  <Card title="Etapa 2 — produtos do abate" icon={<Scale />}>
-    Carcaças, miúdos e subprodutos passam a possuir NCM, valor, estoque e tributação
-    próprios.
-  </Card>
-</Cards>
-
-<RiskNotice title="CST 060 sem ST dos próprios miúdos">
-  Não utilize `CST 060` apenas porque houve recolhimento de ICMS ou encerramento de
-  diferimento na operação com o gado vivo. O CST `060` pressupõe ICMS cobrado
-  anteriormente por substituição tributária em relação à própria mercadoria vendida.
-</RiskNotice>
 
 ---
 
@@ -655,6 +577,16 @@ substituição tributária, vinculada à NF-e de aquisição nº ___ e ao lote d
     A classificação deve ser feita produto a produto; não usar uma única regra genérica
     para todos os itens chamados de “miúdos”.
   </Accordion>
+
+  <Accordion title="7. O imposto do gado vivo cobre os miúdos?">
+    **Não.** O RICMS/MG trata separadamente o animal vivo e os produtos resultantes do abate.
+
+    O tratamento tributário aplicado ao gado bovino vivo está relacionado ao animal antes da industrialização. Após o abate, surgem mercadorias com classificações fiscais próprias, como carnes e miúdos nas posições `0201`, `0202` e `0206`. ([Anexo VIII do RICMS/MG][ricms-viii])
+
+    Os produtos comestíveis frescos, refrigerados ou congelados classificados nas posições `0201`, `0202`, `0204` e `0206` constam no item `84.0` do Capítulo 17 da Parte 2 do Anexo VII, sob o CEST `17.084.00`, com MVA interna de `15%`. ([Anexo VII do RICMS/MG][ricms-vii])
+
+  </Accordion>
+
 </Accordions>
 
 ---
