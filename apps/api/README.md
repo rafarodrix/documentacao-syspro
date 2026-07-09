@@ -166,6 +166,7 @@ Consequências práticas:
 Observações operacionais:
 
 - envio outbound prioriza `/send/text` e `/send/media`
+- `modules/integrations/evolution/evolution.client.ts` expoe o port abstrato do provider; `evolution-go.client.ts` concentra a implementacao HTTP atual da Evolution Go
 - quando o webhook do Chatwoot traz `content_attributes.in_reply_to_external_id` ou `in_reply_to`, o bridge repassa `quoted.key.id` para a Evolution para preservar a resposta encadeada no WhatsApp
 - há fallback para contrato v2 quando a instalação exposta exigir
 - teste de conexão usa `GET /instance/status`

@@ -33,7 +33,8 @@ A Evolution API é o adaptador WhatsApp Web usado para enviar e receber mensagen
 |-------------------------------------------------------------|----------------------------------------|
 | `modules/integrations/evolution/evolution-webhook.controller.ts` | Recebe webhooks Evolution         |
 | `modules/integrations/evolution/evolution-messages.controller.ts`| Envio de mensagens                |
-| `modules/integrations/evolution/evolution.client.ts`        | Cliente HTTP para Evolution API        |
+| `modules/integrations/evolution/evolution.client.ts`        | Port abstrato do provider WhatsApp     |
+| `modules/integrations/evolution/evolution-go.client.ts`     | Implementacao concreta da Evolution Go |
 | `modules/integrations/evolution/evolution.module.ts`        | Módulo NestJS                          |
 | `modules/integrations/messaging/`                           | Processamento unificado de mensagens   |
 
@@ -107,7 +108,7 @@ process-incoming-message.usecase
 }
 ```
 
-O `evolution.client.ts` faz a chamada HTTP para a Evolution API.
+O `EvolutionClient` define o port consumido pelo app. Hoje a chamada HTTP fica em `evolution-go.client.ts`, o que permite trocar a implementacao para uma API oficial depois sem reespalhar rotas ou bindings pelos modulos consumidores.
 
 ---
 
