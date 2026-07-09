@@ -309,6 +309,11 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           padding: 0 !important;
         }
 
+        .docs-print-root .docs-print-page-header,
+        .docs-print-root [data-docs-print-exclude="true"] {
+          display: none !important;
+        }
+
         .docs-print-root ul,
         .docs-print-root ol {
           break-inside: auto !important;

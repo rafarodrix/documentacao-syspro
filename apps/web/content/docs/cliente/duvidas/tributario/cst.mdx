@@ -12,7 +12,7 @@ tags:
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { ChecklistPanel, CodeBadge, GuidanceNotice } from '@/components/docs/mdx';
+import { ChecklistPanel, CodeBadge, DocsPrintExclude, GuidanceNotice } from '@/components/docs/mdx';
 
 ## Visao geral
 
@@ -101,19 +101,21 @@ No Syspro ERP, os codigos **CST** e **CSOSN** sao configurados no modulo **Fisca
 | `_41` |  | Nao tributado PIS e COFINS (Entrada 73, Saida 06) |
 
 
-## Duvidas frequentes
+<DocsPrintExclude>
+  ## Duvidas frequentes
 
-<Accordions>
-  <Accordion title="Posso usar CST e CSOSN ao mesmo tempo no mesmo cadastro?">
-    Nao como regra principal da mesma operacao. O codigo aplicado depende do regime tributario da empresa que esta emitindo o documento.
-  </Accordion>
-  <Accordion title="O CST 60 e o CSOSN 500 sao a mesma coisa?">
-    Eles se aproximam no efeito pratico de indicar imposto cobrado anteriormente, mas pertencem a tabelas diferentes. O CST 60 e do regime normal; o CSOSN 500 e do Simples Nacional.
-  </Accordion>
-  <Accordion title="Quem deve validar a configuracao final?">
-    O time fiscal ou a contabilidade responsavel pela empresa. O sistema ajuda na parametrizacao, mas nao substitui a validacao tecnica da regra tributaria.
-  </Accordion>
-</Accordions>
+  <Accordions>
+    <Accordion title="Posso usar CST e CSOSN ao mesmo tempo no mesmo cadastro?">
+      Nao como regra principal da mesma operacao. O codigo aplicado depende do regime tributario da empresa que esta emitindo o documento.
+    </Accordion>
+    <Accordion title="O CST 60 e o CSOSN 500 sao a mesma coisa?">
+      Eles se aproximam no efeito pratico de indicar imposto cobrado anteriormente, mas pertencem a tabelas diferentes. O CST 60 e do regime normal; o CSOSN 500 e do Simples Nacional.
+    </Accordion>
+    <Accordion title="Quem deve validar a configuracao final?">
+      O time fiscal ou a contabilidade responsavel pela empresa. O sistema ajuda na parametrizacao, mas nao substitui a validacao tecnica da regra tributaria.
+    </Accordion>
+  </Accordions>
+</DocsPrintExclude>
 
 <GuidanceNotice title="Ponto de atencao final">
   Antes de configurar ou alterar CST e CSOSN, valide a classificacao com a contabilidade. Uma escolha incorreta pode levar a recolhimento indevido, falta de imposto ou rejeicao do documento fiscal.

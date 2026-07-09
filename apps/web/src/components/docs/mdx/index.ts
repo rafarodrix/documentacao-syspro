@@ -16,4 +16,5 @@ export {
   ValidationNotice,
   WarningNotice,
 } from './docs-guided-blocks';
+export { DocsPrintExclude } from './docs-print-exclude';
 export { PlaygroundInline } from './docs-playground';

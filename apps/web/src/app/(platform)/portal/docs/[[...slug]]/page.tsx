@@ -108,7 +108,7 @@ export default async function PortalDocsPage(props: {
       <DocsReadingProgress />
       <DocsBody className="space-y-8">
         <DocsPrintShell title={String(page.data.title)} contactInfo={printContactInfo}>
-          <DocsSurface className="p-3.5 md:p-5">
+          <DocsSurface className="docs-print-page-header p-3.5 md:p-5">
             <div>
               <DocsTitle>{page.data.title}</DocsTitle>
             </div>
