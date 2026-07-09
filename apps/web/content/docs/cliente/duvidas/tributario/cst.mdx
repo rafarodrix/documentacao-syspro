@@ -89,16 +89,30 @@ Especifica a tributacao do ICMS para empresas do Simples Nacional com CRT 1.
 
 ## Reflexo no Syspro ERP
 
-No Syspro ERP, os codigos **CST** e **CSOSN** sao configurados no modulo **Fiscal > Tributacao**. Essa parametrizacao define como o produto ou a operacao sera tratado na emissao fiscal.
+No Syspro ERP, os codigos **CST** e **CSOSN** sao configurados no modulo **Fiscal > Tributacao**. Na pratica, eles aparecem combinados com outros blocos do perfil fiscal, como:
 
-| CST | CSOSN | Tributacao a ser utilizada |
-| --- | --- | --- |
-| `_00`, `_20` | `_101`, `_102` | Tributado a 18% PIS e COFINS (Entrada 50, Saida 01) |
-| `_10`, `_60`, `_70` | `_201`, `_202`, `_500` | Substituicao Tributaria PIS e COFINS (Entrada 70, Saida 04) |
-| `_10`, `_60`, `_70` | `_201`, `_202`, `_500` | Substituicao Tributaria PIS e COFINS (Entrada 50, Saida 01) |
-| `_30` | `_300` | Produtos isentos ou nao tributados com ST |
-| `_40` | `_400` | Isento PIS e COFINS (Entrada 73, Saida 06) |
-| `_41` |  | Nao tributado PIS e COFINS (Entrada 73, Saida 06) |
+- `T18% | PIS E COFINS 50 | 01`
+- `FF | PIS E COFINS 70 | 04`
+- `II | PIS E COFINS 73 | 06`
+- `NN | PIS E COFINS 73 | 06`
+
+O papel desta pagina e explicar o trecho de **ICMS** desse cadastro. O trecho `PIS E COFINS XX | YY` foi separado em uma documentacao propria.
+
+| Perfil visto no Syspro | Leitura principal de ICMS |
+| --- | --- |
+| `T18% | PIS E COFINS 50 | 01` | Operacao de ICMS tributada, normalmente associada a CSTs como `00` e `20` |
+| `FF | PIS E COFINS 70 | 04` | Operacao de ICMS com contexto de substituicao tributaria, normalmente ligada a `10`, `60` e `70` |
+| `II | PIS E COFINS 73 | 06` | Operacao de ICMS isenta, normalmente associada a `40` |
+| `NN | PIS E COFINS 73 | 06` | Operacao de ICMS nao tributada, normalmente associada a `41` |
+
+<GuidanceNotice title="Para entender PIS e COFINS nesses perfis">
+  Se voce precisa interpretar pares como
+  {' '}<CodeBadge code="50 | 01" tone="blue" />,
+  {' '}<CodeBadge code="70 | 04" tone="amber" /> ou
+  {' '}<CodeBadge code="73 | 06" tone="amber" />,
+  consulte a pagina
+  {' '}[PIS e COFINS no Syspro ERP](/portal/docs/cliente/duvidas/tributario/pis-cofins).
+</GuidanceNotice>
 
 
 <DocsPrintExclude>
