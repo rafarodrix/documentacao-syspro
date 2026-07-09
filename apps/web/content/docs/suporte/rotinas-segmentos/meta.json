@@ -2,6 +2,7 @@
   "title": "Rotinas por Segmento",
   "pages": [
     "rotina-frigorifico",
+    "rotina-frigorifico-abate-encomenda",
     "revenda-frigorifico",
     "casa-produtor"
   ]

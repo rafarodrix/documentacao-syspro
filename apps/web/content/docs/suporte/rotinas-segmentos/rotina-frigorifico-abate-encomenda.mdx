@@ -1,0 +1,469 @@
+---
+title: Abate bovino por encomenda com retenção dos miúdos como pagamento
+description: Guia fiscal e operacional para documentar o retorno do abate, a transferência dos miúdos ao frigorífico e a posterior revenda em Minas Gerais.
+lastUpdated: 2026-07-09
+owner: Implantação
+status: published
+tags:
+  - fiscal
+  - frigorifico
+  - abate-por-encomenda
+  - icms-st
+  - minas-gerais
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Landmark, Scale, ScrollText, Search, ShieldCheck } from 'lucide-react';
+import {
+  ComplianceChecklist,
+  DecisionMatrix,
+  FiscalCode,
+  LegalBasis,
+  OperationFlow,
+  RiskNotice,
+  ValidationNotice,
+} from '@/components/docs/frigorifico/frigorifico-fiscal-components';
+
+# Abate bovino por encomenda com retenção dos miúdos como pagamento
+
+Este documento trata do cenário em que o **encomendante é proprietário do bovino vivo**, envia o animal para abate e recebe de volta as carcaças, enquanto o frigorífico permanece com os miúdos e outros subprodutos como pagamento total ou parcial pelo serviço.
+
+<Callout type="error" title="Conclusão central">
+  O ICMS relacionado à aquisição ou à saída do **gado vivo** não representa, por si só, o ICMS-ST dos **miúdos resultantes do abate**. São mercadorias, etapas e bases tributárias distintas.
+</Callout>
+
+<Callout type="info" title="Consequência prática">
+  Para que o frigorífico revenda miúdos com <FiscalCode code="CFOP 5.405" tone="blue" /> e <FiscalCode code="CST 060" tone="green" />, devem existir a transferência formal da propriedade, a entrada fiscal no estoque e a comprovação de que o ICMS-ST dos próprios miúdos foi apurado anteriormente.
+</Callout>
+
+---
+
+## Premissas analisadas
+
+<TypeTable
+  type={{
+    proprietario_gado: {
+      description: 'Titular do bovino antes e durante o abate',
+      type: 'Encomendante',
+    },
+    atividade_frigorifico: {
+      description: 'Atividade realizada pelo frigorífico',
+      type: 'Industrialização/abate por encomenda',
+    },
+    retorno: {
+      description: 'Produto devolvido fisicamente ao encomendante',
+      type: 'Carcaças e demais itens contratados',
+    },
+    pagamento: {
+      description: 'Parte da remuneração do frigorífico',
+      type: 'Miúdos e subprodutos do abate',
+    },
+    destino_miudos: {
+      description: 'Finalidade após a transferência de propriedade',
+      type: 'Revenda pelo frigorífico',
+    },
+    uf: {
+      description: 'Escopo desta análise',
+      type: 'Operações internas em Minas Gerais',
+    },
+  }}
+/>
+
+<ValidationNotice title="Premissa que precisa constar em contrato">
+  O contrato de abate deve indicar expressamente quais miúdos e subprodutos serão entregues ao frigorífico como pagamento, como será feita a valoração, em qual momento ocorrerá a transferência da propriedade e quem será responsável pelas obrigações fiscais.
+</ValidationNotice>
+
+---
+
+## O imposto do gado vivo acoberta os miúdos?
+
+**Não automaticamente.** O RICMS/MG trata separadamente as operações com gado vivo e as operações com carnes e produtos comestíveis resultantes do abate.
+
+O art. 146 do Anexo VIII estabelece diferimento nas sucessivas saídas de gado bovino, com encerramento, entre outras hipóteses, na saída para estabelecimento abatedor. Esse tratamento está vinculado ao **animal vivo**. ([Anexo VIII do RICMS/MG][ricms-viii])
+
+Já os produtos comestíveis frescos, refrigerados ou congelados classificados nas posições `0201`, `0202`, `0204` e `0206` constam no item `84.0`, CEST `17.084.00`, com MVA de `15%` no âmbito interno de Minas Gerais. ([Anexo VII do RICMS/MG][ricms-vii])
+
+<Cards>
+  <Card title="Etapa 1 — gado vivo" icon={<Landmark />}>
+    A tributação ou o encerramento do diferimento ocorre sobre o animal vivo, conforme a operação de aquisição ou remessa.
+  </Card>
+  <Card title="Etapa 2 — produtos do abate" icon={<Scale />}>
+    A carne e os miúdos passam a ter classificação fiscal, base de cálculo e tratamento de ICMS-ST próprios.
+  </Card>
+</Cards>
+
+<RiskNotice title="Erro de parametrização a evitar">
+  Não marque o cadastro dos miúdos como “ST recolhida anteriormente” apenas porque houve ICMS, diferimento ou recolhimento na operação com o bovino vivo. O CST `060` exige vínculo com a tributação anterior da própria mercadoria vendida.
+</RiskNotice>
+
+---
+
+## Responsabilidade pelo ICMS-ST no retorno do abate
+
+O art. 18, inciso II, do Anexo VII afasta a retenção normal pelo industrializador no retorno ao encomendante e atribui ao **encomendante** a responsabilidade pelo recolhimento do ICMS-ST. Quando o encomendante for estabelecimento não industrial, a apuração ocorre no momento da entrada da mercadoria em seu estabelecimento. ([Anexo VII, art. 18][ricms-vii])
+
+<Callout type="warn" title="Retorno físico ou simbólico">
+  Se os miúdos permanecerem fisicamente no frigorífico, o fluxo documental ainda precisa representar o retorno ao encomendante e a posterior transferência de propriedade ao frigorífico. A ausência de deslocamento físico não elimina a circulação jurídica da mercadoria.
+</Callout>
+
+O Conselho de Contribuintes de Minas Gerais confirmou, em decisões recentes, a exigência do ICMS-ST na entrada dos produtos resultantes do abate quando retornam da industrialização ao estabelecimento encomendante. ([Acórdão 24.145/26/2ª][acordao-2026])
+
+---
+
+## Fluxo fiscal e documental recomendado
+
+<OperationFlow
+  steps={[
+    {
+      title: 'Remessa do bovino para abate',
+      actor: 'Encomendante → frigorífico',
+      document: 'NF-e/NFA-e de remessa',
+      codes: ['CFOP 5.901, quando aplicável'],
+      note: 'O bovino permanece pertencendo ao encomendante. A nota deve ser vinculada à GTA, ao lote e à ordem de abate.',
+      tone: 'blue',
+    },
+    {
+      title: 'Execução do abate por encomenda',
+      actor: 'Frigorífico',
+      document: 'Ordem e relatório de abate',
+      note: 'O relatório deve demonstrar peso vivo, carcaças, miúdos comestíveis, subprodutos não comestíveis, perdas e condenações.',
+      tone: 'slate',
+    },
+    {
+      title: 'Retorno da industrialização',
+      actor: 'Frigorífico → encomendante',
+      document: 'NF-e de retorno e cobrança',
+      codes: ['CFOP conforme o fluxo real', 'Retorno físico e/ou simbólico'],
+      note: 'Carcaças e produtos do abate devem ser individualizados. Miúdos que permanecerão no frigorífico podem exigir retorno simbólico antes da transferência de propriedade.',
+      tone: 'blue',
+    },
+    {
+      title: 'Apuração do ICMS-ST dos produtos do abate',
+      actor: 'Encomendante',
+      document: 'Apuração e comprovante',
+      codes: ['Art. 18, II e § 1º, I — Anexo VII'],
+      note: 'Para encomendante não industrial, a regra geral indica apuração no momento da entrada dos produtos retornados. O imposto do gado vivo não substitui esta apuração.',
+      tone: 'amber',
+    },
+    {
+      title: 'Transferência dos miúdos como pagamento',
+      actor: 'Encomendante → frigorífico',
+      document: 'NF-e de venda/dação em pagamento',
+      codes: ['CFOP e CST conforme a condição tributária'],
+      note: 'A nota formaliza a mudança de propriedade, atribui valor aos produtos e permite a entrada correta no estoque do frigorífico.',
+      tone: 'amber',
+    },
+    {
+      title: 'Revenda dos miúdos pelo frigorífico',
+      actor: 'Frigorífico → revenda/supermercado',
+      document: 'NF-e de venda',
+      codes: ['CFOP 5.405', 'CST 060', 'quando a ST anterior estiver comprovada'],
+      note: 'A regra é adequada quando o frigorífico recebeu mercadoria de terceiro com tributação encerrada e não realizou nova industrialização relevante.',
+      tone: 'green',
+    },
+  ]}
+/>
+
+<ValidationNotice title="CFOP do retorno não deve ser fixado sem analisar o fluxo">
+  A combinação de CFOPs do retorno pode variar conforme o animal transitou diretamente ao frigorífico, houve remessa por conta e ordem, retorno ao estabelecimento do encomendante ou entrega física em local diverso. O documento deve registrar a lógica fiscal, mas a parametrização final precisa acompanhar a operação real.
+</ValidationNotice>
+
+---
+
+## Qual nota o encomendante deve emitir para o frigorífico?
+
+O encomendante deve documentar a **transferência de propriedade** dos miúdos e subprodutos entregues como pagamento. O documento não pode ser substituído apenas por uma observação na cobrança do serviço.
+
+A definição do CFOP depende de quem está na condição de substituto e de quando ocorreu a apuração do ICMS-ST.
+
+<DecisionMatrix
+  rows={[
+    {
+      situation: 'Miúdo NCM 0206 com ST apurada no retorno',
+      owner: 'Encomendante até a dação/venda',
+      taxMoment: 'Entrada/retorno no encomendante',
+      probableTreatment: 'Saída ao frigorífico: provável 5.405 + CST 060; entrada no frigorífico: 1.403',
+      validation: 'Confirmar que o produto foi tratado como mercadoria recebida de terceiro e que há comprovante da ST anterior.',
+      risk: 'medium',
+    },
+    {
+      situation: 'Encomendante enquadrado nos CNAEs do art. 154',
+      owner: 'Encomendante até a saída',
+      taxMoment: 'Saída dos produtos ao frigorífico',
+      probableTreatment: 'Provável 5.403 + CST 010/070, com retenção da ST na própria nota',
+      validation: 'Confirmar CNAE principal 4634-6/01, 4634-6/02 ou 4634-6/99 e aplicação do art. 154.',
+      risk: 'medium',
+    },
+    {
+      situation: 'Nenhum ICMS-ST foi apurado para os miúdos',
+      owner: 'Encomendante',
+      taxMoment: 'Pendente de regularização',
+      probableTreatment: 'Não emitir diretamente 5.405 + CST 060',
+      validation: 'Apurar responsabilidade, base, MVA, redução e recolhimento antes da revenda.',
+      risk: 'high',
+    },
+    {
+      situation: 'Produto não sujeito ao regime de ST',
+      owner: 'Encomendante até a transferência',
+      taxMoment: 'Operação própria de saída',
+      probableTreatment: 'CFOP de venda de mercadoria de terceiro, em regra 5.102, com CST aplicável',
+      validation: 'Confirmar NCM, descrição, destinação e eventual diferimento.',
+      risk: 'medium',
+    },
+  ]}
+/>
+
+<Callout type="info" title="Por que o CFOP 5.405 não deve ser automático na nota do encomendante?">
+  O CFOP `5.405` descreve a venda de mercadoria adquirida ou recebida de terceiros na condição de contribuinte substituído. Como os miúdos resultam de industrialização por encomenda, a contabilidade deve confirmar formalmente que essa é a classificação adotada para a saída do encomendante. ([Tabela oficial de CFOP][cfop])
+</Callout>
+
+---
+
+## Entrada e venda pelo frigorífico
+
+<Tabs items={['Entrada no frigorífico', 'Venda sem nova industrialização', 'Venda após novo processamento']}>
+  <Tab value="Entrada no frigorífico">
+    Quando a nota do encomendante demonstrar que a mercadoria está sujeita à ST e o imposto já foi corretamente encerrado, a entrada para revenda tende a ser:
+
+    <div className="flex flex-wrap gap-2">
+      <FiscalCode code="CFOP 1.403" label="compra para comercialização com ST" tone="blue" />
+      <FiscalCode code="CST da nota 060" label="ST anterior" tone="green" />
+    </div>
+
+    O ERP deve registrar o custo dos miúdos pelo valor atribuído na dação em pagamento, e não com custo zero.
+  </Tab>
+
+  <Tab value="Venda sem nova industrialização">
+    Quando o frigorífico apenas conserva, armazena e revende a mesma mercadoria recebida, sem alterar sua classificação fiscal:
+
+    <div className="flex flex-wrap gap-2">
+      <FiscalCode code="CFOP 5.405" label="revenda interna com ST" tone="blue" />
+      <FiscalCode code="CST 060" label="ICMS cobrado anteriormente" tone="green" />
+      <FiscalCode code="CEST 17.084.00" label="para NCM 0206 abrangido" tone="slate" />
+    </div>
+  </Tab>
+
+  <Tab value="Venda após novo processamento">
+    Se o frigorífico cozinhar, temperar, moer, preparar, fabricar farinha, transformar gordura em sebo ou alterar o NCM, a saída pode deixar de ser simples revenda.
+
+    Nesse caso, reavaliar:
+
+    * produção do estabelecimento;
+    * novo NCM e eventual CEST;
+    * `CFOP 5.101` ou `5.401`;
+    * CST da operação própria;
+    * nova responsabilidade pelo ICMS-ST.
+  </Tab>
+</Tabs>
+
+---
+
+## Tratamento por grupo de produto
+
+<Tabs items={['Miúdos comestíveis — NCM 0206', 'Bucho e tripas — NCM 0504', 'Produtos não comestíveis']}>
+  <Tab value="Miúdos comestíveis — NCM 0206">
+    O item `84.0` do Anexo VII relaciona as posições `0201`, `0202`, `0204` e `0206`, com CEST `17.084.00` e MVA interna de `15%`.
+
+    Exemplos que podem exigir análise dentro da posição `0206`:
+
+    * fígado;
+    * língua;
+    * coração;
+    * rins;
+    * rabo;
+    * outros miúdos comestíveis corretamente classificados.
+
+    <Callout type="success">
+      Para a revenda pelo frigorífico, `5.405 + 060` é coerente quando houver aquisição documentada e ST anterior comprovada.
+    </Callout>
+  </Tab>
+
+  <Tab value="Bucho e tripas — NCM 0504">
+    O NCM `0504.00` não integra automaticamente o CEST `17.084.00`, que relaciona apenas `0201`, `0202`, `0204` e `0206`.
+
+    Contudo, o art. 154 do Anexo VII menciona o código `0504.00` nas operações de industrialização por encomenda envolvendo determinados atacadistas de carnes.
+
+    <Callout type="warn">
+      Não copiar automaticamente CEST, MVA, CFOP e CST dos itens `0206` para produtos `0504`. Validar classificação, CNAE principal do encomendante e momento da responsabilidade pela ST.
+    </Callout>
+  </Tab>
+
+  <Tab value="Produtos não comestíveis">
+    O art. 156 do Anexo VIII prevê diferimento nas sucessivas operações internas com couro ou pele, produto gorduroso de origem animal — inclusive sebo —, osso, chifre e casco, até determinadas hipóteses de encerramento.
+
+    <div className="flex flex-wrap gap-2">
+      <FiscalCode code="CFOP provável 5.102" label="mercadoria de terceiro" tone="blue" />
+      <FiscalCode code="CST provável 051" label="diferimento" tone="amber" />
+    </div>
+
+    A aplicação depende do produto, do destino, da industrialização posterior e da inexistência de operação anterior onerada pelo imposto.
+  </Tab>
+</Tabs>
+
+---
+
+## Exemplo financeiro e contábil
+
+Considere:
+
+```text
+Valor integral do serviço de abate: R$ 10.000,00
+Valor atribuído aos miúdos:         R$  4.000,00
+Saldo financeiro a receber:         R$  6.000,00
+```
+
+<Steps>
+  <Step>
+    **O frigorífico registra a receita integral do serviço**
+
+    A remuneração do abate é `R$ 10.000,00`. A entrega dos miúdos não reduz a receita bruta do serviço para `R$ 6.000,00`.
+  </Step>
+  <Step>
+    **O encomendante registra a saída dos miúdos**
+
+    Os produtos são valorados em `R$ 4.000,00`, com documento fiscal próprio e tributação correspondente.
+  </Step>
+  <Step>
+    **O frigorífico registra a entrada dos produtos**
+
+    Os `R$ 4.000,00` formam o custo de aquisição do estoque recebido como pagamento.
+  </Step>
+  <Step>
+    **As obrigações são compensadas**
+
+    Conta a receber pelo serviço: `R$ 10.000,00`  
+    Conta a pagar pelos miúdos: `R$ 4.000,00`  
+    Saldo financeiro: `R$ 6.000,00`
+  </Step>
+</Steps>
+
+---
+
+## Informações complementares sugeridas
+
+### Nota do retorno do abate
+
+```text
+Retorno de produtos resultantes de industrialização por encomenda, vinculado à
+NF-e de remessa nº ___, GTA nº ___ e Ordem de Abate nº ___. Os produtos que
+permanecem fisicamente no estabelecimento industrializador são objeto de retorno
+simbólico e posterior transferência de propriedade em documento fiscal próprio.
+```
+
+### Nota de transferência dos miúdos ao frigorífico
+
+```text
+Transferência de propriedade de miúdos e subprodutos resultantes do abate por
+encomenda, entregues ao frigorífico como pagamento parcial do serviço, conforme
+contrato, Ordem de Abate nº ___, NF-e de remessa nº ___ e NF-e de retorno nº ___.
+ICMS-ST apurado conforme documento/comprovante nº ___, quando aplicável.
+```
+
+<Callout type="warn">
+  Os textos acima não substituem os campos obrigatórios do XML nem corrigem CFOP, CST, base de cálculo ou recolhimento incorretos.
+</Callout>
+
+---
+
+## Regras recomendadas para o ERP
+
+<ComplianceChecklist
+  title="Validações antes de permitir CST 060"
+  items={[
+    'Existe documento de remessa do bovino e vínculo com a GTA.',
+    'Existe ordem ou relatório de abate com o rendimento completo.',
+    'O retorno físico ou simbólico dos produtos foi documentado.',
+    'Existe documento fiscal de transferência dos miúdos ao frigorífico.',
+    'Os produtos possuem NCM, descrição, peso e valor individualizados.',
+    'O ICMS-ST dos miúdos está comprovado por nota, apuração ou recolhimento.',
+    'O frigorífico registrou a entrada e o custo do estoque.',
+    'Não houve nova industrialização que altere o produto antes da venda.',
+    'O CEST 17.084.00 é aplicado apenas aos NCMs abrangidos.',
+    'Produtos não comestíveis utilizam regra fiscal separada.',
+  ]}
+/>
+
+### Bloqueios sugeridos
+
+| Situação | Comportamento do sistema |
+| --- | --- |
+| Venda com `CST 060` sem documento de entrada | Bloquear a emissão |
+| Produto `0206` sem CEST em venda interna sujeita à ST | Exibir crítica fiscal |
+| Produto `0504` herdando CEST `17.084.00` | Exigir revisão manual |
+| Miúdo recebido como pagamento com custo zero | Bloquear fechamento da entrada |
+| Quantidade vendida superior ao rendimento do abate | Bloquear ou exigir autorização |
+| Produto processado depois da entrada | Recalcular natureza de produção e tributação |
+
+---
+
+## Perguntas que a contabilidade deve responder por escrito
+
+<Accordions>
+  <Accordion title="1. Em qual documento foi apurado o ICMS-ST dos miúdos?">
+    Identificar nota, período de apuração, base de cálculo, MVA, redução, valor do ICMS próprio deduzido e valor do ICMS-ST.
+  </Accordion>
+  <Accordion title="2. O encomendante é estabelecimento não industrial?">
+    Se for, demonstrar a aplicação do art. 18, inciso II e § 1º, inciso I, do Anexo VII.
+  </Accordion>
+  <Accordion title="3. O CNAE principal do encomendante está no art. 154?">
+    Verificar os CNAEs `4634-6/01`, `4634-6/02` e `4634-6/99`, pois a responsabilidade pode ser deslocada para a saída.
+  </Accordion>
+  <Accordion title="4. Qual fundamento sustenta o CFOP da nota de dação?">
+    Confirmar se a saída será tratada como mercadoria adquirida ou recebida de terceiros, produção do encomendante ou outra natureza específica.
+  </Accordion>
+  <Accordion title="5. Quais produtos estão no NCM 0206, 0504 ou em grupos não comestíveis?">
+    A resposta deve ser por item, não por uma regra genérica chamada “miúdos”.
+  </Accordion>
+</Accordions>
+
+---
+
+## Parecer final
+
+<Callout type="success" title="Para a revenda dos miúdos pelo frigorífico">
+  O uso de `CFOP 5.405 + CST 060` é consistente quando os miúdos foram formalmente transferidos pelo encomendante, entraram como mercadoria de terceiro, o ICMS-ST dos próprios produtos foi apurado anteriormente e não houve nova industrialização relevante.
+</Callout>
+
+<Callout type="error" title="Sem nota ou sem ST anterior">
+  O frigorífico não deve vender diretamente com `5.405 + 060`. A compra ou tributação do gado vivo não supre a documentação de aquisição dos miúdos nem comprova o encerramento da ST sobre eles.
+</Callout>
+
+<ValidationNotice title="Ponto que permanece sujeito a validação formal">
+  O CFOP da nota emitida pelo encomendante para transferir os miúdos ao frigorífico deve ser confirmado conforme sua atividade, forma de escrituração da industrialização por encomenda, momento da apuração da ST e natureza jurídica da dação em pagamento. Em caso de divergência, recomenda-se consulta formal à SEF/MG.
+</ValidationNotice>
+
+---
+
+## Fundamentação legal principal
+
+<LegalBasis title="Anexo VII do RICMS/MG — substituição tributária" href="https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/ricms2023/anexovii2023.pdf">
+  Art. 18, inciso II e § 1º; art. 154; Parte 2, item 84.0, CEST 17.084.00.
+</LegalBasis>
+
+<LegalBasis title="Anexo VIII do RICMS/MG — gado, produtos não comestíveis e redução" href="https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/ricms2023/anexoviii2023.pdf">
+  Art. 146 sobre gado vivo; art. 156 sobre produtos não comestíveis; art. 33 sobre redução da base de cálculo da carne e derivados.
+</LegalBasis>
+
+<LegalBasis title="Tabela oficial de CFOP — Confaz" href="https://www.confaz.fazenda.gov.br/legislacao/ajustes/sinief/cfop_cvsn_70_vigente">
+  Definições dos CFOPs 1.403, 5.401, 5.403 e 5.405.
+</LegalBasis>
+
+<LegalBasis title="Acórdão 24.145/26/2ª — Conselho de Contribuintes de MG" href="https://www.fazenda.mg.gov.br/secretaria/conselho_contribuintes/acordaos/2026/2/24145262.pdf">
+  Confirma exigência de ICMS-ST na entrada dos produtos resultantes do abate em retorno de industrialização.
+</LegalBasis>
+
+<Cards>
+  <Card icon={<Search />} title="Consultas de Contribuintes — SEF/MG" href="https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/consultas_contribuintes/" description="Pesquisa de entendimentos oficiais e possibilidade de localizar consultas por assunto" />
+  <Card icon={<ShieldCheck />} title="Regimes especiais — SEF/MG" href="https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/regime_especial/" description="Consulta de contribuintes com atribuição especial de responsabilidade tributária" />
+  <Card icon={<ScrollText />} title="RICMS/MG 2023" href="https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/ricms2023/" description="Índice atualizado do regulamento mineiro" />
+</Cards>
+
+[ricms-vii]: https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/ricms2023/anexovii2023.pdf "Anexo VII do RICMS/MG"
+[ricms-viii]: https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/ricms2023/anexoviii2023.pdf "Anexo VIII do RICMS/MG"
+[cfop]: https://www.confaz.fazenda.gov.br/legislacao/ajustes/sinief/cfop_cvsn_70_vigente "Tabela de CFOP do Confaz"
+[acordao-2026]: https://www.fazenda.mg.gov.br/secretaria/conselho_contribuintes/acordaos/2026/2/24145262.pdf "Acórdão 24.145/26/2ª"
