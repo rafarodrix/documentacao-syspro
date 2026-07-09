@@ -230,4 +230,83 @@ describe("ProcessIncomingMessageUseCase reactions", () => {
       }),
     );
   });
+
+  it("forwards a single inbound payload object without requiring messages[]", async () => {
+    const connection = {
+      connectionKey: "env:default",
+      chatwoot: {
+        url: "https://chat.example.com",
+        apiToken: "token",
+        accountId: "1",
+        inboxId: "2",
+        inboxIdentifier: "whatsapp",
+      },
+      evolution: {
+        allowedGroupJids: [],
+        allowedGroups: [],
+      },
+    };
+
+    await service.execute(
+      {
+        key: {
+          id: "text-msg-1",
+          fromMe: false,
+          remoteJid: "5511999999999@s.whatsapp.net",
+        },
+        pushName: "Cliente Teste",
+        message: {
+          conversation: "Mensagem avulsa",
+        },
+      },
+      { instanceId: "instance-1", connection: connection as any },
+    );
+
+    expect(chatwootClient.createIncomingMessage).toHaveBeenCalledWith(
+      connection.chatwoot,
+      "contact-1",
+      "conv-1",
+      "Mensagem avulsa",
+      undefined,
+    );
+  });
+
+  it("accepts sender/chat fields emitted after the LID swap", async () => {
+    const connection = {
+      connectionKey: "env:default",
+      chatwoot: {
+        url: "https://chat.example.com",
+        apiToken: "token",
+        accountId: "1",
+        inboxId: "2",
+        inboxIdentifier: "whatsapp",
+      },
+      evolution: {
+        allowedGroupJids: [],
+        allowedGroups: [],
+      },
+    };
+
+    await service.execute(
+      {
+        id: "text-msg-2",
+        sender: "136601518760181@lid",
+        senderAlt: "553492223404@s.whatsapp.net",
+        chat: "553492223404@s.whatsapp.net",
+        pushName: "Cliente LID",
+        message: {
+          conversation: "Mensagem com swap",
+        },
+      },
+      { instanceId: "instance-1", connection: connection as any },
+    );
+
+    expect(chatwootClient.createIncomingMessage).toHaveBeenCalledWith(
+      connection.chatwoot,
+      "contact-1",
+      "conv-1",
+      "Mensagem com swap",
+      undefined,
+    );
+  });
 });

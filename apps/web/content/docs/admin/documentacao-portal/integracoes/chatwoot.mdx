@@ -1,136 +1,228 @@
 ---
 title: "Integração: Chatwoot"
-description: Chatwoot é a plataforma de atendimento ao cliente integrada ao portal — integração bidirecional via webhook, SSO de agentes e CSAT.
-lastUpdated: 2026-05-18
+description: Superfície real da integração Chatwoot no portal, com fluxo operacional, pontos de validação e gaps atuais após as melhorias recentes do Chatwoot Community.
+lastUpdated: 2026-07-08
 owner: Engenharia de Plataforma
 status: published
 tags:
   - integracoes
   - chatwoot
+  - evolution
   - suporte
 ---
 
 # Integração: Chatwoot
 
-> Customer support platform integrada ao portal Trilink.
-> Atualizado em: 2026-05-05
+> Página canônica para validar a integração Chatwoot no estado atual do repositório.
+> Atualizado em: 2026-07-08
 
----
+## O que olhar primeiro
 
-## O que é
+As melhorias recentes do Chatwoot Community impactam principalmente estas áreas do nosso app:
 
-Chatwoot é a plataforma de atendimento ao cliente usada para gerenciar conversas com clientes. A integração é **bidirecional**: eventos do Chatwoot são recebidos via webhook e o portal pode criar/atualizar conversas no Chatwoot.
+1. Assinatura e segurança dos webhooks.
+2. Mídia, anexos, áudio, sticker e quoted replies no bridge com Evolution.
+3. Regras de automação que podem conflitar entre Chatwoot e portal.
+4. Superfícies operacionais dentro do Chatwoot: Dashboard App, criação de ticket, atalhos e SSO.
 
----
+## Superfícies reais no repositório
 
-## Arquivos relevantes
+| Área | Arquivo | Responsabilidade |
+| --- | --- | --- |
+| Webhook Chatwoot | `apps/api/src/modules/integrations/chatwoot/chatwoot-webhook.controller.ts` | Recebe `message_created`, `message_deleted`, `message_updated`, `contact_*`, `conversation_status_changed` e valida assinatura. |
+| Webhook Evolution | `apps/api/src/modules/integrations/evolution/evolution-webhook.controller.ts` | Recebe eventos inbound do WhatsApp e resolve a conexão ativa. |
+| Inbound Evolution -> Chatwoot | `apps/api/src/modules/integrations/messaging/application/process-incoming-message.usecase.ts` | Cria ou reaproveita conversa, envia mensagem ao Chatwoot, trata deduplicação, reaction fallback e mídia. |
+| Outbound Chatwoot -> Evolution | `apps/api/src/modules/integrations/messaging/application/process-outgoing-message.usecase.ts` | Envia resposta pública para o WhatsApp, resolve quoted reply e persiste `message_link`. |
+| Cliente Chatwoot | `apps/api/src/modules/integrations/chatwoot/chatwoot.client.ts` | Chamada HTTP para mensagens, anexos, notas privadas, detalhes da conversa e agentes. |
+| Configuração Chatwoot | `apps/api/src/modules/settings/settings-chatwoot.service.ts` | Leitura, persistência, diagnósticos e comportamento operacional. |
+| Config store Chatwoot | `apps/api/src/modules/settings/settings-chatwoot-config-store.service.ts` | Fonte efetiva de URL, tokens, webhook secret, inbox e `incomingMediaMode`. |
+| Conexões por empresa | `apps/api/src/modules/settings/integration-connections.service.ts` | CRUD, validação e teste de conexão empresa -> Chatwoot/Evolution. |
+| Configuração no portal | `apps/web/src/app/(platform)/portal/configuracoes/integrations/components/chatwoot-tab.tsx` | Tela operacional de Chatwoot, CSAT, bot técnico e URLs do Dashboard App. |
+| Formulário de conexão | `apps/web/src/app/(platform)/portal/configuracoes/integrations/components/chatwoot-connection-form.tsx` | Campos expostos hoje na UI para URL, tokens, inbox e webhook secret. |
+| Dashboard App | `apps/web/src/features/chatwoot/interface/chatwoot-dashboard-app.tsx` | App embutido no Chatwoot para contexto da conversa, vínculo, ticket e atalhos. |
+| Entrada via SSO | `apps/web/src/app/(platform)/portal/atendimento/page.tsx` | Redireciona para SSO ou fallback do Chatwoot conforme disponibilidade. |
 
-| Arquivo (apps/api)                                           | Responsabilidade                        |
-|--------------------------------------------------------------|-----------------------------------------|
-| `modules/integrations/chatwoot/chatwoot-webhook.controller.ts` | Recebe webhooks do Chatwoot           |
-| `modules/integrations/chatwoot/chatwoot-agent-context.controller.ts` | Contexto e SSO de agentes     |
-| `modules/integrations/chatwoot/chatwoot.client.ts`           | Cliente HTTP para API Chatwoot          |
-| `modules/integrations/chatwoot/chatwoot-config.ts`           | Configuração de conexão                 |
-| `modules/settings/integration-connections.service.ts`        | Orquestra conexões por empresa          |
+## Rotas e telas reais
 
----
+| Superfície | Caminho atual |
+| --- | --- |
+| Webhook Chatwoot | `POST /api/webhooks/chatwoot` |
+| Alias legado Chatwoot | `POST /webhooks/chatwoot` |
+| Webhook Evolution | `POST /api/webhooks/evolution` |
+| Config Chatwoot | `GET /settings/chatwoot/config` |
+| Salvar config Chatwoot | `PUT /settings/chatwoot/config` |
+| Comportamento Chatwoot | `GET/PUT /settings/chatwoot/behavior` |
+| Diagnóstico global | `GET /settings/integrations/diagnostics` |
+| Conexões por empresa | `GET/POST/PUT/DELETE /settings/integrations/connections` |
+| Teste de conexão | `POST /settings/integrations/connections/:id/test` |
+| Tela de integrações | `/portal/configuracoes?tab=integrations` |
+| Dashboard App no Chatwoot | `/chatwoot/app` |
+| Acesso unificado ao atendimento | `/portal/atendimento` |
 
-## Configuração
+## Checklist objetivo por fluxo
 
-```bash
-CHATWOOT_API_URL=https://chatwoot.example.com
-CHATWOOT_API_KEY=api_token_aqui
-```
+### 1. Configuração base
 
-Configuração por empresa disponível em `/portal/configuracoes?tab=chatwoot`.
+Validar na tela `Integracoes -> Chatwoot`:
 
----
+- URL, `accountId`, `apiToken`, `platformApiToken`, `inboxId`, `inboxIdentifier`, `webhookSecret` e `webhookMaxSkewSeconds`.
+- Diagnóstico mostrando `configured`, `source`, `activeConnections` e presença dos segredos.
+- URL do Dashboard App apontando para `/chatwoot/app`.
+- Existência de conexão empresa -> inbox em `settings/integrations/connections`.
 
-## Webhook: Chatwoot → Portal
+Arquivos para inspeção:
 
-**Endpoint:** `POST /api/integrations/chatwoot/webhook`
+- `apps/web/src/app/(platform)/portal/configuracoes/integrations/components/chatwoot-tab.tsx`
+- `apps/web/src/app/(platform)/portal/configuracoes/integrations/components/chatwoot-connection-form.tsx`
+- `apps/api/src/modules/settings/settings-chatwoot.service.ts`
+- `apps/api/src/modules/settings/integration-connections.service.ts`
 
-Eventos processados:
+### 2. Chatwoot -> backend -> Evolution
 
-| Evento Chatwoot            | Ação no portal                                        |
-|----------------------------|-------------------------------------------------------|
-| `conversation_created`     | Cria/atualiza `Conversation` no banco                 |
-| `conversation_updated`     | Sincroniza status e assignee                          |
-| `message_created`          | Persiste `ConversationMessage`                        |
-| `conversation_resolved`    | Atualiza status da conversa                           |
-| `csat_survey_completed`    | Persiste `ChatwootCsatRating`                         |
+Executar estes cenários:
 
----
+| Cenário | Resultado esperado | Ponto principal do código |
+| --- | --- | --- |
+| Resposta pública simples no Chatwoot | mensagem chega no WhatsApp | `process-outgoing-message.usecase.ts` |
+| Resposta citada no Chatwoot | `quoted.key.id` resolvido e enviado | `process-outgoing-message.usecase.ts` |
+| Exclusão de mensagem no Chatwoot | exclusão propagada para o WhatsApp | `chatwoot-webhook.controller.ts` |
+| Assinatura inválida ou timestamp expirado | webhook rejeitado | `chatwoot-webhook.controller.ts` |
+| `conversation_status_changed` | regras locais de reabertura/liberação respeitadas | `chatwoot-webhook.controller.ts`, `chatwoot-behavior.service.ts`, `chatwoot-csat.service.ts` |
 
-## Portal → Chatwoot
+Conferir especialmente:
 
-O `chatwoot.client.ts` expõe métodos HTTP:
+- `x-chatwoot-signature` e `x-chatwoot-timestamp`.
+- resolução de `in_reply_to_external_id` e fallback por `message_link`.
+- lookup correto de `conversation_link` e `message_link` antes de culpar a Evolution.
 
-```typescript
-// Criar conversa no Chatwoot
-await chatwootClient.createConversation({
-  accountId,
-  inboxId,
-  contactId,
-  message: '...',
-})
+Arquivos para inspeção:
 
-// Atualizar status
-await chatwootClient.updateConversation(conversationId, {
-  status: 'resolved',
-})
+- `apps/api/src/modules/integrations/chatwoot/chatwoot-webhook.controller.ts`
+- `apps/api/src/modules/integrations/messaging/application/process-outgoing-message.usecase.ts`
 
-// Adicionar label
-await chatwootClient.addLabel(conversationId, 'suporte-tecnico')
-```
+### 3. Evolution -> backend -> Chatwoot
 
----
+Executar estes cenários:
 
-## CSAT (Customer Satisfaction)
+| Cenário | Resultado esperado | Ponto principal do código |
+| --- | --- | --- |
+| Texto inbound | cria ou reaproveita conversa no Chatwoot | `process-incoming-message.usecase.ts` |
+| Imagem inbound | anexo nativo ou fallback por link | `process-incoming-message.usecase.ts`, `chatwoot.client.ts` |
+| Áudio inbound | mensagem chega com MIME correto | `process-incoming-message.usecase.ts` |
+| Sticker com `base64` | mídia encaminhada | `process-incoming-message.usecase.ts` |
+| Sticker com `mediaUrl` | download e encaminhamento funcionam | `process-incoming-message.usecase.ts` |
+| Reaction inbound | nota privada no Chatwoot | `process-incoming-message.usecase.ts` |
+| Reenvio duplicado do provider | deduplicação impede duplicidade | `process-incoming-message.usecase.ts`, persistência de `integration_webhook_dedup` |
 
-Fluxo de CSAT implementado:
+Conferir especialmente:
 
-1. Conversa é encerrada no Chatwoot
-2. Chatwoot envia pesquisa CSAT ao cliente
-3. Webhook `csat_survey_completed` chega ao portal
-4. Portal persiste rating em `ChatwootCsatRating`
-5. Dashboard exibe métricas de satisfação
+- suporte a `base64`, `file.url`, `directPath` e `mediaUrl`.
+- auto-cura quando o Chatwoot devolve `404` para vínculo quebrado.
+- lock de `conversation_link` para evitar corrida local.
 
-**Force resolve:** O portal pode forçar a resolução de conversas para disparar CSAT.
+Arquivos para inspeção:
 
----
+- `apps/api/src/modules/integrations/evolution/evolution-webhook.controller.ts`
+- `apps/api/src/modules/integrations/messaging/application/process-incoming-message.usecase.ts`
+- `apps/api/src/modules/integrations/chatwoot/chatwoot.client.ts`
 
-## SSO com Chatwoot
+### 4. Dashboard App dentro do Chatwoot
 
-Agentes de suporte podem fazer SSO no Chatwoot via portal:
+Validar dentro do app embutido:
 
-**Endpoint:** `GET /api/users/me/chatwoot/sso`
+- recebimento do contexto da conversa por `postMessage`.
+- leitura de `conversation.id`, `contact.id`, `account.id`, `ticket_number`, `host_id` e atributos customizados de empresa.
+- criação de ticket com `source=chatwoot` e `chatwootConversationId`.
+- atalhos para infraestrutura e host remoto quando os atributos estiverem preenchidos.
+- comportamento de fallback quando o Chatwoot não entrega contexto.
 
-Gera token de SSO do Chatwoot e redireciona o agente autenticado diretamente para a conversa.
+Arquivos para inspeção:
 
----
+- `apps/web/src/features/chatwoot/interface/chatwoot-dashboard-app.tsx`
+- `apps/web/src/features/chatwoot/interface/chatwoot-dashboard-app.helpers.ts`
+- `apps/web/src/app/(platform)/portal/configuracoes/integrations/components/chatwoot-tab.tsx`
 
-## Embedded Chatwoot
+### 5. Atendimento e SSO de agentes
 
-Rota `/portal/atendimento` exibe o Chatwoot embarcado como `<iframe>` dentro do portal.
+Validar na rota `/portal/atendimento`:
 
-```tsx
-// apps/web/src/app/chatwoot/app/page.tsx
-// Iframe com SSO token automático
-```
+- usuário com permissão `atendimento:view` entra pelo fluxo SSO.
+- fallback para abrir o Chatwoot direto quando o Platform App não conseguir login automático.
+- mensagem operacional correta quando faltarem permissões do app no Chatwoot.
 
----
+Arquivos para inspeção:
 
-## Relacionamento com Evolution (WhatsApp)
+- `apps/web/src/app/(platform)/portal/atendimento/page.tsx`
+- `apps/api/src/modules/users/users.router.ts`
+- `apps/api/src/modules/users/users.service.ts`
 
-A integração Chatwoot e Evolution é sincronizada:
+### 6. CSAT, bot técnico e notas privadas
 
-```
-WhatsApp (Evolution) ──► portal ──► Chatwoot
-                                        │
-                                    agente responde
-                                        │
-Chatwoot ──► webhook ──► portal ──► Evolution ──► WhatsApp
-```
+Validar:
 
-O portal é o hub central de sincronização — nunca há comunicação direta Evolution ↔ Chatwoot.
+- envio de mensagens automáticas com identidade técnica quando `systemMessagesUseBotIdentity` estiver ativo.
+- disparo de CSAT ao resolver ou arquivar, conforme configuração.
+- reabertura por nota baixa quando `csatReopenOnLowScore` estiver habilitado.
+- reaction inbound continuando como nota privada, porque o Chatwoot ainda não é a fonte final para esse tipo de evento no nosso bridge.
+
+Arquivos para inspeção:
+
+- `apps/web/src/app/(platform)/portal/configuracoes/integrations/components/chatwoot-csat-section.tsx`
+- `apps/api/src/modules/integrations/chatwoot/chatwoot-csat.service.ts`
+- `apps/api/src/modules/integrations/chatwoot/chatwoot-agent-context.controller.ts`
+- `apps/api/src/modules/integrations/chatwoot/chatwoot.client.ts`
+
+### 7. Conexões por empresa e escopo operacional
+
+Validar:
+
+- cada empresa com no máximo uma conexão ativa.
+- mesma inbox não ativa em empresas diferentes.
+- `companyId` realmente vinculado na conexão usada pelo webhook.
+- teste de conexão reaplicando a configuração correta da Evolution quando necessário.
+
+Arquivos para inspeção:
+
+- `apps/api/src/modules/settings/integration-connections.service.ts`
+- `apps/api/src/modules/settings/integration-connections-validator.service.ts`
+- `apps/api/src/modules/settings/integration-context.service.ts`
+
+## Gaps confirmados no app hoje
+
+Estes pontos merecem revisão direta depois das melhorias do Chatwoot:
+
+| Gap | Situação atual | Onde aparece |
+| --- | --- | --- |
+| `incomingMediaMode` | existe no contrato e no backend, mas não está exposto na UI | `packages/contracts/src/chatwoot/chatwoot-integration-settings.types.ts`, `settings-chatwoot-config-store.service.ts`, `chatwoot-connection-form.tsx` |
+| PFX no fluxo de anexos | Chatwoot melhorou suporte, mas a policy local não lista MIME de PFX | `packages/contracts/src/ticket/ticket-attachment-policy.ts` |
+| Macros nativas do Chatwoot | o portal tem ação rápida local `macro_followup`, não integração nativa com macros do Chatwoot | `apps/web/src/features/tickets/application/ticket-actions.ts` |
+| Assignment V2 | pode sobrepor autoatribuição ou reabertura do portal se a operação habilitar ambos sem critério | `chatwoot-tab.tsx`, `chatwoot-webhook.controller.ts` |
+
+## O que não deve virar desenvolvimento imediato
+
+As melhorias abaixo são principalmente operacionais ou internas ao próprio Chatwoot, sem superfície clara no nosso código hoje:
+
+- aba `Participando`
+- nova página de busca
+- colunas redimensionáveis
+- melhorias visuais da lista de conversas
+- Help Center do Chatwoot
+
+Nesses casos, o efeito no portal é mais checklist de operação e treinamento do time do que refatoração do bridge.
+
+## Regressão mínima recomendada
+
+Antes de fechar um upgrade do Chatwoot, rodar pelo menos esta matriz:
+
+1. Mensagem simples Chatwoot -> WhatsApp.
+2. Resposta citada Chatwoot -> WhatsApp.
+3. Delete Chatwoot -> WhatsApp.
+4. Texto inbound WhatsApp -> Chatwoot.
+5. Imagem inbound WhatsApp -> Chatwoot.
+6. Áudio inbound WhatsApp -> Chatwoot.
+7. Sticker com `mediaUrl` inbound WhatsApp -> Chatwoot.
+8. Reaction inbound WhatsApp -> nota privada no Chatwoot.
+9. Criação de ticket pelo Dashboard App.
+10. Entrada via `/portal/atendimento` com SSO e fallback.
+
+Se qualquer um desses itens falhar, comece pelo caminho real do evento no adapter NestJS e só depois revise configuração operacional no painel do Chatwoot.

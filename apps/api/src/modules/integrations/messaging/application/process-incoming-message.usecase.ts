@@ -32,7 +32,7 @@ export class ProcessIncomingMessageUseCase {
   ) {}
 
   async execute(payload: any, context?: { instanceId?: string; connection?: ResolvedIntegrationContext }) {
-    const messages = Array.isArray(payload) ? payload : (payload?.messages || [payload?.message || payload]);
+    const messages = this.extractInboundMessages(payload);
     const instanceId = context?.instanceId ?? null;
     const resolvedConnection =
       context?.connection ??
@@ -49,8 +49,23 @@ export class ProcessIncomingMessageUseCase {
     for (const msg of messages) {
       if (!msg) continue;
 
-      const fromMe = Boolean(msg?.key?.fromMe ?? msg?.Info?.IsFromMe ?? msg?.info?.IsFromMe);
-      const messageId = (msg?.key?.id ?? msg?.Info?.ID ?? msg?.info?.ID)?.toString();
+      const fromMe = Boolean(
+        msg?.fromMe ??
+        msg?.isFromMe ??
+        msg?.IsFromMe ??
+        msg?.key?.fromMe ??
+        msg?.Info?.IsFromMe ??
+        msg?.info?.IsFromMe,
+      );
+      const messageId = this.readFirstString(
+        msg?.key?.id,
+        msg?.Info?.ID,
+        msg?.info?.ID,
+        msg?.id,
+        msg?.ID,
+        msg?.messageId,
+        msg?.MessageID,
+      );
       if (fromMe) {
         this.logger.debug(JSON.stringify({
           flow: 'evolution_to_chatwoot',
@@ -96,7 +111,7 @@ export class ProcessIncomingMessageUseCase {
         }
       }
 
-      const remoteJid = msg?.key?.remoteJid ?? msg?.Info?.Chat ?? msg?.info?.Chat;
+      const remoteJid = this.resolveInboundRemoteJid(msg);
       if (!remoteJid) continue;
       const isGroupChat = String(remoteJid).endsWith('@g.us');
       if (isGroupChat && !this.isAllowedGroupJid(String(remoteJid), resolvedConnection)) {
@@ -117,9 +132,25 @@ export class ProcessIncomingMessageUseCase {
       }
 
       const phone = isGroupChat ? String(remoteJid) : String(remoteJid).replace('@s.whatsapp.net', '');
-      const pushName = msg?.pushName ?? msg?.Info?.PushName ?? msg?.info?.PushName ?? 'Cliente WhatsApp';
+      const pushName = this.readFirstString(
+        msg?.pushName,
+        msg?.PushName,
+        msg?.name,
+        msg?.Name,
+        msg?.Info?.PushName,
+        msg?.info?.PushName,
+      ) ?? 'Cliente WhatsApp';
       const groupParticipantJid = isGroupChat
-        ? this.readFirstString(msg?.key?.participant, msg?.Info?.Sender, msg?.info?.Sender, msg?.participant)
+        ? this.readFirstString(
+            msg?.key?.participant,
+            msg?.participant,
+            msg?.sender,
+            msg?.Sender,
+            msg?.senderAlt,
+            msg?.SenderAlt,
+            msg?.Info?.Sender,
+            msg?.info?.Sender,
+          )
         : undefined;
       const messagePayload = msg?.message ?? msg?.Message;
       const reaction = this.extractReactionPayload(messagePayload, msg);
@@ -354,6 +385,57 @@ export class ProcessIncomingMessageUseCase {
     if (failures.length > 0) {
       throw new Error(`Falha ao encaminhar ${failures.length} mensagem(ns) da Evolution para o Chatwoot: ${failures.join(' | ')}`);
     }
+  }
+
+  private extractInboundMessages(payload: any): any[] {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.messages)) return payload.messages;
+    if (Array.isArray(payload?.data)) return payload.data;
+    return payload ? [payload] : [];
+  }
+
+  private resolveInboundRemoteJid(payload: any): string | undefined {
+    const candidates = [
+      payload?.key?.remoteJid,
+      payload?.Info?.Chat,
+      payload?.info?.Chat,
+      payload?.remoteJid,
+      payload?.RemoteJid,
+      payload?.chatId,
+      payload?.Chat,
+      payload?.chat,
+      payload?.sender,
+      payload?.Sender,
+      payload?.senderAlt,
+      payload?.SenderAlt,
+      payload?.from,
+      payload?.From,
+      payload?.jid,
+      payload?.JID,
+      payload?.data?.key?.remoteJid,
+      payload?.data?.Info?.Chat,
+      payload?.data?.info?.Chat,
+      payload?.data?.remoteJid,
+      payload?.data?.RemoteJid,
+      payload?.data?.chatId,
+      payload?.data?.Chat,
+      payload?.data?.chat,
+      payload?.data?.sender,
+      payload?.data?.Sender,
+      payload?.data?.senderAlt,
+      payload?.data?.SenderAlt,
+    ];
+
+    const groupJid = candidates.find((value) => String(value ?? '').trim().toLowerCase().endsWith('@g.us'));
+    if (groupJid) {
+      return String(groupJid).trim();
+    }
+
+    return (
+      this.readFirstSupportedPhoneSource(...candidates) ??
+      this.findSupportedPhoneSourceInPayload(payload) ??
+      this.readFirstString(...candidates)
+    );
   }
 
   private async handleReactionMessage(

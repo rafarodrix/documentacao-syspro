@@ -136,7 +136,6 @@ export class IntegrationContextService {
       ['data', 'instance', 'id'],
       ['instance', 'instanceId'],
       ['instance', 'id'],
-      ['sender'],
     ]);
     const instance = readTrimmedAtPaths(payload, [
       ['instance'],
@@ -152,9 +151,15 @@ export class IntegrationContextService {
       ['data', 'key', 'remoteJid'],
       ['data', 'Info', 'Chat'],
       ['data', 'info', 'Chat'],
+      ['data', 'chatId'],
+      ['data', 'Chat'],
+      ['data', 'chat'],
       ['key', 'remoteJid'],
       ['Info', 'Chat'],
       ['info', 'Chat'],
+      ['chatId'],
+      ['Chat'],
+      ['chat'],
     ]);
     const hasExplicitMatchInput = Boolean(instanceId || instance);
     const orFilters: Record<string, string>[] = [];
