@@ -1,5 +1,5 @@
 ---
-title: PIS e COFINS no Syspro ERP
+title: PIS e COFINS
 description: Guia prático para interpretar os CSTs de PIS e COFINS, os pares de entrada e saída e os perfis fiscais utilizados no Syspro ERP
 lastUpdated: 2026-07-09
 owner: Equipe de Documentação
@@ -34,55 +34,12 @@ Esses nomes normalmente reúnem:
 2. o CST utilizado na entrada de PIS e COFINS;
 3. o CST utilizado na saída de PIS e COFINS.
 
-Esta página explica principalmente o trecho final do perfil:
-
-```text
-PIS E COFINS CST de entrada | CST de saída
-```
-
-<GuidanceNotice title="Importante">
-  O formato <CodeBadge code="50 | 01" tone="blue" /> é uma convenção utilizada
-  no nome do perfil fiscal do Syspro. Não existe, na legislação, um CST oficial
-  composto chamado “50 | 01”.
-</GuidanceNotice>
-
-## Como ler o nome do perfil
-
-No padrão utilizado pelo Syspro, o primeiro número representa o CST normalmente aplicado na entrada e o segundo representa o CST normalmente aplicado na saída.
-
-| Perfil | Entrada | Saída  |        |
-| ------ | ------- | ------ | ------ |
-| `50    | 01`     | CST 50 | CST 01 |
-| `70    | 04`     | CST 70 | CST 04 |
-| `73    | 06`     | CST 73 | CST 06 |
-
 Exemplo:
 
 <GuidanceNotice title="Exemplo de leitura">
-  O perfil <CodeBadge code="50 | 01" tone="blue" /> indica uma entrada
-  parametrizada com CST 50 e uma saída parametrizada com CST 01.
+  O perfil <CodeBadge code="50 | 01" tone="blue" /> indica uma entrada parametrizada com CST 50 e uma saída parametrizada com CST 01.
 </GuidanceNotice>
 
-Essa leitura identifica os códigos configurados, mas não substitui a análise tributária da operação.
-
-## Antes de escolher um perfil
-
-A escolha do perfil não deve considerar apenas o produto. Também devem ser analisados:
-
-* o regime de apuração da empresa;
-* a natureza da operação;
-* a finalidade da aquisição;
-* o direito ou não ao crédito;
-* o tratamento tributário do produto;
-* o NCM e a descrição da mercadoria;
-* a condição do estabelecimento na cadeia comercial;
-* a legislação vigente para PIS e COFINS.
-
-<GuidanceNotice title="O CST não cria o crédito">
-  Utilizar um CST da faixa de crédito não faz com que a aquisição gere crédito
-  automaticamente. O código deve refletir um direito ao crédito já confirmado
-  pela legislação e pela análise fiscal ou contábil.
-</GuidanceNotice>
 
 ## CSTs mais comuns nas saídas
 
@@ -111,9 +68,7 @@ Essa é uma das diferenças mais importantes na parametrização.
 | `06` | Operação sujeita à alíquota zero por previsão legal que não corresponda ao enquadramento monofásico do CST 04  |
 
 <GuidanceNotice title="CST 04 não é alíquota zero genérica">
-  O CST <CodeBadge code="04" tone="amber" /> deve ser utilizado para a revenda
-  enquadrada no regime monofásico. Para outras hipóteses legais de alíquota zero,
-  o código normalmente analisado é o <CodeBadge code="06" tone="green" />.
+  O CST <CodeBadge code="04" tone="amber" /> deve ser utilizado para a revenda enquadrada no regime monofásico. Para outras hipóteses legais de alíquota zero, o código normalmente analisado é o <CodeBadge code="06" tone="green" />.
 </GuidanceNotice>
 
 ## CSTs utilizados nas entradas
@@ -142,9 +97,7 @@ Eles diferenciam a vinculação da aquisição com:
 O CST 50, por exemplo, representa uma operação com direito a crédito vinculada exclusivamente a receita tributada no mercado interno.
 
 <GuidanceNotice title="Atenção ao CST 50">
-  Utilize o CST <CodeBadge code="50" tone="blue" /> somente quando houver
-  direito ao crédito e a vinculação exigida para esse código. Não utilize o CST
-  50 apenas porque a nota fiscal de compra apresenta PIS e COFINS.
+  Utilize o CST <CodeBadge code="50" tone="blue" /> somente quando houver direito ao crédito e a vinculação exigida para esse código. Não utilize o CST 50 apenas porque a nota fiscal de compra apresenta PIS e COFINS.
 </GuidanceNotice>
 
 ### CSTs 70 a 75
@@ -163,9 +116,7 @@ Os CSTs 70 a 75 não possuem todos o mesmo significado.
 Em termos operacionais, essas aquisições normalmente não geram crédito ordinário, mas o motivo tributário deve ser registrado corretamente.
 
 <GuidanceNotice title="Não trate 70 a 75 como códigos equivalentes">
-  Embora esses CSTs normalmente não representem crédito ordinário, cada código
-  informa uma causa tributária diferente. Utilize o código correspondente ao
-  tratamento efetivo da aquisição.
+  Embora esses CSTs normalmente não representem crédito ordinário, cada código informa uma causa tributária diferente. Utilize o código correspondente ao tratamento efetivo da aquisição.
 </GuidanceNotice>
 
 ## Pares mais encontrados no Syspro
@@ -236,9 +187,7 @@ Esse perfil pode ser utilizado quando tanto a aquisição quanto a saída possue
 | Compra e venda sem incidência                                 | `74`             | `08`           | Não confundir não incidência com isenção                |
 
 <GuidanceNotice title="Os pares são exemplos, não regras automáticas">
-  Uma entrada com determinado CST não obriga que a saída utilize sempre o código
-  apresentado na mesma linha. A entrada e a saída devem ser analisadas
-  separadamente.
+  Uma entrada com determinado CST não obriga que a saída utilize sempre o código apresentado na mesma linha. A entrada e a saída devem ser analisadas separadamente.
 </GuidanceNotice>
 
 ## PIS e COFINS devem ser conferidos separadamente
@@ -257,27 +206,9 @@ O perfil fiscal apresentado no Syspro reúne informações de tributos diferente
 * Produtos com o mesmo tratamento de ICMS podem possuir tratamentos diferentes de PIS e COFINS.
 
 <GuidanceNotice title="CST de ICMS não é CST de PIS e COFINS">
-  Os códigos possuem nomes semelhantes, mas pertencem a tributos diferentes.
-  Para entender quando utilizar CST ou CSOSN no ICMS, consulte a página
-  [Tabela CST do ICMS](/portal/docs/cliente/duvidas/tributario/cst).
+  Os códigos possuem nomes semelhantes, mas pertencem a tributos diferentes. Para entender quando utilizar CST ou CSOSN no ICMS, consulte a página [Tabela CST do ICMS](/portal/docs/cliente/duvidas/tributario/cst).
 </GuidanceNotice>
 
-## Situações que exigem revisão
-
-<ChecklistPanel
-title="Valide a parametrização quando"
-items={[
-'A operação envolver produto sujeito à tributação monofásica.',
-'A empresa mudar de regime tributário ou forma de apuração.',
-'O produto passar a ter alíquota zero, isenção, suspensão ou não incidência.',
-'A aquisição estiver configurada com CST da faixa de crédito.',
-'O NCM ou a descrição legal do produto forem alterados.',
-'A empresa atuar como fabricante, importadora, atacadista ou varejista.',
-'O perfil parecer semelhante, mas a natureza da operação for diferente.',
-'Houver dúvida entre CST 04, 06, 07, 08 ou 09.',
-'O tratamento de PIS for diferente do tratamento da COFINS.',
-]}
-/>
 
 ## Transição da reforma tributária
 
@@ -296,30 +227,6 @@ A EFD-Contribuições não será eliminada imediatamente, pois ainda será neces
 
 As parametrizações devem ser acompanhadas durante o período de transição, especialmente em relação à CBS e aos novos documentos fiscais eletrônicos.
 
-## Resumo rápido
-
-| Par | Interpretação resumida |                                                                       |
-| --- | ---------------------- | --------------------------------------------------------------------- |
-| `50 | 01`                    | Entrada com direito a crédito e saída tributada pela alíquota básica  |
-| `70 | 04`                    | Aquisição sem crédito e revenda de produto monofásico a alíquota zero |
-| `73 | 06`                    | Aquisição e saída submetidas a alíquota zero                          |
-| `71 | 07`                    | Aquisição e saída com isenção                                         |
-| `72 | 09`                    | Aquisição e saída com suspensão                                       |
-| `74 | 08`                    | Aquisição e saída sem incidência                                      |
-
-<GuidanceNotice title="Regra final">
-  Não escolha o perfil apenas pelo nome. Confirme a operação, o produto, o NCM,
-  o regime da empresa, o direito ao crédito e a legislação aplicável.
-</GuidanceNotice>
-
-## Referências oficiais
-
-* Tabela 4.3.3 — Código da Situação Tributária referente ao PIS/Pasep.
-* Tabela 4.3.4 — Código da Situação Tributária referente à Cofins.
-* Tabela 4.3.10 — Produtos sujeitos a alíquotas diferenciadas e incidência monofásica.
-* Tabela 4.3.13 — Produtos sujeitos à alíquota zero.
-* Guia Prático da EFD-Contribuições.
-* Nota Técnica nº 011/2026 — Reforma Tributária e descontinuidade gradual da EFD-Contribuições.
 
 ## Material relacionado
 
