@@ -101,6 +101,9 @@ export class SettingsEvolutionService {
       webhookUrl: settings.webhookUrl,
       subscribe: settings.subscribe,
       immediate: settings.immediate,
+      rabbitmqEnable: settings.rabbitmqEnable,
+      websocketEnable: settings.websocketEnable,
+      natsEnable: settings.natsEnable,
     });
 
     return {
@@ -175,6 +178,9 @@ export class SettingsEvolutionService {
           instance: String(storedSettings.instance ?? '').trim() || null,
           instanceId: String(storedSettings.instanceId ?? '').trim() || null,
           hasInstanceToken: Boolean(storedSettings.instanceToken),
+          rabbitmqEnable: storedSettings.rabbitmqEnable,
+          websocketEnable: storedSettings.websocketEnable,
+          natsEnable: storedSettings.natsEnable,
         },
         activeConnections: activeContexts.map((context) => ({
           source: context.source,

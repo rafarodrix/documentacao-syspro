@@ -1,7 +1,7 @@
 ---
 title: "Integração: Chatwoot"
 description: Superfície real da integração Chatwoot no portal, com fluxo operacional, pontos de validação e gaps atuais após as melhorias recentes do Chatwoot Community.
-lastUpdated: 2026-07-08
+lastUpdated: 2026-07-09
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -14,7 +14,7 @@ tags:
 # Integração: Chatwoot
 
 > Página canônica para validar a integração Chatwoot no estado atual do repositório.
-> Atualizado em: 2026-07-08
+> Atualizado em: 2026-07-09
 
 ## O que olhar primeiro
 
@@ -58,6 +58,11 @@ As melhorias recentes do Chatwoot Community impactam principalmente estas áreas
 | Tela de integrações | `/portal/configuracoes?tab=integrations` |
 | Dashboard App no Chatwoot | `/chatwoot/app` |
 | Acesso unificado ao atendimento | `/portal/atendimento` |
+
+> [!WARNING]
+> O webhook da Evolution deve apontar para o backend NestJS publicado em `backend.<dominio>`, nao para `api.<dominio>`.
+> Exemplo de producao Trilink: `https://backend.trilinksoftware.com.br/api/webhooks/evolution`.
+> `https://api.trilinksoftware.com.br/api/webhooks/evolution` responde no host da Evolution Go e gera `404`, sem entrar no bridge `Evolution -> Chatwoot`.
 
 ## Checklist objetivo por fluxo
 

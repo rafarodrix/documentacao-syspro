@@ -1,7 +1,7 @@
 ---
 title: "Integração: Evolution API (WhatsApp)"
 description: Evolution API é o adaptador WhatsApp Web para envio e recebimento de mensagens — webhook, deduplicação e automações de atendimento.
-lastUpdated: 2026-05-18
+lastUpdated: 2026-07-09
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -13,7 +13,7 @@ tags:
 # Integração: Evolution API (WhatsApp)
 
 > Mensagens WhatsApp via Evolution API (fork open-source do Baileys).
-> Atualizado em: 2026-05-05
+> Atualizado em: 2026-07-09
 
 ---
 
@@ -46,13 +46,17 @@ EVOLUTION_API_URL=https://evolution.example.com
 EVOLUTION_API_KEY=api_key_aqui
 ```
 
-Configuração de instância por empresa em `/portal/configuracoes?tab=evolution`.
+Configuracao da instancia e do webhook em `/portal/configuracoes?tab=evolution`.
 
 ---
 
 ## Webhook: Evolution → Portal
 
-**Endpoint:** `POST /api/integrations/evolution/webhook`
+**Endpoint:** `POST /api/webhooks/evolution`
+
+> [!WARNING]
+> O webhook da Evolution deve apontar para o backend NestJS em `backend.<dominio>`, nao para `api.<dominio>`.
+> Exemplo de producao Trilink: `https://backend.trilinksoftware.com.br/api/webhooks/evolution`.
 
 Eventos processados:
 
@@ -113,10 +117,23 @@ Disponível em `/portal/configuracoes?tab=evolution`:
 - Exibir QR code para parear WhatsApp
 - Status da conexão (conectado/desconectado)
 - Reconectar instância
+- Persistir o payload efetivo de `POST /instance/connect`
 
 **Endpoints:**
 - `GET /api/platform/settings/evolution/status` — status da conexão
-- `GET /api/platform/settings/evolution/qrcode` — QR code atual
+- `POST /api/platform/settings/evolution/qrcode` — solicita conexão e aguarda QR code
+
+Campos operacionais persistidos hoje:
+- `webhookUrl`
+- `subscribe`
+- `immediate`
+- `phone`
+- `rabbitmqEnable`
+- `websocketEnable`
+- `natsEnable`
+- `instance`
+- `instanceId`
+- `instanceToken`
 
 ---
 

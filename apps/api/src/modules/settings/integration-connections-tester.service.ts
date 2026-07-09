@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ensureRequiredEvolutionSubscribe } from './evolution-webhook-subscribe';
+import { buildEvolutionConnectConfig, readEvolutionConnectConfigSource } from './evolution-connect-config';
 import { SettingsIntegrationSecretsService } from './settings-integration-secrets.service';
 import type { IntegrationConnectionRecord } from './integration-connections.types';
 
@@ -58,7 +58,7 @@ export class IntegrationConnectionsTesterService {
         return { ok: false, endpoint: statusEndpoint, error: `${statusRes.status} - ${body}` };
       }
 
-      const connectConfig = this.readEvolutionConnectConfig(metadata);
+      const connectConfig = buildEvolutionConnectConfig(readEvolutionConnectConfigSource(metadata));
       if (instanceId && connectConfig) {
         const connectEndpoint = '/instance/connect';
         const connectRes = await fetch(`${base}${connectEndpoint}`, {
@@ -94,36 +94,6 @@ export class IntegrationConnectionsTesterService {
     } catch (error: unknown) {
       return { ok: false, endpoint: statusEndpoint, error: this.readErrorMessage(error) };
     }
-  }
-
-  private readEvolutionConnectConfig(metadata?: Record<string, unknown> | null) {
-    const source = metadata && typeof metadata === 'object' ? metadata : {};
-    const evolution =
-      source && typeof source.evolution === 'object' && source.evolution
-        ? (source.evolution as Record<string, unknown>)
-        : source;
-
-    const webhookUrl = typeof evolution.webhookUrl === 'string' ? evolution.webhookUrl.trim() : '';
-    const phone = typeof evolution.phone === 'string' ? evolution.phone.trim() : '';
-    const immediate = typeof evolution.immediate === 'boolean' ? evolution.immediate : true;
-    const subscribe = Array.isArray(evolution.subscribe)
-      ? evolution.subscribe.map((item) => String(item ?? '').trim()).filter(Boolean)
-      : [];
-    const rabbitmqEnable = evolution.rabbitmqEnable === true || evolution.rabbitmqEnable === 'enabled' ? 'enabled' : undefined;
-    const websocketEnable = evolution.websocketEnable === true || evolution.websocketEnable === 'enabled' ? 'enabled' : undefined;
-    const natsEnable = evolution.natsEnable === true || evolution.natsEnable === 'enabled' ? 'enabled' : undefined;
-
-    if (!webhookUrl) return null;
-
-    return {
-      webhookUrl,
-      subscribe: ensureRequiredEvolutionSubscribe(subscribe),
-      immediate,
-      ...(phone ? { phone } : {}),
-      ...(rabbitmqEnable ? { rabbitmqEnable } : {}),
-      ...(websocketEnable ? { websocketEnable } : {}),
-      ...(natsEnable ? { natsEnable } : {}),
-    };
   }
 
   private async testChatwoot(

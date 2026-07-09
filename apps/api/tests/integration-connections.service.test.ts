@@ -63,6 +63,8 @@ describe('IntegrationConnectionsService', () => {
           webhookUrl: 'https://api.example.com/api/webhooks/evolution',
           subscribe: ['GROUP'],
           immediate: true,
+          rabbitmqEnable: 'enabled',
+          websocketEnable: 'enabled',
         },
       },
     });
@@ -96,5 +98,7 @@ describe('IntegrationConnectionsService', () => {
     expect(body.subscribe).toEqual(
       expect.arrayContaining(['GROUP', 'MESSAGE', 'READ_RECEIPT', 'QRCODE', 'CONNECTION']),
     );
+    expect(body.rabbitmqEnable).toBe('enabled');
+    expect(body.websocketEnable).toBe('enabled');
   });
 });

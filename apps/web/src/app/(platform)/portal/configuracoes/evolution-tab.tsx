@@ -4,11 +4,13 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_EVOLUTION_SETTINGS,
+  EVOLUTION_PROVIDER_TRANSPORT_OPTIONS,
   EVOLUTION_WEBHOOK_SUBSCRIBE_OPTIONS,
   evolutionSettingsSchema,
   type EvolutionSettings,
+  type EvolutionProviderTransportMode,
 } from "@dosc-syspro/contracts/evolution";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Badge, Button, Input, Label, Checkbox, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Badge, Button, Input, Label, Checkbox, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
 import { Loader2, Save, RefreshCw, CircleHelp, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateTime } from "@/lib/date";
@@ -22,6 +24,11 @@ import {
 } from "@/features/evolution/application/evolution-actions";
 import { SettingsPageIntro } from "./settings-shell";
 import { InfoTile } from "./integrations/integrations-primitives";
+
+const transportModeLabels: Record<EvolutionProviderTransportMode, string> = {
+  default: "Padrao",
+  enabled: "Enabled",
+};
 
 function LabelWithHelp({ htmlFor, label, help }: { htmlFor?: string; label: string; help: string }) {
   return (
@@ -54,6 +61,7 @@ export default function EvolutionSettingsTab() {
   const [instanceStatus, setInstanceStatus] = useState<EvolutionInstanceStatus | null>(null);
 
   const subscribeOptions = useMemo(() => EVOLUTION_WEBHOOK_SUBSCRIBE_OPTIONS, []);
+  const transportOptions = useMemo(() => EVOLUTION_PROVIDER_TRANSPORT_OPTIONS, []);
 
   async function loadSettings() {
     setIsLoading(true);
@@ -232,6 +240,11 @@ export default function EvolutionSettingsTab() {
                     onChange={(event) => setSettings((prev) => ({ ...prev, webhookUrl: event.target.value }))}
                     placeholder="https://backend.seudominio.com.br/api/webhooks/evolution"
                   />
+                  {/https?:\/\/api\./i.test(settings.webhookUrl) ? (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Use o host do backend NestJS em <code>backend.&lt;dominio&gt;</code>. O host <code>api.&lt;dominio&gt;</code> pertence a Evolution Go e nao deve receber o webhook inbound.
+                    </p>
+                  ) : null}
                 </div>
                 <div className="space-y-2">
                   <LabelWithHelp
@@ -343,6 +356,79 @@ export default function EvolutionSettingsTab() {
                     />
                     <span>Immediate</span>
                   </label>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <LabelWithHelp
+                  label="Canais auxiliares da Evolution"
+                  help={
+                    "A API atual da Evolution Go aceita rabbitmqEnable, websocketEnable e natsEnable no POST /instance/connect.\n" +
+                    "Deixe em Padrao salvo se sua infraestrutura realmente depender desses canais.\n" +
+                    "O portal persiste essa configuracao para reaplicar o payload de connect de forma consistente."
+                  }
+                />
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="rabbitmqEnable">RabbitMQ</Label>
+                    <Select
+                      value={settings.rabbitmqEnable}
+                      onValueChange={(value) =>
+                        setSettings((prev) => ({ ...prev, rabbitmqEnable: value as EvolutionProviderTransportMode }))
+                      }
+                    >
+                      <SelectTrigger id="rabbitmqEnable">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {transportOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {transportModeLabels[option]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="websocketEnable">WebSocket</Label>
+                    <Select
+                      value={settings.websocketEnable}
+                      onValueChange={(value) =>
+                        setSettings((prev) => ({ ...prev, websocketEnable: value as EvolutionProviderTransportMode }))
+                      }
+                    >
+                      <SelectTrigger id="websocketEnable">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {transportOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {transportModeLabels[option]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="natsEnable">NATS</Label>
+                    <Select
+                      value={settings.natsEnable}
+                      onValueChange={(value) =>
+                        setSettings((prev) => ({ ...prev, natsEnable: value as EvolutionProviderTransportMode }))
+                      }
+                    >
+                      <SelectTrigger id="natsEnable">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {transportOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {transportModeLabels[option]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </>

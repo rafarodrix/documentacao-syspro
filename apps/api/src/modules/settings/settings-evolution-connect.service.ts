@@ -1,16 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { ensureRequiredEvolutionSubscribe } from './evolution-webhook-subscribe';
 import { SettingsEvolutionStatusStoreService } from './settings-evolution-status-store.service';
+import { buildEvolutionConnectConfig, type EvolutionConnectConfigSource } from './evolution-connect-config';
 
-type ConnectInstanceInput = {
+type ConnectInstanceInput = EvolutionConnectConfigSource & {
   apiUrl: string;
   apiKey: string;
   instance: string;
   instanceId?: string;
-  phone?: string;
-  webhookUrl?: string;
-  subscribe?: string[];
-  immediate?: boolean;
 };
 
 type ConnectInstanceResult = {
@@ -31,7 +27,6 @@ export class SettingsEvolutionConnectService {
   async connectInstance(input: ConnectInstanceInput): Promise<ConnectInstanceResult> {
     const base = input.apiUrl.replace(/\/+$/, '');
     const instanceId = input.instanceId?.trim();
-    const webhookUrl = input.webhookUrl?.trim();
     const endpoint = '/instance/connect';
     const requestedAt = new Date();
 
@@ -39,11 +34,10 @@ export class SettingsEvolutionConnectService {
       return { ok: false, endpoint, error: 'Instance ID obrigatorio para POST /instance/connect na Evolution Go.' };
     }
 
-    if (!webhookUrl) {
+    const connectConfig = buildEvolutionConnectConfig(input);
+    if (!connectConfig) {
       return { ok: false, endpoint, error: 'Webhook URL obrigatoria para conectar a instancia Evolution Go.' };
     }
-
-    const subscribe = ensureRequiredEvolutionSubscribe(input.subscribe);
     const connectRes = await fetch(`${base}${endpoint}`, {
       method: 'POST',
       headers: {
@@ -51,12 +45,7 @@ export class SettingsEvolutionConnectService {
         'Content-Type': 'application/json',
         instanceId,
       },
-      body: JSON.stringify({
-        webhookUrl,
-        subscribe,
-        immediate: input.immediate !== false,
-        ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
-      }),
+      body: JSON.stringify(connectConfig),
     }).catch((error: any) => ({
       ok: false,
       status: 0,
@@ -74,9 +63,12 @@ export class SettingsEvolutionConnectService {
       event: 'connect_requested',
       status: 'CONNECT_REQUESTED',
       details: {
-        webhookUrl,
-        subscribe,
-        hasPhone: Boolean(input.phone?.trim()),
+        webhookUrl: connectConfig.webhookUrl,
+        subscribe: connectConfig.subscribe,
+        hasPhone: Boolean(connectConfig.phone),
+        rabbitmqEnable: connectConfig.rabbitmqEnable ?? 'default',
+        websocketEnable: connectConfig.websocketEnable ?? 'default',
+        natsEnable: connectConfig.natsEnable ?? 'default',
       },
     });
 
