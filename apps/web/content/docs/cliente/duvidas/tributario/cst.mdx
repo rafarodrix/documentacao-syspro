@@ -18,46 +18,19 @@ import { ChecklistPanel, CodeBadge, GuidanceNotice } from '@/components/docs/mdx
 
 O **CST** e o **CSOSN** definem como o ICMS deve ser tratado no documento fiscal e na parametrizacao do Syspro ERP. A leitura correta desses codigos evita erro de tributacao, escolha incorreta de operacao fiscal e divergencia entre cadastro, regra fiscal e emissao.
 
-Em 2024, a tabela ganhou novos codigos ligados a **tributacao monofasica de combustiveis**, como `02`, `15`, `53` e `61`, conforme o Ajuste SINIEF 39/23, com vigencia a partir de **1 de outubro de 2024**.
 
 <GuidanceNotice title="Regra pratica para nao misturar os codigos">
-  Use <CodeBadge code="CST" tone="blue" /> para empresas no regime normal e
-  <CodeBadge code="CSOSN" tone="green" /> para empresas do Simples Nacional com
-  CRT 1. A decisao depende do regime tributario da empresa, nao apenas do produto.
+  Empresas em Lucro Presumido ou Lucro Real trabalham com {' '}<CodeBadge code="CST" tone="blue" />.
+  Empresas do Simples Nacional usam {' '}<CodeBadge code="CSOSN" tone="green" /> no lugar do CST.
 </GuidanceNotice>
 
-<Cards>
-  <Card title="Regime normal">
-    Empresas em Lucro Presumido ou Lucro Real trabalham com
-    {' '}<CodeBadge code="CST" tone="blue" />.
-  </Card>
-  <Card title="Simples Nacional">
-    Empresas com CRT 1 usam
-    {' '}<CodeBadge code="CSOSN" tone="green" /> no lugar do CST.
-  </Card>
-  <Card title="Atualizacao 2024">
-    Combustiveis passaram a exigir leitura atenta de codigos como
-    {' '}<CodeBadge code="02" tone="amber" />
-    {' '}<CodeBadge code="15" tone="amber" />
-    {' '}<CodeBadge code="53" tone="amber" />
-    {' '}<CodeBadge code="61" tone="amber" />.
-  </Card>
-</Cards>
 
-## Como ler CST e CSOSN
+### Como ler CST e CSOSN
 
 - **CST:** codigo de 3 digitos usado por empresas no regime normal.
 - **CSOSN:** codigo de 4 digitos usado por empresas no Simples Nacional.
 - No **CST**, o primeiro digito representa a **origem da mercadoria** e os dois ultimos representam a **tributacao do ICMS**.
 - No **CSOSN**, a logica muda, mas o objetivo continua sendo indicar como a operacao deve ser tributada.
-
-## Quando usar cada um
-
-| Cenario | Codigo correto | Observacao |
-| --- | --- | --- |
-| Empresa em Lucro Presumido ou Lucro Real | `CST` | Considera origem da mercadoria + tributacao do ICMS |
-| Empresa no Simples Nacional com CRT 1 | `CSOSN` | Nao combina CST na saida normal desse regime |
-| Operacao com combustiveis apos a atualizacao de 2024 | `CST` especifico do cenario | Validar se ha tributacao monofasica, retencao ou diferimento |
 
 ## Tabela de origem (Tabela A)
 
@@ -127,16 +100,6 @@ No Syspro ERP, os codigos **CST** e **CSOSN** sao configurados no modulo **Fisca
 | `_40` | `_400` | Isento PIS e COFINS (Entrada 73, Saida 06) |
 | `_41` |  | Nao tributado PIS e COFINS (Entrada 73, Saida 06) |
 
-<ChecklistPanel
-  title="Checklist antes de salvar a tributacao no Syspro"
-  items={[
-    'Confirmar o regime tributario da empresa antes de escolher entre CST e CSOSN.',
-    'Validar se a operacao envolve substituicao tributaria, diferimento, isencao ou monofasia.',
-    'Revisar se a origem da mercadoria foi cadastrada corretamente.',
-    'Conferir se a regra fiscal do produto esta coerente com a natureza da operacao.',
-    'Validar a parametrizacao com a contabilidade antes de emitir em producao.',
-  ]}
-/>
 
 ## Duvidas frequentes
 
@@ -146,9 +109,6 @@ No Syspro ERP, os codigos **CST** e **CSOSN** sao configurados no modulo **Fisca
   </Accordion>
   <Accordion title="O CST 60 e o CSOSN 500 sao a mesma coisa?">
     Eles se aproximam no efeito pratico de indicar imposto cobrado anteriormente, mas pertencem a tabelas diferentes. O CST 60 e do regime normal; o CSOSN 500 e do Simples Nacional.
-  </Accordion>
-  <Accordion title="Quando devo revisar os novos codigos de combustiveis?">
-    Sempre que o cliente operar com combustiveis ou mercadorias sujeitas a tributacao monofasica. Nesses casos, nao basta repetir uma regra antiga sem revisar a legislacao e o cadastro fiscal.
   </Accordion>
   <Accordion title="Quem deve validar a configuracao final?">
     O time fiscal ou a contabilidade responsavel pela empresa. O sistema ajuda na parametrizacao, mas nao substitui a validacao tecnica da regra tributaria.

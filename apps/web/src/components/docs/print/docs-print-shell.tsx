@@ -249,6 +249,49 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           text-align: left;
         }
 
+        .docs-print-root .docs-guided-card,
+        .docs-print-root .docs-guided-table,
+        .docs-print-root .docs-guided-flow-step,
+        .docs-print-root .docs-reference-card,
+        .docs-print-root .docs-checklist-panel,
+        .docs-print-root .docs-guided-notice {
+          background: #ffffff !important;
+          color: #111827 !important;
+          border: 1px solid #cbd5e1 !important;
+          border-radius: 6px !important;
+        }
+
+        .docs-print-root .docs-guided-notice {
+          border-left: 4px solid #475569 !important;
+          padding: 10px 14px !important;
+        }
+
+        .docs-print-root .docs-guided-table table,
+        .docs-print-root .docs-guided-flow-step table {
+          background: #ffffff !important;
+        }
+
+        .docs-print-root .docs-guided-card h3,
+        .docs-print-root .docs-guided-card p,
+        .docs-print-root .docs-guided-card li,
+        .docs-print-root .docs-guided-card span,
+        .docs-print-root .docs-guided-table th,
+        .docs-print-root .docs-guided-table td {
+          color: #111827 !important;
+        }
+
+        .docs-print-root .docs-code-badge {
+          background: #f8fafc !important;
+          color: #111827 !important;
+          border: 1px solid #94a3b8 !important;
+          box-shadow: none !important;
+        }
+
+        .docs-print-root .docs-guided-card svg,
+        .docs-print-root .docs-guided-table svg {
+          color: #475569 !important;
+        }
+
         .docs-print-root blockquote,
         .docs-print-root [data-callout],
         .docs-print-root .border {
@@ -365,12 +408,10 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         .docs-print-root .fd-tabs-panel,
         .docs-print-root [data-callout],
         .docs-print-root blockquote,
-        .docs-print-root .p-4,
         .docs-print-root .bg-white,
         .docs-print-root .bg-card,
         .docs-print-root .bg-muted\/10,
-        .docs-print-root .bg-background\/30,
-        .docs-print-root div[class*="bg-"] {
+        .docs-print-root .bg-background\/30 {
           background-color: transparent !important;
           background: transparent !important;
         }

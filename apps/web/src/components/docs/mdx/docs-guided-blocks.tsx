@@ -13,11 +13,11 @@ import { cn } from '@/lib/utils';
 export type DocsTone = 'blue' | 'green' | 'amber' | 'slate' | 'red';
 
 const toneClasses: Record<DocsTone, string> = {
-  blue: 'border-blue-500/30 bg-blue-500/10 text-blue-100',
-  green: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100',
-  amber: 'border-amber-500/30 bg-amber-500/10 text-amber-100',
-  slate: 'border-border bg-muted/40 text-foreground',
-  red: 'border-red-500/30 bg-red-500/10 text-red-100',
+  blue: 'border-sky-300/70 bg-sky-50/90 text-sky-950 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100',
+  green: 'border-emerald-300/70 bg-emerald-50/90 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100',
+  amber: 'border-amber-300/70 bg-amber-50/90 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100',
+  slate: 'border-border bg-muted/50 text-foreground',
+  red: 'border-rose-300/70 bg-rose-50/90 text-rose-950 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100',
 };
 
 function toneBadgeClasses(tone: DocsTone) {
@@ -28,20 +28,26 @@ function NoticeFrame({
   icon,
   title,
   children,
+  tone,
   className,
 }: {
   icon: ReactNode;
   title: string;
   children: ReactNode;
+  tone: DocsTone;
   className: string;
 }) {
   return (
-    <div className={cn('my-6 rounded-lg border px-4 py-3', className)}>
+    <div
+      data-docs-guided-block="notice"
+      data-docs-tone={tone}
+      className={cn('docs-guided-card docs-guided-notice my-6 rounded-lg border px-4 py-3', className)}
+    >
       <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
         <span className="shrink-0">{icon}</span>
         <span>{title}</span>
       </div>
-      <div className="text-sm leading-6 text-foreground/90">{children}</div>
+      <div className="text-sm leading-6">{children}</div>
     </div>
   );
 }
@@ -57,8 +63,10 @@ export function CodeBadge({
 }) {
   return (
     <span
+      data-docs-guided-block="badge"
+      data-docs-tone={tone}
       className={cn(
-        'inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-sm font-medium',
+        'docs-code-badge inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-sm font-medium',
         toneBadgeClasses(tone),
       )}
     >
@@ -79,7 +87,8 @@ export function GuidanceNotice({
     <NoticeFrame
       icon={<FileCheck2 className="h-4 w-4" />}
       title={title}
-      className="border-blue-500/30 bg-blue-500/10 text-blue-100"
+      tone="blue"
+      className={toneBadgeClasses('blue')}
     >
       {children}
     </NoticeFrame>
@@ -97,7 +106,8 @@ export function RiskNotice({
     <NoticeFrame
       icon={<ShieldAlert className="h-4 w-4" />}
       title={title}
-      className="border-amber-500/30 bg-amber-500/10 text-amber-100"
+      tone="amber"
+      className={toneBadgeClasses('amber')}
     >
       {children}
     </NoticeFrame>
@@ -118,7 +128,8 @@ export function ReferenceCard({
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="mb-3 block rounded-lg border border-border bg-card/40 p-4 no-underline transition-colors hover:border-border/80 hover:bg-card/60"
+      data-docs-guided-block="reference"
+      className="docs-guided-card docs-reference-card mb-3 block rounded-lg border border-border bg-card/40 p-4 no-underline transition-colors hover:border-border/80 hover:bg-card/60"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -142,7 +153,7 @@ export function ChecklistPanel({
   items: string[];
 }) {
   return (
-    <div className="my-6 rounded-lg border border-border bg-card/40 p-4">
+    <div data-docs-guided-block="checklist" className="docs-guided-card docs-checklist-panel my-6 rounded-lg border border-border bg-card/40 p-4">
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
         <CheckCircle2 className="h-4 w-4 text-emerald-500" />
         <span>{title}</span>
@@ -178,7 +189,7 @@ export function ComparisonTable({
   };
 
   return (
-    <div className="my-6 overflow-x-auto rounded-lg border border-border bg-card/40">
+    <div data-docs-guided-block="comparison-table" className="docs-guided-table my-6 overflow-x-auto rounded-lg border border-border bg-card/40">
       <table className="w-full min-w-[760px] border-collapse text-sm">
         <thead className="bg-muted/50 text-left text-foreground/80">
           <tr>
@@ -225,9 +236,13 @@ export function ProcessFlow({
   }>;
 }) {
   return (
-    <div className="my-6 space-y-3">
+    <div data-docs-guided-block="process-flow" className="docs-guided-flow my-6 space-y-3">
       {steps.map((step, index) => (
-        <div key={`${step.title}-${index}`} className="rounded-lg border border-border bg-card/40 p-4">
+        <div
+          key={`${step.title}-${index}`}
+          data-docs-guided-block="flow-step"
+          className="docs-guided-card docs-guided-flow-step rounded-lg border border-border bg-card/40 p-4"
+        >
           <div className="flex flex-wrap items-center gap-2">
             <CodeBadge code={`Etapa ${index + 1}`} tone={step.tone ?? 'slate'} />
             <h3 className="text-base font-semibold text-foreground">{step.title}</h3>
@@ -312,7 +327,8 @@ export function WarningNotice({
     <NoticeFrame
       icon={<AlertTriangle className="h-4 w-4" />}
       title={title}
-      className="border-amber-500/30 bg-amber-500/10 text-amber-100"
+      tone="amber"
+      className={toneBadgeClasses('amber')}
     >
       {children}
     </NoticeFrame>
