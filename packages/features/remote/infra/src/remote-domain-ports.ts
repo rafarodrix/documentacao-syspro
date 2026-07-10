@@ -95,18 +95,6 @@ export function createRemoteDiscoverPort(params: {
       return toJsonValue(value);
     },
     async findDiscoveredHost(input) {
-      const discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
-        where: {
-          status: { not: "IGNORED" },
-          ...(input.rustdeskId
-            ? {
-                OR: [{ agentExternalId: input.rustdeskId }, ...(input.machineName ? [{ machineName: input.machineName }] : [])],
-              }
-            : { machineName: input.machineName ?? undefined }),
-        },
-        orderBy: [{ updatedAt: "desc" }],
-      });
-
       let autoLinkedHostId: string | null = null;
       if (input.rustdeskId) {
         const existingHost = await prisma.remoteHost.findFirst({
@@ -116,6 +104,33 @@ export function createRemoteDiscoverPort(params: {
         if (existingHost) {
           autoLinkedHostId = existingHost.id;
         }
+      }
+
+      // Prioritize reusing a record that is already linked to the resolved host
+      // to avoid unique constraint violations on linkedHostId.
+      let discoveredHost = null;
+      if (autoLinkedHostId) {
+        discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
+          where: {
+            linkedHostId: autoLinkedHostId,
+            status: { not: "IGNORED" },
+          },
+        });
+      }
+
+      // Fallback to searching by rustdeskId or machineName
+      if (!discoveredHost) {
+        discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
+          where: {
+            status: { not: "IGNORED" },
+            ...(input.rustdeskId
+              ? {
+                  OR: [{ agentExternalId: input.rustdeskId }, ...(input.machineName ? [{ machineName: input.machineName }] : [])],
+                }
+              : { machineName: input.machineName ?? undefined }),
+          },
+          orderBy: [{ updatedAt: "desc" }],
+        });
       }
 
       if (!discoveredHost) {

@@ -31,23 +31,51 @@ func (s *Service) Start(ctx context.Context) error {
 		s.logger.Debug("desired state loaded from cache", "version", cached.Version)
 	}
 
+	consecutiveFailures := 0
+	baseDelay := 1 * time.Minute
+	maxDelay := 30 * time.Minute
+
+	// Initial fetch
 	if err := s.fetchOnce(ctx); err != nil {
 		s.logger.Warn("initial desired state fetch failed", "error", err)
+		consecutiveFailures++
 	}
 
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
-
 	for {
+		// Calculate next delay using exponential backoff & jitter
+		delay := baseDelay
+		if consecutiveFailures > 0 {
+			// exponential backoff: baseDelay * 2^(consecutiveFailures-1)
+			multiplier := 1 << (consecutiveFailures - 1)
+			delay = baseDelay * time.Duration(multiplier)
+			if delay > maxDelay {
+				delay = maxDelay
+			}
+
+			// Add 15% random jitter using simple pseudo-random noise
+			// to avoid seeding issues or heavy imports
+			noise := float64(time.Now().UnixNano()%1000) / 1000.0 // value between 0.0 and 1.0
+			jitterPercent := 0.15 * (2.0*noise - 1.0)              // value between -0.15 and +0.15
+			delay = delay + time.Duration(float64(delay)*jitterPercent)
+		}
+
+		s.logger.Debug("scheduling next desired state fetch", "delay", delay)
+
+		timer := time.NewTimer(delay)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			s.logger.Info("desired state loop stopped")
 			return nil
 
-		case <-ticker.C:
+		case <-timer.C:
 			if err := s.fetchOnce(ctx); err != nil {
 				s.logger.Warn("desired state fetch failed", "error", err)
-				continue
+				if consecutiveFailures < 6 { // Limit multiplier to 2^5 = 32 (32 minutes max base delay)
+					consecutiveFailures++
+				}
+			} else {
+				consecutiveFailures = 0
 			}
 		}
 	}
