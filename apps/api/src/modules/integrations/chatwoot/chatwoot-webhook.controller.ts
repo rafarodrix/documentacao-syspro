@@ -47,7 +47,7 @@ export class ChatwootWebhookController {
     const resolvedContext = await this.integrationContext.resolveForChatwootWebhook(payload);
     const messageContext = ChatwootPayloadParser.resolveMessageContext(payload);
 
-    if (payload?.event === 'message_created') {
+    if (payload?.event === 'message_created' && this.shouldRunOutboundHandoff(messageContext)) {
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'webhook_received',
@@ -117,16 +117,20 @@ export class ChatwootWebhookController {
     resolvedContext: ResolvedIntegrationContext | null,
     settings: Awaited<ReturnType<ChatwootSettingsService['readBehaviorSettings']>>,
   ) {
+    const shouldRunOutboundHandoff = this.shouldRunOutboundHandoff(messageContext);
+
     try {
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'handoff_start',
-        event: payload?.event,
-        messageId: messageContext.messageId ?? null,
-        messageType: messageContext.messageType,
-        hasContent: Boolean(String(payload?.content ?? '').trim()),
-        hasAttachments: Boolean(Array.isArray(payload?.attachments) && payload.attachments.length > 0),
-      }));
+      if (shouldRunOutboundHandoff) {
+        this.logger.log(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'handoff_start',
+          event: payload?.event,
+          messageId: messageContext.messageId ?? null,
+          messageType: messageContext.messageType,
+          hasContent: Boolean(String(payload?.content ?? '').trim()),
+          hasAttachments: Boolean(Array.isArray(payload?.attachments) && payload.attachments.length > 0),
+        }));
+      }
 
       const csatHandled = resolvedContext
         ? await this.csatService.handleCsatReplyIfApplicable(payload, settings, resolvedContext)
@@ -146,18 +150,20 @@ export class ChatwootWebhookController {
         await this.behaviorService.applyMessageBehaviorRules(payload, settings, resolvedContext);
       }
 
-      await this.processOutgoingMessage.execute(payload, {
-        connection: resolvedContext ?? undefined,
-        prependAgentNameOnOutbound: settings.prependAgentNameOnOutbound,
-      });
+      if (shouldRunOutboundHandoff) {
+        await this.processOutgoingMessage.execute(payload, {
+          connection: resolvedContext ?? undefined,
+          prependAgentNameOnOutbound: settings.prependAgentNameOnOutbound,
+        });
 
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'handoff_complete',
-        event: payload?.event,
-        messageId: messageContext.messageId ?? null,
-        messageType: messageContext.messageType,
-      }));
+        this.logger.log(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'handoff_complete',
+          event: payload?.event,
+          messageId: messageContext.messageId ?? null,
+          messageType: messageContext.messageType,
+        }));
+      }
     } catch (error: any) {
       const knownProviderCode = typeof error?.code === 'string' ? error.code : null;
       const isKnownOutboundError = knownProviderCode === 'WHATSAPP_NUMBER_NOT_REGISTERED';
@@ -520,7 +526,33 @@ export class ChatwootWebhookController {
       throw new UnauthorizedException('Invalid Chatwoot webhook signature');
     }
 
-    this.logger.log(JSON.stringify({ flow: 'chatwoot_to_evolution', stage: 'signature_validated', event: payload?.event ?? null }));
+    const signatureValidatedPayload = JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'signature_validated',
+      event: payload?.event ?? null,
+    });
+    if (this.shouldLogSignatureAtInfoLevel(payload?.event)) {
+      this.logger.log(signatureValidatedPayload);
+    } else {
+      this.logger.debug(signatureValidatedPayload);
+    }
+  }
+
+  private shouldRunOutboundHandoff(
+    messageContext: ReturnType<typeof ChatwootPayloadParser.resolveMessageContext>,
+  ): boolean {
+    if (messageContext.isPrivate) return false;
+    return messageContext.messageType === 'outgoing' || messageContext.messageType === 'template';
+  }
+
+  private shouldLogSignatureAtInfoLevel(event: unknown): boolean {
+    const normalizedEvent = String(event ?? '').trim().toLowerCase();
+    return [
+      'message_created',
+      'message_updated',
+      'message_deleted',
+      'conversation_status_changed',
+    ].includes(normalizedEvent);
   }
 
   private computeSignature(secret: string, timestamp: string, rawBody: string): string {

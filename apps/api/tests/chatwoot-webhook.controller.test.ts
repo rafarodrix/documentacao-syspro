@@ -80,9 +80,13 @@ describe("ChatwootWebhookController message deletion", () => {
     vi.clearAllMocks();
 
     integrationContext.resolveForChatwootWebhook.mockResolvedValue(resolvedContext);
+    processOutgoingMessage.execute.mockResolvedValue(undefined);
     settingsService.readBehaviorSettings.mockResolvedValue({
       systemMessageApiToken: "",
+      prependAgentNameOnOutbound: false,
     });
+    behaviorService.applyMessageBehaviorRules.mockResolvedValue(undefined);
+    csatService.handleCsatReplyIfApplicable.mockResolvedValue(false);
 
     prisma.messageLink.findUnique.mockResolvedValue({
       connectionKey: "conn-1",
@@ -178,5 +182,37 @@ describe("ChatwootWebhookController message deletion", () => {
         chatwootMessageId: "cw-msg-1",
       },
     });
+  });
+
+  it("does not trigger outbound handoff for incoming messages created by customer replies", async () => {
+    await controller.handle(
+      "signature",
+      "timestamp",
+      { rawBody: "{}" },
+      {
+        event: "message_created",
+        id: "webhook-event-200",
+        message_type: "incoming",
+        message: {
+          id: "cw-msg-incoming-1",
+          message_type: "incoming",
+        },
+        conversation: {
+          id: "conv-2",
+        },
+      },
+    );
+
+    expect(csatService.handleCsatReplyIfApplicable).toHaveBeenCalled();
+    expect(behaviorService.applyMessageBehaviorRules).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "message_created",
+      }),
+      expect.objectContaining({
+        prependAgentNameOnOutbound: false,
+      }),
+      resolvedContext,
+    );
+    expect(processOutgoingMessage.execute).not.toHaveBeenCalled();
   });
 });
