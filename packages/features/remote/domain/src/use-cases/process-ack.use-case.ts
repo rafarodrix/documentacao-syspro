@@ -36,13 +36,14 @@ export async function processAck(
   }
 
   const executedAt = deps.now ? deps.now() : new Date();
+  const normalizedMessage = normalizeMessage(input.message);
 
   await deps.port.persistAck({
     hostId: host.hostId,
     commandId: command.id,
     status: input.status,
     reasonCode: reasonCode!,
-    message: normalizeMessage(input.message),
+    message: normalizedMessage,
     details: input.details ?? null,
     executedAt,
   });
@@ -52,6 +53,9 @@ export async function processAck(
     commandId: command.id,
     commandType: command.type,
     status: input.status,
+    reasonCode: reasonCode!,
+    message: normalizedMessage,
+    hasDetails: Boolean(input.details && Object.keys(input.details).length > 0),
   });
 
   return {

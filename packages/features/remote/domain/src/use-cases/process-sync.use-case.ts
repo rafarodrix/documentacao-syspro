@@ -202,6 +202,12 @@ export async function processSync(
   const windowsUpdateStatus = normalizeOptionalRecordWithWarning(input.windowsUpdateStatus, "SYNC_INVALID_WINDOWS_UPDATE_STATUS", warnings);
   const rebootPending = normalizeOptionalBooleanWithWarning(input.rebootPending, "SYNC_INVALID_REBOOT_PENDING", warnings);
   const agentMetrics = normalizeOptionalRecordWithWarning(input.agentMetrics, "SYNC_INVALID_AGENT_METRICS", warnings);
+  const missingExtendedSnapshots = [
+    !hardwareIdentity ? "hardwareIdentity" : null,
+    diskSnapshot.length === 0 ? "diskSnapshot" : null,
+    sysproProcesses.length === 0 ? "sysproProcesses" : null,
+    !windowsUpdateStatus ? "windowsUpdateStatus" : null,
+  ].filter((value): value is string => Boolean(value));
 
   const inventory = await deps.port.getInventorySnapshot(context.hostId);
   const dayStart = getStartOfDay(heartbeatAt);
@@ -232,6 +238,17 @@ export async function processSync(
     await deps.port.logWarning("remote.domain.sync.payload_warnings", {
       hostId: context.hostId,
       warnings,
+    });
+  }
+
+  if (missingExtendedSnapshots.length > 0) {
+    await deps.port.logWarning("remote.domain.sync.extended_inventory_missing", {
+      hostId: context.hostId,
+      missing: missingExtendedSnapshots,
+      hasSystemSnapshot: Boolean(systemSnapshot),
+      hasNetworkSnapshot: Boolean(networkSnapshot),
+      hasSoftwareSnapshot: softwareSnapshot.length > 0,
+      hasAgentMetrics: Boolean(agentMetrics),
     });
   }
 
@@ -328,5 +345,4 @@ export async function processSync(
     },
   };
 }
-
 

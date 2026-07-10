@@ -160,6 +160,33 @@ describe("agent token lifecycle", () => {
     expect(port.persistSync).toHaveBeenCalledOnce();
   });
 
+  it("logs an explicit warning when extended inventory snapshots are missing", async () => {
+    const port = buildSyncPort();
+
+    await processSync(
+      {
+        schemaVersion: "sync.payload.v1",
+        agentToken: "valid-token",
+        machineName: "ERP-MATRIZ-01",
+        agentVersion: "1.4.6",
+      },
+      { port },
+    );
+
+    expect(port.logWarning).toHaveBeenCalledWith(
+      "remote.domain.sync.extended_inventory_missing",
+      expect.objectContaining({
+        hostId: "host-1",
+        missing: expect.arrayContaining([
+          "hardwareIdentity",
+          "diskSnapshot",
+          "sysproProcesses",
+          "windowsUpdateStatus",
+        ]),
+      }),
+    );
+  });
+
   it("replays delivered command queue in sync output (recovery visibility)", async () => {
     const port = buildSyncPort({
       persistSync: vi.fn(async () => ({
@@ -359,6 +386,37 @@ describe("agent token lifecycle", () => {
         { port },
       ),
     ).rejects.toThrow("ACK_REASON_CODE_REQUIRED");
+  });
+
+  it("logs reasonCode and message when ACK FAILED is persisted", async () => {
+    const port = buildAckPort();
+
+    await processAck(
+      {
+        schemaVersion: "ack.payload.v1",
+        agentToken: "valid-token",
+        commandId: "cmd-1",
+        status: "FAILED",
+        reasonCode: "COMMAND_EXECUTION_FAILED",
+        message: "upgrade client failed: exit status 1603",
+        details: {
+          installerLog: "C:/ProgramData/Trilink Agent/logs/rustdesk-msi-install.log",
+        },
+      },
+      { port },
+    );
+
+    expect(port.logInfo).toHaveBeenCalledWith(
+      "remote.domain.ack.succeeded",
+      expect.objectContaining({
+        commandId: "cmd-1",
+        commandType: "UPGRADE_CLIENT",
+        status: "FAILED",
+        reasonCode: "COMMAND_EXECUTION_FAILED",
+        message: "upgrade client failed: exit status 1603",
+        hasDetails: true,
+      }),
+    );
   });
 
   it("clears linkedHostId when falling back to pending_link (dangling reference resolution)", async () => {

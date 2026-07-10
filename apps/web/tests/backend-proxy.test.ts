@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  createAgentIngressProxyHandler,
   createCatchAllProxyHandler,
   createInternalParamsProxyHandler,
   createInternalStaticProxyHandler,
@@ -66,6 +67,27 @@ describe("backend proxy handler factories", () => {
         method: "GET",
       }),
     );
+  });
+
+  it("preserves the incoming internal api key for agent ingress handlers", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 202 }),
+    );
+    const handler = createAgentIngressProxyHandler("/remote/agents/discover");
+    const request = new Request("https://portal.example.com/api/remote/agents/discover", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-internal-api-key": "agent-sent-key",
+      },
+      body: JSON.stringify({ machineName: "SERVIDOR" }),
+    });
+
+    const response = await handler(request);
+
+    expect(response.status).toBe(202);
+    const [, options] = fetchMock.mock.calls[0]!;
+    expect((options?.headers as Headers).get("x-internal-api-key")).toBe("agent-sent-key");
   });
 
   it("creates a params proxy handler", async () => {

@@ -31,6 +31,8 @@ type ProxyOptions = {
   headers?: HeadersInit;
   // Injeta `x-internal-api-key` para endpoints internos do backend.
   internal?: boolean;
+  // Preserva a chave interna recebida no request quando o chamador ja envia o header.
+  preserveIncomingInternalApiKey?: boolean;
 };
 
 type ProxyHandlerOptions = Omit<ProxyOptions, "path" | "body">;
@@ -49,6 +51,7 @@ export function createBackendProxyHeaders(
   request: ProxyRequest,
   headers?: HeadersInit,
   internal = false,
+  preserveIncomingInternalApiKey = false,
 ): Headers {
   const upstreamHeaders = new Headers(headers ?? request.headers);
   upstreamHeaders.delete("host");
@@ -62,6 +65,13 @@ export function createBackendProxyHeaders(
   upstreamHeaders.delete("trailer");
   upstreamHeaders.delete("transfer-encoding");
   upstreamHeaders.delete("upgrade");
+  if (
+    internal &&
+    preserveIncomingInternalApiKey &&
+    upstreamHeaders.get("x-internal-api-key")?.trim()
+  ) {
+    return upstreamHeaders;
+  }
   return internal ? withInternalApiHeaders(upstreamHeaders) : upstreamHeaders;
 }
 
@@ -79,6 +89,13 @@ export function createStaticProxyHandler(
 
 export function createInternalStaticProxyHandler(path: string) {
   return createStaticProxyHandler(path, { internal: true });
+}
+
+export function createAgentIngressProxyHandler(path: string) {
+  return createStaticProxyHandler(path, {
+    internal: true,
+    preserveIncomingInternalApiKey: true,
+  });
 }
 
 export function createParamsProxyHandler<TParams extends Record<string, string>>(
@@ -122,7 +139,7 @@ export function createCatchAllProxyHandler(
 
 export async function proxyToBackend(
   request: ProxyRequest,
-  { path, method, body, headers, internal = false }: ProxyOptions,
+  { path, method, body, headers, internal = false, preserveIncomingInternalApiKey = false }: ProxyOptions,
 ): Promise<Response> {
   const resolvedMethod = method ?? request.method;
   const search = new URL(request.url).search;
@@ -131,7 +148,12 @@ export async function proxyToBackend(
     request.headers.get("x-correlation-id") ??
     request.headers.get("x-request-id") ??
     crypto.randomUUID();
-  const upstreamHeaders = createBackendProxyHeaders(request, headers, internal);
+  const upstreamHeaders = createBackendProxyHeaders(
+    request,
+    headers,
+    internal,
+    preserveIncomingInternalApiKey,
+  );
   upstreamHeaders.set("x-correlation-id", correlationId);
   const shouldReadIncomingBody =
     body === undefined &&

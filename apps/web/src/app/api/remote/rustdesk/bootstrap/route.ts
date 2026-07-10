@@ -1,5 +1,5 @@
-import { createInternalStaticProxyHandler } from "@/app/api/_shared/backend-proxy";
+import { createAgentIngressProxyHandler } from "@/app/api/_shared/backend-proxy";
 
 export const dynamic = "force-dynamic";
 
-export const POST = createInternalStaticProxyHandler("/remote/rustdesk/bootstrap");
+export const POST = createAgentIngressProxyHandler("/remote/rustdesk/bootstrap");
