@@ -152,7 +152,6 @@ export namespace uistate {
 	    os?: string;
 	    localUsername?: string;
 	    agentVersion?: string;
-	    agentEnvironment?: string;
 	    contactName?: string;
 	    description?: string;
 	
@@ -177,7 +176,6 @@ export namespace uistate {
 	        this.os = source["os"];
 	        this.localUsername = source["localUsername"];
 	        this.agentVersion = source["agentVersion"];
-	        this.agentEnvironment = source["agentEnvironment"];
 	        this.contactName = source["contactName"];
 	        this.description = source["description"];
 	    }

@@ -45,6 +45,8 @@ Source: "{#SourceDir}\agent-service.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\agent-ui.exe"; DestDir: "{app}"; Flags: ignoreversion restartreplace
 Source: "{#SourceDir}\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\stop-agent.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "{#SourceDir}\scripts\configure-agent-helper.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "{#SourceDir}\scripts\configure_agent_helper.ps1"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\open-config.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\open-logs.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\config\.env.example"; DestDir: "{app}\config"; Flags: ignoreversion
@@ -55,6 +57,7 @@ Source: "{#SourceDir}\rustdesk\*"; DestDir: "{app}\rustdesk"; Flags: ignoreversi
 [Icons]
 Name: "{group}\Iniciar Interface do Agente"; Filename: "{app}\agent-ui.exe"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
 Name: "{group}\Parar Interface do Agente"; Filename: "{app}\scripts\stop-agent.cmd"; WorkingDir: "{app}"
+Name: "{group}\Configurar agente"; Filename: "{app}\scripts\configure-agent-helper.cmd"; WorkingDir: "{app}\scripts"
 Name: "{group}\Editar configuracao"; Filename: "{app}\scripts\open-config.cmd"; WorkingDir: "{app}"
 Name: "{group}\Abrir logs"; Filename: "{app}\scripts\open-logs.cmd"; WorkingDir: "{app}"
 Name: "{autodesktop}\Agente Trilink"; Filename: "{app}\agent-ui.exe"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon

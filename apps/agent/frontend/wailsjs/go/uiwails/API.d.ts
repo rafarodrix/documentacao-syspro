@@ -12,9 +12,9 @@ export function GetSupportSession():Promise<uistate.SupportSession>;
 
 export function ListNotifications():Promise<Array<uistate.Notification>>;
 
-export function OpenSetupExperience():Promise<uistate.ActionResult>;
-
 export function OpenRemoteClient():Promise<uistate.ActionResult>;
+
+export function OpenSetupExperience():Promise<uistate.ActionResult>;
 
 export function OpenSupportConversation():Promise<uistate.ActionResult>;
 

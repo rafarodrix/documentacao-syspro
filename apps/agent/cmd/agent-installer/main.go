@@ -58,6 +58,7 @@ type installerBuilder struct {
 	agentRoot       string
 	installerRoot   string
 	sourceDeployDir string
+	sourceUIBuilds  []string
 	stageRoot       string
 	outputRoot      string
 	runtimeRoot     string
@@ -72,6 +73,11 @@ func newInstallerBuilder(agentRoot string) installerBuilder {
 		agentRoot:       agentRoot,
 		installerRoot:   installerRoot,
 		sourceDeployDir: filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64"),
+		sourceUIBuilds: []string{
+			filepath.Join(agentRoot, "build", "bin", "agent-ui.exe"),
+			filepath.Join(agentRoot, "build", "bin", "agent-ui"),
+			filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64", "agent-ui.exe"),
+		},
 		stageRoot:       filepath.Join(agentRoot, "dist", "windows-installer", "staging"),
 		outputRoot:      filepath.Join(agentRoot, "dist", "windows-installer", "output"),
 		runtimeRoot:     filepath.Join(installerRoot, "runtime"),
@@ -84,6 +90,10 @@ func newInstallerBuilder(agentRoot string) installerBuilder {
 func (b installerBuilder) stage() error {
 	if _, err := os.Stat(b.sourceDeployDir); err != nil {
 		return fmt.Errorf("pacote base nao encontrado: %s", b.sourceDeployDir)
+	}
+	uiBinary, err := b.resolveUIBinary()
+	if err != nil {
+		return err
 	}
 
 	if err := emptyOrCreateDir(b.stageRoot); err != nil {
@@ -103,13 +113,15 @@ func (b installerBuilder) stage() error {
 
 	copyPairs := [][2]string{
 		{filepath.Join(b.sourceDeployDir, "agent-service.exe"), filepath.Join(b.stageRoot, "agent-service.exe")},
-		{filepath.Join(b.sourceDeployDir, "agent-ui.exe"), filepath.Join(b.stageRoot, "agent-ui.exe")},
+		{uiBinary, filepath.Join(b.stageRoot, "agent-ui.exe")},
 		{filepath.Join(b.agentRoot, "assets", "icon.ico"), filepath.Join(b.stageRoot, "icon.ico")},
 		{filepath.Join(b.agentRoot, "assets", "img", "logo-clara.png"), filepath.Join(b.stageRoot, "assets", "img", "logo-clara.png")},
 		{filepath.Join(b.agentRoot, "assets", "img", "logo-escura.png"), filepath.Join(b.stageRoot, "assets", "img", "logo-escura.png")},
 		{filepath.Join(b.runtimeRoot, "stop-agent.cmd"), filepath.Join(b.stageRoot, "scripts", "stop-agent.cmd")},
 		{filepath.Join(b.runtimeRoot, "open-config.cmd"), filepath.Join(b.stageRoot, "scripts", "open-config.cmd")},
 		{filepath.Join(b.runtimeRoot, "open-logs.cmd"), filepath.Join(b.stageRoot, "scripts", "open-logs.cmd")},
+		{filepath.Join(b.runtimeRoot, "configure-agent-helper.cmd"), filepath.Join(b.stageRoot, "scripts", "configure-agent-helper.cmd")},
+		{filepath.Join(b.agentRoot, "configure_agent_helper.ps1"), filepath.Join(b.stageRoot, "scripts", "configure_agent_helper.ps1")},
 	}
 
 	for _, pair := range copyPairs {
@@ -169,6 +181,18 @@ func (b installerBuilder) resolveVersion() (string, error) {
 		}
 	}
 	return "1.0.0", nil
+}
+
+func (b installerBuilder) resolveUIBinary() (string, error) {
+	for _, candidate := range b.sourceUIBuilds {
+		if fileExists(candidate) {
+			return candidate, nil
+		}
+	}
+
+	return "", fmt.Errorf(
+		"agent-ui build nao encontrado. Gere a UI com Wails antes de montar o instalador (ex.: wails build -clean -platform windows/amd64 -nopackage -o agent-ui.exe)",
+	)
 }
 
 func (b installerBuilder) copyEnvSeed() error {
@@ -279,6 +303,7 @@ Configuracao:
 Operacao:
 - Iniciar: agent-ui.exe
 - Parar: scripts\stop-agent.cmd
+- Configuracao assistida: scripts\configure-agent-helper.cmd
 - Editar config: scripts\open-config.cmd
 - Logs: scripts\open-logs.cmd
 `
