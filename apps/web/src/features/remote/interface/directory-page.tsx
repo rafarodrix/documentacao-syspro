@@ -125,6 +125,7 @@ export function RemotePlatformDirectoryPanel({
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [isCreatingQuickHost, setIsCreatingQuickHost] = useState(false);
   const [showPendingItems, setShowPendingItems] = useState(false);
+  const [linkingPendingId, setLinkingPendingId] = useState<string | null>(null);
   const [connectingHostId, setConnectingHostId] = useState<string | null>(null);
   const [hostToDelete, setHostToDelete] = useState<DirectoryItem | null>(null);
   const [isDeletingHost, setIsDeletingHost] = useState(false);
@@ -229,6 +230,8 @@ export function RemotePlatformDirectoryPanel({
   }
 
   async function handleLinkDiscoveredHost(id: PendingDirectoryItem["id"], fallbackName: PendingDirectoryItem["machineName"]) {
+    if (linkingPendingId === id) return;
+
     const companyId = pendingCompanyById[id] ?? directory.companyOptions[0]?.id ?? "";
     const name = (pendingNameById[id] ?? fallbackName ?? "").trim();
 
@@ -245,6 +248,7 @@ export function RemotePlatformDirectoryPanel({
       });
 
     try {
+      setLinkingPendingId(id);
       await tryLink();
       toast.success("Máquina vinculada e convertida em host.");
       startTransition(() => router.refresh());
@@ -263,6 +267,8 @@ export function RemotePlatformDirectoryPanel({
         }
       }
       toast.error(getRemoteApiErrorMessage(error));
+    } finally {
+      setLinkingPendingId((current) => (current === id ? null : current));
     }
   }
 
@@ -614,6 +620,7 @@ export function RemotePlatformDirectoryPanel({
                   const selectedCompanyId = pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? "";
                   const proposedHostName = (pendingNameById[item.id] ?? item.machineName ?? "").trim();
                   const canLinkPendingHost = Boolean(selectedCompanyId && proposedHostName);
+                  const isLinkingPendingHost = linkingPendingId === item.id;
 
                   return (
                     <div
@@ -653,10 +660,10 @@ export function RemotePlatformDirectoryPanel({
                           type="button"
                           size="sm"
                           onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}
-                          disabled={!canLinkPendingHost}
+                          disabled={!canLinkPendingHost || isLinkingPendingHost}
                           className="h-8"
                         >
-                          Vincular
+                          {isLinkingPendingHost ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular"}
                         </Button>
                         {canManageRemote && (
                           <Button
