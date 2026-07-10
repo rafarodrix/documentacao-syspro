@@ -282,7 +282,7 @@ export class ChatwootClient {
       custom_attributes?: Record<string, unknown>;
     },
   ) {
-    const inboxIdentifier = await this.resolveInboxIdentifier(config);
+    const inboxIdentifier = await this.getPreferredPublicInboxIdentifier(config);
     if (inboxIdentifier) {
       try {
         return await this.request(
@@ -325,7 +325,7 @@ export class ChatwootClient {
   // ──────────────────────────────────────────────────────
 
   async createConversation(config: ChatwootConnectionConfig, contactIdentifier: string, contactId?: string) {
-    const inboxIdentifier = await this.resolveInboxIdentifier(config);
+    const inboxIdentifier = await this.getPreferredPublicInboxIdentifier(config);
     if (inboxIdentifier) {
       try {
         const result = await this.request(
@@ -450,7 +450,7 @@ export class ChatwootClient {
     content: string,
     attachment?: { base64: string; mimetype: string; filename: string; publicUrl?: string },
   ): Promise<any> {
-    const inboxIdentifier = await this.resolveInboxIdentifier(config);
+    const inboxIdentifier = await this.getPreferredPublicInboxIdentifier(config);
     const echoId = this.buildEchoId();
     const incomingMediaMode = config.incomingMediaMode ?? 'attachment';
 
@@ -703,6 +703,17 @@ export class ChatwootClient {
   // ──────────────────────────────────────────────────────
   // Internal HTTP
   // ──────────────────────────────────────────────────────
+
+  private async getPreferredPublicInboxIdentifier(
+    config: ChatwootConnectionConfig,
+  ): Promise<string | undefined> {
+    const configuredIdentifier = String(config.inboxIdentifier ?? '').trim();
+    if (configuredIdentifier && !/^\d+$/.test(configuredIdentifier)) {
+      return configuredIdentifier;
+    }
+
+    return this.resolveInboxIdentifier(config);
+  }
 
   private async request(
     config: ChatwootConnectionConfig,
