@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -622,7 +623,17 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		output, err := m.runMSIInstaller(msiCtx, msiArgs)
 		msiCancel()
 		if err != nil {
-			return classifyInstallerError("run msi installer", err, output, logPath)
+			isSuccessExitCode := false
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) {
+				code := exitErr.ExitCode()
+				if code == 3010 || code == 1641 {
+					isSuccessExitCode = true
+				}
+			}
+			if !isSuccessExitCode {
+				return classifyInstallerError("run msi installer", err, output, logPath)
+			}
 		}
 		time.Sleep(3 * time.Second)
 		// Do not leave any auto-launched RustDesk process alive here. The caller

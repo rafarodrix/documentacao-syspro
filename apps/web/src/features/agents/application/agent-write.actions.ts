@@ -28,3 +28,15 @@ export async function deleteAgentDevice(deviceId: string): Promise<void> {
     throw new Error(json?.message ?? `Falha ao excluir dispositivo: ${res.status}`);
   }
 }
+
+export async function pruneInactiveDevices(): Promise<{ deletedDevices: number; deletedDiscovered: number }> {
+  const res = await fetch("/api/agents/prune-inactive", {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => null) as { message?: string } | null;
+    throw new Error(json?.message ?? `Falha ao limpar inativos: ${res.status}`);
+  }
+  return res.json().then((r) => r.data);
+}
+

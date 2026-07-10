@@ -11,6 +11,9 @@ import {
   Loader2,
   RefreshCw,
   ServerOff,
+  MoreVertical,
+  Trash2,
+  Eye,
 } from "lucide-react";
 import type {
   AgentDeviceListResult,
@@ -18,8 +21,19 @@ import type {
   AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Badge, Button, DataTable } from "@dosc-syspro/ui";
+import {
+  Badge,
+  Button,
+  DataTable,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@dosc-syspro/ui";
 import { SearchToolbar } from "@/components/patterns";
+import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
+import { deleteAgentDevice, pruneInactiveDevices } from "@/features/agents/application/agent-write.actions";
+import { toast } from "sonner";
 
 type StatusFilter = "all" | "online" | "offline";
 
@@ -33,6 +47,8 @@ export function AgentDevicesPanel(props: {
   const searchParams = useSearchParams();
   const [isRefreshing, startRefresh] = useTransition();
   const [searchInput, setSearchInput] = useState(initialSearch);
+  const [isPruneDialogOpen, setIsPruneDialogOpen] = useState(false);
+  const [isPruning, startPruning] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const status = (searchParams.get("status") as StatusFilter | null) ?? "all";
@@ -106,21 +122,57 @@ export function AgentDevicesPanel(props: {
           </>
         }
         actions={
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            title="Recarregar"
-            onClick={() => startRefresh(() => router.refresh())}
-            disabled={isRefreshing}
-          >
-            {isRefreshing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 h-9 border-dashed border-muted-foreground/30 hover:border-red-500/50 hover:bg-red-500/5 hover:text-red-600 dark:hover:text-red-400"
+              onClick={() => setIsPruneDialogOpen(true)}
+              disabled={isRefreshing || stats.offline === 0}
+              title="Limpar todos os agentes sem conexão há mais de 30 dias"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Limpar Inativos</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              title="Recarregar"
+              onClick={() => startRefresh(() => router.refresh())}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         }
+      />
+
+      <ConfirmActionDialog
+        open={isPruneDialogOpen}
+        onOpenChange={setIsPruneDialogOpen}
+        title="Limpar agentes inativos?"
+        description="Isso excluirá permanentemente todos os dispositivos não vinculados que estão offline há mais de 30 dias. Esta operação não pode ser desfeita."
+        confirmLabel="Confirmar Limpeza"
+        cancelLabel="Cancelar"
+        isLoading={isPruning}
+        variant="danger"
+        onConfirm={() => {
+          startPruning(async () => {
+            try {
+              const res = await pruneInactiveDevices();
+              toast.success(`Limpeza concluída! ${res.deletedDevices} dispositivo(s) e ${res.deletedDiscovered} registro(s) de descoberta limpos.`);
+              setIsPruneDialogOpen(false);
+              router.refresh();
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Erro ao limpar inativos.");
+            }
+          });
+        }}
       />
 
       <DevicesTable items={list.items} />
@@ -266,6 +318,12 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
         </span>
       ),
     },
+    {
+      id: "actions",
+      header: "",
+      meta: { className: "text-right w-12" },
+      cell: ({ row }) => <DeviceRowActions device={row.original} />,
+    },
   ], []);
 
   const renderMobileItem = (item: AgentDeviceSummary) => (
@@ -345,4 +403,64 @@ function formatRelativeTime(iso: string | null, lagSeconds: number | null): stri
   if (lagSeconds < 3600) return `ha ${Math.floor(lagSeconds / 60)}min`;
   if (lagSeconds < 86400) return `ha ${Math.floor(lagSeconds / 3600)}h`;
   return `ha ${Math.floor(lagSeconds / 86400)}d`;
+}
+
+function DeviceRowActions({ device }: { device: AgentDeviceSummary }) {
+  const router = useRouter();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, startDeleting] = useTransition();
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+            <MoreVertical className="h-4 w-4" />
+            <span className="sr-only">Abrir menu</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem asChild>
+            <Link
+              href={`/portal/infraestrutura/agentes/${encodeURIComponent(device.deviceId)}`}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              <span>Visualizar</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="flex items-center gap-2 text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 cursor-pointer"
+            onClick={() => setIsDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Excluir</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ConfirmActionDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Excluir agente?"
+        description={`O dispositivo "${device.hostname ?? device.deviceId}" será removido do portal e bloqueado.`}
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+        onConfirm={() => {
+          startDeleting(async () => {
+            try {
+              await deleteAgentDevice(device.deviceId);
+              toast.success("Agente excluído com sucesso.");
+              setIsDeleteOpen(false);
+              router.refresh();
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Erro ao excluir agente.");
+            }
+          });
+        }}
+      />
+    </>
+  );
 }

@@ -37,7 +37,7 @@ export function getAtendimentosData(params?: {
           if (
             "message" in payload &&
             Array.isArray(payload.message) &&
-            payload.message.every((item) => typeof item === "string")
+            payload.message.every((item: any) => typeof item === "string")
           ) {
             return payload.message.join(", ");
           }

@@ -833,4 +833,47 @@ export class AgentsService {
       });
     }
   }
+
+  async pruneInactiveDevices(
+    rawHeaders: Record<string, unknown> | undefined,
+  ): Promise<{ success: true; data: { deletedDevices: number; deletedDiscovered: number } }> {
+    await this.authorizationService.assertPermission(rawHeaders as any, 'agents:manage');
+
+    const thresholdDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+
+    // 1. Delete AgentDevices that are offline > 30 days and have no company or remoteHost link
+    const deletedDevicesResult = await this.prisma.agentDevice.deleteMany({
+      where: {
+        lastHeartbeatAt: { lt: thresholdDate },
+        companyId: null,
+        remoteHostId: null,
+      },
+    });
+
+    // 2. Delete RemoteDiscoveredHosts that are offline/unupdated > 30 days and are still pending link
+    const deletedDiscoveredResult = await this.prisma.remoteDiscoveredHost.deleteMany({
+      where: {
+        OR: [
+          { lastHeartbeatAt: { lt: thresholdDate } },
+          { lastHeartbeatAt: null, updatedAt: { lt: thresholdDate } },
+        ],
+        linkedHostId: null,
+        status: 'PENDING_LINK',
+      },
+    });
+
+    this.logger.log({
+      event: 'agent.inactive_pruned',
+      deletedDevices: deletedDevicesResult.count,
+      deletedDiscovered: deletedDiscoveredResult.count,
+    });
+
+    return {
+      success: true,
+      data: {
+        deletedDevices: deletedDevicesResult.count,
+        deletedDiscovered: deletedDiscoveredResult.count,
+      },
+    };
+  }
 }

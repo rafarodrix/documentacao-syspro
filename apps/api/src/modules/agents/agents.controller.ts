@@ -27,6 +27,11 @@ export class AgentsController {
     return this.agentsService.getFleetStats(req.headers as Record<string, unknown>);
   }
 
+  @Post('prune-inactive')
+  pruneInactiveDevices(@Req() req: Request) {
+    return this.agentsService.pruneInactiveDevices(req.headers as Record<string, unknown>);
+  }
+
   @Get()
   listDevices(
     @Req() req: Request,
