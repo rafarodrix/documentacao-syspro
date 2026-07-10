@@ -6,6 +6,10 @@ describe("ProcessIncomingMessageUseCase reactions", () => {
     createPrivateNote: vi.fn(),
     createIncomingMessage: vi.fn(),
     getConversationDetails: vi.fn(),
+    createOrFindContact: vi.fn(),
+    getContactableInboxes: vi.fn(),
+    listConversations: vi.fn(),
+    createConversation: vi.fn(),
   };
 
   const prisma = {
@@ -69,13 +73,57 @@ describe("ProcessIncomingMessageUseCase reactions", () => {
       connectionId: null,
     });
     prisma.conversationLink.findMany.mockResolvedValue([]);
-    prisma.companyContact.findFirst.mockResolvedValue({
-      id: "contact-local-1",
-      whatsapp: "5511999999999",
-      name: "Cliente Teste",
-      status: "ACTIVE",
-      companyLinks: [],
+    prisma.companyContact.findFirst.mockImplementation(async (args: any) => {
+      if (args?.where?.status === "ARCHIVED") {
+        return null;
+      }
+
+      return {
+        id: "contact-local-1",
+        whatsapp: "5511999999999",
+        name: "Cliente Teste",
+        status: "ACTIVE",
+        companyLinks: [],
+      };
     });
+    prisma.conversationLink.create.mockResolvedValue({
+      id: "link-1",
+      whatsappNumber: "5511999999999",
+      chatwootConversationId: "conv-new",
+      chatwootContactId: "source-123",
+      connectionKey: "env:default",
+      companyId: null,
+      connectionId: null,
+      lastInboundWhatsappNumber: "5511999999999",
+    });
+    prisma.conversationLink.update.mockImplementation(async ({ data, where }: any) => ({
+      id: where?.id ?? "link-1",
+      whatsappNumber: "5511999999999",
+      chatwootConversationId: data?.chatwootConversationId ?? "conv-1",
+      chatwootContactId: "source-123",
+      connectionKey: "env:default",
+      companyId: null,
+      connectionId: null,
+      lastInboundWhatsappNumber: data?.lastInboundWhatsappNumber ?? "5511999999999",
+    }));
+    chatwootClient.createOrFindContact.mockResolvedValue({
+      payload: {
+        contact: {
+          id: "42",
+          source_id: "source-123",
+          contact_inboxes: [
+            {
+              source_id: "source-123",
+              inbox_id: "2",
+              inbox: { id: "2", identifier: "whatsapp" },
+            },
+          ],
+        },
+      },
+    });
+    chatwootClient.getContactableInboxes.mockResolvedValue([]);
+    chatwootClient.listConversations.mockResolvedValue([]);
+    chatwootClient.createConversation.mockResolvedValue({ id: "conv-new" });
     service = new ProcessIncomingMessageUseCase(
       chatwootClient as any,
       prisma as any,
@@ -307,6 +355,104 @@ describe("ProcessIncomingMessageUseCase reactions", () => {
       "conv-1",
       "Mensagem com swap",
       undefined,
+    );
+  });
+
+  it("reuses an existing active Chatwoot conversation before creating a new local link", async () => {
+    prisma.conversationLink.findUnique.mockResolvedValueOnce(null);
+    chatwootClient.listConversations.mockResolvedValueOnce([
+      {
+        id: "conv-open-2",
+        status: "open",
+        inbox_id: "2",
+        contact_inbox: { source_id: "source-123" },
+        meta: { sender: { phone_number: "+55 11 99999-9999" } },
+      },
+    ]);
+
+    const connection = {
+      connectionKey: "env:default",
+      connectionId: "conn-1",
+      companyId: null,
+      chatwoot: {
+        url: "https://chat.example.com",
+        apiToken: "token",
+        accountId: "1",
+        inboxId: "2",
+        inboxIdentifier: "whatsapp",
+      },
+      evolution: {},
+    };
+
+    const result = await service["resolveOrCreateConversationLink"](
+      "5511999999999",
+      "Cliente Teste",
+      connection as any,
+      { csatPendingTimeoutHours: 24 } as any,
+      { interactionKind: "message", messageId: "msg-1", textContent: "Oi" },
+    );
+
+    expect(result).toEqual({
+      contactIdentifier: "source-123",
+      conversationId: "conv-open-2",
+    });
+    expect(chatwootClient.createConversation).not.toHaveBeenCalled();
+    expect(prisma.conversationLink.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          chatwootConversationId: "conv-open-2",
+          chatwootContactId: "source-123",
+        }),
+      }),
+    );
+  });
+
+  it("reuses another active Chatwoot conversation when the linked conversation is already resolved", async () => {
+    chatwootClient.getConversationDetails.mockResolvedValueOnce({
+      id: "conv-resolved-1",
+      status: "resolved",
+      custom_attributes: {},
+    });
+    chatwootClient.listConversations.mockResolvedValueOnce([
+      {
+        id: "conv-open-3",
+        status: "open",
+        inbox_id: "2",
+        contact_inbox: { source_id: "source-123" },
+        meta: { sender: { phone_number: "+55 11 99999-9999" } },
+      },
+    ]);
+
+    const link = await service["applyResolvedConversationReusePolicy"](
+      {
+        id: "link-1",
+        chatwootConversationId: "conv-resolved-1",
+        chatwootContactId: "source-123",
+      },
+      {
+        connectionKey: "env:default",
+        chatwoot: {
+          url: "https://chat.example.com",
+          apiToken: "token",
+          accountId: "1",
+          inboxId: "2",
+          inboxIdentifier: "whatsapp",
+        },
+      } as any,
+      "5511999999999",
+      { csatPendingTimeoutHours: 24 } as any,
+      { interactionKind: "message", messageId: "msg-2", textContent: "Nova mensagem" },
+    );
+
+    expect(link.chatwootConversationId).toBe("conv-open-3");
+    expect(chatwootClient.createConversation).not.toHaveBeenCalled();
+    expect(prisma.conversationLink.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "link-1" },
+        data: expect.objectContaining({
+          chatwootConversationId: "conv-open-3",
+        }),
+      }),
     );
   });
 });

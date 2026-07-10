@@ -1849,15 +1849,26 @@ export class ProcessIncomingMessageUseCase {
           );
         }
 
-        const convResponse = (await this.chatwootClient.createConversation(
-          connection.chatwoot,
-          contactIdentifier,
-          contact?.id?.toString?.()
-        )) as any;
-        conversationId =
-          convResponse?.id?.toString?.() ??
-          convResponse?.payload?.id?.toString?.() ??
-          convResponse?.conversation?.id?.toString?.();
+        const reusableConversationId = await this.findReusableActiveConversationId(
+          connection,
+          {
+            phone,
+            contactIdentifier,
+          },
+        );
+        if (reusableConversationId) {
+          conversationId = reusableConversationId;
+        } else {
+          const convResponse = (await this.chatwootClient.createConversation(
+            connection.chatwoot,
+            contactIdentifier,
+            contact?.id?.toString?.()
+          )) as any;
+          conversationId =
+            convResponse?.id?.toString?.() ??
+            convResponse?.payload?.id?.toString?.() ??
+            convResponse?.conversation?.id?.toString?.();
+        }
         if (!conversationId) {
           throw new Error(`Nao foi possivel resolver id da conversa criada no Chatwoot (contactIdentifier=${contactIdentifier})`);
         }
@@ -2063,14 +2074,22 @@ export class ProcessIncomingMessageUseCase {
         return link;
       }
 
-      const convResponse = await this.chatwootClient.createConversation(
-        connection.chatwoot,
-        String(link.chatwootContactId),
+      const reusableConversationId = await this.findReusableActiveConversationId(
+        connection,
+        {
+          phone,
+          contactIdentifier: String(link.chatwootContactId),
+          excludeConversationId: String(link.chatwootConversationId),
+        },
       );
       const newConversationId =
-        convResponse?.id?.toString?.() ??
-        convResponse?.payload?.id?.toString?.() ??
-        convResponse?.conversation?.id?.toString?.();
+        reusableConversationId ??
+        this.extractChatwootConversationId(
+          await this.chatwootClient.createConversation(
+            connection.chatwoot,
+            String(link.chatwootContactId),
+          ),
+        );
 
       if (!newConversationId || newConversationId === link.chatwootConversationId) {
         return link;
@@ -2108,6 +2127,179 @@ export class ProcessIncomingMessageUseCase {
       }));
       return link;
     }
+  }
+
+  private async findReusableActiveConversationId(
+    connection: ResolvedIntegrationContext,
+    input: {
+      phone: string;
+      contactIdentifier: string;
+      excludeConversationId?: string;
+    },
+  ): Promise<string | null> {
+    const queries = Array.from(
+      new Set(
+        [
+          input.contactIdentifier,
+          input.phone,
+          input.phone ? `+${input.phone}` : null,
+        ]
+          .map((value) => String(value ?? '').trim())
+          .filter(Boolean),
+      ),
+    );
+
+    for (const status of ['open', 'pending', 'snoozed'] as const) {
+      for (const query of queries) {
+        let conversations: any[] = [];
+        try {
+          conversations = await this.chatwootClient.listConversations(connection.chatwoot, {
+            page: 1,
+            status,
+            q: query,
+          });
+        } catch (error: any) {
+          this.logger.warn(JSON.stringify({
+            flow: 'evolution_to_chatwoot',
+            stage: 'active_conversation_lookup_failed',
+            connectionKey: connection.connectionKey,
+            whatsappNumber: input.phone,
+            contactIdentifier: input.contactIdentifier,
+            query,
+            status,
+            error: error?.message ?? 'unknown_error',
+          }));
+          continue;
+        }
+
+        const match = conversations.find((conversation: any) => {
+          const conversationId = this.extractChatwootConversationId(conversation);
+          if (!conversationId || conversationId === input.excludeConversationId) {
+            return false;
+          }
+
+          return (
+            this.matchesChatwootConversationInbox(conversation, connection.chatwoot) &&
+            this.matchesChatwootConversationContact(conversation, input)
+          );
+        });
+
+        const conversationId = this.extractChatwootConversationId(match);
+        if (!conversationId) {
+          continue;
+        }
+
+        this.logger.log(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'active_conversation_reused_from_chatwoot',
+          connectionKey: connection.connectionKey,
+          whatsappNumber: input.phone,
+          contactIdentifier: input.contactIdentifier,
+          chatwootConversationId: conversationId,
+          query,
+          status,
+        }));
+        return conversationId;
+      }
+    }
+
+    return null;
+  }
+
+  private matchesChatwootConversationInbox(
+    conversation: any,
+    config: ResolvedIntegrationContext['chatwoot'],
+  ): boolean {
+    const configuredInboxId = String(config.inboxId ?? '').trim();
+    const configuredInboxIdentifier = String(config.inboxIdentifier ?? '').trim();
+
+    const inboxIds = [
+      conversation?.inbox_id,
+      conversation?.inbox?.id,
+      conversation?.meta?.inbox?.id,
+      conversation?.conversation?.inbox_id,
+      conversation?.conversation?.inbox?.id,
+    ]
+      .map((value) => String(value ?? '').trim())
+      .filter(Boolean);
+
+    const inboxIdentifiers = [
+      conversation?.inbox_identifier,
+      conversation?.inbox?.identifier,
+      conversation?.meta?.inbox?.identifier,
+      conversation?.conversation?.inbox_identifier,
+      conversation?.conversation?.inbox?.identifier,
+    ]
+      .map((value) => String(value ?? '').trim())
+      .filter(Boolean);
+
+    if (configuredInboxIdentifier && inboxIdentifiers.includes(configuredInboxIdentifier)) {
+      return true;
+    }
+    if (configuredInboxId && inboxIds.includes(configuredInboxId)) {
+      return true;
+    }
+
+    return inboxIds.length === 0 && inboxIdentifiers.length === 0;
+  }
+
+  private matchesChatwootConversationContact(
+    conversation: any,
+    input: { phone: string; contactIdentifier: string },
+  ): boolean {
+    const sourceCandidates = [
+      conversation?.contact_inbox?.source_id,
+      conversation?.meta?.sender?.source_id,
+      conversation?.contact?.source_id,
+      conversation?.contact?.identifier,
+      conversation?.contact?.id,
+      conversation?.meta?.sender?.id,
+      conversation?.conversation?.contact_inbox?.source_id,
+      conversation?.conversation?.meta?.sender?.source_id,
+      conversation?.conversation?.contact?.source_id,
+      conversation?.conversation?.contact?.identifier,
+      conversation?.conversation?.contact?.id,
+    ]
+      .map((value) => String(value ?? '').trim())
+      .filter(Boolean);
+
+    if (sourceCandidates.includes(input.contactIdentifier)) {
+      return true;
+    }
+
+    const normalizedPhone = onlyDigits(input.phone);
+    if (!normalizedPhone) {
+      return false;
+    }
+
+    const phoneCandidates = [
+      conversation?.meta?.sender?.phone_number,
+      conversation?.contact?.phone_number,
+      conversation?.conversation?.meta?.sender?.phone_number,
+      conversation?.conversation?.contact?.phone_number,
+    ]
+      .map((value) => onlyDigits(value))
+      .filter(Boolean);
+
+    return phoneCandidates.includes(normalizedPhone);
+  }
+
+  private extractChatwootConversationId(conversation: any): string | null {
+    const candidates = [
+      conversation?.id,
+      conversation?.payload?.id,
+      conversation?.conversation?.id,
+      conversation?.meta?.id,
+    ];
+
+    for (const candidate of candidates) {
+      const normalized = String(candidate ?? '').trim();
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return null;
   }
 
   private normalizeConversationStatus(value: unknown): string {

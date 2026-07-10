@@ -131,11 +131,17 @@ export function SupportAtendimentosSubtab() {
   }, [from, to, assigneeId, contact, refreshTick]);
 
   useEffect(() => {
+    const todayRange = buildRangePreset("today");
+    const shouldAutoRefresh = from === todayRange.from && to === todayRange.to;
+    if (!shouldAutoRefresh) {
+      return;
+    }
+
     const timer = window.setInterval(() => {
       setRefreshTick((current) => current + 1);
     }, 60_000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [from, to]);
 
   const csatBase = useMemo(() => Math.max(data?.csatResponseCount ?? 0, 1), [data?.csatResponseCount]);
   const statusHighlights = useMemo(
@@ -165,12 +171,26 @@ export function SupportAtendimentosSubtab() {
     const next = buildRangePreset(preset);
     setFrom(next.from);
     setTo(next.to);
+    if (preset === "7d" || preset === "30d") {
+      setAssigneeId("");
+      setContact("");
+    }
   };
 
   const isPresetActive = (preset: "today" | "7d" | "30d") => {
     const range = buildRangePreset(preset);
     return from === range.from && to === range.to;
   };
+
+  const activePreset = isPresetActive("today")
+    ? "today"
+    : isPresetActive("7d")
+      ? "7d"
+      : isPresetActive("30d")
+        ? "30d"
+        : "custom";
+
+  const shouldHideDetailFilters = activePreset === "7d" || activePreset === "30d";
 
   return (
     <div className="space-y-5">
@@ -214,45 +234,47 @@ export function SupportAtendimentosSubtab() {
             </Button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="space-y-2">
-              <Label htmlFor="atendimentos-from">De</Label>
-              <Input id="atendimentos-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="atendimentos-to">Ate</Label>
-              <Input id="atendimentos-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Atendente</Label>
-              <Select value={assigneeId || "__all__"} onValueChange={(value) => setAssigneeId(value === "__all__" ? "" : value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos</SelectItem>
-                  {(data?.assigneeOptions ?? []).map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="atendimentos-contact">Contato</Label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="atendimentos-contact"
-                  value={contact}
-                  onChange={(event) => setContact(event.target.value)}
-                  placeholder="Nome, telefone ou identificador"
-                  className="pl-9"
-                />
+          {shouldHideDetailFilters ? null : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="atendimentos-from">De</Label>
+                <Input id="atendimentos-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="atendimentos-to">Ate</Label>
+                <Input id="atendimentos-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Atendente</Label>
+                <Select value={assigneeId || "__all__"} onValueChange={(value) => setAssigneeId(value === "__all__" ? "" : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todos</SelectItem>
+                    {(data?.assigneeOptions ?? []).map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="atendimentos-contact">Contato</Label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="atendimentos-contact"
+                    value={contact}
+                    onChange={(event) => setContact(event.target.value)}
+                    placeholder="Nome, telefone ou identificador"
+                    className="pl-9"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

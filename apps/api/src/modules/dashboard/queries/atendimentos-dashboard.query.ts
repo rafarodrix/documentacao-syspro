@@ -84,7 +84,9 @@ type ConversationLoadResult = {
 
 @Injectable()
 export class AtendimentosDashboardQuery {
-  private static readonly CACHE_TTL_MS = 45_000;
+  private static readonly LIVE_CACHE_TTL_MS = 45_000;
+  private static readonly WEEKLY_CACHE_TTL_MS = 120_000;
+  private static readonly MONTHLY_CACHE_TTL_MS = 300_000;
   private static readonly PAGE_LIMIT = 30;
   private readonly cache = new Map<string, { expiresAt: number; payload: any }>();
   private readonly logger = new Logger(AtendimentosDashboardQuery.name);
@@ -118,6 +120,7 @@ export class AtendimentosDashboardQuery {
       contactQuery || '__all__',
     ].join('|');
     const forceRefresh = Boolean(filters?.refresh);
+    const cacheTtlMs = this.resolveCacheTtlMs(periodStart, periodEnd);
     const cached = this.cache.get(cacheKey);
     if (!forceRefresh && cached && cached.expiresAt > Date.now()) {
       return cached.payload;
@@ -633,7 +636,7 @@ export class AtendimentosDashboardQuery {
         periodStart: periodStart.toISOString(),
         periodEnd: periodEnd.toISOString(),
         refreshedAt: new Date().toISOString(),
-        cacheTtlSeconds: Math.floor(AtendimentosDashboardQuery.CACHE_TTL_MS / 1000),
+        cacheTtlSeconds: Math.floor(cacheTtlMs / 1000),
         appliedAssigneeId: assigneeId || undefined,
         appliedContactQuery: contactQuery || undefined,
         totalCount: filteredConversations.length,
@@ -692,7 +695,7 @@ export class AtendimentosDashboardQuery {
     };
 
     this.cache.set(cacheKey, {
-      expiresAt: Date.now() + AtendimentosDashboardQuery.CACHE_TTL_MS,
+      expiresAt: Date.now() + cacheTtlMs,
       payload,
     });
     return payload;
@@ -1055,6 +1058,7 @@ export class AtendimentosDashboardQuery {
     contactQuery: string,
     warning?: string,
   ) {
+    const cacheTtlMs = this.resolveCacheTtlMs(periodStart, periodEnd);
     const statusOrder = ['Novo', 'Sem responsavel', 'Triagem', 'Em andamento', 'Aguardando cliente', 'Aguardando interno', 'Teste', 'Resolvido', 'Arquivado'] as const;
     const channelOrder = ['WHATSAPP', 'EMAIL', 'PORTAL', 'PHONE'] as const;
 
@@ -1064,7 +1068,7 @@ export class AtendimentosDashboardQuery {
         periodStart: periodStart.toISOString(),
         periodEnd: periodEnd.toISOString(),
         refreshedAt: new Date().toISOString(),
-        cacheTtlSeconds: Math.floor(AtendimentosDashboardQuery.CACHE_TTL_MS / 1000),
+        cacheTtlSeconds: Math.floor(cacheTtlMs / 1000),
         appliedAssigneeId: assigneeId || undefined,
         appliedContactQuery: contactQuery || undefined,
         totalCount: 0,
@@ -1114,6 +1118,14 @@ export class AtendimentosDashboardQuery {
     if (uniqueWarnings.length === 0) return undefined;
     if (uniqueWarnings.length === 1) return `Dados parciais do Chatwoot. ${uniqueWarnings[0]}`;
     return `Dados parciais do Chatwoot. ${uniqueWarnings.join(' ')}`;
+  }
+
+  private resolveCacheTtlMs(periodStart: Date, periodEnd: Date) {
+    const rangeMs = Math.max(periodEnd.getTime() - periodStart.getTime(), 0);
+    const rangeDays = rangeMs / 86400000;
+    if (rangeDays >= 29) return AtendimentosDashboardQuery.MONTHLY_CACHE_TTL_MS;
+    if (rangeDays >= 6) return AtendimentosDashboardQuery.WEEKLY_CACHE_TTL_MS;
+    return AtendimentosDashboardQuery.LIVE_CACHE_TTL_MS;
   }
 
   private buildContextWarning(context: ResolvedIntegrationContext, error: unknown) {
