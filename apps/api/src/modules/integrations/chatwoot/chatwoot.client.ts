@@ -452,14 +452,15 @@ export class ChatwootClient {
   ): Promise<any> {
     const inboxIdentifier = await this.resolveInboxIdentifier(config);
     const echoId = this.buildEchoId();
+    const incomingMediaMode = config.incomingMediaMode ?? 'attachment';
 
     if (attachment?.base64) {
-      if (attachment.publicUrl && config.incomingMediaMode !== 'attachment') {
+      if (attachment.publicUrl && incomingMediaMode !== 'attachment') {
         const linkContent = this.attachmentResolver.buildAttachmentLinkContent(content, attachment);
         this.logger.log(JSON.stringify({
           flow: 'evolution_to_chatwoot', stage: 'attachment_public_url_forwarded_text',
           conversationId, filename: attachment.filename, mimetype: attachment.mimetype,
-          incomingMediaMode: config.incomingMediaMode ?? 'link',
+          incomingMediaMode,
           storageUrlHost: this.attachmentResolver.extractUrlHost(attachment.publicUrl),
         }));
         return this.createIncomingMessage(config, contactIdentifier, conversationId, linkContent);
@@ -473,7 +474,7 @@ export class ChatwootClient {
           this.logger.log(JSON.stringify({
             flow: 'evolution_to_chatwoot', stage: 'attachment_native_upload_requested',
             conversationId, filename: attachment.filename, mimetype: attachment.mimetype,
-            incomingMediaMode: config.incomingMediaMode ?? 'link',
+            incomingMediaMode,
             storageUrlHost: this.attachmentResolver.extractUrlHost(attachment.publicUrl),
           }));
         }

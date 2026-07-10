@@ -92,6 +92,26 @@ export function ChatwootConnectionForm({
           }
         />
       </FormField>
+      <FormField
+        id="chatwoot-incoming-media-mode"
+        label="Midia inbound no Chatwoot"
+        description="Define se imagens e arquivos vindos do WhatsApp entram como anexo nativo ou apenas como link."
+      >
+        <select
+          id="chatwoot-incoming-media-mode"
+          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          value={integrationSettings.incomingMediaMode}
+          onChange={(event) =>
+            setIntegrationSettings((prev) => ({
+              ...prev,
+              incomingMediaMode: event.target.value as ChatwootIntegrationSettings["incomingMediaMode"],
+            }))
+          }
+        >
+          <option value="attachment">Anexo nativo</option>
+          <option value="link">Somente link</option>
+        </select>
+      </FormField>
     </div>
   );
 }

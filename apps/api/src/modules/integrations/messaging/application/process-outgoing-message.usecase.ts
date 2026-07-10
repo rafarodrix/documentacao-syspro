@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { onlyDigits } from '@dosc-syspro/shared';
 import { EvolutionClient, EvolutionOutboundError } from '../../evolution/evolution.client';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
+import { ChatwootPayloadParser } from '../../chatwoot/chatwoot-payload.parser';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IntegrationWebhookDedupService } from './integration-webhook-dedup.service';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../../../settings/integration-context.service';
@@ -466,9 +467,8 @@ export class ProcessOutgoingMessageUseCase {
     replyToExternalMessageId?: string;
     attachments: any[];
   } {
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
-    const messageId = this.toOptionalString(payload?.id ?? message?.id);
-    const conversationMessage = this.findConversationMessage(payload, messageId);
+    const messageContext = ChatwootPayloadParser.resolveMessageContext(payload);
+    const { message, conversationMessage, messageId, messageType, isPrivate } = messageContext;
     const attachments = this.toArray(
       payload?.attachments ??
       message?.attachments ??
@@ -478,17 +478,12 @@ export class ProcessOutgoingMessageUseCase {
 
     return {
       messageId,
-      messageType: payload?.message_type ?? message?.message_type,
-      isPrivateNote: Boolean(payload?.private ?? message?.private),
+      messageType,
+      isPrivateNote: isPrivate,
       content,
       senderName: this.extractSenderName(payload, message, conversationMessage),
       systemSenderName: this.extractSystemSenderName(payload, message, conversationMessage),
-      chatwootConversationId: this.toOptionalString(
-        payload?.conversation?.id ??
-        payload?.conversation_id ??
-        message?.conversation_id ??
-        message?.conversation?.id
-      ),
+      chatwootConversationId: ChatwootPayloadParser.extractConversationId(payload),
       replyToChatwootMessageId: this.extractReplyToChatwootMessageId(payload, message, conversationMessage),
       replyToExternalMessageId: this.extractReplyToExternalMessageId(payload, message, conversationMessage),
       attachments,

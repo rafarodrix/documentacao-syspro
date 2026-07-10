@@ -69,7 +69,7 @@ export class SettingsChatwootConfigStoreService {
       inboxIdentifier: runtime.inboxIdentifier,
       webhookSecret: this.settingsSecrets.decryptOptional(webhookSecretSetting?.value) ?? runtime.webhookSecret,
       webhookMaxSkewSeconds: runtime.webhookMaxSkewSeconds ?? DEFAULT_CHATWOOT_INTEGRATION_SETTINGS.webhookMaxSkewSeconds,
-      incomingMediaMode: runtime.incomingMediaMode,
+      incomingMediaMode: runtime.incomingMediaMode ?? DEFAULT_CHATWOOT_INTEGRATION_SETTINGS.incomingMediaMode,
       systemBotApiToken: this.settingsSecrets.decryptOptional(systemBotTokenSetting?.value) ?? '',
       isStored: false,
     };

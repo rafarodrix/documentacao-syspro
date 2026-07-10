@@ -321,28 +321,20 @@ export class ChatwootWebhookController {
       return;
     }
 
-    const messageLink = resolvedContext?.connectionKey
+    let messageLink = resolvedContext?.connectionKey
       ? await this.prisma.messageLink.findUnique({
           where: { connectionKey_chatwootMessageId: { connectionKey: resolvedContext.connectionKey, chatwootMessageId } },
         })
-      : await this.prisma.messageLink.findFirst({ where: { chatwootMessageId } });
+      : null;
+
+    if (!messageLink) {
+      messageLink = await this.prisma.messageLink.findFirst({ where: { chatwootMessageId } });
+    }
 
     if (!messageLink?.evolutionMessageId) {
       this.logger.warn(JSON.stringify({
         flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_link_not_found',
         chatwootMessageId, resolvedConnectionKey: resolvedContext?.connectionKey ?? null,
-      }));
-      return;
-    }
-
-    const conversationLink = await this.prisma.conversationLink.findFirst({
-      where: { connectionKey: messageLink.connectionKey, chatwootConversationId: messageLink.chatwootConversationId },
-    });
-    if (!conversationLink?.whatsappNumber) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_remote_jid_not_found',
-        chatwootMessageId, evolutionMessageId: messageLink.evolutionMessageId,
-        connectionKey: messageLink.connectionKey,
       }));
       return;
     }
@@ -360,9 +352,19 @@ export class ChatwootWebhookController {
       return;
     }
 
+    const remoteJid = await this.resolveDeleteRemoteJid(messageLink, integrationContext, chatwootMessageId);
+    if (!remoteJid) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_remote_jid_not_found',
+        chatwootMessageId, evolutionMessageId: messageLink.evolutionMessageId,
+        connectionKey: messageLink.connectionKey,
+      }));
+      return;
+    }
+
     await this.evolutionClient.deleteMessageForEveryone(integrationContext.evolution, {
       messageId: messageLink.evolutionMessageId,
-      remoteJid: conversationLink.whatsappNumber,
+      remoteJid,
       fromMe: true,
     });
 
@@ -373,8 +375,98 @@ export class ChatwootWebhookController {
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution', stage: 'delete_message_propagated',
       chatwootMessageId, evolutionMessageId: messageLink.evolutionMessageId,
-      connectionKey: messageLink.connectionKey, remoteJid: conversationLink.whatsappNumber,
+      connectionKey: messageLink.connectionKey, remoteJid,
     }));
+  }
+
+  private async resolveDeleteRemoteJid(
+    messageLink: {
+      connectionKey: string;
+      chatwootConversationId: string;
+      evolutionMessageId: string;
+    },
+    integrationContext: ResolvedIntegrationContext,
+    chatwootMessageId: string,
+  ): Promise<string | null> {
+    const conversationLink = await this.prisma.conversationLink.findFirst({
+      where: { connectionKey: messageLink.connectionKey, chatwootConversationId: messageLink.chatwootConversationId },
+    });
+    if (conversationLink?.whatsappNumber) {
+      return conversationLink.whatsappNumber;
+    }
+
+    const fallbackRemoteJid = await this.resolveRemoteJidFromConversationDetails(
+      integrationContext,
+      messageLink.chatwootConversationId,
+    );
+    if (fallbackRemoteJid) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'delete_message_remote_jid_resolved_from_conversation',
+        chatwootMessageId,
+        evolutionMessageId: messageLink.evolutionMessageId,
+        connectionKey: messageLink.connectionKey,
+        remoteJid: fallbackRemoteJid,
+      }));
+      return fallbackRemoteJid;
+    }
+
+    return null;
+  }
+
+  private async resolveRemoteJidFromConversationDetails(
+    integrationContext: ResolvedIntegrationContext,
+    chatwootConversationId: string,
+  ): Promise<string | null> {
+    try {
+      const conversation = await this.chatwootClient.getConversationDetails(
+        integrationContext.chatwoot,
+        chatwootConversationId,
+      );
+
+      const candidates = [
+        conversation?.meta?.sender?.phone_number,
+        conversation?.meta?.sender?.identifier,
+        conversation?.meta?.channel,
+        conversation?.contact?.phone_number,
+        conversation?.contact_inbox?.source_id,
+      ];
+
+      for (const candidate of candidates) {
+        const normalized = this.normalizeWhatsappReference(candidate);
+        if (normalized) return normalized;
+      }
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'delete_message_conversation_lookup_failed',
+        chatwootConversationId,
+        connectionKey: integrationContext.connectionKey,
+        error: error?.message ?? 'unknown_error',
+      }));
+    }
+
+    return null;
+  }
+
+  private normalizeWhatsappReference(value: unknown): string | null {
+    const raw = String(value ?? '').trim();
+    if (!raw) return null;
+
+    if (raw.includes('@')) {
+      const [localPart, domain = ''] = raw.split('@');
+      const normalizedDigits = onlyDigits(localPart);
+      const normalizedDomain = domain.trim().toLowerCase();
+      if (
+        normalizedDigits &&
+        ['s.whatsapp.com', 's.whatsapp.net', 'g.us', 'newsletter'].includes(normalizedDomain)
+      ) {
+        return `${normalizedDigits}@${normalizedDomain}`;
+      }
+    }
+
+    const digits = onlyDigits(raw);
+    return digits.length >= 10 ? digits : null;
   }
 
   // ──────────────────────────────────────────────────────

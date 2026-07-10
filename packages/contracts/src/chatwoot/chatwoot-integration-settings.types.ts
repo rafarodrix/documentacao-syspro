@@ -9,7 +9,7 @@ export const chatwootIntegrationSettingsSchema = z.object({
   inboxIdentifier: z.string().trim().max(255).default(""),
   webhookSecret: z.string().trim().max(500).default(""),
   webhookMaxSkewSeconds: z.coerce.number().int().min(1).max(3600).default(300),
-  incomingMediaMode: z.enum(["link", "attachment"]).default("link"),
+  incomingMediaMode: z.enum(["link", "attachment"]).default("attachment"),
 });
 
 export type ChatwootIntegrationSettingsInput = z.input<typeof chatwootIntegrationSettingsSchema>;
@@ -24,7 +24,7 @@ export const DEFAULT_CHATWOOT_INTEGRATION_SETTINGS: ChatwootIntegrationSettings 
   inboxIdentifier: "",
   webhookSecret: "",
   webhookMaxSkewSeconds: 300,
-  incomingMediaMode: "link",
+  incomingMediaMode: "attachment",
 };
 
 export const chatwootIntegrationSettingsResponseSchema = z.object({

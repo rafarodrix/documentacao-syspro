@@ -1,7 +1,7 @@
 ---
 title: "Integração: Chatwoot"
 description: Superfície real da integração Chatwoot no portal, com fluxo operacional, pontos de validação e gaps atuais após as melhorias recentes do Chatwoot Community.
-lastUpdated: 2026-07-09
+lastUpdated: 2026-07-11
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -14,7 +14,7 @@ tags:
 # Integração: Chatwoot
 
 > Página canônica para validar a integração Chatwoot no estado atual do repositório.
-> Atualizado em: 2026-07-09
+> Atualizado em: 2026-07-11
 
 ## O que olhar primeiro
 
@@ -70,7 +70,7 @@ As melhorias recentes do Chatwoot Community impactam principalmente estas áreas
 
 Validar na tela `Integracoes -> Chatwoot`:
 
-- URL, `accountId`, `apiToken`, `platformApiToken`, `inboxId`, `inboxIdentifier`, `webhookSecret` e `webhookMaxSkewSeconds`.
+- URL, `accountId`, `apiToken`, `platformApiToken`, `inboxId`, `inboxIdentifier`, `webhookSecret`, `webhookMaxSkewSeconds` e `incomingMediaMode`.
 - Diagnóstico mostrando `configured`, `source`, `activeConnections` e presença dos segredos.
 - URL do Dashboard App apontando para `/chatwoot/app`.
 - Existência de conexão empresa -> inbox em `settings/integrations/connections`.
@@ -97,8 +97,11 @@ Executar estes cenários:
 Conferir especialmente:
 
 - `x-chatwoot-signature` e `x-chatwoot-timestamp`.
+- consistência entre o ID real da mensagem (`message.id`) e o ID do evento do webhook antes de persistir `message_link`.
+- prioridade do arquivo original do Chatwoot (`download_url`/`file_url`) sobre `thumb_url` ao reenviar imagens.
 - resolução de `in_reply_to_external_id` e fallback por `message_link`.
 - lookup correto de `conversation_link` e `message_link` antes de culpar a Evolution.
+- fallback pelos detalhes da conversa no Chatwoot quando o `conversation_link` já tiver sido liberado após resolução.
 
 Arquivos para inspeção:
 
@@ -198,7 +201,6 @@ Estes pontos merecem revisão direta depois das melhorias do Chatwoot:
 
 | Gap | Situação atual | Onde aparece |
 | --- | --- | --- |
-| `incomingMediaMode` | existe no contrato e no backend, mas não está exposto na UI | `packages/contracts/src/chatwoot/chatwoot-integration-settings.types.ts`, `settings-chatwoot-config-store.service.ts`, `chatwoot-connection-form.tsx` |
 | PFX no fluxo de anexos | Chatwoot melhorou suporte, mas a policy local não lista MIME de PFX | `packages/contracts/src/ticket/ticket-attachment-policy.ts` |
 | Macros nativas do Chatwoot | o portal tem ação rápida local `macro_followup`, não integração nativa com macros do Chatwoot | `apps/web/src/features/tickets/application/ticket-actions.ts` |
 | Assignment V2 | pode sobrepor autoatribuição ou reabertura do portal se a operação habilitar ambos sem critério | `chatwoot-tab.tsx`, `chatwoot-webhook.controller.ts` |

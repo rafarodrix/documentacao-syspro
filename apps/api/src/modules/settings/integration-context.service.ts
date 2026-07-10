@@ -247,7 +247,10 @@ export class IntegrationContextService {
       ...chatwoot,
       ...storedChatwoot,
       webhookMaxSkewSeconds: storedChatwoot.webhookMaxSkewSeconds || chatwoot.webhookMaxSkewSeconds || 300,
-      incomingMediaMode: storedChatwoot.incomingMediaMode || chatwoot.incomingMediaMode,
+      incomingMediaMode:
+        storedChatwoot.incomingMediaMode ||
+        chatwoot.incomingMediaMode ||
+        DEFAULT_CHATWOOT_INTEGRATION_SETTINGS.incomingMediaMode,
     };
     const storedEvolution = await this.evolutionConfig.readStoredSettings();
     const resolvedEvolutionInstance = readTrimmedString(

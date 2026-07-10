@@ -152,4 +152,37 @@ describe("ProcessOutgoingMessageUseCase replies", () => {
       "wamid-target-2",
     );
   });
+
+  it("stores the nested Chatwoot message id when the webhook top-level id is only the event id", async () => {
+    await service.execute(
+      {
+        id: "webhook-event-123",
+        message_type: "outgoing",
+        content: "Mensagem enviada",
+        message: {
+          id: "cw-msg-real-9",
+          message_type: "outgoing",
+          content: "Mensagem enviada",
+        },
+        conversation: {
+          id: "conv-1",
+        },
+      },
+      { connection: connection as any },
+    );
+
+    expect(evolutionClient.sendTextMessage).toHaveBeenCalledWith(
+      connection.evolution,
+      "5511999999999",
+      "Mensagem enviada",
+      "cw-msg-real-9",
+      undefined,
+    );
+    expect(prisma.messageLink.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        chatwootMessageId: "cw-msg-real-9",
+        evolutionMessageId: "evo-msg-1",
+      }),
+    });
+  });
 });

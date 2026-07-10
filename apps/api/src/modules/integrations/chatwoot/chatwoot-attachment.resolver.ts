@@ -200,10 +200,18 @@ export class ChatwootAttachmentResolver {
 
   private collectAttachmentCandidates(attachment: any): string[] {
     const rawCandidates = [
-      attachment?.data_url, attachment?.download_url, attachment?.thumb_url,
-      attachment?.external_url, attachment?.file_url, attachment?.url,
-      attachment?.data?.data_url, attachment?.data?.download_url, attachment?.data?.thumb_url,
-      attachment?.data?.external_url, attachment?.data?.file_url, attachment?.data?.url,
+      attachment?.data_url,
+      attachment?.download_url,
+      attachment?.external_url,
+      attachment?.file_url,
+      attachment?.url,
+      attachment?.thumb_url,
+      attachment?.data?.data_url,
+      attachment?.data?.download_url,
+      attachment?.data?.external_url,
+      attachment?.data?.file_url,
+      attachment?.data?.url,
+      attachment?.data?.thumb_url,
     ];
     return Array.from(new Set(rawCandidates.map((v: unknown) => String(v ?? '').trim()).filter(Boolean)));
   }
