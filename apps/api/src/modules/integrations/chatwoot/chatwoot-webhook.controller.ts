@@ -80,7 +80,10 @@ export class ChatwootWebhookController {
         break;
 
       case 'message_updated': {
-        const conversationMessage = ChatwootPayloadParser.findConversationMessage(payload, messageContext.messageId);
+        const deletedConversationMessage = ChatwootPayloadParser.findDeletedConversationMessage(payload);
+        const conversationMessage =
+          deletedConversationMessage ??
+          ChatwootPayloadParser.findConversationMessage(payload, messageContext.messageId);
         if (ChatwootPayloadParser.shouldPropagateMessageDeletion(payload, conversationMessage)) {
           await this.handleMessageDeleted(payload, resolvedContext);
         } else {
@@ -317,7 +320,12 @@ export class ChatwootWebhookController {
   ): Promise<void> {
     const chatwootMessageId = ChatwootPayloadParser.extractDeletionTargetMessageId(payload);
     if (!chatwootMessageId) {
-      this.logger.warn(JSON.stringify({ flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_missing_message_id', event: payload?.event ?? null }));
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'delete_message_skipped_missing_message_id',
+        event: payload?.event ?? null,
+        conversationId: ChatwootPayloadParser.extractConversationId(payload) ?? null,
+      }));
       return;
     }
 
@@ -335,6 +343,7 @@ export class ChatwootWebhookController {
       this.logger.warn(JSON.stringify({
         flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_link_not_found',
         chatwootMessageId, resolvedConnectionKey: resolvedContext?.connectionKey ?? null,
+        conversationId: ChatwootPayloadParser.extractConversationId(payload) ?? null,
       }));
       return;
     }

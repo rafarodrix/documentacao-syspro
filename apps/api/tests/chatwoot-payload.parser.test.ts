@@ -29,4 +29,21 @@ describe('ChatwootPayloadParser', () => {
 
     expect(ChatwootPayloadParser.extractDeletionTargetMessageId(payload)).toBe('45678');
   });
+
+  it('extracts the deleted message id from nested message collections when the webhook id is unrelated', () => {
+    const payload = {
+      event: 'message_updated',
+      id: 'webhook-event-123',
+      conversation: {
+        id: 321,
+        messages: [
+          { id: 11111, content: 'Mensagem anterior', message_type: 'outgoing' },
+          { id: 98765, content: 'Mensagem apagada', deleted: true, message_type: 'outgoing' },
+        ],
+      },
+    };
+
+    expect(ChatwootPayloadParser.findDeletedConversationMessage(payload)?.id).toBe(98765);
+    expect(ChatwootPayloadParser.extractDeletionTargetMessageId(payload)).toBe('98765');
+  });
 });

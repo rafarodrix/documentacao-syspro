@@ -17,7 +17,7 @@ export class ChatwootPayloadParser {
   // ──────────────────────────────────────────────────────
 
   static resolveMessageContext(payload: any): MessageContext {
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const message = ChatwootPayloadParser.extractNestedMessage(payload);
     const messageId = ChatwootPayloadParser.extractPrimaryMessageId(payload, message);
     const conversationMessage = ChatwootPayloadParser.findConversationMessage(payload, messageId);
     const messageType = ChatwootPayloadParser.normalizeMessageType(
@@ -34,13 +34,20 @@ export class ChatwootPayloadParser {
   }
 
   static extractDeletionTargetMessageId(payload: any): string | undefined {
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const message = ChatwootPayloadParser.extractNestedMessage(payload);
     const directCandidates = [
       message?.id,
       payload?.message_id,
       payload?.messageId,
       payload?.meta?.message_id,
       payload?.meta?.messageId,
+      payload?.meta?.message?.id,
+      payload?.payload?.message_id,
+      payload?.payload?.messageId,
+      payload?.payload?.message?.id,
+      payload?.event_data?.message_id,
+      payload?.event_data?.messageId,
+      payload?.event_data?.message?.id,
       payload?.content_attributes?.message_id,
       payload?.content_attributes?.messageId,
     ];
@@ -58,9 +65,7 @@ export class ChatwootPayloadParser {
   }
 
   static findConversationMessage(payload: any, messageId?: string): any | null {
-    const messages = Array.isArray(payload?.conversation?.messages)
-      ? payload.conversation.messages
-      : [];
+    const messages = ChatwootPayloadParser.collectConversationMessages(payload);
     if (messages.length === 0) return null;
     if (messageId) {
       const match = messages.find((item: any) => String(item?.id ?? '') === messageId);
@@ -70,9 +75,7 @@ export class ChatwootPayloadParser {
   }
 
   static findDeletedConversationMessage(payload: any): any | null {
-    const messages = Array.isArray(payload?.conversation?.messages)
-      ? payload.conversation.messages
-      : [];
+    const messages = ChatwootPayloadParser.collectConversationMessages(payload);
     if (messages.length === 0) return null;
 
     const match = messages.find((item: any) => ChatwootPayloadParser.shouldPropagateMessageDeletion(item, item));
@@ -250,7 +253,7 @@ export class ChatwootPayloadParser {
   // ──────────────────────────────────────────────────────
 
   static shouldPropagateMessageDeletion(payload: any, conversationMessage: any | null): boolean {
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const message = ChatwootPayloadParser.extractNestedMessage(payload);
     const explicitFlags = [
       payload?.deleted, payload?.is_deleted, payload?.content_attributes?.deleted,
       message?.deleted, message?.is_deleted, message?.content_attributes?.deleted,
@@ -278,6 +281,9 @@ export class ChatwootPayloadParser {
       message?.id,
       payload?.message_id,
       payload?.messageId,
+      payload?.meta?.message?.id,
+      payload?.payload?.message?.id,
+      payload?.event_data?.message?.id,
       payload?.id,
     ];
 
@@ -287,6 +293,41 @@ export class ChatwootPayloadParser {
     }
 
     return undefined;
+  }
+
+  private static extractNestedMessage(payload: any): any | null {
+    const candidates = [
+      payload?.message,
+      payload?.meta?.message,
+      payload?.payload?.message,
+      payload?.event_data?.message,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private static collectConversationMessages(payload: any): any[] {
+    const candidates = [
+      payload?.conversation?.messages,
+      payload?.messages,
+      payload?.meta?.messages,
+      payload?.payload?.messages,
+      payload?.event_data?.messages,
+    ];
+
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate) && candidate.length > 0) {
+        return candidate;
+      }
+    }
+
+    return [];
   }
 
   // ──────────────────────────────────────────────────────

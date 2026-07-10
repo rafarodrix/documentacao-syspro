@@ -79,6 +79,11 @@ describe("ChatwootWebhookController message deletion", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    integrationContext.resolveForChatwootWebhook.mockResolvedValue(resolvedContext);
+    settingsService.readBehaviorSettings.mockResolvedValue({
+      systemMessageApiToken: "",
+    });
+
     prisma.messageLink.findUnique.mockResolvedValue({
       connectionKey: "conn-1",
       chatwootConversationId: "conv-1",
@@ -106,6 +111,8 @@ describe("ChatwootWebhookController message deletion", () => {
       behaviorService as any,
       csatService as any,
     );
+
+    vi.spyOn(controller as any, "verifySignature").mockResolvedValue(undefined);
   });
 
   it("falls back to Chatwoot conversation details when the conversation link was already released", async () => {
@@ -123,6 +130,40 @@ describe("ChatwootWebhookController message deletion", () => {
       resolvedContext.chatwoot,
       "conv-1",
     );
+    expect(evolutionClient.deleteMessageForEveryone).toHaveBeenCalledWith(
+      resolvedContext.evolution,
+      {
+        messageId: "evo-msg-1",
+        remoteJid: "5511999999999",
+        fromMe: true,
+      },
+    );
+    expect(prisma.messageLink.deleteMany).toHaveBeenCalledWith({
+      where: {
+        connectionKey: "conn-1",
+        chatwootMessageId: "cw-msg-1",
+      },
+    });
+  });
+
+  it("propagates deletion for message_updated when the deleted item only exists inside the conversation messages list", async () => {
+    await controller.handle(
+      "signature",
+      "timestamp",
+      { rawBody: "{}" },
+      {
+        event: "message_updated",
+        id: "webhook-event-123",
+        conversation: {
+          id: "conv-1",
+          messages: [
+            { id: "cw-msg-older", content: "Mensagem anterior", message_type: "outgoing" },
+            { id: "cw-msg-1", content: "Mensagem apagada", deleted: true, message_type: "outgoing" },
+          ],
+        },
+      },
+    );
+
     expect(evolutionClient.deleteMessageForEveryone).toHaveBeenCalledWith(
       resolvedContext.evolution,
       {
