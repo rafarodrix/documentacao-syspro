@@ -2,8 +2,6 @@ import type { DashboardSefazStatus } from "@dosc-syspro/contracts/dashboard";
 import { SectionCard } from "@/components/patterns";
 import { SefazOperationsPanel } from "@/components/sefaz/sefaz-operations-panel";
 import { callWebApi } from "@/lib/web-api";
-import { ExecutiveLine } from "../components/executive-line";
-import { ExecutiveSummaryCard } from "../components/executive-summary-card";
 import { DashboardNextActionCard } from "../components/dashboard-next-action-card";
 
 function isDegraded(status?: DashboardSefazStatus["status"] | null) {
@@ -34,21 +32,6 @@ export async function SefazTab({ canViewAvailability }: { canViewAvailability: b
 
   return (
     <div className="space-y-5">
-      <ExecutiveSummaryCard
-        title="Leitura executiva da SEFAZ"
-        description="Leia primeiro cobertura por rota ativa, depois degradacao nas UFs prioritarias e so entao aprofunde no detalhe operacional."
-      >
-        <div className="grid gap-3 text-sm md:grid-cols-3">
-          <ExecutiveLine label="Rotas ativas" value={`${activeRoutes.length}`} />
-          <ExecutiveLine label="UFs monitoradas" value={`${focusUfs.length}`} />
-          <ExecutiveLine
-            label="Rotas degradadas"
-            value={`${degradedRoutes.length}`}
-            emphasis={degradedRoutes.length > 0 ? "font-bold text-rose-500" : "font-bold text-emerald-500"}
-          />
-        </div>
-      </ExecutiveSummaryCard>
-
       <SefazOperationsPanel
         focusUfs={focusUfs}
         scopedStatuses={scopedStatuses}

@@ -1,7 +1,5 @@
 import { SectionCard } from "@/components/patterns";
 import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
-import { ExecutiveSummaryCard } from "../components/executive-summary-card";
-import { ExecutiveLine } from "../components/executive-line";
 import { DashboardNextActionCard } from "../components/dashboard-next-action-card";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
 import { CrmStageChart } from "../components/crm-stage-chart";
@@ -34,25 +32,6 @@ export async function ComercialTab() {
 
   return (
     <div className="space-y-5">
-      <ExecutiveSummaryCard
-        title="Leitura executiva do comercial"
-        description="Esta leitura precisa responder rapido se o pipeline sustenta a receita atual, onde o funil trava e quanto valor esta exposto por falta de acompanhamento."
-      >
-        <div className="grid gap-3 text-sm md:grid-cols-3">
-          <ExecutiveLine
-            label="Cobertura do pipeline"
-            value={`${pipelineCoverageFormatted}x`}
-            emphasis={pipelineCoverage >= 1 ? "font-bold text-emerald-500" : "font-bold text-amber-500"}
-          />
-          <ExecutiveLine label="Conversao historica" value={`${winRateFormatted}%`} />
-          <ExecutiveLine
-            label="Risco no funil"
-            value={`${overdueLeads + noNextStepLeads} lead(s)`}
-            emphasis={overdueLeads + noNextStepLeads > 0 ? "font-bold text-rose-500" : "text-foreground"}
-          />
-        </div>
-      </ExecutiveSummaryCard>
-
       <DashboardMetricGrid
         metrics={[
           {

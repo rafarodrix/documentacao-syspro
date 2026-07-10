@@ -28,7 +28,6 @@ import { formatNumber } from "@/lib/formatters";
 import { getAtendimentosData } from "../../application/client";
 import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
 import { ExecutiveLine } from "../components/executive-line";
-import { ExecutiveSummaryCard } from "../components/executive-summary-card";
 
 function toDateInputValue(date: Date) {
   const year = date.getFullYear();
@@ -246,25 +245,6 @@ export function SupportAtendimentosSubtab() {
           {error}
         </SectionCard>
       ) : null}
-
-      <ExecutiveSummaryCard
-        title="Leitura executiva dos atendimentos"
-        description="Leia o volume real do Chatwoot, a parcela sem dono definido e os sinais de satisfacao do cliente antes de aprofundar na produtividade da equipe."
-      >
-        <div className="grid gap-3 text-sm md:grid-cols-3">
-          <ExecutiveLine
-            label="Conversas abertas"
-            value={`${data?.openCount ?? 0}`}
-            emphasis={(data?.openCount ?? 0) > 0 ? "font-bold text-amber-500" : "text-foreground"}
-          />
-          <ExecutiveLine
-            label="Sem responsavel"
-            value={`${data?.unassignedCount ?? 0}`}
-            emphasis={(data?.unassignedCount ?? 0) > 0 ? "font-bold text-rose-500" : "text-foreground"}
-          />
-          <ExecutiveLine label="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} emphasis="font-bold text-emerald-500" />
-        </div>
-      </ExecutiveSummaryCard>
 
       <DashboardMetricGrid
         className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5"

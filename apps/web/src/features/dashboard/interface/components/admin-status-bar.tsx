@@ -51,7 +51,7 @@ export function AdminStatusBar({
   }
 
   return (
-    <div className="sticky top-0 z-40 -mx-4 flex flex-wrap items-center justify-between gap-4 border-b border-border/50 bg-background/80 px-4 py-3 shadow-xs backdrop-blur-md transition-all duration-300 sm:-mx-6 sm:px-6">
+    <div className="sticky top-0 z-30 shrink-0 -mx-4 flex flex-wrap items-center justify-between gap-4 border-b border-border/50 bg-background/95 px-4 py-3 shadow-xs backdrop-blur-md transition-all duration-300 sm:-mx-6 sm:px-6">
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-1.5 text-xs">
           <span className="text-muted-foreground">Visão</span>

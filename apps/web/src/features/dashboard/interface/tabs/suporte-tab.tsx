@@ -3,8 +3,6 @@ import { ClipboardList, Headset, Ticket } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { TabListSkeleton } from "../components/tab-skeleton";
-import { ExecutiveSummaryCard } from "../components/executive-summary-card";
-import { ExecutiveLine } from "../components/executive-line";
 import { DashboardNextActionCard } from "../components/dashboard-next-action-card";
 import { SupportTicketsSubtab } from "./support-tickets-subtab";
 import { SupportAtendimentosSubtab } from "./support-atendimentos-subtab";
@@ -24,21 +22,6 @@ export async function SuporteTab() {
 
   return (
     <div className="space-y-5">
-      <ExecutiveSummaryCard
-        title="Leitura executiva do suporte"
-        description="Comece por tickets, confirme prazos em tarefas e finalize em atendimentos. A leitura precisa mostrar risco de fila, atraso e dono antes do detalhe."
-      >
-        <div className="grid gap-3 text-sm md:grid-cols-3">
-          <ExecutiveLine label="Tickets" value="Fila, prioridade e modulo" />
-          <ExecutiveLine label="Tarefas" value="Prazos, atraso e retorno" />
-          <ExecutiveLine
-            label="Atendimentos"
-            value={canViewAtendimentos ? "Carga, dono e CSAT" : "Sem permissao"}
-            emphasis={canViewAtendimentos ? "text-foreground" : "font-bold text-amber-500"}
-          />
-        </div>
-      </ExecutiveSummaryCard>
-
       <Tabs defaultValue="tickets" className="space-y-4">
         <TabsList className={supportTabsClassName}>
           <TabsTrigger value="tickets" className={supportTriggerClassName}>

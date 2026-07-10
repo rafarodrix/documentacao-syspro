@@ -4,8 +4,6 @@ import { RecentRecords, type RecentRecordItem } from "@/components/platform/app/
 import { SectionCard } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
-import { ExecutiveSummaryCard } from "../components/executive-summary-card";
-import { ExecutiveLine } from "../components/executive-line";
 import { DashboardNextActionCard } from "../components/dashboard-next-action-card";
 import { RegistryTimelineColumn } from "../components/registry-timeline-column";
 import { getCadastrosData } from "../../application/cadastros-dashboard.queries";
@@ -100,7 +98,6 @@ export async function CadastrosTab() {
   const unlinkedUsers = recentUsers.filter(
     (user) => !user.companyNames?.length && user.role !== "DEVELOPER" && user.role !== "ADMIN",
   );
-  const reviewCount = reviewCompanies.length + unlinkedContacts.length + unlinkedUsers.length;
 
   const formattedRecentContacts = recentContacts.map((contact) => mapContactRecord(contact));
   const formattedRecentUsers = recentUsers.map((user) => mapUserRecord(user));
@@ -117,29 +114,6 @@ export async function CadastrosTab() {
 
   return (
     <div className="space-y-5">
-      <ExecutiveSummaryCard
-        title="Leitura executiva dos cadastros"
-        description="Use esta leitura para manter a base ativa, corrigir vinculos quebrados e impedir que pendencias de cadastro contaminem suporte, comercial e operacao."
-      >
-        <div className="grid gap-3 text-sm md:grid-cols-3">
-          <ExecutiveLine
-            label="Empresas sob revisao"
-            value={`${reviewCompanies.length}`}
-            emphasis={reviewCompanies.length > 0 ? "font-bold text-rose-500" : "text-foreground"}
-          />
-          <ExecutiveLine
-            label="Contatos sem vinculo"
-            value={`${unlinkedContacts.length}`}
-            emphasis={unlinkedContacts.length > 0 ? "font-bold text-amber-500" : "text-foreground"}
-          />
-          <ExecutiveLine
-            label="Itens para saneamento"
-            value={`${reviewCount}`}
-            emphasis={reviewCount > 0 ? "font-bold text-amber-500" : "text-foreground"}
-          />
-        </div>
-      </ExecutiveSummaryCard>
-
       <DashboardMetricGrid
         className="md:grid-cols-3 xl:grid-cols-3"
         metrics={[

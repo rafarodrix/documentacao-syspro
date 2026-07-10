@@ -5,8 +5,6 @@ import { getTarefasData } from "../../application/tarefas-dashboard.queries";
 import type { DashboardTarefasOverdueItem } from "@dosc-syspro/contracts/dashboard";
 import { EmptyState } from "@/components/patterns";
 import { CheckCircle2 } from "lucide-react";
-import { ExecutiveSummaryCard } from "../components/executive-summary-card";
-import { ExecutiveLine } from "../components/executive-line";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
@@ -37,25 +35,6 @@ export async function SupportTarefasSubtab() {
 
   return (
     <div className="space-y-5">
-      <ExecutiveSummaryCard
-        title="Leitura executiva das tarefas"
-        description="Priorize prazo vencido, dependencia de retorno do cliente e ritmo real de entrega na competencia atual."
-      >
-        <div className="grid gap-3 text-sm md:grid-cols-3">
-          <ExecutiveLine label="Competencia" value={competencia} />
-          <ExecutiveLine
-            label="Conclusao"
-            value={`${completionRate}%`}
-            emphasis={completionRate >= 70 ? "font-bold text-emerald-500" : "font-bold text-amber-500"}
-          />
-          <ExecutiveLine
-            label="Vencidas"
-            value={`${summary.overdue}`}
-            emphasis={summary.overdue > 0 ? "font-bold text-rose-500" : "text-foreground"}
-          />
-        </div>
-      </ExecutiveSummaryCard>
-
       <DashboardMetricGrid
         className="grid-cols-2 lg:grid-cols-4 xl:grid-cols-4"
         metrics={[
