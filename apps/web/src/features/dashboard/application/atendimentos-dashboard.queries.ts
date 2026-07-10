@@ -26,13 +26,23 @@ export function getAtendimentosData(params?: {
       const payload = await res.json().catch(() => null);
 
       if (!res.ok) {
-        const error =
-          payload &&
-          typeof payload === "object" &&
-          "error" in payload &&
-          typeof payload.error === "string"
-            ? payload.error
-            : `Falha HTTP ${res.status}`;
+        const error = (() => {
+          if (!payload || typeof payload !== "object") return `Falha HTTP ${res.status}`;
+          if ("error" in payload && typeof payload.error === "string" && payload.error.trim()) {
+            return payload.error.trim();
+          }
+          if ("message" in payload && typeof payload.message === "string" && payload.message.trim()) {
+            return payload.message.trim();
+          }
+          if (
+            "message" in payload &&
+            Array.isArray(payload.message) &&
+            payload.message.every((item) => typeof item === "string")
+          ) {
+            return payload.message.join(", ");
+          }
+          return `Falha HTTP ${res.status}`;
+        })();
         throw new Error(error);
       }
 

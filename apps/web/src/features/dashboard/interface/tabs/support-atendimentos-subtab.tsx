@@ -21,7 +21,7 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
-import { SectionCard } from "@/components/patterns";
+import { ErrorState, SectionCard, StaleState } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { formatDateTimeSafe } from "@/lib/date";
 import { formatNumber } from "@/lib/formatters";
@@ -60,6 +60,11 @@ function formatScore(value: number | null) {
     minimumFractionDigits: value % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatMinutes(value: number | null | undefined) {
+  if (value == null) return "Sem base";
+  return `${formatNumber(value, { maximumFractionDigits: value % 1 === 0 ? 0 : 1 })} min`;
 }
 
 function getChannelLabel(channel: "WHATSAPP" | "EMAIL" | "PORTAL" | "PHONE") {
@@ -142,6 +147,20 @@ export function SupportAtendimentosSubtab() {
     [data?.statusCounts],
   );
 
+  const triggerRefresh = () => {
+    forceRefreshRef.current = true;
+    setRefreshTick((current) => current + 1);
+  };
+
+  const statusCount = (status: string) =>
+    (data?.statusCounts ?? []).find((item) => item.status === status)?.count ?? 0;
+
+  const channelCount = (channel: "WHATSAPP" | "EMAIL" | "PORTAL" | "PHONE") =>
+    (data?.channelCounts ?? []).find((item) => item.channel === channel)?.count ?? 0;
+
+  const staleMessage = data?.warning ?? (error && data ? error : null);
+  const hasHardError = Boolean(error && !data);
+
   const applyPreset = (preset: "today" | "7d" | "30d") => {
     const next = buildRangePreset(preset);
     setFrom(next.from);
@@ -174,10 +193,7 @@ export function SupportAtendimentosSubtab() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                forceRefreshRef.current = true;
-                setRefreshTick((current) => current + 1);
-              }}
+              onClick={triggerRefresh}
               disabled={loading || refreshing}
             >
               {refreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
@@ -240,30 +256,110 @@ export function SupportAtendimentosSubtab() {
         </CardContent>
       </Card>
 
-      {error ? (
-        <SectionCard title="Falha na carga" className="border-rose-500/30 bg-rose-500/10" contentClassName="text-sm text-rose-200">
-          {error}
-        </SectionCard>
+      {staleMessage ? (
+        <StaleState
+          title={data?.warning ? "Chatwoot em contingencia parcial" : "Ultimo snapshot preservado"}
+          message={staleMessage}
+        />
       ) : null}
 
+      {hasHardError ? (
+        <ErrorState
+          title="Falha na carga"
+          description={error ?? "Nao foi possivel carregar os atendimentos do Chatwoot."}
+          action={{ label: "Tentar novamente", onClick: triggerRefresh }}
+          className="rounded-xl border border-rose-500/20 bg-rose-500/5"
+        />
+      ) : null}
+
+      {!data ? null : (
+        <>
       <DashboardMetricGrid
         className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5"
         metrics={[
-          { title: "Total", value: data?.totalCount ?? 0, helper: "Conversas reais do Chatwoot no periodo", icon: "inbox", tone: "blue" },
-          { title: "Em aberto", value: data?.openCount ?? 0, helper: "Fila ativa e em acompanhamento", icon: "loader", tone: "amber" },
-          { title: "Sem responsavel", value: data?.unassignedCount ?? 0, helper: "Ainda sem atribuicao", icon: "shieldAlert", tone: (data?.unassignedCount ?? 0) > 0 ? "red" : "blue" },
-          { title: "Resolvidos", value: data?.resolvedCount ?? 0, helper: "Encerrados no fluxo", icon: "checkCircle", tone: "emerald" },
-          { title: "CSAT medio", value: formatScore(data?.csatAverageScore ?? null), helper: `${data?.csatResponseCount ?? 0} avaliacoes`, icon: "messageSquareText", tone: "emerald" },
+          { title: "Total", value: data.totalCount, helper: "Conversas carregadas no recorte", icon: "inbox", tone: "blue" },
+          { title: "Em aberto", value: data.openCount, helper: "Fila ativa no momento", icon: "loader", tone: "amber" },
+          { title: "Sem responsavel", value: data.unassignedCount, helper: "Atribuicao pendente", icon: "shieldAlert", tone: data.unassignedCount > 0 ? "red" : "blue" },
+          {
+            title: "Abertos > 3 dias",
+            value: data.delayedOpenCount ?? 0,
+            helper: `${data.backlog?.over7d ?? 0} com mais de 7 dias`,
+            icon: "alertTriangle",
+            tone: (data.delayedOpenCount ?? 0) > 0 ? "red" : "emerald",
+          },
+          {
+            title: "SLA 1a resposta",
+            value: data.slaFirstResponsePct != null ? `${data.slaFirstResponsePct}%` : "Sem base",
+            helper: `Media ${formatMinutes(data.avgFirstResponseMinutes)}`,
+            icon: "clock",
+            tone: (data.slaFirstResponsePct ?? 0) >= 80 ? "emerald" : "amber",
+          },
         ]}
       />
 
       <ActivityChart
         title="Volume de atendimentos"
         description={loading ? "Carregando periodo selecionado" : "Conversas criadas no periodo filtrado"}
-        points={data?.activity ?? []}
+        points={data.activity ?? []}
         badgeLabel="Chatwoot"
         emptyLabel="Sem conversas no recorte"
       />
+
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <SectionCard
+          title="Fila operacional"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
+          contentClassName="grid gap-4 text-sm sm:grid-cols-2"
+        >
+          <div className="space-y-3.5">
+            <ExecutiveLine label="Abertos hoje" value={`${data.backlog?.today ?? 0}`} />
+            <ExecutiveLine label="Mais de 1 dia" value={`${data.backlog?.over1d ?? 0}`} />
+            <ExecutiveLine
+              label="Mais de 3 dias"
+              value={`${data.backlog?.over3d ?? 0}`}
+              emphasis={(data.backlog?.over3d ?? 0) > 0 ? "font-bold text-amber-500" : undefined}
+            />
+            <ExecutiveLine
+              label="Mais de 7 dias"
+              value={`${data.backlog?.over7d ?? 0}`}
+              emphasis={(data.backlog?.over7d ?? 0) > 0 ? "font-bold text-rose-500" : undefined}
+            />
+          </div>
+          <div className="space-y-3.5 border-t border-border/30 pt-3.5 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+            <ExecutiveLine label="Resolvidos" value={`${data.resolvedCount}`} />
+            <ExecutiveLine label="Cancelados" value={`${data.cancelledCount}`} />
+            <ExecutiveLine
+              label="Sem vinculo Syspro"
+              value={`${data.unlinkedCount}`}
+              emphasis={data.unlinkedCount > 0 ? "font-bold text-amber-500" : undefined}
+            />
+            <ExecutiveLine
+              label="SLA resolucao"
+              value={data.slaResolutionPct != null ? `${data.slaResolutionPct}%` : "Sem base"}
+              emphasis={(data.slaResolutionPct ?? 0) >= 80 ? "font-bold text-emerald-500" : undefined}
+            />
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Canais e status dominantes"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
+          contentClassName="space-y-4"
+        >
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <ExecutiveLine label="WhatsApp" value={`${channelCount("WHATSAPP")}`} />
+            <ExecutiveLine label="Portal" value={`${channelCount("PORTAL")}`} />
+            <ExecutiveLine label="E-mail" value={`${channelCount("EMAIL")}`} />
+            <ExecutiveLine label="Telefone" value={`${channelCount("PHONE")}`} />
+          </div>
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <ExecutiveLine label="Aguardando cliente" value={`${statusCount("Aguardando cliente")}`} />
+            <ExecutiveLine label="Em espera interna" value={`${statusCount("Aguardando interno")}`} />
+            <ExecutiveLine label="Sem responsavel" value={`${statusCount("Sem responsavel")}`} />
+            <ExecutiveLine label="Arquivados" value={`${statusCount("Arquivado")}`} />
+          </div>
+        </SectionCard>
+      </div>
 
       <SectionCard title="Status do Chatwoot" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="space-y-4">
         <div className="flex flex-wrap gap-2">
@@ -284,18 +380,43 @@ export function SupportAtendimentosSubtab() {
             <span className="text-sm text-muted-foreground">Sem status relevantes no recorte.</span>
           )}
         </div>
-
-        <div className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
-          <ExecutiveLine label="Aguardando cliente" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando cliente")?.count ?? 0}`} />
-          <ExecutiveLine label="Em espera interna" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`} />
-          <ExecutiveLine label="Arquivados" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Arquivado")?.count ?? 0}`} />
-          <ExecutiveLine
-            label="Sem vinculo Syspro"
-            value={`${data?.unlinkedCount ?? 0}`}
-            emphasis={(data?.unlinkedCount ?? 0) > 0 ? "text-amber-400 font-semibold" : undefined}
-          />
-        </div>
       </SectionCard>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <SectionCard
+          title="Categorias recorrentes"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
+          contentClassName="space-y-3"
+        >
+          {(data.categories ?? []).length ? (
+            data.categories.slice(0, 6).map((item) => (
+              <div key={item.name} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">{item.name}</span>
+                <span className="font-semibold tabular-nums text-foreground">{item.count}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">Sem categorias relevantes no recorte.</p>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Tags operacionais"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
+          contentClassName="space-y-3"
+        >
+          {(data.topTags ?? []).length ? (
+            data.topTags.slice(0, 6).map((item) => (
+              <div key={item.name} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">{item.name}</span>
+                <span className="font-semibold tabular-nums text-foreground">{item.count}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">Sem tags relevantes no recorte.</p>
+          )}
+        </SectionCard>
+      </div>
 
       <SectionCard title="Produtividade da equipe" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm">
@@ -303,14 +424,16 @@ export function SupportAtendimentosSubtab() {
             <tr className="border-b border-border/40 text-xs uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-3 font-semibold">Atendente</th>
               <th className="px-4 py-3 text-center font-semibold">Em aberto</th>
+              <th className="px-4 py-3 text-center font-semibold">Em espera</th>
               <th className="px-4 py-3 text-center font-semibold">Resolvidos</th>
+              <th className="px-4 py-3 text-center font-semibold">1a resposta</th>
               <th className="px-4 py-3 text-center font-semibold">CSAT medio</th>
               <th className="px-4 py-3 text-center font-semibold">Respostas</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
-            {(data?.assigneeLoads ?? []).length ? (
-              (data?.assigneeLoads ?? []).map((item) => {
+            {(data.assigneeLoads ?? []).length ? (
+              (data.assigneeLoads ?? []).map((item) => {
                 let scoreColor = "text-foreground font-semibold";
                 if (item.averageScore != null) {
                   if (item.averageScore >= 4.5) scoreColor = "text-emerald-500 font-bold";
@@ -325,7 +448,11 @@ export function SupportAtendimentosSubtab() {
                       {item.name}
                     </td>
                     <td className="px-4 py-3.5 text-center font-semibold tabular-nums">{item.openCount}</td>
+                    <td className="px-4 py-3.5 text-center text-muted-foreground tabular-nums">{item.waitingCount}</td>
                     <td className="px-4 py-3.5 text-center text-muted-foreground tabular-nums">{item.resolvedCount ?? 0}</td>
+                    <td className="px-4 py-3.5 text-center text-xs text-muted-foreground tabular-nums">
+                      {formatMinutes(item.avgFirstResponseMinutes)}
+                    </td>
                     <td className={`px-4 py-3.5 text-center tabular-nums ${scoreColor}`}>
                       {item.averageScore != null ? formatScore(item.averageScore) : "Sem nota"}
                     </td>
@@ -337,7 +464,7 @@ export function SupportAtendimentosSubtab() {
               })
             ) : (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                <td colSpan={7} className="py-6 text-center text-muted-foreground">
                   Sem atendentes identificados no recorte.
                 </td>
               </tr>
@@ -346,42 +473,77 @@ export function SupportAtendimentosSubtab() {
         </table>
       </SectionCard>
 
+      {data.unassignedConversations?.length ? (
+        <SectionCard
+          title="Conversas sem responsavel"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
+          contentClassName="overflow-x-auto"
+        >
+          <table className="w-full border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-border/40 text-xs uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-3 font-semibold">Referencia</th>
+                <th className="px-4 py-3 font-semibold">Contato</th>
+                <th className="px-4 py-3 font-semibold">Assunto</th>
+                <th className="px-4 py-3 text-center font-semibold">Canal</th>
+                <th className="px-4 py-3 text-center font-semibold">Status</th>
+                <th className="px-4 py-3 text-right font-semibold">Ultima atividade</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {data.unassignedConversations.slice(0, 8).map((item) => (
+                <tr key={item.id} className="transition-colors hover:bg-muted/10">
+                  <td className="px-4 py-3.5 font-semibold text-foreground">{item.reference}</td>
+                  <td className="px-4 py-3.5 text-muted-foreground">{item.contactName}</td>
+                  <td className="max-w-[380px] px-4 py-3.5 text-foreground">{item.subject}</td>
+                  <td className="px-4 py-3.5 text-center text-muted-foreground">{getChannelLabel(item.channel)}</td>
+                  <td className="px-4 py-3.5 text-center text-muted-foreground">{item.status}</td>
+                  <td className="px-4 py-3.5 text-right text-muted-foreground">
+                    {formatDateTimeSafe(item.lastUpdate, "Sem historico")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </SectionCard>
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard title="Saude do CSAT" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="grid gap-4 text-sm sm:grid-cols-2">
           <div className="space-y-3.5">
-            <ExecutiveLine label="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} emphasis="text-base font-extrabold text-emerald-500" />
-            <ExecutiveLine label="Conversas elegiveis" value={`${data?.csatEligibleResolvedCount ?? 0}`} />
-            <ExecutiveLine label="Respostas recebidas" value={`${data?.csatResponseCount ?? 0}`} />
-            <ExecutiveLine label="Taxa de resposta" value={formatPercent(data?.csatResponseCount ?? 0, data?.csatEligibleResolvedCount ?? 0)} />
+            <ExecutiveLine label="CSAT medio" value={formatScore(data.csatAverageScore ?? null)} emphasis="text-base font-extrabold text-emerald-500" />
+            <ExecutiveLine label="Conversas elegiveis" value={`${data.csatEligibleResolvedCount ?? 0}`} />
+            <ExecutiveLine label="Respostas recebidas" value={`${data.csatResponseCount ?? 0}`} />
+            <ExecutiveLine label="Taxa de resposta" value={formatPercent(data.csatResponseCount ?? 0, data.csatEligibleResolvedCount ?? 0)} />
           </div>
           <div className="space-y-3.5 border-t border-border/30 pt-3.5 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
             <ExecutiveLine
               label="Notas baixas (<= 2)"
-              value={`${data?.csatLowScoreCount ?? 0}`}
-              emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "font-bold text-rose-500" : "text-muted-foreground"}
+              value={`${data.csatLowScoreCount ?? 0}`}
+              emphasis={(data.csatLowScoreCount ?? 0) > 0 ? "font-bold text-rose-500" : "text-muted-foreground"}
             />
-            <ExecutiveLine label="Avaliacoes ignoradas" value={`${data?.csatSkippedCount ?? 0}`} />
+            <ExecutiveLine label="Avaliacoes ignoradas" value={`${data.csatSkippedCount ?? 0}`} />
             <ExecutiveLine
               label="Satisfacao alta (4 e 5)"
               value={(() => {
-                const highCount = (data?.csatScoreDistribution ?? [])
+                const highCount = (data.csatScoreDistribution ?? [])
                   .filter((item) => item.score >= 4)
                   .reduce((sum, item) => sum + item.count, 0);
-                return formatPercent(highCount, data?.csatResponseCount ?? 0);
+                return formatPercent(highCount, data.csatResponseCount ?? 0);
               })()}
               emphasis="font-bold text-emerald-500"
             />
             <p className="text-[11px] leading-snug text-muted-foreground/80">
               {(() => {
-                const note5 = (data?.csatScoreDistribution ?? []).find((item) => item.score === 5)?.count ?? 0;
-                return `${note5} de ${data?.csatResponseCount ?? 0} avaliacoes foram nota 5.`;
+                const note5 = (data.csatScoreDistribution ?? []).find((item) => item.score === 5)?.count ?? 0;
+                return `${note5} de ${data.csatResponseCount ?? 0} avaliacoes foram nota 5.`;
               })()}
             </p>
           </div>
         </SectionCard>
 
         <SectionCard title="Distribuicao das notas" className="border-border/50 bg-card/60 shadow-sm backdrop-blur" contentClassName="space-y-3">
-          {([...(data?.csatScoreDistribution ?? [])].sort((left, right) => right.score - left.score)).map((item) => (
+          {([...(data.csatScoreDistribution ?? [])].sort((left, right) => right.score - left.score)).map((item) => (
             <div key={item.score} className="space-y-1">
               <div className="flex items-center justify-between gap-3 text-xs">
                 <span className="font-semibold text-muted-foreground">Nota {item.score}</span>
@@ -410,8 +572,8 @@ export function SupportAtendimentosSubtab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {(data?.topContacts ?? []).length ? (
-                (data?.topContacts ?? []).map((item) => (
+              {(data.topContacts ?? []).length ? (
+                (data.topContacts ?? []).map((item) => (
                   <tr key={item.key} className="transition-colors hover:bg-muted/10">
                     <td className="flex items-center gap-1.5 px-3 py-3 font-semibold text-foreground">
                       <span className="text-primary">*</span> {item.name}
@@ -443,8 +605,8 @@ export function SupportAtendimentosSubtab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {(data?.topCompanies ?? []).length ? (
-                (data?.topCompanies ?? []).map((item) => (
+              {(data.topCompanies ?? []).length ? (
+                (data.topCompanies ?? []).map((item) => (
                   <tr key={item.key} className="transition-colors hover:bg-muted/10">
                     <td className="flex items-center gap-1.5 px-3 py-3 font-semibold text-foreground">
                       <span className="text-emerald-500">*</span> {item.name}
@@ -465,6 +627,8 @@ export function SupportAtendimentosSubtab() {
           </table>
         </SectionCard>
       </div>
+        </>
+      )}
     </div>
   );
 }

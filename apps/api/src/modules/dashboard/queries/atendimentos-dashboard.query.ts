@@ -17,6 +17,7 @@ import {
   resolveChatwootClosureOrigin,
   shouldSkipChatwootCsat,
   startOfDay,
+  toSeries as buildDashboardSeries,
 } from '../dashboard.shared';
 
 type AtendimentosFilters = {
@@ -76,6 +77,11 @@ type ContactSummary = {
   companyLinks: Array<{ company: CompanySummary }>;
 };
 
+type ConversationLoadResult = {
+  items: ChatwootConversationRecord[];
+  warnings: string[];
+};
+
 @Injectable()
 export class AtendimentosDashboardQuery {
   private static readonly CACHE_TTL_MS = 45_000;
@@ -128,10 +134,22 @@ export class AtendimentosDashboardQuery {
       return this.buildEmptyPayload(periodStart, periodEnd, assigneeId, contactQuery);
     }
 
-    const [agentsByContext, conversations] = await Promise.all([
+    const [agentsByContext, conversationsResult] = await Promise.all([
       this.loadAgentsByContext(contexts),
       this.loadConversations(contexts, periodStart, periodEnd),
     ]);
+    const conversations = conversationsResult.items;
+    const warnings = conversationsResult.warnings;
+
+    if (conversations.length === 0 && warnings.length > 0) {
+      return this.buildEmptyPayload(
+        periodStart,
+        periodEnd,
+        assigneeId,
+        contactQuery,
+        this.composeWarningMessage(warnings),
+      );
+    }
 
     const filteredConversations = conversations.filter((conversation) => {
       if (assigneeId && conversation.assigneeId !== assigneeId) return false;
@@ -636,7 +654,7 @@ export class AtendimentosDashboardQuery {
           : null,
         avgFirstResponseMinutes,
         avgResolutionHours,
-        activity: this.toSeries(filteredConversations.map((item) => item.createdAt)),
+        activity: buildDashboardSeries(filteredConversations.map((item) => item.createdAt)),
         statusCounts: statusOrder.map((status) => ({ status, count: statusCountsMap.get(status) || 0 })),
         channelCounts: channelOrder.map((channel) => ({ channel, count: channelCountsMap.get(channel) || 0 })),
         assigneeLoads: assigneeLoadsMapped,
@@ -657,7 +675,7 @@ export class AtendimentosDashboardQuery {
           }))
           .sort((left, right) => right.responseCount - left.responseCount || right.averageScore - left.averageScore)
           .slice(0, 6),
-        warning: undefined,
+        warning: warnings.length > 0 ? this.composeWarningMessage(warnings) : undefined,
         slaFirstResponsePct,
         slaResolutionPct,
         delayedOpenCount,
@@ -715,24 +733,47 @@ export class AtendimentosDashboardQuery {
     contexts: ResolvedIntegrationContext[],
     periodStart: Date,
     periodEnd: Date,
-  ): Promise<ChatwootConversationRecord[]> {
+  ): Promise<ConversationLoadResult> {
     const batches = await Promise.all(
       contexts.map((context) => this.loadContextConversations(context, periodStart, periodEnd)),
     );
-    return batches.flat();
+    return {
+      items: batches.flatMap((batch) => batch.items),
+      warnings: batches.flatMap((batch) => batch.warnings),
+    };
   }
 
   private async loadContextConversations(
     context: ResolvedIntegrationContext,
     periodStart: Date,
     periodEnd: Date,
-  ): Promise<ChatwootConversationRecord[]> {
+  ): Promise<ConversationLoadResult> {
     const items: ChatwootConversationRecord[] = [];
-    const resolvedInboxId = await this.chatwootClient.resolveInboxId(context.chatwoot);
-    const resolvedInboxIdentifier = await this.chatwootClient.resolveInboxIdentifier(context.chatwoot);
+    const warnings: string[] = [];
+    let resolvedInboxId: string | undefined;
+    let resolvedInboxIdentifier: string | undefined;
+
+    try {
+      [resolvedInboxId, resolvedInboxIdentifier] = await Promise.all([
+        this.chatwootClient.resolveInboxId(context.chatwoot),
+        this.chatwootClient.resolveInboxIdentifier(context.chatwoot),
+      ]);
+    } catch (error: any) {
+      const warning = this.buildContextWarning(context, error);
+      this.logger.warn(`[atendimentos_dashboard] ${warning}`);
+      return { items, warnings: [warning] };
+    }
 
     for (let page = 1; page <= AtendimentosDashboardQuery.PAGE_LIMIT; page++) {
-      const conversations = await this.chatwootClient.listConversations(context.chatwoot, { page, status: 'all' });
+      let conversations: any[] = [];
+      try {
+        conversations = await this.chatwootClient.listConversations(context.chatwoot, { page, status: 'all' });
+      } catch (error: any) {
+        const warning = this.buildContextWarning(context, error);
+        this.logger.warn(`[atendimentos_dashboard] ${warning}`);
+        warnings.push(warning);
+        break;
+      }
       if (!conversations.length) break;
 
       let pageHasInRangeConversation = false;
@@ -765,7 +806,7 @@ export class AtendimentosDashboardQuery {
       }
     }
 
-    return items;
+    return { items, warnings };
   }
 
   private matchesContextInbox(conversation: any, inboxId?: string, inboxIdentifier?: string) {
@@ -998,17 +1039,6 @@ export class AtendimentosDashboardQuery {
     return candidateClean.localeCompare(currentClean) < 0;
   }
 
-  private toSeries(dates: Date[]) {
-    const counts = new Map<string, number>();
-    for (const date of dates) {
-      const key = date.toLocaleDateString('en-US');
-      counts.set(key, (counts.get(key) || 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .map(([key, count]) => ({ label: key, value: count }))
-      .sort((left, right) => new Date(left.label).getTime() - new Date(right.label).getTime());
-  }
-
   private formatRelativeDay(value: Date | null) {
     if (!(value instanceof Date)) return 'Sem registro';
     const diffMs = Date.now() - value.getTime();
@@ -1018,7 +1048,13 @@ export class AtendimentosDashboardQuery {
     return `Ha ${diffDays} dias`;
   }
 
-  private buildEmptyPayload(periodStart: Date, periodEnd: Date, assigneeId: string, contactQuery: string) {
+  private buildEmptyPayload(
+    periodStart: Date,
+    periodEnd: Date,
+    assigneeId: string,
+    contactQuery: string,
+    warning?: string,
+  ) {
     const statusOrder = ['Novo', 'Sem responsavel', 'Triagem', 'Em andamento', 'Aguardando cliente', 'Aguardando interno', 'Teste', 'Resolvido', 'Arquivado'] as const;
     const channelOrder = ['WHATSAPP', 'EMAIL', 'PORTAL', 'PHONE'] as const;
 
@@ -1057,7 +1093,7 @@ export class AtendimentosDashboardQuery {
         unassignedConversations: [],
         csatScoreDistribution: [1, 2, 3, 4, 5].map((score) => ({ score, count: 0 })),
         csatAgentPerformance: [],
-        warning: undefined,
+        warning,
         slaFirstResponsePct: null,
         slaResolutionPct: null,
         delayedOpenCount: 0,
@@ -1071,5 +1107,32 @@ export class AtendimentosDashboardQuery {
         topTags: [],
       },
     };
+  }
+
+  private composeWarningMessage(warnings: string[]) {
+    const uniqueWarnings = Array.from(new Set(warnings.map((item) => item.trim()).filter(Boolean)));
+    if (uniqueWarnings.length === 0) return undefined;
+    if (uniqueWarnings.length === 1) return `Dados parciais do Chatwoot. ${uniqueWarnings[0]}`;
+    return `Dados parciais do Chatwoot. ${uniqueWarnings.join(' ')}`;
+  }
+
+  private buildContextWarning(context: ResolvedIntegrationContext, error: unknown) {
+    const contextLabel = String(context.name ?? '').trim() || context.connectionKey;
+    return `Conexao ${contextLabel} em contingencia: ${this.describeChatwootError(error)}.`;
+  }
+
+  private describeChatwootError(error: unknown) {
+    const message = String((error as { message?: string } | null)?.message ?? '').trim();
+    if (!message) return 'falha ao consultar a API';
+
+    const statusMatch = message.match(/:\s(\d{3})\s-/);
+    if (statusMatch) {
+      return `API retornou ${statusMatch[1]}`;
+    }
+
+    if (message.includes('fetch failed')) return 'falha de rede';
+    if (message.includes('nao configurad')) return 'configuracao incompleta';
+    if (message.length > 140) return `${message.slice(0, 137)}...`;
+    return message;
   }
 }
