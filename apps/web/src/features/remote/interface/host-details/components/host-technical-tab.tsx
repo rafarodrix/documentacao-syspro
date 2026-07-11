@@ -10,6 +10,8 @@ type HostTechnicalTabProps = {
   details: RemoteHostDetails;
   host: RemoteHostDetails["host"];
   machineIpv4: string | null;
+  internetIpv4: string | null;
+  localGateway: string | null;
   windowsComputerName: string | null;
   firebirdData: { name: string | null; version: string | null; processRunning: boolean | null };
   sysproVersionSnapshot: RemoteHostDetails["agentTelemetry"]["sysproVersionSnapshot"];
@@ -54,6 +56,8 @@ export function HostTechnicalTab({
   details,
   host,
   machineIpv4,
+  internetIpv4,
+  localGateway,
   windowsComputerName,
   firebirdData,
   sysproVersionSnapshot,
@@ -77,8 +81,12 @@ export function HostTechnicalTab({
   const diskTotal =
     diskTotalFromMetrics ??
     (primaryDisk && typeof primaryDisk["totalMb"] === "number" ? primaryDisk["totalMb"] * 1024 * 1024 : null);
-  const diskFreeGb = diskFree !== null ? formatNumber(diskFree / (1024 * 1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
-  const diskTotalGb = diskTotal !== null ? formatNumber(diskTotal / (1024 * 1024 * 1024), { maximumFractionDigits: 0 }) : null;
+  const diskFreeGb =
+    diskFree !== null
+      ? formatNumber(diskFree / (1024 * 1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : null;
+  const diskTotalGb =
+    diskTotal !== null ? formatNumber(diskTotal / (1024 * 1024 * 1024), { maximumFractionDigits: 0 }) : null;
   const diskUsedPc =
     diskFree !== null && diskTotal !== null && diskTotal > 0 ? Math.round((1 - diskFree / diskTotal) * 100) : null;
 
@@ -87,7 +95,7 @@ export function HostTechnicalTab({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
           <CardTitle className="text-lg">Monitoramento</CardTitle>
-          <CardDescription>Leitura operacional baseada na coleta real do módulo device.</CardDescription>
+          <CardDescription>Leitura operacional baseada na coleta real do modulo device.</CardDescription>
         </div>
         <div className="flex items-center gap-2">
           <div className={cn("h-2 w-2 rounded-full", isConnected ? "animate-pulse bg-green-500" : "bg-muted")} />
@@ -140,67 +148,76 @@ export function HostTechnicalTab({
             </CardContent>
           </Card>
         </div>
+
         <div className="grid gap-6 md:grid-cols-2">
-          {/* OS & Hardware Info */}
           <Card className="border-border/40 bg-muted/5">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                 <Cpu className="h-4 w-4 text-primary" />
-                Especificações do Host
+                Especificacoes do Host
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between py-1 border-b border-border/30">
+              <div className="flex items-center justify-between border-b border-border/30 py-1">
                 <span className="text-muted-foreground">Nome do Computador</span>
                 <span className="font-semibold text-foreground">{windowsComputerName ?? "Sem leitura"}</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-border/30">
+              <div className="flex items-center justify-between border-b border-border/30 py-1">
                 <span className="text-muted-foreground">Reboot Pendente</span>
                 <span className="font-semibold text-foreground">
-                  {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim (Necessário)" : "Não"}
+                  {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim (Necessario)" : "Nao"}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-border/30">
+              <div className="flex items-center justify-between border-b border-border/30 py-1">
                 <span className="text-muted-foreground">Firebird</span>
                 <span className="font-semibold text-foreground">
-                  {firebirdData.name ?? "Não detectado"} {firebirdData.version ? `(${firebirdData.version})` : ""}
+                  {firebirdData.name ?? "Nao detectado"} {firebirdData.version ? `(${firebirdData.version})` : ""}
                 </span>
               </div>
               <div className="flex items-center justify-between py-1">
                 <span className="text-muted-foreground">Status do Firebird</span>
-                <span className={cn(
-                  "font-bold",
-                  firebirdData.processRunning ? "text-emerald-500" : "text-amber-500"
-                )}>
-                  {firebirdData.processRunning === null ? "Sem leitura" : firebirdData.processRunning ? "Em execução" : "Parado"}
+                <span
+                  className={cn(
+                    "font-bold",
+                    firebirdData.processRunning ? "text-emerald-500" : "text-amber-500",
+                  )}
+                >
+                  {firebirdData.processRunning === null
+                    ? "Sem leitura"
+                    : firebirdData.processRunning
+                      ? "Em execucao"
+                      : "Parado"}
                 </span>
               </div>
             </CardContent>
           </Card>
 
-          {/* Network Parameters */}
           <Card className="border-border/40 bg-muted/5">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                 <Activity className="h-4 w-4 text-primary" />
-                Configurações de Rede
+                Configuracoes de Rede
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between py-1 border-b border-border/30">
+              <div className="flex items-center justify-between border-b border-border/30 py-1">
                 <span className="text-muted-foreground">IPv4 Local (Intranet)</span>
                 <span className="font-mono text-foreground">{machineIpv4 ?? "Sem leitura"}</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-border/30">
-                <span className="text-muted-foreground">Último IP de Conexão</span>
-                <span className="font-mono text-foreground">{agent.lastKnownIp ?? "Sem leitura"}</span>
+              <div className="flex items-center justify-between border-b border-border/30 py-1">
+                <span className="text-muted-foreground">IP da Internet</span>
+                <span className="font-mono text-foreground">{internetIpv4 ?? "Sem leitura"}</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-border/30">
+              <div className="flex items-center justify-between border-b border-border/30 py-1">
+                <span className="text-muted-foreground">Gateway local</span>
+                <span className="font-mono text-foreground">{localGateway ?? "Sem leitura"}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-border/30 py-1">
                 <span className="text-muted-foreground">RustDesk ID</span>
                 <span className="font-mono text-foreground">{agent.rustdeskId ?? "Sem leitura"}</span>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span className="text-muted-foreground">Sincronização do RustDesk</span>
+                <span className="text-muted-foreground">Sincronizacao do RustDesk</span>
                 <span className="text-foreground">
                   {agent.lastRustDeskConfigSyncAt ? formatDateTime(agent.lastRustDeskConfigSyncAt) : "Nunca"}
                 </span>
@@ -210,48 +227,77 @@ export function HostTechnicalTab({
         </div>
 
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-          <p className="text-sm font-medium text-foreground">Instalações e versões do Syspro</p>
+          <p className="text-sm font-medium text-foreground">Instalacoes e versoes do Syspro</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Versões reais dos executáveis projetados para o agente e o estado das instalações no host.
+            Versoes reais dos executaveis projetados para o agente e o estado das instalacoes no host.
           </p>
           {versionInstallations.length ? (
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {versionInstallations.map((entry, index) => (
-                <div key={`${String(entry["companyId"] ?? index)}-${String(entry["serverPath"] ?? index)}`} className="rounded-xl border border-border/40 bg-background/60 p-3">
+                <div
+                  key={`${String(entry["companyId"] ?? index)}-${String(entry["serverPath"] ?? index)}`}
+                  className="rounded-xl border border-border/40 bg-background/60 p-3"
+                >
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
-                  <p className="mt-1 text-sm text-foreground">{typeof entry["companyName"] === "string" ? entry["companyName"] : "Sem identificação"}</p>
-                  <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">server_path</p>
-                  <p className="mt-1 break-all font-mono text-xs text-foreground">{typeof entry["serverPath"] === "string" ? entry["serverPath"] : "Sem leitura"}</p>
-                  <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Versão</p>
-                  <p className="mt-1 text-sm text-foreground">{typeof entry["exeVersion"] === "string" && entry["exeVersion"] ? entry["exeVersion"] : "Sem leitura"}</p>
-                  <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Executável</p>
                   <p className="mt-1 text-sm text-foreground">
-                    {typeof entry["exeExists"] === "boolean" ? (entry["exeExists"] ? "Encontrado" : "Não encontrado") : "Sem leitura"}
+                    {typeof entry["companyName"] === "string" ? entry["companyName"] : "Sem identificacao"}
+                  </p>
+                  <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">server_path</p>
+                  <p className="mt-1 break-all font-mono text-xs text-foreground">
+                    {typeof entry["serverPath"] === "string" ? entry["serverPath"] : "Sem leitura"}
+                  </p>
+                  <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Versao</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {typeof entry["exeVersion"] === "string" && entry["exeVersion"] ? entry["exeVersion"] : "Sem leitura"}
+                  </p>
+                  <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Executavel</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {typeof entry["exeExists"] === "boolean"
+                      ? entry["exeExists"]
+                        ? "Encontrado"
+                        : "Nao encontrado"
+                      : "Sem leitura"}
                   </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-muted-foreground">Nenhuma versão de instalação reportada ainda pelo agente.</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Nenhuma versao de instalacao reportada ainda pelo agente.
+            </p>
           )}
         </div>
 
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-          <p className="text-sm font-medium text-foreground">Serviços monitorados</p>
+          <p className="text-sm font-medium text-foreground">Servicos monitorados</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Status dos serviços Windows ligados ao Syspro e processos relacionados.
+            Status dos servicos Windows ligados ao Syspro e processos relacionados.
           </p>
           {sysproProcessSnapshot.length ? (
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {sysproProcessSnapshot.map((entry, index) => {
                 const running = entry["status"] === "running" || entry["running"] === true;
                 return (
-                  <div key={`${String(entry["name"] ?? index)}-${index}`} className="rounded-xl border border-border/40 bg-background/60 p-3">
+                  <div
+                    key={`${String(entry["name"] ?? index)}-${index}`}
+                    className="rounded-xl border border-border/40 bg-background/60 p-3"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium text-foreground">
-                        {typeof entry["displayName"] === "string" ? entry["displayName"] : typeof entry["name"] === "string" ? entry["name"] : "Serviço"}
+                        {typeof entry["displayName"] === "string"
+                          ? entry["displayName"]
+                          : typeof entry["name"] === "string"
+                            ? entry["name"]
+                            : "Servico"}
                       </p>
-                      <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium", running ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300")}>
+                      <span
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                          running
+                            ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                            : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                        )}
+                      >
                         {running ? "Rodando" : typeof entry["status"] === "string" ? entry["status"] : "Sem leitura"}
                       </span>
                     </div>
@@ -263,34 +309,36 @@ export function HostTechnicalTab({
               })}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-muted-foreground">Nenhum serviço monitorado foi reportado ainda.</p>
+            <p className="mt-3 text-sm text-muted-foreground">Nenhum servico monitorado foi reportado ainda.</p>
           )}
         </div>
 
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
           <p className="text-sm font-medium text-foreground">Volumes monitorados</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Sistemas de arquivos e espaço livre detectados em {formatDateTime(details.agentTelemetry.diskSnapshotAt)}.
+            Sistemas de arquivos e espaco livre detectados em {formatDateTime(details.agentTelemetry.diskSnapshotAt)}.
           </p>
 
           {diskSnapshot.length ? (
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {diskSnapshot.map((volume, index) => {
                 const letter = typeof volume["letter"] === "string" ? volume["letter"] : "-";
-                const label = typeof volume["label"] === "string" && volume["label"] ? volume["label"] : "Sem rótulo";
+                const label =
+                  typeof volume["label"] === "string" && volume["label"] ? volume["label"] : "Sem rotulo";
                 const freeMb = typeof volume["freeMb"] === "number" ? volume["freeMb"] : null;
                 const totalMb = typeof volume["totalMb"] === "number" ? volume["totalMb"] : null;
                 const usedPct = typeof volume["usedPct"] === "number" ? volume["usedPct"] : null;
                 return (
                   <div key={`${letter}-${index}`} className="rounded-xl border border-border/40 bg-background/60 p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-foreground">{letter}: {label}</p>
-                      {usedPct !== null ? (
-                        <span className="text-xs text-muted-foreground">{usedPct}% usado</span>
-                      ) : null}
+                      <p className="text-sm font-medium text-foreground">
+                        {letter}: {label}
+                      </p>
+                      {usedPct !== null ? <span className="text-xs text-muted-foreground">{usedPct}% usado</span> : null}
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      Livre: {freeMb !== null ? `${Math.round(freeMb / 1024)} GB` : "-"} | Total: {totalMb !== null ? `${Math.round(totalMb / 1024)} GB` : "-"}
+                      Livre: {freeMb !== null ? `${Math.round(freeMb / 1024)} GB` : "-"} | Total:{" "}
+                      {totalMb !== null ? `${Math.round(totalMb / 1024)} GB` : "-"}
                     </p>
                   </div>
                 );
@@ -300,7 +348,6 @@ export function HostTechnicalTab({
             <p className="mt-3 text-sm text-muted-foreground">Nenhum volume reportado pelo agente.</p>
           )}
         </div>
-
       </CardContent>
     </Card>
   );

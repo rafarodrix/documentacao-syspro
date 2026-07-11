@@ -1,7 +1,7 @@
-import { HardDriveDownload, Loader2, Plus, Save } from "lucide-react";
-import { useState } from "react";
+import { HardDriveDownload, Loader2, Plus, Save, Folder, Building2, Trash2 } from "lucide-react";
+import { useState, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Badge } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/formatters";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
@@ -115,25 +115,50 @@ export function HostInstallationsTab({
   handleSaveCompanyContext,
 }: HostInstallationsTabProps) {
   const [addCompanyByUpdateId, setAddCompanyByUpdateId] = useState<Record<string, string>>({});
+
+  // Grouping the items by physical folder path
+  const groupedInstallations = useMemo(() => {
+    const byPath = new Map<string, {
+      path: string;
+      contexts: InstallationContext[];
+    }>();
+
+    for (const context of installationContextsForDisplay) {
+      const normPath = context.update.path.trim().toLowerCase();
+      const existing = byPath.get(normPath);
+      if (existing) {
+        existing.contexts.push(context);
+      } else {
+        byPath.set(normPath, {
+          path: context.update.path.trim(),
+          contexts: [context],
+        });
+      }
+    }
+
+    return Array.from(byPath.values());
+  }, [installationContextsForDisplay]);
+
   return (
-    <div className="space-y-4">
-      <Card className="border-border/50">
+    <div className="space-y-6">
+      {/* Manual Association Creator */}
+      <Card className="border-border/50 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg">Associações de empresa e instalações</CardTitle>
+          <CardTitle className="text-lg">Associações de Empresa e Instalações</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
             <div className="space-y-4">
               <div className="space-y-1">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Adicionar associação</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Adicionar nova pasta ou associação</p>
                 <p className="text-sm text-muted-foreground">
-                  Defina manualmente qual empresa usa cada instalação deste host e qual diretório deve orientar o agente.
+                  Defina manualmente qual empresa usa cada diretório deste host para orientar o agente e os backups.
                 </p>
               </div>
 
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)_auto] lg:items-end">
                 <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretório monitorado</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Diretório no Host (caminho físico)</p>
                   <Input
                     value={manualInstallationPath}
                     onChange={(event) => setManualInstallationPath(event.target.value)}
@@ -143,7 +168,7 @@ export function HostInstallationsTab({
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa da instalação</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Empresa associada</p>
                   <SearchableCompanyPicker
                     value={manualInstallationCompanyId}
                     options={details.companyOptions}
@@ -172,12 +197,13 @@ export function HostInstallationsTab({
             </div>
           </div>
 
+          {/* Filtering and Bulk Actions */}
           <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
             <div className="space-y-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Associações existentes</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold font-mono">Filtros e Ações em Lote</p>
               <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
                 <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Filtro</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Filtro de visualização</p>
                   <Select value={installationFilter} onValueChange={(value: "all" | "unlinked") => setInstallationFilter(value)}>
                     <SelectTrigger>
                       <SelectValue />
@@ -192,7 +218,7 @@ export function HostInstallationsTab({
                 {canManageInstallations ? (
                   <div className="space-y-1">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                      Empresa para associações filtradas
+                      Empresa para aplicar em lote nas pastas exibidas
                     </p>
                     <SearchableCompanyPicker
                       value={bulkInstallationCompanyId || UNLINKED_COMPANY_VALUE}
@@ -214,7 +240,7 @@ export function HostInstallationsTab({
                     disabled={isBulkRelinkingInstallations || !bulkInstallationCompanyId || !installationContextsForDisplay.length}
                     onClick={() => handleBulkRelinkInstallations(bulkInstallationCompanyId)}
                   >
-                    Aplicar associação nas filtradas
+                    Aplicar associação
                   </Button>
                 ) : null}
 
@@ -226,403 +252,352 @@ export function HostInstallationsTab({
                     disabled={isBulkRelinkingInstallations || !installationContextsForDisplay.length}
                     onClick={() => handleBulkRelinkInstallations(null)}
                   >
-                    Limpar vínculos filtrados
+                    Limpar vínculos
                   </Button>
                 ) : null}
               </div>
 
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground font-medium">
                 {installationFilter === "unlinked"
-                  ? `${installationContextsForDisplay.length} instalação(ões) sem vínculo exibida(s).`
-                  : `${dedupedInstallationContexts.length} instalação(ões) disponível(is), ${unlinkedInstallationsCount} sem vínculo.`}
+                  ? `${installationContextsForDisplay.length} pasta(s) sem vínculo exibida(s).`
+                  : `${dedupedInstallationContexts.length} associação(ões) no total, correspondendo a ${groupedInstallations.length} pasta(s) física(s) no servidor (${unlinkedInstallationsCount} sem vínculo).`}
               </p>
             </div>
           </div>
-
-          {installationContextsForDisplay.length ? (
-            <div className="space-y-4">
-              {installationContextsForDisplay.map((context, index) => {
-                const entry = context.update;
-                const companyContext = context.company;
-                const primaryCompanyDirectory =
-                  details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
-                const companyName =
-                  companyContext?.nomeFantasia ?? companyContext?.razaoSocial ?? "Sem empresa vinculada";
-                const companyDirectory = companyContext?.installationDirectory?.trim();
-                const installationDirectory = companyContext
-                  ? companyDirectory || primaryCompanyDirectory || DEFAULT_INSTALLATION_DIRECTORY
-                  : entry.path?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
-                const serverType = companyContext?.serverType
-                  ? COMPANY_SERVER_TYPE_LABEL[companyContext.serverType as keyof typeof COMPANY_SERVER_TYPE_LABEL]
-                  : "Não configurado";
-                const draft = entry.companyId ? companyContextDraftByCompanyId[entry.companyId] : undefined;
-                const updateHealthMeta = getSysproUpdateHealthMeta({
-                  isServerHost: entry.isServerHost,
-                  lastFileWriteAt: entry.lastFileWriteAt,
-                });
-
-                return (
-                  <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                    <p className="flex items-center gap-2 font-medium text-foreground">
-                      <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
-                      Instalação {index + 1}
-                    </p>
-
-                    <div className="mt-3 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
-                        <p className="mt-1 text-sm font-medium text-foreground">{companyName}</p>
-                        {!entry.companyId ? (
-                          <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
-                            Instalação sem vínculo formal com empresa do cadastro.
-                          </p>
-                        ) : null}
-                      </div>
-
-                      <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo técnico</p>
-                        <p className="mt-1 text-sm text-foreground">{serverType}</p>
-                      </div>
-
-                      <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretório monitorado</p>
-                        <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
-                      </div>
-                    </div>
-
-                    {entry.companyId ? (
-                      <div className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">Contexto técnico da empresa</p>
-                            <p className="text-xs text-muted-foreground">
-                              Diretório, servidor e parâmetros que orientam o agente e futuros módulos como backup.
-                            </p>
-                          </div>
-
-                          {canManageInstallations ? (
-                            <Button
-                              size="sm"
-                              className="gap-2"
-                              disabled={isSavingCompanyContext && savingCompanyContextId === entry.companyId}
-                              onClick={() => handleSaveCompanyContext(entry.companyId!, companyContext, installationDirectory)}
-                            >
-                              {isSavingCompanyContext && savingCompanyContextId === entry.companyId ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Save className="h-4 w-4" />
-                              )}
-                              Salvar contexto
-                            </Button>
-                          ) : null}
-                        </div>
-
-                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                          <div className="space-y-1">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo técnico</p>
-                            <Select
-                              value={draft?.serverType ?? (companyContext?.serverType ?? "__none__")}
-                              onValueChange={(value: "SYSPRO_SERVER" | "IIS" | "__none__") =>
-                                updateCompanyContextDraft(entry.companyId!, { serverType: value }, companyContext, installationDirectory)
-                              }
-                              disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Não definido</SelectItem>
-                                {Object.entries(COMPANY_SERVER_TYPE_LABEL).map(([value, label]) => (
-                                  <SelectItem key={value} value={value}>
-                                    {label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-1 xl:col-span-2">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretório</p>
-                            <Input
-                              value={draft?.installationDirectory ?? installationDirectory}
-                              onChange={(event) =>
-                                updateCompanyContextDraft(
-                                  entry.companyId!,
-                                  { installationDirectory: event.target.value },
-                                  companyContext,
-                                  installationDirectory,
-                                )
-                              }
-                              disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor</p>
-                            <Input
-                              value={draft?.serverHost ?? (companyContext?.serverHost ?? "")}
-                              onChange={(event) =>
-                                updateCompanyContextDraft(
-                                  entry.companyId!,
-                                  { serverHost: event.target.value },
-                                  companyContext,
-                                  installationDirectory,
-                                )
-                              }
-                              placeholder="localhost"
-                              disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta</p>
-                            <Input
-                              value={draft?.serverPort ?? (companyContext?.serverPort ? String(companyContext.serverPort) : "")}
-                              onChange={(event) =>
-                                updateCompanyContextDraft(
-                                  entry.companyId!,
-                                  { serverPort: event.target.value },
-                                  companyContext,
-                                  installationDirectory,
-                                )
-                              }
-                              placeholder="8080"
-                              disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Protocolo</p>
-                            <Select
-                              value={draft?.serverProtocol ?? (companyContext?.serverProtocol ?? "__none__")}
-                              onValueChange={(value: "HTTP" | "HTTPS" | "__none__") =>
-                                updateCompanyContextDraft(entry.companyId!, { serverProtocol: value }, companyContext, installationDirectory)
-                              }
-                              disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Não definido</SelectItem>
-                                <SelectItem value="HTTP">HTTP</SelectItem>
-                                <SelectItem value="HTTPS">HTTPS</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-1 md:col-span-2">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ISAPI / path</p>
-                            <Input
-                              value={draft?.iisIsapiPath ?? (companyContext?.iisIsapiPath ?? "")}
-                              onChange={(event) =>
-                                updateCompanyContextDraft(
-                                  entry.companyId!,
-                                  { iisIsapiPath: event.target.value },
-                                  companyContext,
-                                  installationDirectory,
-                                )
-                              }
-                              placeholder="/isapi/syspro.dll"
-                              disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="mt-3 space-y-1">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Observações</p>
-                          <Textarea
-                            value={draft?.observacoes ?? (companyContext?.observacoes ?? "")}
-                            onChange={(event) =>
-                              updateCompanyContextDraft(
-                                entry.companyId!,
-                                { observacoes: event.target.value },
-                                companyContext,
-                                installationDirectory,
-                              )
-                            }
-                            placeholder="Observações operacionais para esta empresa."
-                            className="min-h-24"
-                            disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-3 rounded-lg border border-dashed border-border/50 bg-background/30 p-3 text-sm text-muted-foreground">
-                        Vincule primeiro a empresa desta instalação para liberar o contexto técnico.
-                      </div>
-                    )}
-
-                    <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-                      <summary className="cursor-pointer text-sm font-medium text-foreground">Conexão remota</summary>
-                      <div className="mt-3 space-y-3">
-                        {entry.companyId && companyContext?.remoteConnections.length ? (
-                          companyContext.remoteConnections.map((connection, connectionIndex: number) => (
-                            <div
-                              key={`${connection.type}-${connectionIndex}`}
-                              className="rounded-lg border border-border/40 bg-background/40 p-3"
-                            >
-                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo</p>
-                              <p className="mt-1 text-sm font-medium text-foreground">
-                                {REMOTE_CONNECTION_LABEL[connection.type as keyof typeof REMOTE_CONNECTION_LABEL]}
-                              </p>
-                              <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                                Nome/IP/identificação
-                              </p>
-                              <p className="mt-1 break-all text-sm text-foreground">
-                                {connection.details || "Sem detalhe informado"}
-                              </p>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="rounded-lg border border-dashed border-border/50 bg-background/30 p-3">
-                            {entry.companyId
-                              ? "Nenhuma conexão remota cadastrada para esta empresa."
-                              : "Sem vínculo com empresa do cadastro para exibir conexões remotas."}
-                          </div>
-                        )}
-                      </div>
-                    </details>
-
-                    <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Última atualização</p>
-                        <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
-                      </div>
-                      <div className={cn("rounded-lg border p-3", updateHealthMeta.className)}>
-                        <p className="text-[11px] uppercase tracking-wide opacity-80">Saúde de atualização</p>
-                        <p className="mt-1 text-sm font-medium">{updateHealthMeta.label}</p>
-                        <p className="mt-1 text-xs opacity-90">{updateHealthMeta.detail}</p>
-                      </div>
-                      <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Último heartbeat</p>
-                        <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastHeartbeatAt)}</p>
-                      </div>
-                      <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa vinculada</p>
-                        <p className="mt-1 text-sm text-foreground">{entry.companyId ? "Vinculada" : "Sem vínculo"}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 rounded-lg border border-border/40 bg-background/30 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa desta instalação</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Ajuste aqui a associação quando o mesmo host atender mais de uma empresa.
-                      </p>
-                      {canManageInstallations ? (
-                        <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
-                          <SearchableCompanyPicker
-                            value={selectedCompanyByUpdateId[entry.id] ?? (entry.companyId ?? UNLINKED_COMPANY_VALUE)}
-                            onChange={(value) =>
-                              setSelectedCompanyByUpdateId((prev) => ({
-                                ...prev,
-                                [entry.id]: value,
-                              }))
-                            }
-                            options={details.companyOptions}
-                            disabled={isRelinkingInstallation}
-                          />
-                          <Button
-                            size="sm"
-                            disabled={isRelinkingInstallation}
-                            onClick={() => {
-                              const selected = selectedCompanyByUpdateId[entry.id] ?? (entry.companyId ?? UNLINKED_COMPANY_VALUE);
-                              handleRelinkInstallation(entry.id, selected === UNLINKED_COMPANY_VALUE ? null : selected);
-                            }}
-                          >
-                            Aplicar vínculo
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={isRelinkingInstallation || !entry.companyId}
-                            onClick={() => {
-                              setSelectedCompanyByUpdateId((prev) => ({
-                                ...prev,
-                                [entry.id]: UNLINKED_COMPANY_VALUE,
-                              }));
-                              handleRelinkInstallation(entry.id, null);
-                            }}
-                          >
-                            Limpar vínculo
-                          </Button>
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Seu perfil tem acesso somente leitura para vinculação de instalações.
-                        </p>
-                      )}
-                      {canManageInstallations && (
-                        <div className="mt-3 border-t border-border/30 pt-3">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
-                            Adicionar outra empresa
-                          </p>
-                          <div className="flex gap-2">
-                            <div className="flex-1">
-                              <SearchableCompanyPicker
-                                value={addCompanyByUpdateId[entry.id] ?? ""}
-                                options={details.companyOptions.filter(
-                                  (opt) => opt.id !== entry.companyId && opt.id !== UNLINKED_COMPANY_VALUE
-                                )}
-                                onChange={(val) => setAddCompanyByUpdateId((prev) => ({ ...prev, [entry.id]: val }))}
-                                disabled={isRelinkingInstallation}
-                              />
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={isRelinkingInstallation || !addCompanyByUpdateId[entry.id]}
-                              onClick={() => {
-                                const cid = addCompanyByUpdateId[entry.id];
-                                if (cid) {
-                                  handleAddCompanyToInstallation(entry.id, cid);
-                                  setAddCompanyByUpdateId((prev) => ({ ...prev, [entry.id]: "" }));
-                                }
-                              }}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Adicionar
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Versão do SysproServer.exe */}
-                    {(() => {
-                      const versionInfo = resolveSysproVersionInfoForPath(sysproVersionSnapshot, entry.path);
-                      if (!versionInfo) return null;
-                      const exeVersion = typeof versionInfo["exeVersion"] === "string" ? versionInfo["exeVersion"] : null;
-                      const exeExists = versionInfo["exeExists"] === true;
-                      const exeSizeMB = typeof versionInfo["exeSizeMB"] === "number" ? versionInfo["exeSizeMB"] : null;
-                      return (
-                        <div className="mt-3 rounded-lg border border-border/40 bg-muted/10 px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Versão SysproServer.exe</p>
-                          <div className="mt-1 flex items-center gap-2">
-                            {exeExists ? (
-                              <span className="font-mono text-xs font-semibold text-foreground">{exeVersion ?? "Versão não lida"}</span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Executável não encontrado</span>
-                            )}
-                            {exeSizeMB && <span className="text-[10px] text-muted-foreground">({formatNumber(exeSizeMB, { maximumFractionDigits: 1 })} MB)</span>}
-                            {exeExists && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-green-500" />}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-              {installationFilter === "unlinked"
-                ? "Nenhuma instalação sem vínculo encontrada para o filtro atual."
-                : "Nenhuma instalação cadastrada ainda. Use o cadastro manual acima ou aguarde o próximo inventário do agente."}
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {/* Grouped Folders (Physical Installations list) */}
+      {groupedInstallations.length ? (
+        <div className="space-y-6">
+          {groupedInstallations.map((group) => {
+            const { path, contexts } = group;
+            const versionInfo = resolveSysproVersionInfoForPath(sysproVersionSnapshot, path);
+            const exeVersion = typeof versionInfo?.["exeVersion"] === "string" ? versionInfo["exeVersion"] : null;
+            const exeExists = versionInfo?.["exeExists"] === true;
+            const exeSizeMB = typeof versionInfo?.["exeSizeMB"] === "number" ? versionInfo["exeSizeMB"] : null;
+
+            // Use data from the first update to display folder health & timestamps
+            const primaryUpdate = contexts[0]?.update;
+            const updateHealthMeta = primaryUpdate ? getSysproUpdateHealthMeta({
+              isServerHost: primaryUpdate.isServerHost,
+              lastFileWriteAt: primaryUpdate.lastFileWriteAt,
+            }) : null;
+
+            return (
+              <Card key={path} className="border-border/50 bg-background/50 shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 flex flex-row items-center justify-between gap-4 flex-wrap">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-foreground font-semibold">
+                      <Folder className="h-5 w-5 text-amber-500 shrink-0" />
+                      <span className="font-mono text-sm break-all">{path}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pasta física mapeada/cadastrada no servidor do cliente.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {/* Exe Version info badge */}
+                    {exeExists ? (
+                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-mono text-[11px] border-emerald-500/20 py-1">
+                        v{exeVersion ?? "Não lida"} {exeSizeMB ? `(${formatNumber(exeSizeMB, { maximumFractionDigits: 1 })} MB)` : ""}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-muted text-muted-foreground text-[11px] py-1 border-border">
+                        Sem executável
+                      </Badge>
+                    )}
+                    
+                    {updateHealthMeta && (
+                      <Badge variant="outline" className={cn("text-[11px] py-1 border-current", updateHealthMeta.className)}>
+                        {updateHealthMeta.label}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-6 space-y-6">
+                  {/* Telemetry metadata row */}
+                  {primaryUpdate && (
+                    <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 text-xs text-muted-foreground bg-muted/10 p-3 rounded-lg">
+                      <div>
+                        <span className="font-medium text-muted-foreground/80 block">Última Escrita no Disco</span>
+                        <span className="text-foreground">{formatDateTime(primaryUpdate.lastFileWriteAt)}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/80 block">Último Batimento</span>
+                        <span className="text-foreground">{formatDateTime(primaryUpdate.lastHeartbeatAt)}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/80 block">Servidor de Execução</span>
+                        <span className="text-foreground">{primaryUpdate.isServerHost ? "Sim" : "Não"}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Linked Companies Section */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <span>Empresas Vinculadas a esta Pasta</span>
+                    </h4>
+
+                    <div className="space-y-4">
+                      {contexts.map((context) => {
+                        const entry = context.update;
+                        const companyContext = context.company;
+                        const companyName = companyContext?.nomeFantasia ?? companyContext?.razaoSocial ?? "Sem empresa vinculada";
+                        const serverType = companyContext?.serverType
+                          ? COMPANY_SERVER_TYPE_LABEL[companyContext.serverType as keyof typeof COMPANY_SERVER_TYPE_LABEL]
+                          : "Não configurado";
+                        const draft = entry.companyId ? companyContextDraftByCompanyId[entry.companyId] : undefined;
+
+                        return (
+                          <div key={entry.id} className="border border-border/40 rounded-xl bg-background/30 p-4 space-y-4">
+                            {/* Company Card Header */}
+                            <div className="flex items-start justify-between gap-4 flex-wrap border-b border-border/30 pb-3">
+                              <div>
+                                <p className="font-medium text-sm text-foreground">{companyName}</p>
+                                {!entry.companyId ? (
+                                  <p className="text-xs text-amber-600 dark:text-amber-300 mt-0.5">
+                                    Instalação sem vínculo formal com empresa do cadastro.
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    Tipo de Servidor: <strong className="text-foreground/80">{serverType}</strong>
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Link/Unlink company fields */}
+                              {canManageInstallations && (
+                                <div className="flex items-center gap-2">
+                                  <Select
+                                    value={selectedCompanyByUpdateId[entry.id] ?? (entry.companyId ?? UNLINKED_COMPANY_VALUE)}
+                                    onValueChange={(val) => setSelectedCompanyByUpdateId(prev => ({ ...prev, [entry.id]: val }))}
+                                    disabled={isRelinkingInstallation}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs max-w-[200px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value={UNLINKED_COMPANY_VALUE}>Sem Vínculo</SelectItem>
+                                      {details.companyOptions.map((opt) => (
+                                        <SelectItem key={opt.id} value={opt.id}>
+                                          {opt.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    size="sm"
+                                    className="h-8 text-xs"
+                                    disabled={isRelinkingInstallation}
+                                    onClick={() => {
+                                      const sel = selectedCompanyByUpdateId[entry.id] ?? (entry.companyId ?? UNLINKED_COMPANY_VALUE);
+                                      handleRelinkInstallation(entry.id, sel === UNLINKED_COMPANY_VALUE ? null : sel);
+                                    }}
+                                  >
+                                    Aplicar
+                                  </Button>
+                                  {entry.companyId && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs text-red-500 hover:text-red-600"
+                                      disabled={isRelinkingInstallation}
+                                      onClick={() => handleRelinkInstallation(entry.id, null)}
+                                    >
+                                      Desvincular
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Technical context inputs if company linked */}
+                            {entry.companyId ? (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="text-xs font-semibold text-foreground/80">Contexto Técnico da Empresa</p>
+                                  {canManageInstallations && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 gap-1.5"
+                                      disabled={isSavingCompanyContext && savingCompanyContextId === entry.companyId}
+                                      onClick={() => handleSaveCompanyContext(entry.companyId!, companyContext, path)}
+                                    >
+                                      {isSavingCompanyContext && savingCompanyContextId === entry.companyId ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Save className="h-3 w-3" />
+                                      )}
+                                      Salvar Contexto
+                                    </Button>
+                                  )}
+                                </div>
+
+                                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-medium text-muted-foreground/85">Tipo Técnico</span>
+                                    <Select
+                                      value={draft?.serverType ?? (companyContext?.serverType ?? "__none__")}
+                                      onValueChange={(val: "SYSPRO_SERVER" | "IIS" | "__none__") =>
+                                        updateCompanyContextDraft(entry.companyId!, { serverType: val }, companyContext, path)
+                                      }
+                                      disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
+                                    >
+                                      <SelectTrigger className="h-9 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="__none__">Não definido</SelectItem>
+                                        {Object.entries(COMPANY_SERVER_TYPE_LABEL).map(([val, label]) => (
+                                          <SelectItem key={val} value={val}>{label}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-medium text-muted-foreground/85">Servidor</span>
+                                    <Input
+                                      value={draft?.serverHost ?? (companyContext?.serverHost ?? "")}
+                                      onChange={(ev) => updateCompanyContextDraft(entry.companyId!, { serverHost: ev.target.value }, companyContext, path)}
+                                      placeholder="localhost"
+                                      className="h-9 text-xs"
+                                      disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-medium text-muted-foreground/85">Porta</span>
+                                    <Input
+                                      value={draft?.serverPort ?? (companyContext?.serverPort ? String(companyContext.serverPort) : "")}
+                                      onChange={(ev) => updateCompanyContextDraft(entry.companyId!, { serverPort: ev.target.value }, companyContext, path)}
+                                      placeholder="8080"
+                                      className="h-9 text-xs"
+                                      disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-medium text-muted-foreground/85">Protocolo</span>
+                                    <Select
+                                      value={draft?.serverProtocol ?? (companyContext?.serverProtocol ?? "__none__")}
+                                      onValueChange={(val: "HTTP" | "HTTPS" | "__none__") =>
+                                        updateCompanyContextDraft(entry.companyId!, { serverProtocol: val }, companyContext, path)
+                                      }
+                                      disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
+                                    >
+                                      <SelectTrigger className="h-9 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="__none__">Não definido</SelectItem>
+                                        <SelectItem value="HTTP">HTTP</SelectItem>
+                                        <SelectItem value="HTTPS">HTTPS</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <div className="space-y-1 sm:col-span-2">
+                                    <span className="text-[10px] uppercase font-medium text-muted-foreground/85">ISAPI / dll path</span>
+                                    <Input
+                                      value={draft?.iisIsapiPath ?? (companyContext?.iisIsapiPath ?? "")}
+                                      onChange={(ev) => updateCompanyContextDraft(entry.companyId!, { iisIsapiPath: ev.target.value }, companyContext, path)}
+                                      placeholder="/isapi/syspro.dll"
+                                      className="h-9 text-xs"
+                                      disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1 sm:col-span-2">
+                                    <span className="text-[10px] uppercase font-medium text-muted-foreground/85">Diretório de Configuração</span>
+                                    <Input
+                                      value={draft?.installationDirectory ?? (companyContext?.installationDirectory ?? path)}
+                                      onChange={(ev) => updateCompanyContextDraft(entry.companyId!, { installationDirectory: ev.target.value }, companyContext, path)}
+                                      placeholder={path}
+                                      className="h-9 text-xs"
+                                      disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <span className="text-[10px] uppercase font-medium text-muted-foreground/85">Observações</span>
+                                  <Textarea
+                                    value={draft?.observacoes ?? (companyContext?.observacoes ?? "")}
+                                    onChange={(ev) => updateCompanyContextDraft(entry.companyId!, { observacoes: ev.target.value }, companyContext, path)}
+                                    placeholder="Observações de rede ou infraestrutura para esta empresa..."
+                                    className="min-h-16 text-xs"
+                                    disabled={!canManageInstallations || (isSavingCompanyContext && savingCompanyContextId === entry.companyId)}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground border border-dashed border-border/40 rounded-lg p-3 bg-muted/5">
+                                Vincule uma empresa a este registro para liberar a configuração do contexto técnico da mesma.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Add company helper inside this physical folder card */}
+                  {canManageInstallations && primaryUpdate && (
+                    <div className="border-t border-border/30 pt-4 space-y-2">
+                      <p className="text-[10px] uppercase font-semibold text-foreground/80 tracking-wider">
+                        Vincular Outra Empresa a esta Pasta Física
+                      </p>
+                      <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                        <div className="flex-1 min-w-[200px]">
+                          <SearchableCompanyPicker
+                            value={addCompanyByUpdateId[primaryUpdate.id] ?? ""}
+                            options={details.companyOptions.filter(
+                              (opt) => !contexts.some(c => c.update.companyId === opt.id) && opt.id !== UNLINKED_COMPANY_VALUE
+                            )}
+                            onChange={(val) => setAddCompanyByUpdateId(prev => ({ ...prev, [primaryUpdate.id]: val }))}
+                            disabled={isRelinkingInstallation}
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9"
+                          disabled={isRelinkingInstallation || !addCompanyByUpdateId[primaryUpdate.id]}
+                          onClick={() => {
+                            const cid = addCompanyByUpdateId[primaryUpdate.id];
+                            if (cid) {
+                              handleAddCompanyToInstallation(primaryUpdate.id, cid);
+                              setAddCompanyByUpdateId(prev => ({ ...prev, [primaryUpdate.id]: "" }));
+                            }
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Vincular Empresa
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card className="border-border/50 shadow-sm">
+          <CardContent className="p-8 text-center text-muted-foreground text-sm">
+            {installationFilter === "unlinked"
+              ? "Nenhuma instalação sem vínculo encontrada para o filtro atual."
+              : "Nenhuma instalação cadastrada ainda. Use o cadastro manual acima ou aguarde o próximo inventário do agente."}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

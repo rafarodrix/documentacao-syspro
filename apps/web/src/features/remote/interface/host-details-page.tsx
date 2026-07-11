@@ -106,6 +106,8 @@ export function RemoteHostDetailsPanel({
     contractValidationError,
     orchestrationStrategy,
     machineIpv4,
+    internetIpv4,
+    localGateway,
     firebirdData,
     heartbeat,
     desiredSysproInstalls,
@@ -463,6 +465,8 @@ export function RemoteHostDetailsPanel({
             details={details}
             host={host}
             machineIpv4={machineIpv4}
+            internetIpv4={internetIpv4}
+            localGateway={localGateway}
             windowsComputerName={windowsComputerName}
             firebirdData={firebirdData}
             sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}

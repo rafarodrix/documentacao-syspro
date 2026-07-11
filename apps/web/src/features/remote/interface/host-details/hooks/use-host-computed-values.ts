@@ -14,6 +14,7 @@ import {
   resolveExpectedRustDeskAlias,
 } from "../host-details.helpers";
 import { DEFAULT_INSTALLATION_DIRECTORY } from "../host-details.constants";
+import { resolveRemoteNetworkFields } from "../network-addresses";
 
 export function useHostComputedValues(
   details: RemoteHostDetails,
@@ -290,32 +291,17 @@ export function useHostComputedValues(
     return raw;
   }, [agentMetrics]);
 
-  const machineIpv4 = useMemo(() => {
-    const ipv4Pattern = /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g;
-    const isPrivateIpv4 = (value: string) =>
-      /^10\./.test(value) || /^192\.168\./.test(value) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(value) || /^127\./.test(value);
-    const extractIpv4Candidates = (input: unknown): string[] => {
-      const found = new Set<string>();
-      const visit = (value: unknown) => {
-        if (typeof value === "string") {
-          const matches = value.match(ipv4Pattern) ?? [];
-          for (const match of matches) found.add(match);
-          return;
-        }
-        if (Array.isArray(value)) { value.forEach(visit); return; }
-        if (value && typeof value === "object") Object.values(value as Record<string, unknown>).forEach(visit);
-      };
-      visit(input);
-      return Array.from(found);
-    };
-    const fromSnapshots = [...extractIpv4Candidates(networkSnapshot), ...extractIpv4Candidates(systemSnapshot)];
-    const privateFromSnapshots = fromSnapshots.find(isPrivateIpv4);
-    if (privateFromSnapshots) return privateFromSnapshots;
-    const explicitLocal = extractStringFromPayload(networkSnapshot, ["localIp", "localIpv4", "ipv4", "ipV4", "primaryIp"]);
-    if (explicitLocal && isPrivateIpv4(explicitLocal)) return explicitLocal;
-    if (agent.lastKnownIp && isPrivateIpv4(agent.lastKnownIp)) return agent.lastKnownIp;
-    return explicitLocal ?? agent.lastKnownIp ?? null;
-  }, [agent.lastKnownIp, networkSnapshot, systemSnapshot]);
+  const networkFields = useMemo(
+    () =>
+      resolveRemoteNetworkFields({
+        networkSnapshot,
+        systemSnapshot,
+        lastKnownIp: agent.lastKnownIp,
+      }),
+    [agent.lastKnownIp, networkSnapshot, systemSnapshot],
+  );
+
+  const machineIpv4 = networkFields.localIpv4;
 
   const sysproServerInstallations = useMemo(
     () => dedupedInstallationContexts.filter((context) => context.update.isServerHost === true),
@@ -416,6 +402,8 @@ export function useHostComputedValues(
     contractValidationError,
     orchestrationStrategy,
     machineIpv4,
+    internetIpv4: networkFields.publicIpv4,
+    localGateway: networkFields.localGateway,
     sysproServerInstallations,
     firebirdData,
     heartbeat,
