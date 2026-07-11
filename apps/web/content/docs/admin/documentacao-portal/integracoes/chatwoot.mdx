@@ -31,7 +31,7 @@ As melhorias recentes do Chatwoot Community impactam principalmente estas áreas
 | --- | --- | --- |
 | Webhook Chatwoot | `apps/api/src/modules/integrations/chatwoot/chatwoot-webhook.controller.ts` | Recebe `message_created`, `message_deleted`, `message_updated`, `contact_*`, `conversation_status_changed` e valida assinatura. |
 | Webhook Evolution | `apps/api/src/modules/integrations/evolution/evolution-webhook.controller.ts` | Recebe eventos inbound do WhatsApp e resolve a conexão ativa. |
-| Inbound Evolution -> Chatwoot | `apps/api/src/modules/integrations/messaging/application/process-incoming-message.usecase.ts` | Cria ou reaproveita conversa, envia mensagem ao Chatwoot, trata deduplicação, reaction fallback e mídia. |
+| Inbound Evolution -> Chatwoot | `apps/api/src/modules/integrations/messaging/application/process-incoming-message.usecase.ts` | Mantém o vínculo ativo atual ou cria nova conversa, envia mensagem ao Chatwoot, trata deduplicação, reaction fallback e mídia. |
 | Outbound Chatwoot -> Evolution | `apps/api/src/modules/integrations/messaging/application/process-outgoing-message.usecase.ts` | Envia resposta pública para o WhatsApp, resolve quoted reply e persiste `message_link`. |
 | Cliente Chatwoot | `apps/api/src/modules/integrations/chatwoot/chatwoot.client.ts` | Chamada HTTP para mensagens, anexos, notas privadas, detalhes da conversa e agentes. |
 | Configuração Chatwoot | `apps/api/src/modules/settings/settings-chatwoot.service.ts` | Leitura, persistência, diagnósticos e comportamento operacional. |
@@ -114,7 +114,7 @@ Executar estes cenários:
 
 | Cenário | Resultado esperado | Ponto principal do código |
 | --- | --- | --- |
-| Texto inbound | cria ou reaproveita conversa no Chatwoot | `process-incoming-message.usecase.ts` |
+| Texto inbound | mantém o vínculo ativo atual ou cria nova conversa no Chatwoot | `process-incoming-message.usecase.ts` |
 | Imagem inbound | anexo nativo ou fallback por link | `process-incoming-message.usecase.ts`, `chatwoot.client.ts` |
 | Áudio inbound | mensagem chega com MIME correto | `process-incoming-message.usecase.ts` |
 | Sticker com `base64` | mídia encaminhada | `process-incoming-message.usecase.ts` |
@@ -127,6 +127,7 @@ Conferir especialmente:
 - suporte a `base64`, `file.url`, `directPath` e `mediaUrl`.
 - auto-cura quando o Chatwoot devolve `404` para vínculo quebrado.
 - lock de `conversation_link` para evitar corrida local.
+- após `resolved/archived`, a próxima mensagem não deve reaproveitar outra conversa ativa encontrada por busca ampla no Chatwoot; deve abrir uma nova conversa, salvo quando o vínculo atual ainda estiver ativo.
 
 Arquivos para inspeção:
 

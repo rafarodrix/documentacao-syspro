@@ -358,7 +358,7 @@ describe("ProcessIncomingMessageUseCase reactions", () => {
     );
   });
 
-  it("reuses an existing active Chatwoot conversation before creating a new local link", async () => {
+  it("creates a new Chatwoot conversation instead of reusing another active conversation when no local link exists", async () => {
     prisma.conversationLink.findUnique.mockResolvedValueOnce(null);
     chatwootClient.listConversations.mockResolvedValueOnce([
       {
@@ -394,20 +394,25 @@ describe("ProcessIncomingMessageUseCase reactions", () => {
 
     expect(result).toEqual({
       contactIdentifier: "source-123",
-      conversationId: "conv-open-2",
+      conversationId: "conv-new",
     });
-    expect(chatwootClient.createConversation).not.toHaveBeenCalled();
+    expect(chatwootClient.createConversation).toHaveBeenCalledWith(
+      connection.chatwoot,
+      "source-123",
+      "42",
+    );
+    expect(chatwootClient.listConversations).not.toHaveBeenCalled();
     expect(prisma.conversationLink.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          chatwootConversationId: "conv-open-2",
+          chatwootConversationId: "conv-new",
           chatwootContactId: "source-123",
         }),
       }),
     );
   });
 
-  it("reuses another active Chatwoot conversation when the linked conversation is already resolved", async () => {
+  it("creates a new Chatwoot conversation when the linked conversation is already resolved", async () => {
     chatwootClient.getConversationDetails.mockResolvedValueOnce({
       id: "conv-resolved-1",
       status: "resolved",
@@ -444,13 +449,23 @@ describe("ProcessIncomingMessageUseCase reactions", () => {
       { interactionKind: "message", messageId: "msg-2", textContent: "Nova mensagem" },
     );
 
-    expect(link.chatwootConversationId).toBe("conv-open-3");
-    expect(chatwootClient.createConversation).not.toHaveBeenCalled();
+    expect(link.chatwootConversationId).toBe("conv-new");
+    expect(chatwootClient.createConversation).toHaveBeenCalledWith(
+      {
+        url: "https://chat.example.com",
+        apiToken: "token",
+        accountId: "1",
+        inboxId: "2",
+        inboxIdentifier: "whatsapp",
+      },
+      "source-123",
+    );
+    expect(chatwootClient.listConversations).not.toHaveBeenCalled();
     expect(prisma.conversationLink.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "link-1" },
         data: expect.objectContaining({
-          chatwootConversationId: "conv-open-3",
+          chatwootConversationId: "conv-new",
         }),
       }),
     );
