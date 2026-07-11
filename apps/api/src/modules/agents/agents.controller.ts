@@ -70,6 +70,16 @@ export class AgentsController {
     return this.agentsService.getDesiredState(internalApiKey, deviceId);
   }
 
+  @Get('revocations')
+  listRevocations(@Req() req: Request) {
+    return this.agentsService.listRevocations(req.headers as Record<string, unknown>);
+  }
+
+  @Delete('revocations/:deviceId')
+  deleteRevocation(@Req() req: Request, @Param('deviceId') deviceId: string) {
+    return this.agentsService.deleteRevocation(req.headers as Record<string, unknown>, deviceId);
+  }
+
   @Delete(':deviceId')
   deleteDevice(@Req() req: Request, @Param('deviceId') deviceId: string) {
     return this.agentsService.deleteDevice(req.headers as Record<string, unknown>, deviceId);

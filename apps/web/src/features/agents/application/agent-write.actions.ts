@@ -40,3 +40,25 @@ export async function pruneInactiveDevices(): Promise<{ deletedDevices: number; 
   return res.json().then((r) => r.data);
 }
 
+export async function getAgentRevocations(): Promise<Array<{ deviceId: string; hostname: string | null; revokedAt: string; reason: string | null }>> {
+  const res = await fetch("/api/agents/revocations", {
+    method: "GET",
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => null) as { message?: string } | null;
+    throw new Error(json?.message ?? `Falha ao listar exclusões: ${res.status}`);
+  }
+  return res.json().then((r) => r.data);
+}
+
+export async function deleteAgentRevocation(deviceId: string): Promise<void> {
+  const res = await fetch(`/api/agents/revocations/${encodeURIComponent(deviceId)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => null) as { message?: string } | null;
+    throw new Error(json?.message ?? `Falha ao remover exclusão: ${res.status}`);
+  }
+}
+
+

@@ -14,6 +14,7 @@ import {
   MoreVertical,
   Trash2,
   Eye,
+  ShieldAlert,
 } from "lucide-react";
 import type {
   AgentDeviceListResult,
@@ -29,10 +30,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@dosc-syspro/ui";
 import { SearchToolbar } from "@/components/patterns";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
-import { deleteAgentDevice, pruneInactiveDevices } from "@/features/agents/application/agent-write.actions";
+import { deleteAgentDevice, pruneInactiveDevices, getAgentRevocations, deleteAgentRevocation } from "@/features/agents/application/agent-write.actions";
 import { toast } from "sonner";
 
 type StatusFilter = "all" | "online" | "offline";
@@ -48,6 +54,7 @@ export function AgentDevicesPanel(props: {
   const [isRefreshing, startRefresh] = useTransition();
   const [searchInput, setSearchInput] = useState(initialSearch);
   const [isPruneDialogOpen, setIsPruneDialogOpen] = useState(false);
+  const [isRevocationsOpen, setIsRevocationsOpen] = useState(false);
   const [isPruning, startPruning] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -126,6 +133,16 @@ export function AgentDevicesPanel(props: {
             <Button
               variant="outline"
               size="sm"
+              className="gap-2 h-9 border-dashed border-muted-foreground/30 hover:border-yellow-500/50 hover:bg-yellow-500/5 hover:text-yellow-600 dark:hover:text-yellow-400"
+              onClick={() => setIsRevocationsOpen(true)}
+              title="Visualizar e gerenciar exclusões de hardware"
+            >
+              <ShieldAlert className="h-4 w-4" />
+              <span>Gerenciar Bloqueios</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               className="gap-2 h-9 border-dashed border-muted-foreground/30 hover:border-red-500/50 hover:bg-red-500/5 hover:text-red-600 dark:hover:text-red-400"
               onClick={() => setIsPruneDialogOpen(true)}
               disabled={isRefreshing || stats.offline === 0}
@@ -173,6 +190,11 @@ export function AgentDevicesPanel(props: {
             }
           });
         }}
+      />
+
+      <RevocationsDialog
+        open={isRevocationsOpen}
+        onOpenChange={setIsRevocationsOpen}
       />
 
       <DevicesTable items={list.items} />
@@ -462,5 +484,112 @@ function DeviceRowActions({ device }: { device: AgentDeviceSummary }) {
         }}
       />
     </>
+  );
+}
+
+function RevocationsDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { open, onOpenChange } = props;
+  const [items, setItems] = useState<Array<{ deviceId: string; hostname: string | null; revokedAt: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const load = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getAgentRevocations();
+      setItems(data);
+    } catch (err) {
+      toast.error("Erro ao carregar lista de bloqueios");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      load();
+    }
+  }, [open]);
+
+  const handleUnblock = async (deviceId: string) => {
+    setIsDeleting(deviceId);
+    try {
+      await deleteAgentRevocation(deviceId);
+      toast.success("Dispositivo desbloqueado com sucesso!");
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao remover bloqueio");
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+            <ShieldAlert className="h-5 w-5" />
+            <span>Gerenciar Dispositivos Bloqueados</span>
+          </DialogTitle>
+          <DialogDescription>
+            Quando um agente é excluído, o ID de hardware dele é colocado em uma lista de bloqueio para evitar que a máquina se registre novamente de forma automática. Remova o bloqueio abaixo se desejar reinstalar o agente nesta máquina.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[400px] overflow-y-auto border rounded-md">
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="text-center p-8 text-muted-foreground text-sm">
+              Nenhum dispositivo bloqueado no momento.
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40 font-medium text-muted-foreground">
+                  <th className="p-3 text-left">Hostname</th>
+                  <th className="p-3 text-left">Device ID</th>
+                  <th className="p-3 text-left">Bloqueado em</th>
+                  <th className="p-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.deviceId} className="border-b last:border-0 hover:bg-muted/20">
+                    <td className="p-3 font-medium">{item.hostname || "-"}</td>
+                    <td className="p-3 text-xs text-muted-foreground font-mono">{item.deviceId}</td>
+                    <td className="p-3 text-xs text-muted-foreground">
+                      {new Date(item.revokedAt).toLocaleString("pt-BR")}
+                    </td>
+                    <td className="p-3 text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20"
+                        disabled={isDeleting !== null}
+                        onClick={() => handleUnblock(item.deviceId)}
+                      >
+                        {isDeleting === item.deviceId ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        ) : (
+                          <Trash2 className="h-3 w-3 mr-1" />
+                        )}
+                        <span>Desbloquear</span>
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

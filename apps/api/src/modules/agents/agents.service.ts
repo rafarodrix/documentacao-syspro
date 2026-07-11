@@ -110,11 +110,11 @@ export class AgentsService {
       });
     }
 
-    await this.assertDeviceNotRevoked(parsed.data.deviceId);
-
     const payload = parsed.data;
     const now = new Date();
     const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
+
+    await this.assertDeviceNotRevoked(parsed.data.deviceId, remoteLinkContext);
 
     const device = await this.prisma.agentDevice.upsert({
       where: { deviceId: payload.deviceId },
@@ -188,11 +188,11 @@ export class AgentsService {
       });
     }
 
-    await this.assertDeviceNotRevoked(parsed.data.deviceId);
-
     const payload = parsed.data;
     const now = new Date();
     const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
+
+    await this.assertDeviceNotRevoked(parsed.data.deviceId, remoteLinkContext);
 
     const device = await this.prisma.agentDevice.upsert({
       where: { deviceId: payload.deviceId },
@@ -816,9 +816,34 @@ export class AgentsService {
     };
   }
 
-  private async assertDeviceNotRevoked(deviceId: string): Promise<void> {
+  private async assertDeviceNotRevoked(
+    deviceId: string,
+    linkContext?: AgentRemoteLinkContext,
+  ): Promise<void> {
     const normalizedDeviceId = deviceId?.trim();
     if (!normalizedDeviceId) return;
+
+    if (linkContext) {
+      const { remoteHostId, rustdeskId } = linkContext;
+      if (remoteHostId || rustdeskId) {
+        const hostExists = await this.prisma.remoteHost.findFirst({
+          where: {
+            OR: [
+              ...(remoteHostId ? [{ id: remoteHostId }] : []),
+              ...(rustdeskId ? [{ agentExternalId: rustdeskId }] : []),
+            ],
+          },
+          select: { id: true },
+        });
+
+        if (hostExists) {
+          await this.prisma.agentDeviceRevocation.deleteMany({
+            where: { deviceId: normalizedDeviceId },
+          });
+          return;
+        }
+      }
+    }
 
     const revoked = await this.prisma.agentDeviceRevocation.findUnique({
       where: { deviceId: normalizedDeviceId },
@@ -832,6 +857,39 @@ export class AgentsService {
         message: 'Este dispositivo foi removido do portal. Reinstale o agente para registrar novamente.',
       });
     }
+  }
+
+  async listRevocations(
+    rawHeaders: Record<string, unknown> | undefined,
+  ): Promise<{ success: true; data: any[] }> {
+    await this.authorizationService.assertPermission(rawHeaders as any, 'agents:view');
+    const rows = await this.prisma.agentDeviceRevocation.findMany({
+      orderBy: { revokedAt: 'desc' },
+    });
+    return { success: true, data: rows };
+  }
+
+  async deleteRevocation(
+    rawHeaders: Record<string, unknown> | undefined,
+    deviceId: string,
+  ): Promise<{ success: true; data: { deleted: true; deviceId: string } }> {
+    await this.authorizationService.assertPermission(rawHeaders as any, 'agents:manage');
+    const normalizedDeviceId = deviceId?.trim();
+    if (!normalizedDeviceId) {
+      throw new BadRequestException({ success: false, error: 'INVALID_DEVICE_ID' });
+    }
+
+    await this.prisma.agentDeviceRevocation.deleteMany({
+      where: { deviceId: normalizedDeviceId },
+    });
+
+    return {
+      success: true,
+      data: {
+        deleted: true,
+        deviceId: normalizedDeviceId,
+      },
+    };
   }
 
   async pruneInactiveDevices(
