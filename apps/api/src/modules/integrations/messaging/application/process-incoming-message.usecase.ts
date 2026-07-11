@@ -1854,10 +1854,11 @@ export class ProcessIncomingMessageUseCase {
           contactIdentifier,
           contact?.id?.toString?.()
         )) as any;
-        conversationId = this.extractChatwootConversationId(convResponse);
-        if (!conversationId) {
+        const createdConversationId = this.extractChatwootConversationId(convResponse);
+        if (!createdConversationId) {
           throw new Error(`Nao foi possivel resolver id da conversa criada no Chatwoot (contactIdentifier=${contactIdentifier})`);
         }
+        conversationId = createdConversationId;
 
         try {
           link = await this.prisma.conversationLink.create({
