@@ -1,3 +1,52 @@
+export namespace domain {
+	
+	export class SupportContext {
+	    companyId?: string;
+	    companyDisplayName?: string;
+	    hostId?: string;
+	    hostAlias?: string;
+	    rustdeskId?: string;
+	    remoteAccessPassword?: string;
+	    remoteStatus?: string;
+	    remoteStatusText?: string;
+	    conversationTags?: string[];
+	    machineName?: string;
+	    deviceId?: string;
+	    hostname?: string;
+	    os?: string;
+	    localUsername?: string;
+	    agentVersion?: string;
+	    contactName?: string;
+	    description?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SupportContext(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.companyId = source["companyId"];
+	        this.companyDisplayName = source["companyDisplayName"];
+	        this.hostId = source["hostId"];
+	        this.hostAlias = source["hostAlias"];
+	        this.rustdeskId = source["rustdeskId"];
+	        this.remoteAccessPassword = source["remoteAccessPassword"];
+	        this.remoteStatus = source["remoteStatus"];
+	        this.remoteStatusText = source["remoteStatusText"];
+	        this.conversationTags = source["conversationTags"];
+	        this.machineName = source["machineName"];
+	        this.deviceId = source["deviceId"];
+	        this.hostname = source["hostname"];
+	        this.os = source["os"];
+	        this.localUsername = source["localUsername"];
+	        this.agentVersion = source["agentVersion"];
+	        this.contactName = source["contactName"];
+	        this.description = source["description"];
+	    }
+	}
+
+}
+
 export namespace uistate {
 	
 	export class ActionResult {
@@ -136,50 +185,6 @@ export namespace uistate {
 	        this.user_visible = source["user_visible"];
 	    }
 	}
-	export class SupportContext {
-	    companyId?: string;
-	    companyDisplayName?: string;
-	    hostId?: string;
-	    hostAlias?: string;
-	    rustdeskId?: string;
-	    remoteAccessPassword?: string;
-	    remoteStatus?: string;
-	    remoteStatusText?: string;
-	    conversationTags?: string[];
-	    machineName?: string;
-	    deviceId?: string;
-	    hostname?: string;
-	    os?: string;
-	    localUsername?: string;
-	    agentVersion?: string;
-	    contactName?: string;
-	    description?: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new SupportContext(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.companyId = source["companyId"];
-	        this.companyDisplayName = source["companyDisplayName"];
-	        this.hostId = source["hostId"];
-	        this.hostAlias = source["hostAlias"];
-	        this.rustdeskId = source["rustdeskId"];
-	        this.remoteAccessPassword = source["remoteAccessPassword"];
-	        this.remoteStatus = source["remoteStatus"];
-	        this.remoteStatusText = source["remoteStatusText"];
-	        this.conversationTags = source["conversationTags"];
-	        this.machineName = source["machineName"];
-	        this.deviceId = source["deviceId"];
-	        this.hostname = source["hostname"];
-	        this.os = source["os"];
-	        this.localUsername = source["localUsername"];
-	        this.agentVersion = source["agentVersion"];
-	        this.contactName = source["contactName"];
-	        this.description = source["description"];
-	    }
-	}
 	export class SupportContextSyncResult {
 	    accepted: boolean;
 	    message: string;
@@ -197,7 +202,7 @@ export namespace uistate {
 	export class SupportSession {
 	    base_url: string;
 	    website_token: string;
-	    context: SupportContext;
+	    context: domain.SupportContext;
 	
 	    static createFrom(source: any = {}) {
 	        return new SupportSession(source);
@@ -207,7 +212,7 @@ export namespace uistate {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.base_url = source["base_url"];
 	        this.website_token = source["website_token"];
-	        this.context = this.convertValues(source["context"], SupportContext);
+	        this.context = this.convertValues(source["context"], domain.SupportContext);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
