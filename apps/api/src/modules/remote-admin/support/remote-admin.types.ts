@@ -8,6 +8,7 @@ export type {
   RemoteCompanyContextItem,
   RemoteConfiguredHostItem,
   RemoteDiscoveredAgentItem,
+  RemoteDiscoveredHostDetails,
   RemoteDiscoveredHostStatus,
   RemoteHostDetails,
   RemoteHostStatus,

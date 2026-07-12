@@ -536,6 +536,19 @@ export type RemoteHostDetails = {
   }>;
 };
 
+export type RemoteDiscoveredHostDetails = {
+  tenantScope: RemoteTenantScope;
+  host: RemoteDiscoveredAgentItem;
+  companyOptions: Array<{
+    id: string;
+    label: string;
+    searchText?: string;
+  }>;
+  suggestedCompanyId: string | null;
+  firstSeenAt: string;
+  updatedAt: string;
+};
+
 export const remotePlatformStatusSchema = z.enum(["planned", "foundation", "in_progress", "blocked"]);
 export const remoteAccessScopeSchema = z.enum(["global", "company"]);
 export const remoteHostStatusSchema = z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE"]);
@@ -1039,6 +1052,15 @@ export const remoteHostDetailsSchema = z.object({
       durationSeconds: z.number().nullable(),
     }),
   ),
+});
+
+export const remoteDiscoveredHostDetailsSchema = z.object({
+  tenantScope: remoteTenantScopeSchema,
+  host: remoteDiscoveredAgentItemSchema,
+  companyOptions: z.array(remoteCompanyOptionSchema),
+  suggestedCompanyId: remoteStringOrNullSchema,
+  firstSeenAt: z.string(),
+  updatedAt: z.string(),
 });
 
 export const remoteSessionsGatewayResponseSchema = z.object({

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   Copy,
@@ -668,6 +669,11 @@ export function RemotePlatformDirectoryPanel({
                       />
 
                       <div className="flex flex-wrap justify-end gap-2">
+                        <Button type="button" variant="outline" size="sm" asChild className="h-8">
+                          <Link href={`/portal/infraestrutura/hosts/descobertos/${item.id}`}>
+                            Detalhes
+                          </Link>
+                        </Button>
                         <Button
                           type="button"
                           size="sm"

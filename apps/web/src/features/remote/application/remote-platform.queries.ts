@@ -1,4 +1,5 @@
 import type {
+  RemoteDiscoveredHostDetails,
   RemoteHostDetails,
   RemotePlatformDirectory,
   RemotePlatformOverview,
@@ -19,4 +20,11 @@ export async function getRemoteHostDetails(
   hostId: string,
 ): Promise<RemoteHostDetails | null> {
   return trpc.remote.hostDetails.query({ hostId }) as Promise<RemoteHostDetails | null>;
+}
+
+export async function getRemoteDiscoveredHostDetails(
+  _tenantScope: RemoteTenantScope,
+  discoveredHostId: string,
+): Promise<RemoteDiscoveredHostDetails | null> {
+  return trpc.remote.discoveredHostDetails.query({ discoveredHostId }) as Promise<RemoteDiscoveredHostDetails | null>;
 }

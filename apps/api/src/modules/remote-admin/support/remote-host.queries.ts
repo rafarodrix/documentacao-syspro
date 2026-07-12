@@ -8,6 +8,7 @@ import { buildRemoteScopedWhere, buildScopedCompanyWhere } from "./scope";
 import type {
   RemoteConfiguredHostItem,
   RemoteDiscoveredAgentItem,
+  RemoteDiscoveredHostDetails,
   RemoteHostDetails,
   RemotePlatformDirectory,
   RemotePlatformOverview,
@@ -405,6 +406,118 @@ function buildCompanyOptionSearchText(input: { nomeFantasia: string | null; raza
   return [input.nomeFantasia?.trim() ?? "", input.razaoSocial.trim()]
     .filter((entry) => !!entry)
     .join(" ");
+}
+
+type ScopedCompanyOption = RemoteHostDetails["companyOptions"][number];
+
+type DiscoveredHostRecord = {
+  id: string;
+  machineName: string | null;
+  agentExternalId: string | null;
+  agentVersion: string | null;
+  provider: string | null;
+  environment: string | null;
+  description: string | null;
+  serviceStatus: string | null;
+  status: RemoteDiscoveredAgentItem["status"];
+  linkedHostId: string | null;
+  installationsSnapshot: Prisma.JsonValue | null;
+  firstSeenAt: Date;
+  lastHeartbeatAt: Date | null;
+  updatedAt: Date;
+};
+
+function buildScopedCompanyOption(input: { id: string; nomeFantasia: string | null; razaoSocial: string }): ScopedCompanyOption {
+  return {
+    id: input.id,
+    label: buildCompanyOptionLabel(input),
+    searchText: buildCompanyOptionSearchText(input),
+  };
+}
+
+async function loadScopedCompanyOptions(tenantScope: RemoteTenantScope): Promise<ScopedCompanyOption[]> {
+  const companyOptions = await prisma.company.findMany({
+    where: { deletedAt: null, ...buildScopedCompanyWhere(tenantScope) },
+    select: {
+      id: true,
+      nomeFantasia: true,
+      razaoSocial: true,
+    },
+    orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
+  });
+
+  return companyOptions.map(buildScopedCompanyOption);
+}
+
+function resolveDiscoveredSnapshotEntries(snapshot: Prisma.JsonValue | null) {
+  return Array.isArray(snapshot) ? snapshot : [];
+}
+
+function resolveDiscoveredTelemetryMetrics(snapshot: Prisma.JsonValue | null) {
+  const telemetryEntry = resolveDiscoveredSnapshotEntries(snapshot).find(
+    (entry) => entry && typeof entry === "object" && !Array.isArray(entry) && "_telemetry" in entry,
+  );
+  if (!telemetryEntry || typeof telemetryEntry !== "object" || Array.isArray(telemetryEntry)) {
+    return null;
+  }
+
+  return normalizeLastAgentMetrics((telemetryEntry as Record<string, unknown>)["_telemetry"] ?? null);
+}
+
+function resolveDiscoveredInstallationCompanies(snapshot: Prisma.JsonValue | null) {
+  const labels = resolveDiscoveredSnapshotEntries(snapshot)
+    .map((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+      if ("_telemetry" in entry) return null;
+      if ("empresa" in entry && typeof entry.empresa === "string") return entry.empresa.trim();
+      if ("companyLabel" in entry && typeof entry.companyLabel === "string") return entry.companyLabel.trim();
+      return null;
+    })
+    .filter((entry): entry is string => !!entry);
+
+  return Array.from(new Set(labels));
+}
+
+function mapDiscoveredHostItem(host: DiscoveredHostRecord): RemoteDiscoveredAgentItem {
+  return {
+    id: host.id,
+    machineName: host.machineName,
+    machineProfile: null,
+    rustdeskId: host.agentExternalId,
+    agentVersion: host.agentVersion,
+    provider: host.provider,
+    environment: host.environment,
+    description: host.description,
+    serviceStatus: host.serviceStatus,
+    lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
+    status: host.status,
+    linkedHostId: host.linkedHostId,
+    installationCompanies: resolveDiscoveredInstallationCompanies(host.installationsSnapshot),
+    lastAgentMetrics: resolveDiscoveredTelemetryMetrics(host.installationsSnapshot),
+    lastAgentMetricsAt: host.lastHeartbeatAt?.toISOString() ?? null,
+  };
+}
+
+function resolveSuggestedCompanyId(
+  installationCompanies: string[],
+  companyOptions: ScopedCompanyOption[],
+): string | null {
+  const normalizedInstallationCompanies = installationCompanies.map((entry) => normalizeSearchText(entry)).filter(Boolean);
+  if (!normalizedInstallationCompanies.length) return null;
+
+  for (const option of companyOptions) {
+    const normalizedLabel = normalizeSearchText(option.label);
+    const normalizedOptionSearchText = normalizeSearchText(option.searchText ?? option.label);
+    const match = normalizedInstallationCompanies.some((entry) =>
+      entry === normalizedLabel ||
+      entry === normalizedOptionSearchText ||
+      normalizedLabel.includes(entry) ||
+      normalizedOptionSearchText.includes(entry),
+    );
+    if (match) return option.id;
+  }
+
+  return null;
 }
 
 function toRecord(value: unknown): Record<string, unknown> | null {
@@ -1018,41 +1131,24 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
     unknown: 0,
   };
 
-  const pendingItems: RemoteDiscoveredAgentItem[] = discoveredHosts.map((host) => {
-    const snapshot = Array.isArray(host.installationsSnapshot) ? host.installationsSnapshot : [];
-    
-    // Extrai o objeto de telemetria se existir (marcado com _telemetry: true/objeto)
-    const telemetryEntry = snapshot.find(entry => entry && typeof entry === 'object' && '_telemetry' in entry);
-    const lastAgentMetrics = normalizeLastAgentMetrics((telemetryEntry as any)?._telemetry ?? null);
-
-    const installationCompanies = snapshot
-      .map((entry) => {
-        if (!entry || typeof entry !== "object") return null;
-        if ("_telemetry" in entry) return null; // Ignora o entry de telemetria na listagem de empresas
-        if ("empresa" in entry && typeof entry.empresa === "string") return entry.empresa.trim();
-        if ("companyLabel" in entry && typeof entry.companyLabel === "string") return entry.companyLabel.trim();
-        return null;
-      })
-      .filter((entry): entry is string => !!entry);
-
-    return {
+  const pendingItems: RemoteDiscoveredAgentItem[] = discoveredHosts.map((host) =>
+    mapDiscoveredHostItem({
       id: host.id,
       machineName: host.machineName,
-      machineProfile: null,
-      rustdeskId: host.agentExternalId,
+      agentExternalId: host.agentExternalId,
       agentVersion: host.agentVersion,
       provider: host.provider,
       environment: host.environment,
       description: host.description,
       serviceStatus: host.serviceStatus,
-      lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
       status: host.status as RemoteDiscoveredAgentItem["status"],
       linkedHostId: host.linkedHostId,
-      installationCompanies,
-      lastAgentMetrics,
-      lastAgentMetricsAt: host.lastHeartbeatAt?.toISOString() ?? null,
-    };
-  });
+      installationsSnapshot: host.installationsSnapshot,
+      firstSeenAt: host.firstSeenAt,
+      lastHeartbeatAt: host.lastHeartbeatAt,
+      updatedAt: host.updatedAt,
+    }),
+  );
 
   return {
     tenantScope,
@@ -1095,6 +1191,68 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
         installationCompanies: installationMap.get(host.id) ?? [],
       })
     ),
+  };
+}
+
+export async function getRemoteDiscoveredHostDetails(
+  tenantScope: RemoteTenantScope,
+  discoveredHostId: string,
+): Promise<RemoteDiscoveredHostDetails | null> {
+  if (!tenantScope.isGlobalView) return null;
+
+  const [hostRecord, companyOptions] = await Promise.all([
+    prisma.remoteDiscoveredHost.findFirst({
+      where: {
+        id: discoveredHostId,
+        status: "PENDING_LINK",
+        linkedHostId: null,
+      },
+      select: {
+        id: true,
+        machineName: true,
+        agentExternalId: true,
+        agentVersion: true,
+        provider: true,
+        environment: true,
+        description: true,
+        serviceStatus: true,
+        status: true,
+        linkedHostId: true,
+        installationsSnapshot: true,
+        firstSeenAt: true,
+        lastHeartbeatAt: true,
+        updatedAt: true,
+      },
+    }),
+    loadScopedCompanyOptions(tenantScope),
+  ]);
+
+  if (!hostRecord) return null;
+
+  const host = mapDiscoveredHostItem({
+    id: hostRecord.id,
+    machineName: hostRecord.machineName,
+    agentExternalId: hostRecord.agentExternalId,
+    agentVersion: hostRecord.agentVersion,
+    provider: hostRecord.provider,
+    environment: hostRecord.environment,
+    description: hostRecord.description,
+    serviceStatus: hostRecord.serviceStatus,
+    status: hostRecord.status,
+    linkedHostId: hostRecord.linkedHostId,
+    installationsSnapshot: hostRecord.installationsSnapshot,
+    firstSeenAt: hostRecord.firstSeenAt,
+    lastHeartbeatAt: hostRecord.lastHeartbeatAt,
+    updatedAt: hostRecord.updatedAt,
+  });
+
+  return {
+    tenantScope,
+    host,
+    companyOptions,
+    suggestedCompanyId: resolveSuggestedCompanyId(host.installationCompanies, companyOptions),
+    firstSeenAt: hostRecord.firstSeenAt.toISOString(),
+    updatedAt: hostRecord.updatedAt.toISOString(),
   };
 }
 
@@ -1175,15 +1333,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
   });
 
   if (!host) return null;
-  const companyOptions = await prisma.company.findMany({
-    where: { deletedAt: null, ...buildScopedCompanyWhere(tenantScope) },
-    select: {
-      id: true,
-      nomeFantasia: true,
-      razaoSocial: true,
-    },
-    orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
-  });
+  const companyOptions = await loadScopedCompanyOptions(tenantScope);
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const last30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -1422,11 +1572,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       agentMetricsAt: host.lastAgentMetricsAt?.toISOString() ?? null,
     },
     moduleSettings: buildRemoteModuleSettingsView(moduleSettings),
-    companyOptions: companyOptions.map((company) => ({
-      id: company.id,
-      label: buildCompanyOptionLabel(company),
-      searchText: buildCompanyOptionSearchText(company),
-    })),
+    companyOptions,
     installGuide: buildInstallGuide(hostView),
     company: {
       id: host.company.id,

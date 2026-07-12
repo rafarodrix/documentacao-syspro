@@ -60,6 +60,12 @@ export class RemoteAdminRouter {
           this.remoteAdminService.getHostDetails(input.hostId, ctx.headers),
         ),
 
+      discoveredHostDetails: this.trpc.publicProcedure
+        .input(z.object({ discoveredHostId: z.string() }))
+        .query(({ input, ctx }) =>
+          this.remoteAdminService.getDiscoveredHostDetails(input.discoveredHostId, ctx.headers),
+        ),
+
       sessions: this.trpc.publicProcedure
         .input(sessionFilterSchema)
         .query(({ input, ctx }) =>

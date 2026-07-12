@@ -5,6 +5,7 @@ import { resolveScopedCompanyContext } from '@dosc-syspro/remote-infra';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { executeRemoteAdminProcedure, type RemoteAdminProcedure } from './remote-procedure-runner';
 import {
+  getRemoteDiscoveredHostDetails,
   getRemoteHostDetails,
   getRemotePlatformDirectory,
   getRemotePlatformOverview,
@@ -91,6 +92,12 @@ export class RemoteAdminService {
     await this.authorizationService.getRequester(rawHeaders as any);
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     return getRemoteHostDetails(tenantScope, hostId);
+  }
+
+  async getDiscoveredHostDetails(discoveredHostId: string, rawHeaders?: Record<string, unknown>) {
+    await this.authorizationService.getRequester(rawHeaders as any);
+    const tenantScope = await this.resolveTenantScope(rawHeaders);
+    return getRemoteDiscoveredHostDetails(tenantScope, discoveredHostId);
   }
 
   async searchRemoteCompanies(query: string, rawHeaders?: Record<string, unknown>) {
