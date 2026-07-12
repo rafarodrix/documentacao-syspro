@@ -124,7 +124,7 @@ export function RemotePlatformDirectoryPanel({
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [isCreatingQuickHost, setIsCreatingQuickHost] = useState(false);
-  const [showPendingItems, setShowPendingItems] = useState(false);
+  const [showPendingItems, setShowPendingItems] = useState(() => directory.pendingItems.length > 0);
   const [linkingPendingId, setLinkingPendingId] = useState<string | null>(null);
   const [connectingHostId, setConnectingHostId] = useState<string | null>(null);
   const [hostToDelete, setHostToDelete] = useState<DirectoryItem | null>(null);
@@ -397,6 +397,17 @@ export function RemotePlatformDirectoryPanel({
     return { online, stale, offline, rebootPending };
   }, [filteredItems, hasHydrated]);
 
+  const displayedPendingItems = useMemo<PendingDirectoryItem[]>(() => {
+    if (!canCreateHosts) return [];
+    if (scopeFilter === "online" || scopeFilter === "offline") return [];
+    return filteredPendingItems;
+  }, [canCreateHosts, filteredPendingItems, scopeFilter]);
+
+  const totalFilteredItems = useMemo(
+    () => filteredItems.length + (canCreateHosts ? filteredPendingItems.length : 0),
+    [canCreateHosts, filteredItems.length, filteredPendingItems.length],
+  );
+
   const displayedItems = useMemo(() => {
     const referenceNow = hasHydrated ? Date.now() : null;
     if (scopeFilter === "online") return filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "recent");
@@ -405,7 +416,8 @@ export function RemotePlatformDirectoryPanel({
     return filteredItems;
   }, [filteredItems, hasHydrated, scopeFilter]);
 
-  const shouldShowPendingItems = canCreateHosts && filteredPendingItems.length > 0 && (scopeFilter === "all" || scopeFilter === "discovered");
+  const shouldShowPendingItems = displayedPendingItems.length > 0;
+  const visibleItemsCount = displayedItems.length + displayedPendingItems.length;
   const referenceNow = hasHydrated ? Date.now() : null;
 
   return (
@@ -415,7 +427,7 @@ export function RemotePlatformDirectoryPanel({
         searchPlaceholder="Buscar por host, empresa, IP, ID remoto ou ticket..."
         onSearchChange={setSearchTerm}
         onClearSearch={() => { setSearchTerm(""); }}
-        resultLabel={`${displayedItems.length} host${displayedItems.length === 1 ? "" : "s"}`}
+        resultLabel={`${visibleItemsCount} host${visibleItemsCount === 1 ? "" : "s"}`}
         filters={
           <>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
@@ -474,7 +486,7 @@ export function RemotePlatformDirectoryPanel({
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {[
-              { value: "all", label: "Todos", count: filteredItems.length },
+              { value: "all", label: "Todos", count: totalFilteredItems },
               { value: "online", label: "Online", count: filteredQuickIndicators.online },
               { value: "offline", label: "Offline", count: filteredQuickIndicators.stale + filteredQuickIndicators.offline },
               { value: "discovered", label: "Descobertas", count: filteredPendingItems.length, hidden: !canCreateHosts },
@@ -599,11 +611,11 @@ export function RemotePlatformDirectoryPanel({
             onClick={() => setShowPendingItems((prev) => !prev)}
           >
             <div>
-              <p className="text-sm font-semibold text-foreground">Máquinas aguardando vínculo</p>
-              <p className="text-xs text-muted-foreground">Descobertas pelo agente, mas ainda sem contexto empresarial no portal.</p>
+              <p className="text-sm font-semibold text-foreground">Hosts sem vínculo</p>
+              <p className="text-xs text-muted-foreground">Descobertos automaticamente pelo agente e aguardando definição da empresa no portal.</p>
             </div>
             <Badge variant="outline" className="border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 shadow-sm">
-              {filteredPendingItems.length}
+              {displayedPendingItems.length}
             </Badge>
           </button>
 
@@ -616,7 +628,7 @@ export function RemotePlatformDirectoryPanel({
                 <span className="text-right">Acoes</span>
               </div>
               <div className="divide-y divide-amber-500/10">
-                {filteredPendingItems.map((item) => {
+                {displayedPendingItems.map((item) => {
                   const selectedCompanyId = pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? "";
                   const proposedHostName = (pendingNameById[item.id] ?? item.machineName ?? "").trim();
                   const canLinkPendingHost = Boolean(selectedCompanyId && proposedHostName);
@@ -865,8 +877,8 @@ export function RemotePlatformDirectoryPanel({
           />
 
           <RegistryFooter
-            filtered={displayedItems.length}
-            total={directory.items.length}
+            filtered={visibleItemsCount}
+            total={directory.items.length + (canCreateHosts ? directory.pendingItems.length : 0)}
             singular="host"
             plural="hosts"
             searchTerm={searchTerm}
