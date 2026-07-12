@@ -486,14 +486,14 @@ export function RemotePlatformDirectoryPanel({
                   type="button"
                   onClick={() => setScopeFilter(option.value as typeof scopeFilter)}
                   className={cn(
-                    "inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors",
+                    "inline-flex h-7.5 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition-all duration-300 hover:scale-[1.02]",
                     scopeFilter === option.value
-                      ? "border-primary/30 bg-primary/10 text-primary"
+                      ? "bg-gradient-to-r from-primary to-primary/95 text-primary-foreground border-transparent shadow-sm shadow-primary/15"
                       : "border-border/50 bg-background text-muted-foreground hover:border-border hover:text-foreground",
                   )}
                 >
                   {option.label}
-                  <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold", scopeFilter === option.value ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+                  <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide", scopeFilter === option.value ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground")}>
                     {option.count}
                   </span>
                 </button>
@@ -592,23 +592,23 @@ export function RemotePlatformDirectoryPanel({
 
       {/* ── Pending items ── */}
       {shouldShowPendingItems && (
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5">
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 shadow-sm shadow-amber-500/5 backdrop-blur-md transition-all duration-300">
           <button
             type="button"
-            className="flex w-full items-center justify-between px-4 py-3 text-left"
+            className="flex w-full items-center justify-between px-4 py-3.5 text-left"
             onClick={() => setShowPendingItems((prev) => !prev)}
           >
             <div>
               <p className="text-sm font-semibold text-foreground">Máquinas aguardando vínculo</p>
               <p className="text-xs text-muted-foreground">Descobertas pelo agente, mas ainda sem contexto empresarial no portal.</p>
             </div>
-            <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+            <Badge variant="outline" className="border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 shadow-sm">
               {filteredPendingItems.length}
             </Badge>
           </button>
 
           {(showPendingItems || scopeFilter === "discovered") && (
-            <div className="border-t border-amber-500/20 px-2 py-2">
+            <div className="border-t border-amber-500/20 px-2 py-3">
               <div className="hidden md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,220px)_auto] md:gap-2 md:px-2 md:pb-1 md:text-[10px] md:font-semibold md:uppercase md:tracking-wide md:text-muted-foreground">
                 <span>Maquina</span>
                 <span>Empresa</span>
@@ -721,10 +721,29 @@ export function RemotePlatformDirectoryPanel({
               const detailsHref = `/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`;
 
               return (
-                <TableRow key={item.id} className="group/row transition-colors hover:bg-muted/10">
+                <TableRow key={item.id} className="group/row transition-all duration-200 hover:bg-muted/20 hover:shadow-sm">
                   <TableCell className="min-w-0 py-2.5">
-                    <div className="flex items-start gap-2">
-                      <div className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", health.dotClass)} />
+                    <div className="flex items-start gap-2.5">
+                      <div className="relative mt-1.5 flex h-2 w-2 shrink-0 items-center justify-center">
+                        {health.label === "Pronto" || health.label === "Contato recente" || health.label === "Em atendimento" ? (
+                          <>
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+                          </>
+                        ) : health.label === "Atenção" ? (
+                          <>
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-60" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)]" />
+                          </>
+                        ) : health.label === "Provisionando" ? (
+                          <>
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-500 opacity-60" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500 shadow-[0_0_6px_rgba(14,165,233,0.7)]" />
+                          </>
+                        ) : (
+                          <div className={cn("h-2 w-2 shrink-0 rounded-full", health.dotClass)} />
+                        )}
+                      </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
                         <p className="truncate text-[11px] text-muted-foreground">{identitySubtitle}</p>
@@ -747,18 +766,18 @@ export function RemotePlatformDirectoryPanel({
                   </TableCell>
 
                   <TableCell className="w-36 py-2.5">
-                    <div className="flex items-center gap-1">
-                      <code className="min-w-0 truncate font-mono text-xs text-foreground/80">{rustdeskDisplay}</code>
+                    <div className="flex items-center gap-1.5">
+                      <code className="min-w-0 truncate font-mono text-[11px] font-bold bg-muted/40 text-foreground/80 border border-border/30 rounded px-1.5 py-0.5 tracking-wider">{rustdeskDisplay}</code>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                        className="h-7 w-7 shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity hover:bg-muted/85"
                         onClick={() => handleCopyRustDeskId(item.agent.rustdeskId)}
                         disabled={!item.agent.rustdeskId}
                         title="Copiar ID remoto"
                       >
-                        <Copy className="h-3 w-3" />
+                        <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                       </Button>
                     </div>
                   </TableCell>

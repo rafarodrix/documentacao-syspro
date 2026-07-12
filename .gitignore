@@ -30,6 +30,10 @@ next-env.d.ts
 .turbo/
 .gocache/
 apps/agent/.gocache/
+.tpm/
+.TPM/
+.tmp/
+.TMP/
 
 # -----------------------------------------------------------------------------
 # Logs

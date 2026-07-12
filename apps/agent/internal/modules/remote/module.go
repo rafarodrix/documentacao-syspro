@@ -297,7 +297,9 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 	}
 
 	st.HostID = firstNonEmpty(discoverResp.HostID, st.HostID)
-	m.installToken = firstNonEmpty(strings.TrimSpace(m.installToken), strings.TrimSpace(discoverResp.InstallToken))
+	if nextInstallToken := strings.TrimSpace(discoverResp.InstallToken); nextInstallToken != "" {
+		m.installToken = nextInstallToken
+	}
 	st.MachineName = hostname
 	st.LastBootstrapFlow = string(flow)
 	_ = m.saveState(ctx, st)
