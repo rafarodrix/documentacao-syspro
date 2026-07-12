@@ -89,4 +89,41 @@ describe("AgentsService desired state", () => {
       },
     ]);
   });
+
+  it("treats linked device as online when remote host sync is recent", async () => {
+    authorizationService.assertPermission.mockResolvedValue({ userId: "user-1" });
+    prisma.agentDevice.findUnique.mockResolvedValue({
+      id: "device-row-1",
+      deviceId: "device-123",
+      hostname: "SERVIDOR",
+      os: "Windows Server",
+      identitySource: "windows",
+      agentVersion: "go-agent-v1",
+      companyId: "company-1",
+      remoteHostId: "host-1",
+      firstSeenAt: new Date("2026-07-12T18:00:00.000Z"),
+      lastHeartbeatAt: new Date(Date.now() - 20 * 60 * 1000),
+      lastRegisteredAt: new Date("2026-07-12T18:00:00.000Z"),
+      company: {
+        id: "company-1",
+        nomeFantasia: "Empresa 1",
+        razaoSocial: "Empresa 1 LTDA",
+      },
+      remoteHost: {
+        id: "host-1",
+        name: "Servidor Principal",
+        lastHeartbeatAt: new Date(Date.now() - 2 * 60 * 1000),
+        lastHeartbeatSuccessAt: new Date(Date.now() - 2 * 60 * 1000),
+      },
+    });
+
+    const response = await service.getDevice({}, "device-123");
+
+    expect(response.success).toBe(true);
+    expect(response.data.isOnline).toBe(true);
+    expect(response.data.remoteHostName).toBe("Servidor Principal");
+    expect(response.data.lastHeartbeatAt).not.toBeNull();
+    expect(response.data.heartbeatLagSeconds).not.toBeNull();
+    expect((response.data.heartbeatLagSeconds ?? 9999) < 5 * 60).toBe(true);
+  });
 });

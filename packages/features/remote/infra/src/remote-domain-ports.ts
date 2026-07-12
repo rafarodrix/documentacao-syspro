@@ -583,6 +583,24 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
             })),
           });
 
+          const linkedDeviceUpdate: Prisma.AgentDeviceUncheckedUpdateManyInput = {
+            lastHeartbeatAt: record.heartbeatAt,
+            ...(record.context.companyId ? { companyId: record.context.companyId } : {}),
+          };
+          const deviceHostname = record.machineName || record.context.machineName;
+          if (deviceHostname) {
+            linkedDeviceUpdate.hostname = deviceHostname;
+          }
+          const deviceAgentVersion = record.agentVersion || record.context.agentVersion;
+          if (deviceAgentVersion) {
+            linkedDeviceUpdate.agentVersion = deviceAgentVersion;
+          }
+
+          await tx.agentDevice.updateMany({
+            where: { remoteHostId: record.context.hostId },
+            data: linkedDeviceUpdate,
+          });
+
           const existingCommands = await tx.remoteAgentCommand.findMany({
             where: {
               hostId: record.context.hostId,

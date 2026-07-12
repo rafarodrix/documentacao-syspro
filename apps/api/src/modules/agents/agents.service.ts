@@ -21,7 +21,7 @@ const ONLINE_THRESHOLD_SECONDS = 5 * 60;
 
 const DEVICE_INCLUDE = {
   company: { select: { id: true, nomeFantasia: true, razaoSocial: true } },
-  remoteHost: { select: { id: true, name: true } },
+  remoteHost: { select: { id: true, name: true, lastHeartbeatAt: true, lastHeartbeatSuccessAt: true } },
 } as const;
 
 const DESIRED_STATE_DEVICE_INCLUDE = {
@@ -61,6 +61,8 @@ type DeviceRow = {
   remoteHost: {
     id: string;
     name: string;
+    lastHeartbeatAt: Date | null;
+    lastHeartbeatSuccessAt: Date | null;
   } | null;
 };
 
@@ -710,7 +712,7 @@ export class AgentsService {
   }
 
   private toSummary(row: DeviceRow, onlineSince: Date): AgentDeviceSummary {
-    const lastHeartbeat = row.lastHeartbeatAt;
+    const lastHeartbeat = this.resolveEffectiveHeartbeatAt(row);
     const isOnline = !!lastHeartbeat && lastHeartbeat >= onlineSince;
     const heartbeatLagSeconds = lastHeartbeat
       ? Math.max(0, differenceInSeconds(new Date(), lastHeartbeat))
@@ -739,6 +741,20 @@ export class AgentsService {
     } as unknown as AgentDeviceSummary;
 
     return summary;
+  }
+
+  private resolveEffectiveHeartbeatAt(row: DeviceRow): Date | null {
+    const candidates = [
+      row.lastHeartbeatAt,
+      row.remoteHost?.lastHeartbeatSuccessAt ?? null,
+      row.remoteHost?.lastHeartbeatAt ?? null,
+    ].filter((value): value is Date => value instanceof Date);
+
+    if (!candidates.length) return null;
+
+    return candidates.reduce((latest, current) => {
+      return current.getTime() > latest.getTime() ? current : latest;
+    });
   }
 
   async deleteDevice(
