@@ -53,7 +53,7 @@ export function HostOverviewTab({
     <div className="space-y-6">
       {/* Top Section: General Info and Device Link */}
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-border/50">
+        <Card className="border-border/40 bg-card/65 backdrop-blur-md shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
               <Monitor className="h-4.5 w-4.5 text-primary" />
@@ -166,7 +166,7 @@ export function HostOverviewTab({
 
       {/* Bottom Section: Connectivity & Telemetry metrics summary */}
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-border/50">
+        <Card className="border-border/40 bg-card/65 backdrop-blur-md shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
               <Clock className="h-4.5 w-4.5 text-primary" />
@@ -175,18 +175,27 @@ export function HostOverviewTab({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-0.5">
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Último contato</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Último contato</p>
               <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
               <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
             </div>
             <div className="pt-3 border-t border-border/40 flex items-center gap-2 text-xs text-muted-foreground">
-              <div className={cn("h-2 w-2 rounded-full animate-pulse", agent.lastHeartbeatAt ? "bg-green-500" : "bg-muted")} />
+              <div className="relative flex h-2 w-2 shrink-0">
+                {agent.lastHeartbeatAt ? (
+                  <>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                  </>
+                ) : (
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-muted" />
+                )}
+              </div>
               <span>Agente ativo e sincronizando parâmetros operacionais.</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
+        <Card className="border-border/40 bg-card/65 backdrop-blur-md shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
               <Activity className="h-4.5 w-4.5 text-primary" />
@@ -194,24 +203,30 @@ export function HostOverviewTab({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between text-xs mb-1">
+                <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="text-muted-foreground font-semibold">Uso de CPU</span>
                   <span className="font-mono font-bold text-foreground">{cpuLoad !== null ? `${cpuLoad}%` : "--"}</span>
                 </div>
-                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="bg-primary h-full transition-all duration-500" style={{ width: `${cpuLoad ?? 0}%` }} />
+                <div className="h-2.5 w-full bg-muted/65 rounded-full overflow-hidden shadow-inner">
+                  <div 
+                    className="bg-gradient-to-r from-violet-500 to-indigo-600 h-full transition-all duration-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.4)]" 
+                     style={{ width: `${cpuLoad ?? 0}%` }} 
+                  />
                 </div>
               </div>
 
               <div>
-                <div className="flex items-center justify-between text-xs mb-1">
+                <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="text-muted-foreground font-semibold">Uso de RAM</span>
                   <span className="font-mono font-bold text-foreground">{ramUsedPc !== null ? `${ramUsedPc}%` : "--"}</span>
                 </div>
-                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="bg-sky-500 h-full transition-all duration-500" style={{ width: `${ramUsedPc ?? 0}%` }} />
+                <div className="h-2.5 w-full bg-muted/65 rounded-full overflow-hidden shadow-inner">
+                  <div 
+                    className="bg-gradient-to-r from-sky-400 to-blue-600 h-full transition-all duration-500 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.4)]" 
+                     style={{ width: `${ramUsedPc ?? 0}%` }} 
+                  />
                 </div>
               </div>
             </div>

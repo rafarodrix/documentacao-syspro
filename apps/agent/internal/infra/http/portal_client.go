@@ -34,12 +34,6 @@ type PortalClient struct {
 	baseURL    string
 }
 
-type remoteLinkContext struct {
-	HostID     string `json:"host_id"`
-	CompanyID  string `json:"company_id"`
-	RustDeskID string `json:"rustdesk_id"`
-}
-
 type HTTPStatusError struct {
 	StatusCode int
 	Method     string
@@ -125,8 +119,8 @@ func (c *PortalClient) SendHeartbeat(ctx context.Context) error {
 	return err
 }
 
-func (c *PortalClient) loadRemoteLinkContext(ctx context.Context) *remoteLinkContext {
-	var link remoteLinkContext
+func (c *PortalClient) loadRemoteLinkContext(ctx context.Context) *domain.PersistedRemoteState {
+	var link domain.PersistedRemoteState
 	if err := c.store.LoadJSON(ctx, "remote_state.json", &link); err != nil {
 		return nil
 	}

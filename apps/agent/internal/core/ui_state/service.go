@@ -82,6 +82,8 @@ type Service struct {
 	publisher    SupportContextPublisher
 }
 
+type persistedRemoteState = domain.PersistedRemoteState
+
 func NewService(
 	stateDir string,
 	chatwoot ChatwootConfig,
@@ -167,7 +169,7 @@ func (s *Service) SetupStatus(ctx context.Context) (SetupStatus, error) {
 	desired, _ := loadJSON[domain.DesiredState](filepath.Join(s.stateDir, "desired_state.json"))
 	current, _ := loadJSON[domain.CurrentState](filepath.Join(s.stateDir, "current_state.json"))
 	results, _ := loadJSON[[]domain.ApplyResult](filepath.Join(s.stateDir, "apply_results.json"))
-	remoteState, _ := loadJSON[persistedRemoteState](filepath.Join(s.stateDir, "remote_state.json"))
+	remoteState, _ := loadJSON[domain.PersistedRemoteState](filepath.Join(s.stateDir, "remote_state.json"))
 
 	remoteResult := findModuleResult(results, "remote")
 	steps := []SetupStep{
@@ -306,26 +308,7 @@ func (s *Service) SyncSupportConversationContext(ctx context.Context, conversati
 	}
 
 	supportContext := s.buildSupportContext()
-	payload := domain.SupportConversationContext{
-		CompanyID:        supportContext.CompanyID,
-		CompanyName:      supportContext.CompanyDisplayName,
-		HostID:           supportContext.HostID,
-		HostAlias:        supportContext.HostAlias,
-		RustDeskID:       supportContext.RustDeskID,
-		RemoteStatus:     supportContext.RemoteStatus,
-		RemoteStatusText: supportContext.RemoteStatusText,
-		ConversationTags: supportContext.ConversationTags,
-		MachineName:      supportContext.MachineName,
-		DeviceID:         supportContext.DeviceID,
-		Hostname:         supportContext.Hostname,
-		OS:               supportContext.OS,
-		LocalUsername:    supportContext.LocalUsername,
-		AgentVersion:     supportContext.AgentVersion,
-		ContactName:      supportContext.ContactName,
-		Description:      supportContext.Description,
-	}
-
-	if err := s.publisher.SyncSupportConversationContext(ctx, conversationID, payload); err != nil {
+	if err := s.publisher.SyncSupportConversationContext(ctx, conversationID, supportContext.ToConversationContext()); err != nil {
 		return SupportContextSyncResult{
 			Accepted: false,
 			Message:  "support context sync failed",
@@ -336,23 +319,6 @@ func (s *Service) SyncSupportConversationContext(ctx context.Context, conversati
 		Accepted: true,
 		Message:  "support context synced",
 	}, nil
-}
-
-type persistedRemoteState struct {
-	AgentToken          string    `json:"agent_token"`
-	CompanyID           string    `json:"company_id"`
-	CompanyName         string    `json:"company_name"`
-	HostID              string    `json:"host_id"`
-	Alias               string    `json:"alias"`
-	RustDeskID          string    `json:"rustdesk_id"`
-	DefaultPassword     string    `json:"default_password"`
-	RuntimePassword     string    `json:"runtime_password"`
-	MachineName         string    `json:"machine_name"`
-	CurrentVersion      string    `json:"current_version"`
-	RustDeskExecutable  string    `json:"rustdesk_executable"`
-	RebootstrapRequired bool      `json:"rebootstrap_required"`
-	LastBootstrapFlow   string    `json:"last_bootstrap_flow"`
-	LastSyncAt          time.Time `json:"last_sync_at"`
 }
 
 func (s *Service) buildSupportContext() SupportContext {
@@ -367,7 +333,7 @@ func (s *Service) buildSupportContext() SupportContext {
 		context.OS = strings.TrimSpace(identity.OS)
 	}
 
-	if remoteState, err := loadJSON[persistedRemoteState](filepath.Join(s.stateDir, "remote_state.json")); err == nil {
+	if remoteState, err := loadJSON[domain.PersistedRemoteState](filepath.Join(s.stateDir, "remote_state.json")); err == nil {
 		context.CompanyID = strings.TrimSpace(remoteState.CompanyID)
 		context.CompanyDisplayName = strings.TrimSpace(remoteState.CompanyName)
 		context.HostID = strings.TrimSpace(remoteState.HostID)
@@ -399,7 +365,7 @@ func resolveCompanyDisplayName(context SupportContext) string {
 	}
 }
 
-func resolveDisplayedRustDeskPassword(remoteState persistedRemoteState) string {
+func resolveDisplayedRustDeskPassword(remoteState domain.PersistedRemoteState) string {
 	// Prefere a senha em tempo de execução (lida do RustDesk2.toml a cada sync)
 	// sobre a senha padrão do bootstrap, que é estática.
 	runtimePassword := strings.TrimSpace(remoteState.RuntimePassword)
@@ -505,7 +471,7 @@ func currentLocalUsername() string {
 }
 
 func (s *Service) resolveRustDeskExecutable() string {
-	if remoteState, err := loadJSON[persistedRemoteState](filepath.Join(s.stateDir, "remote_state.json")); err == nil {
+	if remoteState, err := loadJSON[domain.PersistedRemoteState](filepath.Join(s.stateDir, "remote_state.json")); err == nil {
 		if candidate := strings.TrimSpace(remoteState.RustDeskExecutable); candidate != "" {
 			if _, err := os.Stat(candidate); err == nil {
 				return candidate

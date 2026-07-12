@@ -13,7 +13,7 @@ function relativeTime(lagSeconds: number | null): string {
 
 export function LinkedDeviceCard({ device }: { device: AgentDeviceSummary }) {
   return (
-    <Card className="border-border/50">
+    <Card className="border-border/40 bg-card/65 backdrop-blur-md shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-2 text-base font-semibold">
@@ -41,16 +41,16 @@ export function LinkedDeviceCard({ device }: { device: AgentDeviceSummary }) {
       <CardContent className="space-y-4">
         {/* Status banner */}
         <div
-          className={`flex items-center gap-3 rounded-xl border p-4 ${
+          className={`flex items-center gap-3 rounded-xl border p-4 transition-all duration-300 ${
             device.isOnline
-              ? "border-emerald-500/20 bg-emerald-500/5"
-              : "border-muted-foreground/15 bg-muted/20"
+              ? "border-emerald-500/20 bg-emerald-500/5 shadow-[inset_0_0_12px_rgba(16,185,129,0.05)]"
+              : "border-muted-foreground/15 bg-muted/10"
           }`}
         >
           {device.isOnline ? (
             <span className="relative flex h-3 w-3 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.65)]" />
             </span>
           ) : (
             <WifiOff className="h-4 w-4 shrink-0 text-muted-foreground/60" />
@@ -103,7 +103,7 @@ function Detail({
   mono: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+    <div className="rounded-lg border border-border/40 bg-background/50 p-3 hover:bg-muted/15 hover:border-border/60 transition-all duration-200">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={`mt-1 truncate text-sm text-foreground ${mono ? "font-mono" : ""}`}>
         {value ?? <span className="text-muted-foreground italic">—</span>}
