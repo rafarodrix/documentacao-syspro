@@ -24,13 +24,13 @@ Instalação
     ▼
 [Discovery] ──────────────────────────────────────────────────────
     POST /api/remote/agents/discover
-    { discoveryToken, rustdeskId, hostname, OS, ... }
+    { schemaVersion, discoveryToken, rustdeskId, machineName, ... }
     ◄── { transition: "REGISTER" | "LINK" | "ALREADY_LINKED" }
     │
     ▼ (se REGISTER)
 [Bootstrap] ──────────────────────────────────────────────────────
     POST /api/remote/rustdesk/bootstrap
-    { installToken, rustdeskId, hostname, ... }
+    { installToken, rustdeskId, machineName, ... }
     ◄── { agentToken, rustdeskConfig, expiresAt }
     │
     ▼ (persiste agentToken com DPAPI)

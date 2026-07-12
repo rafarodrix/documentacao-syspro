@@ -145,15 +145,15 @@ Antes de entrar no ciclo de heartbeat, o agente passa por dois fluxos:
 
 ### Discovery (primeiro contato)
 ```
-[agent] POST /api/remote/rustdesk/discover
-→ body: { discoveryToken, rustdeskId, hostname, ... }
+[agent] POST /api/remote/agents/discover
+→ body: { schemaVersion, discoveryToken, rustdeskId, machineName, ... }
 ← resposta: { transition: "REGISTER" | "LINK" | "ALREADY_LINKED" }
 ```
 
 ### Bootstrap (registro)
 ```
 [agent] POST /api/remote/rustdesk/bootstrap
-→ body: { installToken, rustdeskId, hostname, ... }
+→ body: { installToken, rustdeskId, machineName, ... }
 ← resposta: { agentToken, rustdeskConfig, expiresAt }
 ```
 

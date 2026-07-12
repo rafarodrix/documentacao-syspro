@@ -1,5 +1,6 @@
 import { HttpException } from '@nestjs/common';
 import {
+  AGENT_DISCOVER_SCHEMA_VERSION,
   createTrilinkRemote,
   mapRemoteDomainError,
 } from '@dosc-syspro/remote-domain';
@@ -12,6 +13,7 @@ import {
   createRemoteSessionPort,
   createRemoteSyncPort,
 } from '@dosc-syspro/remote-infra';
+import { ZodError } from 'zod';
 
 export type RemoteAdminProcedure =
   | 'sessionsList'
@@ -85,6 +87,71 @@ function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+type IngressCompatibilityAdjustments = {
+  inferredDiscoverSchemaVersion: boolean;
+  promotedHostnameToMachineName: boolean;
+};
+
+function readTrimmedString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+export function normalizeRemoteIngressPayload(
+  procedure: RemoteIngressProcedure,
+  payload: Record<string, unknown>,
+): {
+  payload: Record<string, unknown>;
+  compatibility: IngressCompatibilityAdjustments;
+} {
+  const normalizedPayload = { ...payload };
+  const compatibility: IngressCompatibilityAdjustments = {
+    inferredDiscoverSchemaVersion: false,
+    promotedHostnameToMachineName: false,
+  };
+
+  const machineName = readTrimmedString(normalizedPayload.machineName);
+  const hostname = readTrimmedString(normalizedPayload.hostname);
+  if (!machineName && hostname) {
+    normalizedPayload.machineName = hostname;
+    compatibility.promotedHostnameToMachineName = true;
+  }
+
+  if (procedure === 'discover') {
+    const schemaVersion = readTrimmedString(normalizedPayload.schemaVersion);
+    const discoveryToken = readTrimmedString(normalizedPayload.discoveryToken);
+    if (!schemaVersion && discoveryToken) {
+      normalizedPayload.schemaVersion = AGENT_DISCOVER_SCHEMA_VERSION;
+      compatibility.inferredDiscoverSchemaVersion = true;
+    }
+  }
+
+  return {
+    payload: normalizedPayload,
+    compatibility,
+  };
+}
+
+function summarizeRemoteIngressPayload(payload: Record<string, unknown>) {
+  return {
+    keys: Object.keys(payload).sort(),
+    schemaVersion: readTrimmedString(payload.schemaVersion),
+    machineName: readTrimmedString(payload.machineName),
+    hostname: readTrimmedString(payload.hostname),
+    hasDiscoveryToken: Boolean(readTrimmedString(payload.discoveryToken)),
+    hasAgentToken: Boolean(readTrimmedString(payload.agentToken)),
+    hasInstallToken: Boolean(readTrimmedString(payload.installToken)),
+    hasRustdeskId: Boolean(readTrimmedString(payload.rustdeskId)),
+  };
+}
+
+function summarizeZodIssues(error: ZodError) {
+  return error.issues.slice(0, 8).map((issue) => ({
+    path: issue.path.join('.'),
+    message: issue.message,
+    code: issue.code,
+  }));
 }
 
 function throwMappedRemoteError(error: unknown): never {
@@ -216,7 +283,8 @@ export async function executeRemoteIngressProcedure(input: {
   userAgent?: string | null;
 }) {
   const remote = createRemoteFacade(input.logger, input.requestIp);
-  const payload = asObject(input.payload);
+  const rawPayload = asObject(input.payload);
+  const { payload, compatibility } = normalizeRemoteIngressPayload(input.procedure, rawPayload);
   const enrichedPayload = {
     ...payload,
     metadata: {
@@ -245,6 +313,20 @@ export async function executeRemoteIngressProcedure(input: {
       }
     }
   } catch (error) {
+    const mapped = mapRemoteDomainError(error, {
+      defaultMessage: 'Falha inesperada no modulo remoto.',
+    });
+    input.logger.warn('remote.ingress.request_failed', {
+      procedure: input.procedure,
+      code: mapped.code,
+      httpStatus: mapped.httpStatus,
+      requestIp: input.requestIp,
+      requestId: input.requestId ?? null,
+      userAgent: input.userAgent ?? null,
+      compatibility,
+      payloadSummary: summarizeRemoteIngressPayload(payload),
+      validationIssues: error instanceof ZodError ? summarizeZodIssues(error) : undefined,
+    });
     throwMappedRemoteError(error);
   }
 }

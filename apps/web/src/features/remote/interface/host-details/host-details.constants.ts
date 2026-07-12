@@ -12,7 +12,7 @@ export const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string>
   RADMIN_VPN: "Radmin VPN",
 };
 
-export const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
+export const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\SysproServer.exe";
 export const UNLINKED_COMPANY_VALUE = "__unlinked__";
 
 export const MACHINE_PROFILE_LABEL: Record<RemoteMachineProfile, string> = {
