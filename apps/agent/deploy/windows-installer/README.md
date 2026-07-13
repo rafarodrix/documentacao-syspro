@@ -91,6 +91,12 @@ Fluxo atual:
 - `ensure-webview2-runtime.ps1` nao faz mais parte do pacote nem do instalador
 - a geracao oficial do instalador nao usa mais wrappers PowerShell
 
+Observacao operacional:
+
+- se os logs do backend mostrarem `user-agent = WindowsPowerShell/5.1` em `POST /api/remote/rustdesk/bootstrap`, a chamada nao veio do runtime Go atual
+- isso normalmente indica artefato legado ainda residente na maquina
+- nesse cenario, nao trate como reinstalacao simples por cima; faca remocao/limpeza antes de instalar novamente
+
 ## Seed de configuracao
 
 Se `apps/agent/.env` existir localmente, ele entra como seed inicial do instalador.

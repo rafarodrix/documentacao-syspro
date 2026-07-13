@@ -230,6 +230,12 @@ Verifique primeiro:
 - se a configuracao `Agente Trilink > Remoto` tem instalador e SHA256 validos para downloads HTTP/HTTPS
 - se a maquina nao esta carregando um pacote antigo do agente anterior a remocao do `REMOTE_INSTALL_TOKEN` local
 
+Diagnostico rapido pelos logs:
+
+- se `POST /api/remote/rustdesk/bootstrap` aparecer com `user-agent = WindowsPowerShell/5.1`, esse bootstrap nao veio do runtime Go atual do agente
+- nesse caso, a maquina ainda esta executando algum helper/script legado e instalar por cima nao garante limpeza suficiente
+- a acao correta passa a ser parar/remover o servico anterior, limpar o estado local e reinstalar com o pacote novo
+
 ## Observacao de arquitetura
 
 O desenho atual ja esta em um bom nivel para homologacao enterprise inicial:

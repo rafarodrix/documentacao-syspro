@@ -3,6 +3,8 @@ package http
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -305,6 +307,9 @@ func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, b
 	}
 
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", c.userAgent())
+	req.Header.Set("x-agent-version", c.cfg.Agent.Version)
+	req.Header.Set("x-agent-runtime", "go-agent")
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -342,6 +347,8 @@ func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, b
 		"path", path,
 		"status", resp.StatusCode,
 		"elapsed_ms", elapsed.Milliseconds(),
+		"user_agent", req.Header.Get("User-Agent"),
+		"request_fingerprint", requestFingerprint(body),
 	)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -365,4 +372,26 @@ func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, b
 
 func isRetryableStatus(status int) bool {
 	return status == 0 || status == http.StatusTooManyRequests || status >= 500
+}
+
+func (c *PortalClient) userAgent() string {
+	version := strings.TrimSpace(c.cfg.Agent.Version)
+	if version == "" {
+		return "trilink-agent"
+	}
+	return "trilink-agent/" + version
+}
+
+func requestFingerprint(body any) string {
+	if body == nil {
+		return "empty"
+	}
+
+	data, err := json.Marshal(body)
+	if err != nil || len(data) == 0 {
+		return "unavailable"
+	}
+
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])[:12]
 }

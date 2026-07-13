@@ -14,6 +14,7 @@ import {
   createRemoteSyncPort,
 } from '@dosc-syspro/remote-infra';
 import { ZodError } from 'zod';
+import { createHash } from 'node:crypto';
 
 export type RemoteAdminProcedure =
   | 'sessionsList'
@@ -142,8 +143,17 @@ function summarizeRemoteIngressPayload(payload: Record<string, unknown>) {
     hasDiscoveryToken: Boolean(readTrimmedString(payload.discoveryToken)),
     hasAgentToken: Boolean(readTrimmedString(payload.agentToken)),
     hasInstallToken: Boolean(readTrimmedString(payload.installToken)),
+    installTokenFingerprint: fingerprintString(readTrimmedString(payload.installToken)),
     hasRustdeskId: Boolean(readTrimmedString(payload.rustdeskId)),
   };
+}
+
+function fingerprintString(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  return createHash('sha256').update(value).digest('hex').slice(0, 12);
 }
 
 function summarizeZodIssues(error: ZodError) {

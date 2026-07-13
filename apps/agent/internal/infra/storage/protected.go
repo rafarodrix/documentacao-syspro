@@ -128,7 +128,7 @@ func protectedFieldsForFile(name string) []string {
 	case "remote_state.json":
 		return []string{"agent_token"}
 	case "agent_config.json":
-		return []string{"portal_api_key", "chatwoot_website_token", "remote_discovery_token", "remote_install_token"}
+		return []string{"portal_api_key", "chatwoot_website_token", "remote_discovery_token"}
 	default:
 		return nil
 	}

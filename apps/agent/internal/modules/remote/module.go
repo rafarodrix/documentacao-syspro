@@ -301,6 +301,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 		"mode", discoverResp.Mode,
 		"discovered_host_id", discoverResp.DiscoveredHostID,
 		"host_id", discoverResp.HostID,
+		"install_token_fingerprint", tokenFingerprint(discoverResp.InstallToken),
 	)
 	_ = m.publish(ctx, "remote.discover.completed", "discover completed", map[string]any{
 		"flow":               flow,
@@ -365,6 +366,11 @@ func (m *Module) runBootstrapThenSync(
 		if isApplyContextCanceled(err) {
 			return m.canceled("bootstrap cycle canceled")
 		}
+		m.logger.Warn("remote bootstrap failed",
+			"host_id", st.HostID,
+			"install_token_fingerprint", tokenFingerprint(installToken),
+			"error", err,
+		)
 		st.RebootstrapRequired = true
 		_ = m.saveState(ctx, st)
 		return m.fail("bootstrap failed", err)
@@ -420,6 +426,7 @@ func (m *Module) runBootstrapThenSync(
 	m.logger.Info("remote bootstrap completed",
 		"host_id", st.HostID,
 		"alias", st.Alias,
+		"install_token_fingerprint", tokenFingerprint(installToken),
 		"token_fingerprint", tokenFingerprint(st.AgentToken),
 	)
 	_ = m.publish(ctx, "remote.bootstrap.completed", "bootstrap completed", map[string]any{
