@@ -87,6 +87,7 @@ Observacao:
 - `REMOTE_INSTALL_TOKEN` deixou de ser configuracao operacional do agente
 - o token passa a ser obtido automaticamente depois que a maquina descoberta for vinculada no portal
 - o instalador do RustDesk passa a ser governado pelo portal, nao pelo `.env` do agente
+- o helper de configuracao remove automaticamente qualquer `REMOTE_INSTALL_TOKEN` legado ainda salvo na maquina
 
 ## Execucao
 
@@ -153,6 +154,7 @@ Resultado esperado:
 
 - o `discover` passa a devolver `installToken` automaticamente
 - o agente segue para `bootstrap` sem configuracao manual adicional
+- se o portal ainda nao devolver `installToken`, o agente fica aguardando o bootstrap autenticado em vez de tentar um token local antigo
 
 ### Fase 4. Bootstrap remoto
 
@@ -226,6 +228,7 @@ Verifique primeiro:
 - se o dominio configurado realmente expone as rotas `/api/remote/...`
 - se o host foi vinculado no portal
 - se a configuracao `Agente Trilink > Remoto` tem instalador e SHA256 validos para downloads HTTP/HTTPS
+- se a maquina nao esta carregando um pacote antigo do agente anterior a remocao do `REMOTE_INSTALL_TOKEN` local
 
 ## Observacao de arquitetura
 

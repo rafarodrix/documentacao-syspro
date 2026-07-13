@@ -25,7 +25,6 @@ func Load() (Config, error) {
 		Remote: RemoteConfig{
 			Enabled:        getEnvBool("REMOTE_ENABLED", true),
 			DiscoveryToken: getEnv("REMOTE_DISCOVERY_TOKEN", ""),
-			InstallToken:   getEnv("REMOTE_INSTALL_TOKEN", ""),
 		},
 		Support: SupportConfig{
 			ChatwootBaseURL:      getEnvAny([]string{"SUPPORT_CHATWOOT_BASE_URL", "CHATWOOT_URL"}, defaultSupportChatwootBaseURL),

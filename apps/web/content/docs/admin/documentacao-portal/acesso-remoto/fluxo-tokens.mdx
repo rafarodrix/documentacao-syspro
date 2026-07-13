@@ -1,7 +1,7 @@
 ---
-title: Acesso Remoto — Tokens e Sessões
-description: Ciclo de vida do agentToken, installToken, discoveryToken, credenciais de address book e estados de sessão remota.
-lastUpdated: 2026-05-18
+title: Acesso Remoto - Tokens e Sessoes
+description: Ciclo de vida do agentToken, installToken, discoveryToken, credenciais de address book e estados de sessao remota.
+lastUpdated: 2026-07-13
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -10,212 +10,128 @@ tags:
   - sessoes
 ---
 
-# Acesso Remoto — Tokens e Sessões
+# Acesso Remoto - Tokens e Sessoes
 
-> Ciclo de vida do agentToken, rotação de credenciais e gerenciamento de sessões.
-> Atualizado em: 2026-05-05
+> Ciclo de vida do agentToken, rotacao de credenciais e gerenciamento de sessoes. Atualizado em: 2026-07-13
 
 ---
 
 ## agentToken
 
-O `agentToken` é a credencial principal que o agente Go usa para autenticar todas as chamadas ao portal.
+O `agentToken` e a credencial principal usada pelo agente Go para autenticar
+as chamadas remotas apos o bootstrap.
 
-### Características
+### Caracteristicas
 
-- Formato: `agt_<random-hex>` (prefixo visual para identificação)
-- Gerado com `crypto.randomBytes` (não previsível)
-- TTL configurável (padrão: 1 ano)
-- Persistido na máquina com **DPAPI** (Windows Data Protection API)
-- Vinculado a um único `RemoteHost` no banco
+- Formato visual `agt_<random-hex>`
+- Gerado no backend
+- TTL configuravel
+- Persistido na maquina com DPAPI
+- Vinculado a um unico `RemoteHost`
 
 ### Ciclo de vida
 
-```
-Bootstrap
-    │ portal gera agentToken
-    │ retorna ao agente
-    │
-    ▼
-Agente persiste com DPAPI
-    │
-    ▼
-Heartbeats normais (a cada 30s)
-    │ portal verifica expiração
-    │ se expirando: inclui ROTATE_TOKEN_REQUIRED nos pendingCommands
-    │
-    ▼
-Agente recebe ROTATE_TOKEN_REQUIRED
-    │
-    ▼
-Agente solicita novo token no próximo heartbeat
-    │ portal gera novo token
-    │ invalida token antigo
-    │
-    ▼
-Agente persiste novo token
-```
+1. O portal gera o `agentToken` no bootstrap.
+2. O agente persiste o token com DPAPI.
+3. O agente usa esse token nos ciclos de `sync` e `ack`.
+4. Se o token expirar, o backend invalida a credencial e o host volta a exigir bootstrap autenticado.
 
-### Rotação manual (pelo portal)
+### Rotacao manual
 
-Administrador pode forçar rotação via:
-```
+Administrador pode forcar rotacao via:
+
+```text
 POST /api/remote/hosts/:id/agent-token
 ```
 
-Isto enfileira o comando `ROTATE_TOKEN_REQUIRED` na próxima chamada do agente.
-
 ---
 
-## installToken (bootstrap)
+## installToken
 
-Usado apenas uma vez para o registro inicial da máquina.
+O `installToken` e usado apenas no bootstrap autenticado.
 
-- Gerado no portal ao criar um novo host ou link de instalação
-- Expiração curta (configurável, ex: 24-72 horas)
-- Trocado pelo `agentToken` permanente após bootstrap bem-sucedido
-- Não reutilizável após uso
+### Regras atuais
+
+- E gerado e controlado pelo portal
+- E entregue ao agente pelo `discover` somente quando o host ja esta vinculado e apto a bootstrap
+- Tem vida curta
+- E trocado pelo `agentToken` apos bootstrap bem-sucedido
+- Nao e reutilizavel
+- Nao e mais configurado localmente no `.env` do agente
 
 ---
 
 ## discoveryToken
 
-Usado no fluxo de discovery (antes do bootstrap).
+O `discoveryToken` identifica a maquina antes do bootstrap.
 
-- Mais permissivo que o installToken — permite identificar a máquina sem registrá-la
-- Associado a uma empresa ou a um link de instalação em lote
-- Após discovery, o portal retorna a `transition` indicando o próximo passo
+### Regras atuais
+
+- E a unica credencial remota configurada localmente no agent
+- Permite descoberta e triagem inicial
+- Nao concede `sync` autenticado por si so
+- O portal responde com o estado operacional do host e informa se ja existe `installToken`
+
+### Resultados comuns
+
+- `pending_link`
+- `linked_host_detected`
+- `host_bootstrap_required`
+- `token_invalid`
 
 ---
 
 ## Address Book Credentials
 
-Credenciais para que técnicos configurem o cliente RustDesk com o address book do portal.
+Credenciais para tecnicos configurarem o cliente RustDesk com o address book do portal.
 
-### Tipos de escopo
-
-| Escopo    | Acesso                                    | Quem pode criar          |
-|-----------|-------------------------------------------|--------------------------|
-| `GLOBAL`  | Todos os hosts de todas as empresas       | ADMIN, SUPORTE           |
-| `COMPANY` | Apenas hosts de uma empresa específica    | ADMIN, CLIENTE_ADMIN     |
+| Escopo | Acesso | Quem pode criar |
+| --- | --- | --- |
+| `GLOBAL` | Todos os hosts de todas as empresas | ADMIN, SUPORTE |
+| `COMPANY` | Apenas hosts de uma empresa especifica | ADMIN, CLIENTE_ADMIN |
 
 ### Endpoints
 
-```
-GET  /api/remote/rustdesk/address-book/credentials         ← lista
-POST /api/remote/rustdesk/address-book/credentials         ← cria
-POST /api/remote/rustdesk/address-book/credentials/:id/rotate   ← rotaciona
-POST /api/remote/rustdesk/address-book/credentials/:id/revoke   ← revoga
-```
-
-### Rotação vs Revogação
-
-- **Rotação**: gera nova credencial e invalida a anterior. Técnico precisa atualizar no cliente RustDesk.
-- **Revogação**: invalida permanentemente. Técnico não consegue mais usar o address book com aquela credencial.
-
----
-
-## RemoteSession — estados e transições
-
-```
-┌──────────────┐
-│  REQUESTED   │  ← técnico cria sessão no portal
-└──────┬───────┘
-       │ agente aceita (ou heartbeat confirma)
-       ▼
-┌──────────────┐
-│   STARTED    │  ← conexão RustDesk ativa
-└──────┬───────┘
-       │ técnico encerra ou timeout
-       ▼
-┌──────────────┐
-│    ENDED     │  ← sessão encerrada (auditada)
-└──────────────┘
-```
-
-### Cleanup de sessões
-
-**Endpoint:** `POST /api/remote/sessions/cleanup`
-
-Remove sessões presas em REQUESTED ou STARTED por muito tempo sem atividade de heartbeat.
-
----
-
-## Fila de comandos — RemoteAgentCommand
-
-```prisma
-model RemoteAgentCommand {
-  id          String                 // UUID
-  hostId      String
-  type        RemoteAgentCommandType // REAPPLY_ALIAS | REAPPLY_CONFIG | UPGRADE_CLIENT | ROTATE_TOKEN_REQUIRED
-  payload     Json?                  // dados adicionais do comando
-  status      CommandStatus          // PENDING | ACKNOWLEDGED
-  result      String?                // SUCCESS | FAILURE
-  message     String?                // mensagem de resultado
-  createdAt   DateTime
-  acknowledgedAt DateTime?
-}
-```
-
-### Fluxo de comando
-
-```
-1. Portal enfileira comando (status: PENDING)
-
-2. Agente recebe pendingCommands no próximo heartbeat
-
-3. Agente executa o comando
-
-4. Agente envia ACK:
-   POST /api/remote/rustdesk/ack
-   { agentToken, commandId, result: 'SUCCESS' | 'FAILURE', message }
-
-5. Portal atualiza status: ACKNOWLEDGED
-```
-
-### Tipos de comando e efeito
-
-| Tipo                    | O que o agente faz                                          |
-|-------------------------|-------------------------------------------------------------|
-| `REAPPLY_ALIAS`         | Reescreve o alias do RustDesk no arquivo de config local    |
-| `REAPPLY_CONFIG`        | Reaplica config completa (relay server, chave, alias)       |
-| `UPGRADE_CLIENT`        | Baixa e instala nova versão do RustDesk                     |
-| `ROTATE_TOKEN_REQUIRED` | Solicita novo agentToken no próximo ciclo                   |
-
----
-
-## Eventos de host (RemoteHostEvent)
-
-O portal registra eventos de auditoria para cada host:
-
-- Heartbeat recebido
-- Sessão iniciada/encerrada
-- Comando enfileirado/confirmado
-- Token rotacionado
-
-Consultados via:
-```
-GET /api/remote/hosts/:id/events
-GET /api/remote/hosts/:id/ack-events
+```text
+GET  /api/remote/rustdesk/address-book/credentials
+POST /api/remote/rustdesk/address-book/credentials
+POST /api/remote/rustdesk/address-book/credentials/:id/rotate
+POST /api/remote/rustdesk/address-book/credentials/:id/revoke
 ```
 
 ---
 
-## Fleet Stats
+## Sessao remota
 
-**Endpoint:** `GET /api/remote/hosts/fleet-stats`
+Estados operacionais:
 
-Retorna contagem de hosts por status operacional:
+1. `REQUESTED`
+2. `STARTED`
+3. `ENDED`
 
-```json
-{
-  "total": 42,
-  "online": 28,
-  "recent": 8,
-  "offline": 5,
-  "misconfigured": 1,
-  "sessionBusy": 0
-}
+O cleanup de sessoes presas continua sendo feito pelo backend.
+
+---
+
+## Fila de comandos do agente
+
+O portal pode devolver comandos no `sync`:
+
+- `REAPPLY_ALIAS`
+- `REAPPLY_CONFIG`
+- `UPGRADE_CLIENT`
+- `ROTATE_TOKEN_REQUIRED`
+
+O agente executa e confirma por:
+
+```text
+POST /api/remote/rustdesk/ack
 ```
 
-Exibido no dashboard de infraestrutura em `/portal/infraestrutura`.
+---
+
+## Observacao importante
+
+Se um host estiver vinculado mas o portal ainda nao devolver `installToken`,
+o agente permanece aguardando bootstrap autenticado. Ele nao usa mais
+`REMOTE_INSTALL_TOKEN` local legado para tentar completar o onboarding.

@@ -16,7 +16,6 @@ type agentSecrets struct {
 	PortalAPIKey         string `json:"portal_api_key,omitempty"`
 	ChatwootWebsiteToken string `json:"chatwoot_website_token,omitempty"`
 	RemoteDiscoveryToken string `json:"remote_discovery_token,omitempty"`
-	RemoteInstallToken   string `json:"remote_install_token,omitempty"`
 }
 
 type nopLogger struct{}
@@ -39,7 +38,6 @@ func loadSecretsIntoEnv(stateDir string) {
 	setEnvIfEmpty("PORTAL_API_KEY", s.PortalAPIKey)
 	setEnvIfEmpty("SUPPORT_CHATWOOT_WEBSITE_TOKEN", s.ChatwootWebsiteToken)
 	setEnvIfEmpty("REMOTE_DISCOVERY_TOKEN", s.RemoteDiscoveryToken)
-	setEnvIfEmpty("REMOTE_INSTALL_TOKEN", s.RemoteInstallToken)
 }
 
 // migrateSecretsFromEnvFile detects plaintext sensitive values in the .env file,
@@ -66,7 +64,6 @@ func migrateSecretsFromEnvFile(envFilePath, stateDir string) {
 		PortalAPIKey:         coalesceStr(found["PORTAL_API_KEY"], found["INTERNAL_API_KEY"], existing.PortalAPIKey),
 		ChatwootWebsiteToken: coalesceStr(found["SUPPORT_CHATWOOT_WEBSITE_TOKEN"], existing.ChatwootWebsiteToken),
 		RemoteDiscoveryToken: coalesceStr(found["REMOTE_DISCOVERY_TOKEN"], existing.RemoteDiscoveryToken),
-		RemoteInstallToken:   coalesceStr(found["REMOTE_INSTALL_TOKEN"], existing.RemoteInstallToken),
 	}
 
 	if err := store.SaveJSON(ctx, agentSecretsFile, merged); err != nil {
@@ -119,7 +116,7 @@ func isSensitiveEnvKey(key string) bool {
 	switch key {
 	case "PORTAL_API_KEY", "INTERNAL_API_KEY",
 		"SUPPORT_CHATWOOT_WEBSITE_TOKEN",
-		"REMOTE_DISCOVERY_TOKEN", "REMOTE_INSTALL_TOKEN":
+		"REMOTE_DISCOVERY_TOKEN":
 		return true
 	}
 	return false

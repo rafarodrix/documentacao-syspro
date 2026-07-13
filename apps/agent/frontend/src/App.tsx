@@ -9,7 +9,7 @@ import {
   SyncSupportConversationContext,
 } from "./bindings";
 import { EventsOn } from "./runtime";
-import { uistate } from "../wailsjs/go/models";
+import { domain, uistate } from "../wailsjs/go/models";
 
 type Route = "agent://setup" | "agent://support";
 
@@ -872,7 +872,7 @@ function hasChatwootClient() {
   return Boolean(chatwoot?.toggle || chatwoot?.setUser);
 }
 
-function identifyChatwootContact(context: uistate.SupportContext | undefined) {
+function identifyChatwootContact(context: domain.SupportContext | undefined) {
   if (!context) return;
 
   const chatwoot = (window as unknown as {
@@ -912,7 +912,7 @@ function identifyChatwootContact(context: uistate.SupportContext | undefined) {
   }
 }
 
-function buildChatwootContactIdentifier(context: uistate.SupportContext) {
+function buildChatwootContactIdentifier(context: domain.SupportContext) {
   if (context.hostId?.trim()) return `remote-host:${context.hostId.trim()}`;
   if (context.deviceId?.trim()) return `agent-device:${context.deviceId.trim()}`;
   if (context.hostname?.trim()) return `hostname:${context.hostname.trim().toLowerCase()}`;
@@ -921,4 +921,3 @@ function buildChatwootContactIdentifier(context: uistate.SupportContext) {
 }
 
 export default App;
-

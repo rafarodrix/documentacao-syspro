@@ -69,7 +69,6 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 			logger,
 			eventBus,
 			remotemodule.WithDiscoveryToken(cfg.Remote.DiscoveryToken),
-			remotemodule.WithInstallToken(cfg.Remote.InstallToken),
 			remotemodule.WithAgentVersion(cfg.Agent.Version),
 			remotemodule.WithStateDir(cfg.Paths.StateDir),
 			remotemodule.WithDevice(deviceMod),

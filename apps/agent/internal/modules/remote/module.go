@@ -129,7 +129,6 @@ type Module struct {
 	events          EventBus
 	device          DeviceSnapshotProvider
 	discoveryToken  string
-	installToken    string
 	agentVersion    string
 	environment     string
 	stateDir        string
@@ -140,10 +139,6 @@ type Option func(*Module)
 
 func WithDiscoveryToken(token string) Option {
 	return func(m *Module) { m.discoveryToken = token }
-}
-
-func WithInstallToken(token string) Option {
-	return func(m *Module) { m.installToken = token }
 }
 
 // WithDevice injeta o provider de snapshots do device module.
@@ -297,9 +292,6 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 	}
 
 	st.HostID = firstNonEmpty(discoverResp.HostID, st.HostID)
-	if nextInstallToken := strings.TrimSpace(discoverResp.InstallToken); nextInstallToken != "" {
-		m.installToken = nextInstallToken
-	}
 	st.MachineName = hostname
 	st.LastBootstrapFlow = string(flow)
 	_ = m.saveState(ctx, st)
@@ -328,7 +320,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 			Message: decision.message,
 		}
 	case runtimePhaseBootstrap:
-		return m.runBootstrapThenSync(ctx, st, hostname, intent)
+		return m.runBootstrapThenSync(ctx, st, hostname, strings.TrimSpace(discoverResp.InstallToken), intent)
 	default:
 		return domain.ApplyResult{
 			Module:  "remote",
@@ -338,13 +330,27 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 	}
 }
 
-func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, hostname string, intent remoteDesiredIntent) domain.ApplyResult {
+func (m *Module) runBootstrapThenSync(
+	ctx context.Context,
+	st *remoteState,
+	hostname string,
+	installToken string,
+	intent remoteDesiredIntent,
+) domain.ApplyResult {
+	if strings.TrimSpace(installToken) == "" {
+		return domain.ApplyResult{
+			Module:  "remote",
+			Changed: false,
+			Message: "linked host is waiting for bootstrap token delivery from portal",
+		}
+	}
+
 	if err := m.refreshRustDeskState(ctx, st, false, false, nil); err != nil {
 		m.logger.Warn("remote rustdesk refresh before bootstrap failed", "error", err)
 	}
 
 	bootstrapResp, err := m.client.Bootstrap(ctx, domain.RemoteBootstrapRequest{
-		InstallToken:   m.installToken,
+		InstallToken:   installToken,
 		RustDeskID:     st.RustDeskID,
 		MachineName:    hostname,
 		AgentVersion:   m.agentVersion,
@@ -1034,9 +1040,6 @@ func (m *Module) resolveDiscoverDecision(resp *domain.RemoteDiscoverResponse) di
 	if resp != nil {
 		requiresBootstrap = requiresBootstrap || resp.Transition.RequiresAuthenticatedBootstrap
 	}
-	if !requiresBootstrap && flow == domain.RemoteBootstrapFlowLinkedHostDetected && strings.TrimSpace(m.installToken) != "" {
-		requiresBootstrap = true
-	}
 
 	if !requiresBootstrap {
 		return discoverDecision{
@@ -1046,7 +1049,7 @@ func (m *Module) resolveDiscoverDecision(resp *domain.RemoteDiscoverResponse) di
 		}
 	}
 
-	if strings.TrimSpace(m.installToken) == "" {
+	if resp == nil || strings.TrimSpace(resp.InstallToken) == "" {
 		return discoverDecision{
 			phase:   runtimePhaseWait,
 			flow:    flow,

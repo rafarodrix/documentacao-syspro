@@ -105,10 +105,10 @@ function Restart-AgentService {
 }
 
 Write-Host "=== CONFIGURADOR DO AGENTE TRILINK ===" -ForegroundColor Cyan
+Write-Host "O install token do host agora e obtido automaticamente pelo fluxo discover -> bootstrap do portal." -ForegroundColor DarkGray
 
 $portalUrl = Read-Host "Digite a URL do Portal (ex: https://ajuda.trilinksoftware.com.br)"
 $discoveryToken = Read-Host "Digite o Token de Descoberta (REMOTE_DISCOVERY_TOKEN)"
-$installToken = Read-Host "Digite o Token de Instalacao do Host (deixe em branco para ignorar)"
 
 if ([string]::IsNullOrWhiteSpace($portalUrl)) {
     throw "A URL do portal e obrigatoria."
@@ -126,12 +126,8 @@ $config["REMOTE_DISCOVERY_TOKEN"] = $discoveryToken.Trim()
 $config["PORTAL_AGENT_API_ENABLED"] = "true"
 $config["REMOTE_ENABLED"] = "true"
 
-if ([string]::IsNullOrWhiteSpace($installToken)) {
-    if ($config.Contains("REMOTE_INSTALL_TOKEN")) {
-        $config.Remove("REMOTE_INSTALL_TOKEN")
-    }
-} else {
-    $config["REMOTE_INSTALL_TOKEN"] = $installToken.Trim()
+if ($config.Contains("REMOTE_INSTALL_TOKEN")) {
+    $config.Remove("REMOTE_INSTALL_TOKEN")
 }
 
 Write-Host "Atualizando configuracao em $envFilePath..." -ForegroundColor Yellow

@@ -229,7 +229,7 @@ func TestPendingAckQueueFlushesOnNextSync(t *testing.T) {
 	}
 }
 
-func TestDiscoverRefreshesStaleLocalInstallTokenBeforeBootstrap(t *testing.T) {
+func TestDiscoverLinkedHostWithoutPortalInstallTokenWaitsInsteadOfForcingBootstrap(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -246,29 +246,18 @@ func TestDiscoverRefreshesStaleLocalInstallTokenBeforeBootstrap(t *testing.T) {
 	}
 	client := &fakePortalClient{
 		discoverResp: &domain.RemoteDiscoverResponse{
-			BootstrapFlow: domain.RemoteBootstrapFlowTokenInvalid,
-			InstallToken:  "install-token-from-portal",
+			BootstrapFlow: domain.RemoteBootstrapFlowLinkedHostDetected,
 			HostID:        "host-1",
 		},
-		bootstrapResp: &domain.RemoteBootstrapResponse{
-			HostID:      "host-1",
-			CompanyID:   "company-1",
-			CompanyName: "Trilink",
-			Alias:       "Servidor",
-			RustDeskID:  "123456789",
-			MachineName: "srv-01",
-			AgentToken:  "agent-token-1",
-		},
 	}
 
-	module := newTestModuleWithInstallToken(store, client, manager, stateDir, "stale-local-install-token")
+	module := newTestModule(store, client, manager, stateDir)
 	result := module.Apply(ctx, managedRemoteDesiredState(), domain.CurrentModuleState{})
 	if result.Error != "" {
-		t.Fatalf("apply returned error: %s", result.Error)
+		t.Fatalf("apply returned unexpected error: %s", result.Error)
 	}
-
-	if client.lastBootstrapReq.InstallToken != "install-token-from-portal" {
-		t.Fatalf("expected bootstrap to use refreshed portal install token, got %q", client.lastBootstrapReq.InstallToken)
+	if client.bootstrapCalls != 0 {
+		t.Fatalf("expected bootstrap to be skipped while portal did not provide install token, got %d call(s)", client.bootstrapCalls)
 	}
 }
 
@@ -295,13 +284,8 @@ func newTestStateStore(t *testing.T) (*storage.ProtectedStateStore, string) {
 }
 
 func newTestModule(store StateStore, client PortalClient, manager rustDeskController, stateDir string) *Module {
-	return newTestModuleWithInstallToken(store, client, manager, stateDir, "install-token")
-}
-
-func newTestModuleWithInstallToken(store StateStore, client PortalClient, manager rustDeskController, stateDir, installToken string) *Module {
 	module := New(client, store, noopLogger{}, noopEventBus{},
 		WithDiscoveryToken("discovery-token"),
-		WithInstallToken(installToken),
 		WithAgentVersion("go-agent-v1"),
 		WithEnvironment("test"),
 		WithStateDir(stateDir),
@@ -316,6 +300,7 @@ type fakePortalClient struct {
 	syncResponses        []*domain.RemoteSyncResponse
 	ackFailuresRemaining int
 	ackCount             int
+	bootstrapCalls       int
 	lastBootstrapReq     domain.RemoteBootstrapRequest
 }
 
@@ -324,6 +309,7 @@ func (f *fakePortalClient) Discover(ctx context.Context, req domain.RemoteDiscov
 }
 
 func (f *fakePortalClient) Bootstrap(ctx context.Context, req domain.RemoteBootstrapRequest) (*domain.RemoteBootstrapResponse, error) {
+	f.bootstrapCalls++
 	f.lastBootstrapReq = req
 	return f.bootstrapResp, nil
 }

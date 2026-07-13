@@ -22,7 +22,6 @@ type PathsConfig struct {
 type RemoteConfig struct {
 	Enabled        bool
 	DiscoveryToken string
-	InstallToken   string
 }
 
 type SupportConfig struct {
