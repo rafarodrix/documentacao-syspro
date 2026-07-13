@@ -3,20 +3,13 @@ import { ArrowLeft, Building2, Clock, ExternalLink, Monitor, WifiOff } from "luc
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { formatDateTime } from "@/lib/date";
+import { formatAgentHeartbeatLag, getAgentOfflineWarningMessage } from "@/features/agents/domain/agent-device-status";
 import { AgentDeviceDeleteSection } from "@/features/agents/interface/agent-device-delete-section";
-
-function relativeTime(lagSeconds: number | null): string {
-  if (lagSeconds === null) return "nunca";
-  if (lagSeconds < 60) return `há ${lagSeconds}s`;
-  if (lagSeconds < 3600) return `há ${Math.floor(lagSeconds / 60)}min`;
-  if (lagSeconds < 86400) return `há ${Math.floor(lagSeconds / 3600)}h`;
-  return `há ${Math.floor(lagSeconds / 86400)}d`;
-}
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
-  const res = formatDateTime(iso);
-  return res === "-" ? "—" : res;
+  const result = formatDateTime(iso);
+  return result === "-" ? "—" : result;
 }
 
 export function AgentDeviceDetailPanel({
@@ -43,7 +36,7 @@ export function AgentDeviceDetailPanel({
               {device.hostname ?? device.deviceId}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Último heartbeat: {relativeTime(device.heartbeatLagSeconds)}
+              Último heartbeat: {formatAgentHeartbeatLag(device.heartbeatLagSeconds)}
               {device.lastHeartbeatAt && ` — ${formatDate(device.lastHeartbeatAt)}`}
             </p>
           </div>
@@ -130,7 +123,7 @@ export function AgentDeviceDetailPanel({
 
       {!device.isOnline && (
         <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-          O agente enterprise não enviou heartbeat nos últimos {Math.round(5)} minutos. Verifique se o serviço está rodando na máquina.
+          {getAgentOfflineWarningMessage()}
         </p>
       )}
 

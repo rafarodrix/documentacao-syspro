@@ -446,6 +446,7 @@ export function RemoteHostDetailsPanel({
           <HostOverviewTab
             host={host}
             agent={agent}
+            heartbeat={heartbeat}
             linkedDevice={linkedDevice}
             windowsComputerName={windowsComputerName}
             machineIpv4={machineIpv4}

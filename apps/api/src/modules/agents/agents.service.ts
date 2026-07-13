@@ -66,10 +66,6 @@ type DeviceRow = {
   } | null;
 };
 
-type LooseWhereInput = Record<string, unknown> & {
-  OR?: Array<Record<string, unknown>>;
-};
-
 type AgentRemoteLinkContext = {
   remoteHostId?: string;
   companyId?: string;
@@ -609,31 +605,30 @@ export class AgentsService {
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
 
-    const where: LooseWhereInput = {};
-    if (companyId) where.companyId = companyId;
-    if (remoteHostId) where.remoteHostId = remoteHostId;
+    const filters: Prisma.AgentDeviceWhereInput[] = [];
+    if (companyId) filters.push({ companyId });
+    if (remoteHostId) filters.push({ remoteHostId });
     if (search) {
-      where.OR = [
-        { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } },
-        { hostname: { contains: search, mode: Prisma.QueryMode.insensitive } },
-        { os: { contains: search, mode: Prisma.QueryMode.insensitive } },
-      ];
+      filters.push({
+        OR: [
+          { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          { hostname: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          { os: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        ],
+      });
     }
     if (status === 'online') {
-      where.lastHeartbeatAt = { gte: onlineSince };
+      filters.push(this.buildEffectiveOnlineWhere(onlineSince));
     } else if (status === 'offline') {
-      const existingOr = Array.isArray(where.OR) ? where.OR : [];
-      where.OR = [
-        ...existingOr,
-        { lastHeartbeatAt: null },
-        { lastHeartbeatAt: { lt: onlineSince } },
-      ];
+      filters.push(this.buildEffectiveOfflineWhere(onlineSince));
     }
 
+    const where: Prisma.AgentDeviceWhereInput = filters.length ? { AND: filters } : {};
+
     const [total, rows] = await this.prisma.$transaction([
-      this.prisma.agentDevice.count({ where: where as any }),
+      this.prisma.agentDevice.count({ where }),
       this.prisma.agentDevice.findMany({
-        where: where as any,
+        where,
         orderBy: [{ lastHeartbeatAt: 'desc' }, { hostname: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -689,11 +684,13 @@ export class AgentsService {
     await this.authorizationService.assertPermission(rawHeaders as any, 'agents:view');
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
+    const effectiveOnlineWhere = this.buildEffectiveOnlineWhere(onlineSince);
+    const seenWhere = this.buildHasEffectiveHeartbeatWhere();
 
     const [total, online, unseen, withCompany] = await this.prisma.$transaction([
       this.prisma.agentDevice.count(),
-      this.prisma.agentDevice.count({ where: { lastHeartbeatAt: { gte: onlineSince } } }),
-      this.prisma.agentDevice.count({ where: { lastHeartbeatAt: null } }),
+      this.prisma.agentDevice.count({ where: effectiveOnlineWhere }),
+      this.prisma.agentDevice.count({ where: { NOT: seenWhere } }),
       this.prisma.agentDevice.count({ where: { companyId: { not: null } } }),
     ]);
 
@@ -755,6 +752,32 @@ export class AgentsService {
     return candidates.reduce((latest, current) => {
       return current.getTime() > latest.getTime() ? current : latest;
     });
+  }
+
+  private buildEffectiveOnlineWhere(onlineSince: Date): Prisma.AgentDeviceWhereInput {
+    return {
+      OR: [
+        { lastHeartbeatAt: { gte: onlineSince } },
+        { remoteHost: { is: { lastHeartbeatSuccessAt: { gte: onlineSince } } } },
+        { remoteHost: { is: { lastHeartbeatAt: { gte: onlineSince } } } },
+      ],
+    };
+  }
+
+  private buildHasEffectiveHeartbeatWhere(): Prisma.AgentDeviceWhereInput {
+    return {
+      OR: [
+        { lastHeartbeatAt: { not: null } },
+        { remoteHost: { is: { lastHeartbeatSuccessAt: { not: null } } } },
+        { remoteHost: { is: { lastHeartbeatAt: { not: null } } } },
+      ],
+    };
+  }
+
+  private buildEffectiveOfflineWhere(onlineSince: Date): Prisma.AgentDeviceWhereInput {
+    return {
+      NOT: this.buildEffectiveOnlineWhere(onlineSince),
+    };
   }
 
   async deleteDevice(

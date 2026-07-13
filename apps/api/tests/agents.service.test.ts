@@ -24,8 +24,11 @@ import { AgentsService } from "../src/modules/agents/agents.service";
 describe("AgentsService desired state", () => {
   const prisma = {
     agentDevice: {
+      count: vi.fn(),
       findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
+    $transaction: vi.fn(),
   };
 
   const authorizationService = {
@@ -36,6 +39,7 @@ describe("AgentsService desired state", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.$transaction.mockImplementation(async (operations: Array<Promise<unknown>>) => Promise.all(operations));
     service = new AgentsService(prisma as any, authorizationService as any);
   });
 
@@ -125,5 +129,59 @@ describe("AgentsService desired state", () => {
     expect(response.data.lastHeartbeatAt).not.toBeNull();
     expect(response.data.heartbeatLagSeconds).not.toBeNull();
     expect((response.data.heartbeatLagSeconds ?? 9999) < 5 * 60).toBe(true);
+  });
+
+  it("builds online device filters from the effective heartbeat sources", async () => {
+    authorizationService.assertPermission.mockResolvedValue({ userId: "user-1" });
+    prisma.agentDevice.count.mockResolvedValue(1);
+    prisma.agentDevice.findMany.mockResolvedValue([]);
+
+    await service.listDevices({}, {
+      page: 1,
+      pageSize: 50,
+      status: "online",
+      search: "SERVIDOR",
+    });
+
+    const countArgs = prisma.agentDevice.count.mock.calls[0][0];
+    expect(countArgs.where.AND).toHaveLength(2);
+    expect(countArgs.where.AND[0]).toEqual({
+      OR: [
+        { deviceId: { contains: "SERVIDOR", mode: "insensitive" } },
+        { hostname: { contains: "SERVIDOR", mode: "insensitive" } },
+        { os: { contains: "SERVIDOR", mode: "insensitive" } },
+      ],
+    });
+    expect(countArgs.where.AND[1]).toMatchObject({
+      OR: [
+        { lastHeartbeatAt: { gte: expect.any(Date) } },
+        { remoteHost: { is: { lastHeartbeatSuccessAt: { gte: expect.any(Date) } } } },
+        { remoteHost: { is: { lastHeartbeatAt: { gte: expect.any(Date) } } } },
+      ],
+    });
+  });
+
+  it("computes fleet stats online count from the effective heartbeat sources", async () => {
+    authorizationService.assertPermission.mockResolvedValue({ userId: "user-1" });
+    prisma.agentDevice.count
+      .mockResolvedValueOnce(3)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(2);
+
+    const response = await service.getFleetStats({});
+
+    expect(response.success).toBe(true);
+    expect(response.data.online).toBe(2);
+    expect(response.data.offline).toBe(1);
+    expect(prisma.agentDevice.count.mock.calls[1][0]).toMatchObject({
+      where: {
+        OR: [
+          { lastHeartbeatAt: { gte: expect.any(Date) } },
+          { remoteHost: { is: { lastHeartbeatSuccessAt: { gte: expect.any(Date) } } } },
+          { remoteHost: { is: { lastHeartbeatAt: { gte: expect.any(Date) } } } },
+        ],
+      },
+    });
   });
 });

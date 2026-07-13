@@ -1,15 +1,8 @@
 import Link from "next/link";
-import { Cpu, ExternalLink, Wifi, WifiOff } from "lucide-react";
+import { Cpu, ExternalLink, WifiOff } from "lucide-react";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
-import { Card, CardContent, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
-
-function relativeTime(lagSeconds: number | null): string {
-  if (lagSeconds === null) return "nunca";
-  if (lagSeconds < 60) return `há ${lagSeconds}s`;
-  if (lagSeconds < 3600) return `há ${Math.floor(lagSeconds / 60)}min`;
-  if (lagSeconds < 86400) return `há ${Math.floor(lagSeconds / 3600)}h`;
-  return `há ${Math.floor(lagSeconds / 86400)}d`;
-}
+import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { formatAgentHeartbeatLag, getAgentOfflineWarningMessage } from "@/features/agents/domain/agent-device-status";
 
 export function LinkedDeviceCard({ device }: { device: AgentDeviceSummary }) {
   return (
@@ -23,14 +16,14 @@ export function LinkedDeviceCard({ device }: { device: AgentDeviceSummary }) {
           <div className="flex items-center gap-3">
             <Link
               href={`/portal/infraestrutura/agentes/${encodeURIComponent(device.deviceId)}`}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
             >
               Ver detalhes
               <ExternalLink className="h-3 w-3" />
             </Link>
             <Link
               href="/portal/infraestrutura?tab=agentes"
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
             >
               Ver todos
               <ExternalLink className="h-3 w-3" />
@@ -39,7 +32,6 @@ export function LinkedDeviceCard({ device }: { device: AgentDeviceSummary }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Status banner */}
         <div
           className={`flex items-center gap-3 rounded-xl border p-4 transition-all duration-300 ${
             device.isOnline
@@ -60,7 +52,7 @@ export function LinkedDeviceCard({ device }: { device: AgentDeviceSummary }) {
               {device.isOnline ? "Online" : "Offline"}
             </p>
             <p className="text-xs text-muted-foreground">
-              Último heartbeat: {relativeTime(device.heartbeatLagSeconds)}
+              Último heartbeat: {formatAgentHeartbeatLag(device.heartbeatLagSeconds)}
             </p>
           </div>
           <Badge
@@ -75,17 +67,16 @@ export function LinkedDeviceCard({ device }: { device: AgentDeviceSummary }) {
           </Badge>
         </div>
 
-        {/* Details grid */}
         <div className="grid gap-3 sm:grid-cols-2">
           <Detail label="Hostname" value={device.hostname} mono={false} />
           <Detail label="Sistema operacional" value={device.os} mono={false} />
           <Detail label="Versão do agente" value={device.agentVersion} mono />
-          <Detail label="Device ID" value={device.deviceId.slice(0, 16) + "…"} mono />
+          <Detail label="Device ID" value={`${device.deviceId.slice(0, 16)}…`} mono />
         </div>
 
         {!device.isOnline && (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            O agente enterprise não enviou heartbeat nos últimos 5 minutos. Verifique se o serviço está rodando na máquina.
+            {getAgentOfflineWarningMessage()}
           </p>
         )}
       </CardContent>
@@ -103,7 +94,7 @@ function Detail({
   mono: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-border/40 bg-background/50 p-3 hover:bg-muted/15 hover:border-border/60 transition-all duration-200">
+    <div className="rounded-lg border border-border/40 bg-background/50 p-3 transition-all duration-200 hover:border-border/60 hover:bg-muted/15">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={`mt-1 truncate text-sm text-foreground ${mono ? "font-mono" : ""}`}>
         {value ?? <span className="text-muted-foreground italic">—</span>}
