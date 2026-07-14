@@ -55,8 +55,9 @@ O `installToken` e usado apenas no bootstrap autenticado.
 - E gerado e controlado pelo portal
 - E entregue ao agente pelo `discover` somente quando o host ja esta vinculado e apto a bootstrap
 - So e aceito quando houver `discover` recente e vinculado da mesma maquina
+- E reemitido a cada tentativa de bootstrap autorizada pelo `discover`
 - Tem vida curta
-- E trocado pelo `agentToken` apos bootstrap bem-sucedido
+- E invalidado ao final de um bootstrap bem-sucedido
 - Fica restrito a uma janela curta de autorizacao operacional
 - Nao e mais configurado localmente no `.env` do agente
 

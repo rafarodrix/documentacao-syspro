@@ -94,6 +94,12 @@ export async function processDiscover(
         : hasInvalidToken
           ? "token_invalid"
           : "linked_host_detected";
+      const requiresBootstrapToken =
+        bootstrapFlow === "host_bootstrap_required" ||
+        bootstrapFlow === "token_invalid";
+      const installToken = requiresBootstrapToken
+        ? await deps.port.issueBootstrapInstallToken(linkedHost.id)
+        : null;
 
       const transition = bootstrapFlow === "host_bootstrap_required"
         ? transitions.host_bootstrap_required
@@ -113,7 +119,7 @@ export async function processDiscover(
         discoveredHostId: record.id,
         hostId: linkedHost.id,
         hostName: linkedHost.name,
-        installToken: linkedHost.installToken ?? undefined,
+        installToken: installToken ?? undefined,
         heartbeatAuth: "agentToken",
         bootstrapFlow,
         transition,

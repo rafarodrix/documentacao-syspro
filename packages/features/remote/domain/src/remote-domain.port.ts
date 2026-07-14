@@ -371,6 +371,7 @@ export interface RemoteDiscoverPort {
   getTransitions(): RemoteDiscoverTransitionMap;
   findDiscoveredHost(input: { rustdeskId: string | null; machineName: string | null }): Promise<RemoteDiscoverExistingHost | null>;
   findLinkedHost(linkedHostId: string): Promise<RemoteDiscoverLinkedHost | null>;
+  issueBootstrapInstallToken(hostId: string): Promise<string>;
   updateDiscoveredHost(id: string, payload: ProcessedDiscoverPayload): Promise<{ id: string }>;
   createDiscoveredHost(payload: ProcessedDiscoverPayload): Promise<{ id: string }>;
   updateLinkedHostMetrics(hostId: string, metrics: unknown): Promise<void>;

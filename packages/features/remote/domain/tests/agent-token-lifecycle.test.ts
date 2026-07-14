@@ -117,6 +117,7 @@ function buildDiscoverPort(overrides: Partial<RemoteDiscoverPort> = {}): RemoteD
       agentTokenHash: "token-hash",
       lastHeartbeatErrorMessage: null,
     })),
+    issueBootstrapInstallToken: vi.fn(async () => "rhost_token"),
     updateDiscoveredHost: vi.fn(async () => ({ id: "disc-1" })),
     createDiscoveredHost: vi.fn(async () => ({ id: "disc-2" })),
     logInfo: vi.fn(async () => {}),
@@ -470,6 +471,7 @@ describe("agent token lifecycle", () => {
   });
 
   it("returns bootstrapFlow token_invalid when linked host token is invalid", async () => {
+    const issueBootstrapInstallToken = vi.fn(async () => "rhost_rotated");
     const port = buildDiscoverPort({
       findLinkedHost: vi.fn(async () => ({
         id: "host-1",
@@ -478,6 +480,7 @@ describe("agent token lifecycle", () => {
         agentTokenHash: "token-hash",
         lastHeartbeatErrorMessage: "agentToken rotacionado durante sync",
       })),
+      issueBootstrapInstallToken,
     });
 
     const result = await processDiscover(
@@ -492,10 +495,13 @@ describe("agent token lifecycle", () => {
 
     expect(result.mode).toBe("linked");
     expect(result.bootstrapFlow).toBe("token_invalid");
+    expect(result.installToken).toBe("rhost_rotated");
     expect(result.transition.requiresAuthenticatedBootstrap).toBe(true);
+    expect(issueBootstrapInstallToken).toHaveBeenCalledWith("host-1");
   });
 
   it("returns bootstrapFlow host_bootstrap_required when linked host has no token hash", async () => {
+    const issueBootstrapInstallToken = vi.fn(async () => "rhost_rotated");
     const port = buildDiscoverPort({
       findLinkedHost: vi.fn(async () => ({
         id: "host-1",
@@ -504,6 +510,7 @@ describe("agent token lifecycle", () => {
         agentTokenHash: null,
         lastHeartbeatErrorMessage: null,
       })),
+      issueBootstrapInstallToken,
     });
 
     const result = await processDiscover(
@@ -518,7 +525,9 @@ describe("agent token lifecycle", () => {
 
     expect(result.mode).toBe("linked");
     expect(result.bootstrapFlow).toBe("host_bootstrap_required");
+    expect(result.installToken).toBe("rhost_rotated");
     expect(result.transition.requiresAuthenticatedBootstrap).toBe(true);
+    expect(issueBootstrapInstallToken).toHaveBeenCalledWith("host-1");
   });
 
   it("does not rematerialize ignored hosts after portal removal", async () => {
@@ -582,6 +591,28 @@ describe("agent token lifecycle", () => {
         status: "PENDING_LINK",
       }),
     );
+  });
+
+  it("does not expose installToken when linked host is healthy and bootstrap is not required", async () => {
+    const issueBootstrapInstallToken = vi.fn(async () => "rhost_rotated");
+    const port = buildDiscoverPort({
+      issueBootstrapInstallToken,
+    });
+
+    const result = await processDiscover(
+      {
+        schemaVersion: "discover.payload.v1",
+        discoveryToken: "DISCOVERY_TOKEN",
+        rustdeskId: "21187620068",
+        machineName: "ERP-MATRIZ-01",
+      },
+      { port },
+    );
+
+    expect(result.mode).toBe("linked");
+    expect(result.bootstrapFlow).toBe("linked_host_detected");
+    expect(result.installToken).toBeUndefined();
+    expect(issueBootstrapInstallToken).not.toHaveBeenCalled();
   });
 
 

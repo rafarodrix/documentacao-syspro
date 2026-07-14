@@ -96,6 +96,10 @@ O backend agora so aceita `bootstrap` quando esse `installToken` estiver
 amparado por um `discover` recente da mesma maquina vinculada. Token de
 instalacao sem triagem recente, ou vindo de identidade divergente, e rejeitado.
 
+Cada `discover` que exigir bootstrap emite um novo `installToken`, e o token
+anterior deixa de valer. Depois do bootstrap bem-sucedido, esse `installToken`
+tambem e invalidado no portal.
+
 ### Payload enviado
 
 ```json

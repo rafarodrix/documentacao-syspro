@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 
 import { callWebApi } from "@/lib/web-api";
 import { getProtectedSession } from "@/lib/auth-helpers";
@@ -16,15 +17,33 @@ export type CustomerEmailOption = {
   contactName: string | null;
 };
 
+export const customerEmailQueryParamsSchema = z.object({
+  q: z.string().default(""),
+  limit: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === "") return undefined;
+      const num = Number(val);
+      return Number.isNaN(num) ? undefined : num;
+    },
+    z.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT),
+  ),
+});
+
 export function parseCustomerEmailSearchParams(url: string) {
   const { searchParams } = new URL(url);
-  const q = (searchParams.get("q") || "").trim().toLowerCase();
-  const limitRaw = Number(searchParams.get("limit") || DEFAULT_LIMIT);
-  const limit = Number.isFinite(limitRaw)
-    ? Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limitRaw)))
-    : DEFAULT_LIMIT;
+  const parsed = customerEmailQueryParamsSchema.safeParse({
+    q: searchParams.get("q")?.trim() || undefined,
+    limit: searchParams.get("limit") || undefined,
+  });
 
-  return { q, limit };
+  if (!parsed.success) {
+    return { q: "", limit: DEFAULT_LIMIT };
+  }
+
+  return {
+    q: parsed.data.q.toLowerCase(),
+    limit: parsed.data.limit,
+  };
 }
 
 export async function findCustomerEmailOptions(input: { q: string; limit: number }): Promise<CustomerEmailOption[]> {

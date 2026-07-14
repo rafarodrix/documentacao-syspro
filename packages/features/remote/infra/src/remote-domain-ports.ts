@@ -177,27 +177,20 @@ export function createRemoteDiscoverPort(params: {
         return null;
       }
 
-      if (host.installToken) {
-        return host;
-      }
-
+      return host;
+    },
+    async issueBootstrapInstallToken(hostId) {
       const updatedHost = await prisma.remoteHost.update({
-        where: { id: host.id },
+        where: { id: hostId },
         data: { installToken: buildInstallToken() },
-        select: {
-          id: true,
-          name: true,
-          installToken: true,
-          agentTokenHash: true,
-          lastHeartbeatErrorMessage: true,
-        },
+        select: { id: true, installToken: true },
       });
 
-      logger.info("remote.domain.discover.install_token_regenerated", {
+      logger.info("remote.domain.discover.install_token_issued", {
         hostId: updatedHost.id,
       });
 
-      return updatedHost;
+      return updatedHost.installToken ?? "";
     },
     async updateDiscoveredHost(id, payload) {
       const record = await prisma.remoteDiscoveredHost.update({
@@ -349,11 +342,14 @@ export function createRemoteBootstrapPort(params: { logger: RemoteLogger; reques
           where: { id: host.hostId },
           data: {
             agentExternalId: rustdeskId,
+            installToken: null,
             machineName,
             agentVersion: input.agentVersion || host.agentVersion,
             environment: input.environment || host.environment,
             agentTokenHash: issuedToken.tokenHash,
             agentTokenIssuedAt: issuedToken.issuedAt,
+            lastHeartbeatErrorAt: null,
+            lastHeartbeatErrorMessage: null,
             lastKnownRustDeskAlias: alias,
             lastKnownRustDeskVersion: configProfile.targetVersion,
             lastKnownRustDeskServerHost: configProfile.serverHost,
