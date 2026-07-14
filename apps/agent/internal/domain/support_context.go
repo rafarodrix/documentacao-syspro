@@ -76,5 +76,12 @@ type PersistedRemoteState struct {
 	RustDeskExecutable  string    `json:"rustdesk_executable"`
 	RebootstrapRequired bool      `json:"rebootstrap_required"`
 	LastBootstrapFlow   string    `json:"last_bootstrap_flow"`
+	LastErrorCode       string    `json:"last_error_code"`
+	LastErrorMessage    string    `json:"last_error_message"`
+	LastErrorPhase      string    `json:"last_error_phase"`
+	LastErrorStatusCode int       `json:"last_error_status_code"`
+	LastErrorAt         time.Time `json:"last_error_at"`
+	NextRetryAt         time.Time `json:"next_retry_at"`
+	ConsecutiveFailures int       `json:"consecutive_failures"`
 	LastSyncAt          time.Time `json:"last_sync_at"`
 }

@@ -28,6 +28,7 @@ as chamadas remotas apos o bootstrap.
 - TTL configuravel
 - Persistido na maquina com DPAPI
 - Vinculado a um unico `RemoteHost`
+- Falha fechada no agent quando o contrato remoto de bootstrap/sync vier incompleto ou inesperado
 
 ### Ciclo de vida
 
@@ -73,6 +74,7 @@ O `discoveryToken` identifica a maquina antes do bootstrap.
 - Permite descoberta e triagem inicial
 - Nao concede `sync` autenticado por si so
 - O portal responde com o estado operacional do host e informa se ja existe `installToken`
+- O agent aceita apenas o contrato `discover.v2`; payload/flow inesperado entra em erro estruturado local
 
 ### Resultados comuns
 

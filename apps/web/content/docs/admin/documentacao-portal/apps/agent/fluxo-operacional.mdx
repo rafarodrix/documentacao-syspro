@@ -127,6 +127,15 @@ tambem e invalidado no portal.
 O `agentToken` e persistido localmente com DPAPI e passa a ser usado
 nas chamadas de `sync` e `ack`.
 
+O estado remoto persistido pelo agent tambem protege com DPAPI as senhas
+locais do RustDesk usadas pelo runtime (`default_password` e
+`runtime_password`), reduzindo exposicao de credenciais no disco.
+
+O runtime agora valida explicitamente os contratos remotos devolvidos pelo
+portal (`discover.v2`, `rustdesk.bootstrap.v1` e `rustdesk.sync.v1`). Resposta
+incompleta, versao inesperada ou `installToken` fora de fluxo esperado passam
+a falhar fechado e entram no estado estruturado de erro local.
+
 ---
 
 ## Fase 3 - Heartbeat separado

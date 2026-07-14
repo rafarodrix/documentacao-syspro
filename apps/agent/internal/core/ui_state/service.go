@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"trilink/agent/internal/domain"
+	"trilink/agent/internal/infra/storage"
 )
 
 type Summary struct {
@@ -81,6 +82,10 @@ type Service struct {
 	agentVersion string
 	publisher    SupportContextPublisher
 }
+
+type uiStateStorageLogger struct{}
+
+func (uiStateStorageLogger) Warn(msg string, kv ...any) {}
 
 type persistedRemoteState = domain.PersistedRemoteState
 
@@ -169,7 +174,7 @@ func (s *Service) SetupStatus(ctx context.Context) (SetupStatus, error) {
 	desired, _ := loadJSON[domain.DesiredState](filepath.Join(s.stateDir, "desired_state.json"))
 	current, _ := loadJSON[domain.CurrentState](filepath.Join(s.stateDir, "current_state.json"))
 	results, _ := loadJSON[[]domain.ApplyResult](filepath.Join(s.stateDir, "apply_results.json"))
-	remoteState, _ := loadJSON[domain.PersistedRemoteState](filepath.Join(s.stateDir, "remote_state.json"))
+	remoteState, _ := s.loadPersistedRemoteState()
 
 	remoteResult := findModuleResult(results, "remote")
 	steps := []SetupStep{
@@ -191,14 +196,14 @@ func (s *Service) SetupStatus(ctx context.Context) (SetupStatus, error) {
 			"discover",
 			"Descoberta da maquina",
 			remoteState.LastBootstrapFlow != "" || remoteState.HostID != "",
-			deriveDiscoverError(remoteResult),
+			deriveDiscoverError(remoteState, remoteResult),
 			deriveDiscoverDetail(remoteState, remoteResult),
 		),
 		buildStep(
 			"rustdesk",
 			"Instalacao do remoto",
 			remoteState.RustDeskID != "" || remoteState.CurrentVersion != "" || remoteState.RustDeskExecutable != "",
-			deriveRustDeskInstallError(remoteResult),
+			deriveRustDeskInstallError(remoteState, remoteResult),
 			deriveRustDeskDetail(remoteState),
 		),
 		buildStep(
@@ -212,7 +217,7 @@ func (s *Service) SetupStatus(ctx context.Context) (SetupStatus, error) {
 			"sync",
 			"Remoto operacional",
 			isRemoteOperational(remoteState, current),
-			deriveSyncError(remoteResult),
+			deriveSyncError(remoteState, remoteResult),
 			deriveSyncDetail(remoteState, current),
 		),
 	}
@@ -323,8 +328,8 @@ func (s *Service) SyncSupportConversationContext(ctx context.Context, conversati
 
 func (s *Service) buildSupportContext() SupportContext {
 	context := SupportContext{
-		LocalUsername:    currentLocalUsername(),
-		AgentVersion: s.agentVersion,
+		LocalUsername: currentLocalUsername(),
+		AgentVersion:  s.agentVersion,
 	}
 
 	if identity, err := loadJSON[domain.DeviceIdentity](filepath.Join(s.stateDir, "identity.json")); err == nil {
@@ -333,7 +338,7 @@ func (s *Service) buildSupportContext() SupportContext {
 		context.OS = strings.TrimSpace(identity.OS)
 	}
 
-	if remoteState, err := loadJSON[domain.PersistedRemoteState](filepath.Join(s.stateDir, "remote_state.json")); err == nil {
+	if remoteState, err := s.loadPersistedRemoteState(); err == nil {
 		context.CompanyID = strings.TrimSpace(remoteState.CompanyID)
 		context.CompanyDisplayName = strings.TrimSpace(remoteState.CompanyName)
 		context.HostID = strings.TrimSpace(remoteState.HostID)
@@ -471,7 +476,7 @@ func currentLocalUsername() string {
 }
 
 func (s *Service) resolveRustDeskExecutable() string {
-	if remoteState, err := loadJSON[domain.PersistedRemoteState](filepath.Join(s.stateDir, "remote_state.json")); err == nil {
+	if remoteState, err := s.loadPersistedRemoteState(); err == nil {
 		if candidate := strings.TrimSpace(remoteState.RustDeskExecutable); candidate != "" {
 			if _, err := os.Stat(candidate); err == nil {
 				return candidate
@@ -510,6 +515,15 @@ func loadJSON[T any](path string) (T, error) {
 		return value, fmt.Errorf("unmarshal %s: %w", path, err)
 	}
 
+	return value, nil
+}
+
+func (s *Service) loadPersistedRemoteState() (domain.PersistedRemoteState, error) {
+	store := storage.NewProtectedStateStore(storage.NewLocalStateStore(s.stateDir, uiStateStorageLogger{}))
+	var value domain.PersistedRemoteState
+	if err := store.LoadJSON(context.Background(), "remote_state.json", &value); err != nil {
+		return value, err
+	}
 	return value, nil
 }
 
@@ -554,7 +568,10 @@ func derivePortalError(result *domain.ApplyResult) string {
 	return ""
 }
 
-func deriveDiscoverError(result *domain.ApplyResult) string {
+func deriveDiscoverError(st persistedRemoteState, result *domain.ApplyResult) string {
+	if detail := deriveStructuredRemoteError(st, "discover"); detail != "" {
+		return detail
+	}
 	if result == nil {
 		return ""
 	}
@@ -578,7 +595,11 @@ func deriveDiscoverDetail(st persistedRemoteState, result *domain.ApplyResult) s
 	return "Aguardando descoberta inicial da maquina no portal."
 }
 
-func deriveRustDeskInstallError(result *domain.ApplyResult) string {
+func deriveRustDeskInstallError(st persistedRemoteState, result *domain.ApplyResult) string {
+	if detail := deriveStructuredRemoteError(st, "bootstrap", "sync"); detail != "" &&
+		(strings.Contains(strings.ToLower(detail), "rustdesk") || strings.Contains(strings.ToLower(detail), "installer")) {
+		return detail
+	}
 	if result == nil {
 		return ""
 	}
@@ -611,7 +632,10 @@ func deriveLinkDetail(st persistedRemoteState) string {
 	}
 }
 
-func deriveSyncError(result *domain.ApplyResult) string {
+func deriveSyncError(st persistedRemoteState, result *domain.ApplyResult) string {
+	if detail := deriveStructuredRemoteError(st, "bootstrap", "sync"); detail != "" {
+		return detail
+	}
 	if result == nil {
 		return ""
 	}
@@ -638,4 +662,27 @@ func deriveSyncDetail(st persistedRemoteState, current domain.CurrentState) stri
 
 func isRemoteOperational(st persistedRemoteState, current domain.CurrentState) bool {
 	return !st.LastSyncAt.IsZero() && !st.RebootstrapRequired && current.Remote.Status == domain.ModuleStatusReady
+}
+
+func deriveStructuredRemoteError(st persistedRemoteState, phases ...string) string {
+	if strings.TrimSpace(st.LastErrorMessage) == "" {
+		return ""
+	}
+	for _, phase := range phases {
+		if strings.EqualFold(strings.TrimSpace(st.LastErrorPhase), strings.TrimSpace(phase)) {
+			return buildRemoteErrorDetail(st)
+		}
+	}
+	return ""
+}
+
+func buildRemoteErrorDetail(st persistedRemoteState) string {
+	message := strings.TrimSpace(st.LastErrorMessage)
+	if message == "" {
+		return ""
+	}
+	if !st.NextRetryAt.IsZero() {
+		return fmt.Sprintf("%s Nova tentativa prevista em %s.", message, st.NextRetryAt.Local().Format("15:04:05"))
+	}
+	return message
 }

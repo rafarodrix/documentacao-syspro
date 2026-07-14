@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"trilink/agent/internal/domain"
+	infrahttp "trilink/agent/internal/infra/http"
 	"trilink/agent/internal/infra/storage"
 )
 
@@ -127,6 +128,18 @@ func TestDiscoverBootstrapSyncCyclePersistsProtectedState(t *testing.T) {
 	}
 	if _, ok := rawPayload["agent_token_encrypted"]; !ok {
 		t.Fatalf("expected encrypted agent_token field in raw state file")
+	}
+	if _, ok := rawPayload["default_password"]; ok {
+		t.Fatalf("expected plaintext default_password to be absent from raw state file")
+	}
+	if _, ok := rawPayload["runtime_password"]; ok {
+		t.Fatalf("expected plaintext runtime_password to be absent from raw state file")
+	}
+	if _, ok := rawPayload["default_password_encrypted"]; !ok {
+		t.Fatalf("expected encrypted default_password field in raw state file")
+	}
+	if _, ok := rawPayload["runtime_password_encrypted"]; !ok {
+		t.Fatalf("expected encrypted runtime_password field in raw state file")
 	}
 }
 
@@ -261,6 +274,145 @@ func TestDiscoverLinkedHostWithoutPortalInstallTokenWaitsInsteadOfForcingBootstr
 	}
 }
 
+func TestDiscoverBootstrapRequiredWithoutInstallTokenFailsClosed(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	store, stateDir := newTestStateStore(t)
+	manager := &fakeRustDeskController{
+		status: rustDeskStatus{
+			ExecutablePath: `C:\Program Files\RustDesk\rustdesk.exe`,
+			Installed:      true,
+			ServiceStatus:  "running",
+			RustDeskID:     "123456789",
+			Version:        "1.4.6",
+			AccessPassword: "123456",
+		},
+	}
+	client := &fakePortalClient{
+		discoverResp: &domain.RemoteDiscoverResponse{
+			BootstrapFlow: domain.RemoteBootstrapFlowHostBootstrapRequired,
+			HostID:        "host-1",
+		},
+	}
+
+	module := newTestModule(store, client, manager, stateDir)
+	result := module.Apply(ctx, managedRemoteDesiredState(), domain.CurrentModuleState{})
+	if result.Error == "" {
+		t.Fatalf("expected discover/bootstrap cycle to fail closed when installToken is omitted")
+	}
+
+	var persisted remoteState
+	if err := store.LoadJSON(ctx, stateFile, &persisted); err != nil {
+		t.Fatalf("load state: %v", err)
+	}
+	if persisted.LastErrorCode != "REMOTE_DISCOVER_INSTALL_TOKEN_REQUIRED" {
+		t.Fatalf("expected structured error code, got %q", persisted.LastErrorCode)
+	}
+}
+
+func TestDiscoverContractErrorPersistsStructuredFailure(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	store, stateDir := newTestStateStore(t)
+	manager := &fakeRustDeskController{
+		status: rustDeskStatus{
+			ExecutablePath: `C:\Program Files\RustDesk\rustdesk.exe`,
+			Installed:      true,
+			ServiceStatus:  "running",
+			RustDeskID:     "123456789",
+			Version:        "1.4.6",
+			AccessPassword: "123456",
+		},
+	}
+	client := &fakePortalClient{
+		discoverErr: &infrahttp.RemoteContractError{
+			Procedure: "discover",
+			Code:      "REMOTE_DISCOVER_CONTRACT_VERSION_INVALID",
+			Message:   "portal returned unsupported discover contract version",
+		},
+	}
+
+	module := newTestModule(store, client, manager, stateDir)
+	result := module.Apply(ctx, managedRemoteDesiredState(), domain.CurrentModuleState{})
+	if result.Error == "" {
+		t.Fatalf("expected discover contract failure")
+	}
+
+	var persisted remoteState
+	if err := store.LoadJSON(ctx, stateFile, &persisted); err != nil {
+		t.Fatalf("load state: %v", err)
+	}
+	if persisted.LastErrorCode != "REMOTE_DISCOVER_CONTRACT_VERSION_INVALID" {
+		t.Fatalf("expected structured contract error code, got %q", persisted.LastErrorCode)
+	}
+}
+
+func TestSyncAuthFailureUsesStructuredPortalCodeForRebootstrap(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	store, stateDir := newTestStateStore(t)
+	manager := &fakeRustDeskController{
+		status: rustDeskStatus{
+			ExecutablePath: `C:\Program Files\RustDesk\rustdesk.exe`,
+			Installed:      true,
+			ServiceStatus:  "running",
+			RustDeskID:     "123456789",
+			Version:        "1.4.6",
+			AccessPassword: "123456",
+		},
+	}
+	client := &fakePortalClient{
+		syncErr: &infrahttp.HTTPStatusError{
+			StatusCode: 401,
+			Method:     "POST",
+			Path:       "/api/remote/rustdesk/sync",
+			Code:       "AGENT_TOKEN_INVALID",
+			Message:    "agentToken invalido ou expirado.",
+		},
+	}
+
+	module := New(client, store, noopLogger{}, noopEventBus{},
+		WithAgentVersion("go-agent-v1"),
+		WithEnvironment("test"),
+		WithStateDir(stateDir),
+	)
+	module.rustDeskFactory = func() rustDeskController { return manager }
+	if err := store.SaveJSON(ctx, stateFile, remoteState{
+		AgentToken:  "agent-token-1",
+		HostID:      "host-1",
+		CompanyID:   "company-1",
+		RustDeskID:  "123456789",
+		MachineName: "srv-01",
+	}); err != nil {
+		t.Fatalf("seed state: %v", err)
+	}
+
+	result := module.Apply(ctx, managedRemoteDesiredState(), domain.CurrentModuleState{
+		Enabled: true,
+		Status:  domain.ModuleStatusReady,
+	})
+	if result.Error == "" {
+		t.Fatalf("expected sync failure result")
+	}
+
+	var persisted remoteState
+	if err := store.LoadJSON(ctx, stateFile, &persisted); err != nil {
+		t.Fatalf("load state: %v", err)
+	}
+	if persisted.AgentToken != "" {
+		t.Fatalf("expected agent token to be cleared after structured auth failure")
+	}
+	if !persisted.RebootstrapRequired {
+		t.Fatalf("expected rebootstrap flag after structured auth failure")
+	}
+	if persisted.LastErrorCode != "AGENT_TOKEN_INVALID" {
+		t.Fatalf("expected AGENT_TOKEN_INVALID code, got %q", persisted.LastErrorCode)
+	}
+}
+
 func managedRemoteDesiredState() domain.DesiredState {
 	return domain.DesiredState{
 		Version:   1,
@@ -296,8 +448,11 @@ func newTestModule(store StateStore, client PortalClient, manager rustDeskContro
 
 type fakePortalClient struct {
 	discoverResp         *domain.RemoteDiscoverResponse
+	discoverErr          error
 	bootstrapResp        *domain.RemoteBootstrapResponse
+	bootstrapErr         error
 	syncResponses        []*domain.RemoteSyncResponse
+	syncErr              error
 	ackFailuresRemaining int
 	ackCount             int
 	bootstrapCalls       int
@@ -305,16 +460,19 @@ type fakePortalClient struct {
 }
 
 func (f *fakePortalClient) Discover(ctx context.Context, req domain.RemoteDiscoverRequest) (*domain.RemoteDiscoverResponse, error) {
-	return f.discoverResp, nil
+	return f.discoverResp, f.discoverErr
 }
 
 func (f *fakePortalClient) Bootstrap(ctx context.Context, req domain.RemoteBootstrapRequest) (*domain.RemoteBootstrapResponse, error) {
 	f.bootstrapCalls++
 	f.lastBootstrapReq = req
-	return f.bootstrapResp, nil
+	return f.bootstrapResp, f.bootstrapErr
 }
 
 func (f *fakePortalClient) Sync(ctx context.Context, req domain.RemoteSyncRequest) (*domain.RemoteSyncResponse, error) {
+	if f.syncErr != nil {
+		return nil, f.syncErr
+	}
 	if len(f.syncResponses) == 0 {
 		return &domain.RemoteSyncResponse{}, nil
 	}

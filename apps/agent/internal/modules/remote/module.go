@@ -80,6 +80,13 @@ type remoteState struct {
 	LastAppliedHash          string    `json:"last_applied_hash,omitempty"`
 	RebootstrapRequired      bool      `json:"rebootstrap_required"`
 	LastBootstrapFlow        string    `json:"last_bootstrap_flow,omitempty"`
+	LastErrorCode            string    `json:"last_error_code,omitempty"`
+	LastErrorMessage         string    `json:"last_error_message,omitempty"`
+	LastErrorPhase           string    `json:"last_error_phase,omitempty"`
+	LastErrorStatusCode      int       `json:"last_error_status_code,omitempty"`
+	LastErrorAt              time.Time `json:"last_error_at,omitempty"`
+	NextRetryAt              time.Time `json:"next_retry_at,omitempty"`
+	ConsecutiveFailures      int       `json:"consecutive_failures,omitempty"`
 	LastSyncAt               time.Time `json:"last_sync_at,omitempty"`
 	UpdatedAt                time.Time `json:"updated_at"`
 }
@@ -192,11 +199,15 @@ func (m *Module) Inspect(ctx context.Context) (domain.CurrentModuleState, error)
 	if st.AgentToken == "" || st.RebootstrapRequired {
 		status = domain.ModuleStatusMissing
 	}
+	if st.LastErrorCode != "" && (st.AgentToken == "" || st.RebootstrapRequired) {
+		status = domain.ModuleStatusError
+	}
 
 	return domain.CurrentModuleState{
 		Enabled:       st.AgentToken != "" && !st.RebootstrapRequired,
 		Version:       m.agentVersion,
 		Status:        status,
+		LastError:     st.LastErrorMessage,
 		LastAppliedAt: timePtr(st.LastSyncAt),
 	}, nil
 }
@@ -256,10 +267,13 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 	// Aceita token do desired-state como fallback quando não há env local.
 	effectiveToken := firstNonEmpty(m.discoveryToken, intent.discoveryToken)
 	if effectiveToken == "" {
+		err := errors.New("DISCOVERY_TOKEN_NOT_CONFIGURED")
+		m.rememberFailure(st, runtimePhaseDiscover, err)
+		_ = m.saveState(ctx, st)
 		return domain.ApplyResult{
 			Module:  "remote",
 			Changed: false,
-			Message: "remote discovery token not configured",
+			Error:   "discover failed: DISCOVERY_TOKEN_NOT_CONFIGURED",
 		}
 	}
 	if m.discoveryToken == "" && effectiveToken != "" {
@@ -283,17 +297,23 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 		if isApplyContextCanceled(err) {
 			return m.canceled("discover cycle canceled")
 		}
+		m.rememberFailure(st, runtimePhaseDiscover, err)
+		_ = m.saveState(ctx, st)
+		return m.fail("discover failed", err)
+	}
+	if discoverResp == nil {
+		err := errors.New("REMOTE_DISCOVER_CONTRACT_INCOMPLETE")
+		m.rememberFailure(st, runtimePhaseDiscover, err)
+		_ = m.saveState(ctx, st)
 		return m.fail("discover failed", err)
 	}
 
 	flow := discoverResp.BootstrapFlow
-	if flow == "" {
-		flow = inferBootstrapFlow(discoverResp)
-	}
 
 	st.HostID = firstNonEmpty(discoverResp.HostID, st.HostID)
 	st.MachineName = hostname
 	st.LastBootstrapFlow = string(flow)
+	m.clearFailure(st)
 	_ = m.saveState(ctx, st)
 
 	m.logger.Info("remote discover completed",
@@ -339,10 +359,13 @@ func (m *Module) runBootstrapThenSync(
 	intent remoteDesiredIntent,
 ) domain.ApplyResult {
 	if strings.TrimSpace(installToken) == "" {
+		err := errors.New("REMOTE_DISCOVER_INSTALL_TOKEN_REQUIRED")
+		m.rememberFailure(st, runtimePhaseBootstrap, err)
+		_ = m.saveState(ctx, st)
 		return domain.ApplyResult{
 			Module:  "remote",
 			Changed: false,
-			Message: "linked host is waiting for bootstrap token delivery from portal",
+			Error:   "bootstrap failed: REMOTE_DISCOVER_INSTALL_TOKEN_REQUIRED",
 		}
 	}
 
@@ -372,6 +395,13 @@ func (m *Module) runBootstrapThenSync(
 			"error", err,
 		)
 		st.RebootstrapRequired = true
+		m.rememberFailure(st, runtimePhaseBootstrap, err)
+		_ = m.saveState(ctx, st)
+		return m.fail("bootstrap failed", err)
+	}
+	if bootstrapResp == nil {
+		err := errors.New("REMOTE_BOOTSTRAP_CONTRACT_INCOMPLETE")
+		m.rememberFailure(st, runtimePhaseBootstrap, err)
 		_ = m.saveState(ctx, st)
 		return m.fail("bootstrap failed", err)
 	}
@@ -394,6 +424,7 @@ func (m *Module) runBootstrapThenSync(
 	st.MachineName = firstNonEmpty(bootstrapResp.MachineName, hostname)
 	st.RebootstrapRequired = false
 	st.LastBootstrapFlow = "bootstrap_completed"
+	m.clearFailure(st)
 	m.applyPortalConfig(st, rustDeskDesiredConfig{
 		Alias:                    bootstrapResp.Alias,
 		ServerHost:               bootstrapResp.ServerHost,
@@ -494,10 +525,12 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 			m.logger.Info("remote sync canceled", "host_id", st.HostID, "error", err)
 			return m.canceled("sync cycle canceled")
 		}
-		if shouldInvalidateTokenAfterSyncError(err) {
+		failure := classifyRemoteFailure(err)
+		if shouldForceRebootstrap(failure) {
 			m.logger.Warn("remote sync failed with token/auth error; invalidating agent token and requiring rebootstrap",
 				"host_id", st.HostID,
 				"token_fingerprint", tokenFingerprint(agentToken),
+				"error_code", failure.Code,
 				"error", err,
 			)
 			st.AgentToken = ""
@@ -506,6 +539,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 			st.CompanyID = ""
 			st.CompanyName = ""
 			st.RebootstrapRequired = true
+			m.rememberFailure(st, runtimePhaseSync, err)
 			_ = m.saveState(ctx, st)
 			if intent.bootstrapEnabled && m.discoveryToken != "" {
 				m.logger.Info("remote sync auth failed; attempting immediate rediscovery", "error", err)
@@ -515,9 +549,18 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 			m.logger.Warn("remote sync failed with transient/non-auth error; keeping current token",
 				"host_id", st.HostID,
 				"token_fingerprint", tokenFingerprint(agentToken),
+				"error_code", failure.Code,
 				"error", err,
 			)
+			m.rememberFailure(st, runtimePhaseSync, err)
+			_ = m.saveState(ctx, st)
 		}
+		return m.fail("sync failed", err)
+	}
+	if syncResp == nil {
+		err := errors.New("REMOTE_SYNC_CONTRACT_INCOMPLETE")
+		m.rememberFailure(st, runtimePhaseSync, err)
+		_ = m.saveState(ctx, st)
 		return m.fail("sync failed", err)
 	}
 
@@ -531,6 +574,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	}
 	st.RebootstrapRequired = false
 	st.LastSyncAt = time.Now().UTC()
+	m.clearFailure(st)
 	m.applyPortalConfig(st, rustDeskDesiredConfig{
 		Alias:                    syncResp.Alias,
 		ServerHost:               syncResp.ExpectedConfig.ServerHost,
@@ -964,6 +1008,28 @@ func (m *Module) fail(message string, err error) domain.ApplyResult {
 	}
 }
 
+func (m *Module) rememberFailure(st *remoteState, phase runtimePhase, err error) {
+	info := classifyRemoteFailure(err)
+	now := time.Now().UTC()
+	st.LastErrorCode = firstNonEmpty(info.Code, "REMOTE_UNEXPECTED_ERROR")
+	st.LastErrorMessage = firstNonEmpty(info.Message, err.Error())
+	st.LastErrorPhase = string(phase)
+	st.LastErrorStatusCode = info.HTTPStatus
+	st.LastErrorAt = now
+	st.NextRetryAt = now.Add(remoteRetryInterval)
+	st.ConsecutiveFailures++
+}
+
+func (m *Module) clearFailure(st *remoteState) {
+	st.LastErrorCode = ""
+	st.LastErrorMessage = ""
+	st.LastErrorPhase = ""
+	st.LastErrorStatusCode = 0
+	st.LastErrorAt = time.Time{}
+	st.NextRetryAt = time.Time{}
+	st.ConsecutiveFailures = 0
+}
+
 func (m *Module) canceled(message string) domain.ApplyResult {
 	return domain.ApplyResult{
 		Module:  "remote",
@@ -1042,31 +1108,32 @@ func (m *Module) buildRuntimePlan(st *remoteState, intent remoteDesiredIntent) r
 }
 
 func (m *Module) resolveDiscoverDecision(resp *domain.RemoteDiscoverResponse) discoverDecision {
-	flow := inferBootstrapFlow(resp)
-	requiresBootstrap := flow == domain.RemoteBootstrapFlowHostBootstrapRequired || flow == domain.RemoteBootstrapFlowTokenInvalid
-	if resp != nil {
-		requiresBootstrap = requiresBootstrap || resp.Transition.RequiresAuthenticatedBootstrap
-	}
-
-	if !requiresBootstrap {
+	if resp == nil {
 		return discoverDecision{
 			phase:   runtimePhaseWait,
-			flow:    flow,
+			flow:    "",
+			message: "waiting for valid discover response from portal",
+		}
+	}
+
+	switch resp.BootstrapFlow {
+	case domain.RemoteBootstrapFlowPendingLink, domain.RemoteBootstrapFlowLinkedHostDetected:
+		return discoverDecision{
+			phase:   runtimePhaseWait,
+			flow:    resp.BootstrapFlow,
 			message: "waiting for host link in portal before remote bootstrap",
 		}
-	}
-
-	if resp == nil || strings.TrimSpace(resp.InstallToken) == "" {
+	case domain.RemoteBootstrapFlowHostBootstrapRequired, domain.RemoteBootstrapFlowTokenInvalid:
+		return discoverDecision{
+			phase: runtimePhaseBootstrap,
+			flow:  resp.BootstrapFlow,
+		}
+	default:
 		return discoverDecision{
 			phase:   runtimePhaseWait,
-			flow:    flow,
-			message: fmt.Sprintf("linked host is waiting for bootstrap token delivery from portal (flow %s)", flow),
+			flow:    resp.BootstrapFlow,
+			message: fmt.Sprintf("unsupported discover bootstrap flow %s", resp.BootstrapFlow),
 		}
-	}
-
-	return discoverDecision{
-		phase: runtimePhaseBootstrap,
-		flow:  flow,
 	}
 }
 
@@ -1092,37 +1159,6 @@ func currentHostname() string {
 		return "unknown-host"
 	}
 	return hostname
-}
-
-func shouldInvalidateTokenAfterSyncError(err error) bool {
-	if err == nil {
-		return false
-	}
-	message := strings.ToLower(err.Error())
-	if strings.Contains(message, "status 401") {
-		return true
-	}
-	return strings.Contains(message, "agent_token_invalid") ||
-		strings.Contains(message, "agent token invalid") ||
-		strings.Contains(message, "agent_token_expired") ||
-		strings.Contains(message, "agent token expired") ||
-		strings.Contains(message, "host_agent_token_not_active")
-}
-
-func inferBootstrapFlow(resp *domain.RemoteDiscoverResponse) domain.RemoteBootstrapFlow {
-	if resp == nil {
-		return ""
-	}
-	if resp.BootstrapFlow != "" {
-		return resp.BootstrapFlow
-	}
-	if resp.Transition.NextEndpoint == "/api/remote/rustdesk/bootstrap" {
-		return domain.RemoteBootstrapFlowHostBootstrapRequired
-	}
-	if resp.Mode == "linked" {
-		return domain.RemoteBootstrapFlowLinkedHostDetected
-	}
-	return domain.RemoteBootstrapFlowPendingLink
 }
 
 func firstNonEmpty(values ...string) string {
@@ -1310,6 +1346,9 @@ func tokenFingerprint(token string) string {
 
 func shouldKeepPersistedRemoteState(current, incoming remoteState) bool {
 	if current.AgentToken == "" || incoming.AgentToken == current.AgentToken {
+		return false
+	}
+	if incoming.AgentToken == "" && incoming.RebootstrapRequired {
 		return false
 	}
 

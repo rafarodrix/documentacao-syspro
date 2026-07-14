@@ -3,9 +3,12 @@ package domain
 import "encoding/json"
 
 const (
-	RemoteDiscoverSchemaVersion = "discover.payload.v1"
-	RemoteSyncSchemaVersion     = "sync.payload.v1"
-	RemoteAckSchemaVersion      = "ack.payload.v1"
+	RemoteDiscoverSchemaVersion    = "discover.payload.v1"
+	RemoteSyncSchemaVersion        = "sync.payload.v1"
+	RemoteAckSchemaVersion         = "ack.payload.v1"
+	RemoteDiscoverContractVersion  = "discover.v2"
+	RemoteBootstrapContractVersion = "rustdesk.bootstrap.v1"
+	RemoteSyncContractVersion      = "rustdesk.sync.v1"
 )
 
 type RemoteBootstrapFlow string

@@ -41,10 +41,16 @@ type HTTPStatusError struct {
 	Method     string
 	Path       string
 	Body       string
+	Code       string
+	Message    string
 }
 
 func (e *HTTPStatusError) Error() string {
-	return fmt.Sprintf("unexpected status %d on %s %s: %s", e.StatusCode, e.Method, e.Path, e.Body)
+	message := firstNonEmpty(strings.TrimSpace(e.Message), strings.TrimSpace(e.Body))
+	if e.Code != "" {
+		return fmt.Sprintf("unexpected status %d on %s %s [%s]: %s", e.StatusCode, e.Method, e.Path, e.Code, message)
+	}
+	return fmt.Sprintf("unexpected status %d on %s %s: %s", e.StatusCode, e.Method, e.Path, message)
 }
 
 func IsStatusError(err error, statuses ...int) bool {
@@ -171,6 +177,9 @@ func (c *PortalClient) Discover(ctx context.Context, req domain.RemoteDiscoverRe
 	if err := json.Unmarshal(resp, &result); err != nil {
 		return nil, fmt.Errorf("parse discover response: %w", err)
 	}
+	if err := validateDiscoverResponse(&result); err != nil {
+		return nil, err
+	}
 	return &result, nil
 }
 
@@ -183,6 +192,9 @@ func (c *PortalClient) Bootstrap(ctx context.Context, req domain.RemoteBootstrap
 	var result domain.RemoteBootstrapResponse
 	if err := json.Unmarshal(resp, &result); err != nil {
 		return nil, fmt.Errorf("parse bootstrap response: %w", err)
+	}
+	if err := validateBootstrapResponse(&result); err != nil {
+		return nil, err
 	}
 	return &result, nil
 }
@@ -197,6 +209,9 @@ func (c *PortalClient) Sync(ctx context.Context, req domain.RemoteSyncRequest) (
 	var result domain.RemoteSyncResponse
 	if err := json.Unmarshal(resp, &result); err != nil {
 		return nil, fmt.Errorf("parse sync response: %w", err)
+	}
+	if err := validateSyncResponse(&result); err != nil {
+		return nil, err
 	}
 	return &result, nil
 }
@@ -352,11 +367,14 @@ func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, b
 	)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		code, message := parseHTTPErrorBody(respBody)
 		return nil, resp.StatusCode, &HTTPStatusError{
 			StatusCode: resp.StatusCode,
 			Method:     method,
 			Path:       path,
 			Body:       string(respBody),
+			Code:       code,
+			Message:    message,
 		}
 	}
 
@@ -394,4 +412,25 @@ func requestFingerprint(body any) string {
 
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])[:12]
+}
+
+func parseHTTPErrorBody(respBody []byte) (string, string) {
+	var envelope struct {
+		Code    string `json:"code"`
+		Error   string `json:"error"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return "", ""
+	}
+	return strings.TrimSpace(envelope.Code), firstNonEmpty(strings.TrimSpace(envelope.Message), strings.TrimSpace(envelope.Error))
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
