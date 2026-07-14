@@ -636,7 +636,7 @@ export class ChatwootClient {
 
   async listConversations(
     config: ChatwootConnectionConfig,
-    input: { page?: number; status?: 'all' | 'open' | 'resolved' | 'pending' | 'snoozed'; q?: string },
+    input: { page?: number; status?: 'all' | 'open' | 'resolved' | 'pending' | 'snoozed'; q?: string; retries?: number },
   ): Promise<any[]> {
     const params = new URLSearchParams();
     params.set('page', String(input.page ?? 1));
@@ -647,6 +647,8 @@ export class ChatwootClient {
       config,
       `/api/v1/accounts/${config.accountId}/conversations?${params.toString()}`,
       'GET',
+      undefined,
+      Math.max(1, Number(input.retries ?? 3) || 3),
     );
     return Array.isArray(response?.data?.payload)
       ? response.data.payload

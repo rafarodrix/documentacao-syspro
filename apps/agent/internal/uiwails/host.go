@@ -2,6 +2,7 @@ package uiwails
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -48,25 +49,41 @@ type supportSessionProvider interface {
 	SupportSession(ctx context.Context) (uistate.SupportSession, error)
 }
 
-type Host struct {
-	logger          Logger
-	ipc             *ipc.Client
-	supportProvider supportSessionProvider
-
-	mu              sync.Mutex
-	runtimeCtx      context.Context
-	currentTarget   string
-	started         bool
-	showOnStartup   bool // set to true only when explicitly requested before Wails is ready
+type localSetupStatusProvider interface {
+	SetupStatus(ctx context.Context) (uistate.SetupStatus, error)
 }
 
-func NewHost(logger Logger, ipcClient *ipc.Client, supportProvider supportSessionProvider) *Host {
+type localSummaryProvider interface {
+	Snapshot(ctx context.Context) (uistate.Summary, error)
+}
+
+type localStateProvider interface {
+	localSetupStatusProvider
+	localSummaryProvider
+	notificationsClient
+	actionsClient
+	supportSessionProvider
+}
+
+type Host struct {
+	logger     Logger
+	ipc        *ipc.Client
+	localState localStateProvider
+
+	mu            sync.Mutex
+	runtimeCtx    context.Context
+	currentTarget string
+	started       bool
+	showOnStartup bool // set to true only when explicitly requested before Wails is ready
+}
+
+func NewHost(logger Logger, ipcClient *ipc.Client, localState localStateProvider) *Host {
 	return &Host{
-		logger:          logger,
-		ipc:             ipcClient,
-		supportProvider: supportProvider,
-		currentTarget:   uistate.TargetSetupExperience,
-		showOnStartup:   false, // start hidden in tray; ui.Service decides when to open
+		logger:        logger,
+		ipc:           ipcClient,
+		localState:    localState,
+		currentTarget: uistate.TargetSetupExperience,
+		showOnStartup: false, // start hidden in tray; ui.Service decides when to open
 	}
 }
 
@@ -165,43 +182,103 @@ func targetWindow(target string) (int, int, string) {
 }
 
 type API struct {
-	logger          Logger
-	host            *Host
-	setup           setupStatusClient
-	summary         summaryClient
-	notifications   notificationsClient
-	actions         actionsClient
-	supportProvider supportSessionProvider
+	logger        Logger
+	host          *Host
+	setup         setupStatusClient
+	summary       summaryClient
+	notifications notificationsClient
+	actions       actionsClient
+	localState    localStateProvider
 
 	pushOnce sync.Once
 }
 
-func NewAPI(logger Logger, host *Host, ipcClient *ipc.Client, supportProvider supportSessionProvider) *API {
+func NewAPI(logger Logger, host *Host, ipcClient *ipc.Client, localState localStateProvider) *API {
 	return &API{
-		logger:          logger,
-		host:            host,
-		setup:           ipcClient,
-		summary:         ipcClient,
-		notifications:   ipcClient,
-		actions:         ipcClient,
-		supportProvider: supportProvider,
+		logger:        logger,
+		host:          host,
+		setup:         ipcClient,
+		summary:       ipcClient,
+		notifications: ipcClient,
+		actions:       ipcClient,
+		localState:    localState,
 	}
 }
 
 func (a *API) GetSetupStatus() (uistate.SetupStatus, error) {
-	return a.setup.GetSetupStatus(context.Background())
+	status, err := a.setup.GetSetupStatus(context.Background())
+	if err == nil {
+		return status, nil
+	}
+
+	a.logger.Info("wails setup status fallback to local state", "error", err)
+	if a.localState == nil {
+		return uistate.SetupStatus{}, err
+	}
+
+	fallback, fallbackErr := a.localState.SetupStatus(context.Background())
+	if fallbackErr != nil {
+		return uistate.SetupStatus{}, err
+	}
+
+	if !fallback.Complete && fallback.ProgressPct == 0 && strings.TrimSpace(fallback.LastError) == "" {
+		fallback.Stage = "Servico local indisponivel"
+		fallback.Summary = "A interface nao conseguiu falar com o agent-service. Verifique se o servico Windows esta em execucao."
+		fallback.LastError = fmt.Sprintf("Falha de IPC: %v", err)
+	}
+
+	return fallback, nil
 }
 
 func (a *API) GetSummary() (uistate.Summary, error) {
-	return a.summary.GetSummary(context.Background())
+	summary, err := a.summary.GetSummary(context.Background())
+	if err == nil {
+		return summary, nil
+	}
+
+	a.logger.Info("wails summary fallback to local state", "error", err)
+	if a.localState == nil {
+		return uistate.Summary{}, err
+	}
+
+	fallback, fallbackErr := a.localState.Snapshot(context.Background())
+	if fallbackErr != nil {
+		return uistate.Summary{}, err
+	}
+	fallback.ServiceStatus = "service_unavailable"
+	return fallback, nil
 }
 
 func (a *API) ListNotifications() ([]uistate.Notification, error) {
-	return a.notifications.ListNotifications(context.Background())
+	notifications, err := a.notifications.ListNotifications(context.Background())
+	if err == nil {
+		return notifications, nil
+	}
+
+	a.logger.Info("wails notifications fallback to local state", "error", err)
+	if a.localState == nil {
+		return nil, err
+	}
+
+	fallback, fallbackErr := a.localState.ListNotifications(context.Background())
+	if fallbackErr != nil {
+		return nil, err
+	}
+
+	return append([]uistate.Notification{{
+		ID:         "agent-service-unavailable",
+		Title:      "Servico local indisponivel",
+		Message:    "A interface nao conseguiu se conectar ao agent-service.",
+		Severity:   "warn",
+		OccurredAt: time.Now().UTC(),
+	}}, fallback...), nil
 }
 
 func (a *API) GetSupportSession() (uistate.SupportSession, error) {
-	return a.supportProvider.SupportSession(context.Background())
+	if a.localState == nil {
+		return uistate.SupportSession{}, fmt.Errorf("support session provider is not configured")
+	}
+	return a.localState.SupportSession(context.Background())
 }
 
 func (a *API) GetCurrentTarget() string {
@@ -213,7 +290,15 @@ func (a *API) GetCurrentTarget() string {
 func (a *API) OpenSupportConversation() (uistate.ActionResult, error) {
 	result, err := a.actions.OpenSupportConversation(context.Background())
 	if err != nil {
-		return result, err
+		a.logger.Info("wails support action fallback to local state", "error", err)
+		if a.localState == nil {
+			return result, err
+		}
+		result, fallbackErr := a.localState.OpenSupportConversation(context.Background())
+		if fallbackErr != nil {
+			return result, err
+		}
+		err = nil
 	}
 	if result.Target != "" {
 		if navErr := a.host.Open(context.Background(), result.Target); navErr != nil {
@@ -226,7 +311,15 @@ func (a *API) OpenSupportConversation() (uistate.ActionResult, error) {
 func (a *API) OpenSetupExperience() (uistate.ActionResult, error) {
 	result, err := a.actions.OpenSetupExperience(context.Background())
 	if err != nil {
-		return result, err
+		a.logger.Info("wails setup action fallback to local state", "error", err)
+		if a.localState == nil {
+			return result, err
+		}
+		result, fallbackErr := a.localState.OpenSetupExperience(context.Background())
+		if fallbackErr != nil {
+			return result, err
+		}
+		err = nil
 	}
 	if result.Target != "" {
 		if navErr := a.host.Open(context.Background(), result.Target); navErr != nil {
@@ -237,11 +330,41 @@ func (a *API) OpenSetupExperience() (uistate.ActionResult, error) {
 }
 
 func (a *API) OpenRemoteClient() (uistate.ActionResult, error) {
-	return a.actions.OpenRemoteClient(context.Background())
+	result, err := a.actions.OpenRemoteClient(context.Background())
+	if err == nil {
+		return result, nil
+	}
+
+	a.logger.Info("wails remote open fallback to local state", "error", err)
+	if a.localState == nil {
+		return result, err
+	}
+
+	fallback, fallbackErr := a.localState.OpenRemoteClient(context.Background())
+	if fallbackErr != nil {
+		return result, err
+	}
+
+	return fallback, nil
 }
 
 func (a *API) SyncSupportConversationContext(conversationID string) (uistate.SupportContextSyncResult, error) {
-	return a.actions.SyncSupportConversationContext(context.Background(), conversationID)
+	result, err := a.actions.SyncSupportConversationContext(context.Background(), conversationID)
+	if err == nil {
+		return result, nil
+	}
+
+	a.logger.Info("wails support context sync fallback to local state", "error", err)
+	if a.localState == nil {
+		return result, err
+	}
+
+	fallback, fallbackErr := a.localState.SyncSupportConversationContext(context.Background(), conversationID)
+	if fallbackErr != nil {
+		return result, err
+	}
+
+	return fallback, nil
 }
 
 func (a *API) startPushLoops(runtimeCtx context.Context) {

@@ -770,9 +770,13 @@ export class AtendimentosDashboardQuery {
     for (let page = 1; page <= AtendimentosDashboardQuery.PAGE_LIMIT; page++) {
       let conversations: any[] = [];
       try {
-        conversations = await this.chatwootClient.listConversations(context.chatwoot, { page, status: 'all' });
+        conversations = await this.chatwootClient.listConversations(context.chatwoot, {
+          page,
+          status: 'all',
+          retries: 1,
+        });
       } catch (error: any) {
-        const warning = this.buildContextWarning(context, error);
+        const warning = this.buildContextWarning(context, error, `pagina ${page}`);
         this.logger.warn(`[atendimentos_dashboard] ${warning}`);
         warnings.push(warning);
         break;
@@ -1128,9 +1132,10 @@ export class AtendimentosDashboardQuery {
     return AtendimentosDashboardQuery.LIVE_CACHE_TTL_MS;
   }
 
-  private buildContextWarning(context: ResolvedIntegrationContext, error: unknown) {
+  private buildContextWarning(context: ResolvedIntegrationContext, error: unknown, detail?: string) {
     const contextLabel = String(context.name ?? '').trim() || context.connectionKey;
-    return `Conexao ${contextLabel} em contingencia: ${this.describeChatwootError(error)}.`;
+    const detailLabel = String(detail ?? '').trim();
+    return `Conexao ${contextLabel} em contingencia${detailLabel ? ` (${detailLabel})` : ''}: ${this.describeChatwootError(error)}.`;
   }
 
   private describeChatwootError(error: unknown) {
