@@ -17,10 +17,8 @@ export class ChatwootAttachmentResolver {
       attachment?.content_type ??
       attachment?.extension,
     );
-    const fallbackFilename = this.ensureFilenameExtension(
-      attachment?.data?.filename ?? attachment?.file_name ?? 'arquivo',
-      this.extensionFromMimeType(fallbackMime),
-    );
+    const baseFilename = this.normalizeFilename(attachment?.data?.filename ?? attachment?.file_name ?? 'arquivo');
+    const fallbackFilename = this.ensureFilenameExtension(baseFilename, this.extensionFromMimeType(fallbackMime));
 
     if (!directCandidates.length) return null;
 
@@ -57,7 +55,7 @@ export class ChatwootAttachmentResolver {
 
         const buffer = Buffer.from(await response.arrayBuffer());
         const responseMime = this.normalizeAttachmentMimeType(response.headers.get('content-type') ?? fallbackMime);
-        const filename = this.ensureFilenameExtension(fallbackFilename, this.extensionFromMimeType(responseMime));
+        const filename = this.ensureFilenameExtension(baseFilename, this.extensionFromMimeType(responseMime));
 
         return {
           dataUrl: `data:${responseMime};base64,${buffer.toString('base64')}`,
@@ -186,9 +184,13 @@ export class ChatwootAttachmentResolver {
   }
 
   ensureFilenameExtension(filename: string, fallbackExtension: string): string {
-    const normalized = String(filename || 'arquivo').trim() || 'arquivo';
+    const normalized = this.normalizeFilename(filename);
     if (!fallbackExtension || /\.[a-z0-9]+$/i.test(normalized)) return normalized;
     return `${normalized}${fallbackExtension}`;
+  }
+
+  private normalizeFilename(filename: string): string {
+    return String(filename || 'arquivo').trim() || 'arquivo';
   }
 
   private resolveAttachmentUrl(config: ChatwootConnectionConfig, value: string): string {

@@ -293,13 +293,13 @@ export class DashboardAdminSliceService {
       this.dashboardSupport.fetchDashboardTickets(rawHeaders, 'Consulta de tickets do dashboard', dashboardTicketTeam),
     ]);
 
-    const tickets = ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').slice(0, 5);
+    const tickets = ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED').slice(0, 5);
     const totalOpen =
       ticketData.ticketsResponse?.success && ticketData.ticketsResponse.statusCounts
         ? ticketData.ticketsResponse.statusCounts.open +
           ticketData.ticketsResponse.statusCounts.development +
           ticketData.ticketsResponse.statusCounts.testing
-        : ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').length;
+        : ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED').length;
 
     return {
       success: true,

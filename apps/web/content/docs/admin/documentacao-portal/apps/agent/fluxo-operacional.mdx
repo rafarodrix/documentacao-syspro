@@ -139,7 +139,12 @@ O heartbeat de `POST /api/agents/heartbeat` mantem o cadastro do
 
 - Atualiza `AgentDevice.lastHeartbeatAt`
 - Mantem vinculo entre `AgentDevice` e `RemoteHost`
+- Nao cria nem reativa `RemoteDiscoveredHost` por fora do ingress oficial
 - Nao substitui o `sync` remoto
+
+Se uma maquina removida do portal precisar voltar, a retomada deve passar pelo
+fluxo oficial de `discover`/`bootstrap` apos reinstalacao ou reautorizacao
+operacional. `register`/`heartbeat` isolados nao rematerializam mais o host.
 
 ---
 

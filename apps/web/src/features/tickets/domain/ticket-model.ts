@@ -1,20 +1,19 @@
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
+import type { TicketModulePriority, TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
 
 export interface ActivityPoint {
     label: string;
     value: number;
 }
 
-export type TicketPriorityLevel = number;
-
 export interface TicketListItem {
     id: string | number;
     number: string;
     title: string;
     group: string;
-    status: string;
+    status: TicketModuleStatus;
     statusLabel: string;
-    priority: TicketPriorityLevel;
+    priority: TicketModulePriority;
     customer: string;
     companyName: string | null;
     contactName: string | null;
@@ -99,9 +98,10 @@ export type TicketsDataResponse = TicketsDataSuccess | TicketsDataFailure;
 export interface TicketDetailsItem {
     id: string | number;
     title: string;
-    status: string;
+    status: TicketModuleStatus;
+    statusLabel?: string;
     number: string;
-    priority: number;
+    priority: TicketModulePriority;
     companyId?: string | null;
     companyName?: string | null;
     ownerId?: string | number | null;
@@ -198,15 +198,12 @@ export type TicketMutationSuccess<T = void> = T extends void
 
 export type TicketMutationResponse<T = void> = TicketMutationSuccess<T> | TicketActionFailure;
 
-export type TicketDashboardStatus = "Aberto" | "Em Análise" | "Pendente" | "Resolvido";
-export type TicketDashboardPriority = "Alta" | "Média" | "Baixa";
-
 export interface TicketSummaryItem {
     id: string;
     number: string;
     subject: string;
-    status: TicketDashboardStatus;
-    priority: TicketDashboardPriority;
+    status: TicketModuleStatus;
+    priority: TicketModulePriority;
     lastUpdate: string;
 }
 

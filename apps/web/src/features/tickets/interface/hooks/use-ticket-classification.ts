@@ -11,18 +11,6 @@ import { normalizeStatusValue } from "../components/ticket-details.helpers";
 
 type TicketModuleSettingsOption = { value: string; label: string; defaultTeam?: string };
 
-function mapPriorityToLevel(priority: TicketModulePriority): number {
-    if (priority === "LOW") return 1;
-    if (priority === "HIGH" || priority === "CRITICAL") return 3;
-    return 2;
-}
-
-function mapLevelToPriority(priority: number): TicketModulePriority {
-    if (priority === 1) return "LOW";
-    if (priority === 3) return "HIGH";
-    return "NORMAL";
-}
-
 function resolveCategoryForTeam(categories: TicketModuleSettingsOption[], team: string, currentCategory?: string | null) {
     const normalizedTeam = team.trim().toUpperCase();
     const teamOptions = categories.filter((category) => !category.defaultTeam || category.defaultTeam === normalizedTeam);
@@ -44,7 +32,7 @@ export function useTicketClassification(ticket: TicketDetailsItem | undefined, c
     const [localTeam, setLocalTeam] = useState(ticket?.operations?.currentTeam || "");
     const [localModule, setLocalModule] = useState(ticket?.operations?.module || "");
     const [localCategory, setLocalCategory] = useState(ticket?.operations?.category || "");
-    const [localPriority, setLocalPriority] = useState(ticket?.priority);
+    const [localPriority, setLocalPriority] = useState<TicketModulePriority | undefined>(ticket?.priority);
     const [transferNote, setTransferNote] = useState("");
 
     useEffect(() => {
@@ -58,12 +46,12 @@ export function useTicketClassification(ticket: TicketDetailsItem | undefined, c
     const initialTeam = ticket?.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
     const initialModule = ticket?.operations?.module || "";
     const initialCategory = ticket?.operations?.category || "";
-    const initialPriority = ticket?.priority ?? 2;
+    const initialPriority = ticket?.priority ?? "NORMAL";
 
     const currentTeam = localTeam || ticket?.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
     const currentModule = localModule || ticket?.operations?.module || "";
     const currentCategory = localCategory || ticket?.operations?.category || "";
-    const currentPriority = localPriority ?? ticket?.priority ?? 2;
+    const currentPriority = localPriority ?? ticket?.priority ?? "NORMAL";
 
     const classificationDirty =
         currentTeam !== initialTeam ||
@@ -87,7 +75,7 @@ export function useTicketClassification(ticket: TicketDetailsItem | undefined, c
     const changeClassification = (payload: { module?: string; category?: string; priority?: TicketModulePriority }) => {
         if (payload.module !== undefined) setLocalModule(payload.module);
         if (payload.category !== undefined) setLocalCategory(payload.category);
-        if (payload.priority !== undefined) setLocalPriority(mapPriorityToLevel(payload.priority));
+        if (payload.priority !== undefined) setLocalPriority(payload.priority);
     };
 
     const resetClassificationDraft = () => {
@@ -105,7 +93,7 @@ export function useTicketClassification(ticket: TicketDetailsItem | undefined, c
         if (currentTeam !== initialTeam) payload.team = currentTeam;
         if (currentModule !== initialModule) payload.module = currentModule;
         if (currentCategory !== initialCategory) payload.category = currentCategory;
-        if (currentPriority !== initialPriority) payload.priority = mapLevelToPriority(currentPriority);
+        if (currentPriority !== initialPriority) payload.priority = currentPriority;
         if (status) payload.status = status;
         if (movingToDevelopment) {
             const normalizedNote = transferNote.trim();

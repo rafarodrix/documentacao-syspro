@@ -53,13 +53,13 @@ export class SuporteTicketsDashboardQuery {
     const records = ticketsResponse?.success && ticketsResponse.data ? ticketsResponse.data : [];
     const normalizedTickets = toTicketSummaryItems(records);
     const openTicketRecords = toOpenTicketRecordItems(records);
-    const tickets = normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').slice(0, 5);
+    const tickets = normalizedTickets.filter((ticket) => ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED').slice(0, 5);
     const totalOpen =
       ticketsResponse?.success && ticketsResponse.statusCounts
         ? ticketsResponse.statusCounts.open +
           ticketsResponse.statusCounts.development +
           ticketsResponse.statusCounts.testing
-        : normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').length;
+        : normalizedTickets.filter((ticket) => ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED').length;
 
     return {
       success: true as const,

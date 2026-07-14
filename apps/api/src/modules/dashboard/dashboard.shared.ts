@@ -70,41 +70,13 @@ export function toSeries(events: Date[]) {
   });
 }
 
-export function mapTicketStatus(status: string): DashboardTicketSummary['status'] {
-  switch (status) {
-    case 'RESOLVED':
-    case 'ARCHIVED':
-      return 'Resolvido';
-    case 'WAITING_CUSTOMER':
-    case 'WAITING_INTERNAL':
-      return 'Pendente';
-    case 'IN_PROGRESS':
-    case 'UNASSIGNED':
-      return 'Em Análise';
-    default:
-      return 'Aberto';
-  }
-}
-
-export function mapTicketPriority(priority: string): DashboardTicketSummary['priority'] {
-  switch (priority) {
-    case 'HIGH':
-    case 'CRITICAL':
-      return 'Alta';
-    case 'LOW':
-      return 'Baixa';
-    default:
-      return 'Média';
-  }
-}
-
 export function toTicketSummaryItems(records: TicketModuleRecord[]): DashboardTicketSummary[] {
   return records.map((ticket) => ({
     id: ticket.id,
     number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
     subject: ticket.subject || 'Sem assunto',
-    status: mapTicketStatus(ticket.status),
-    priority: mapTicketPriority(ticket.priority),
+    status: ticket.status,
+    priority: ticket.priority,
     lastUpdate: ticket.updatedAt,
   }));
 }
@@ -119,8 +91,7 @@ export function toOpenTicketRecordItems(records: TicketModuleRecord[]): Dashboar
   const items: DashboardOpenTicketRecord[] = [];
 
   for (const ticket of records) {
-    const status = mapTicketStatus(ticket.status);
-    if (status === 'Resolvido') continue;
+    if (ticket.status === 'RESOLVED' || ticket.status === 'ARCHIVED') continue;
 
     const currentTeam = readTicketMetadataString(ticket.metadata, 'currentTeam');
     const moduleName = readTicketMetadataString(ticket.metadata, 'module');
@@ -136,8 +107,8 @@ export function toOpenTicketRecordItems(records: TicketModuleRecord[]): Dashboar
           : null,
       module: moduleName,
       category: categoryName,
-      priority: mapTicketPriority(ticket.priority),
-      status,
+      priority: ticket.priority,
+      status: ticket.status,
     });
   }
 
@@ -145,9 +116,22 @@ export function toOpenTicketRecordItems(records: TicketModuleRecord[]): Dashboar
 }
 
 export function buildTicketKpis(records: DashboardTicketSummary[]): DashboardTicketKpis {
-  const resolved = records.filter((ticket) => ticket.status === 'Resolvido').length;
-  const pending = records.filter((ticket) => ticket.status === 'Pendente' || ticket.status === 'Em Análise').length;
-  const open = records.filter((ticket) => ticket.status === 'Aberto').length;
+  const resolved = records.filter(
+    (ticket) => ticket.status === 'RESOLVED' || ticket.status === 'ARCHIVED',
+  ).length;
+  const pending = records.filter(
+    (ticket) =>
+      ticket.status === 'IN_PROGRESS' ||
+      ticket.status === 'TESTING' ||
+      ticket.status === 'WAITING_CUSTOMER' ||
+      ticket.status === 'WAITING_INTERNAL',
+  ).length;
+  const open = records.filter(
+    (ticket) =>
+      ticket.status === 'NEW' ||
+      ticket.status === 'UNASSIGNED' ||
+      ticket.status === 'TRIAGE',
+  ).length;
 
   return { open, pending, resolved };
 }

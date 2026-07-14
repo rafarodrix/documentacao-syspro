@@ -3,7 +3,6 @@ export type {
   TicketDetailsItem,
   TicketListItem,
   TicketMessagePagination,
-  TicketPriorityLevel,
   TicketsPagination,
   TicketStatusCounts,
   TicketTeamFilter,

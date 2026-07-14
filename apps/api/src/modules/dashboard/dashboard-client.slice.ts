@@ -48,7 +48,7 @@ export class DashboardClientSliceService {
       this.dashboardSupport.fetchSefazStatusData(dashboardUFs),
     ]);
 
-    const tickets = ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').slice(0, 10);
+    const tickets = ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED').slice(0, 10);
     const kpis =
       ticketData.ticketsResponse?.success && ticketData.ticketsResponse.statusCounts
         ? {

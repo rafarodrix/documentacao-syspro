@@ -191,6 +191,13 @@ export class TicketIntegrationService {
   }
 
   private async assertCompanyIsActiveAndAccessible(companyId: string, accessScope: AccessScopeInfo) {
+    if (!accessScope.isGlobal) {
+      if (accessScope.companyIds.includes(companyId)) {
+        return;
+      }
+      throw new NotFoundException('Empresa nao encontrada para este usuario.');
+    }
+
     const companyExists = await this.prisma.company.findFirst({
       where: { id: companyId, deletedAt: null },
       select: { id: true },
@@ -198,10 +205,6 @@ export class TicketIntegrationService {
 
     if (!companyExists) {
       throw new NotFoundException('Empresa nao encontrada para vincular ao ticket.');
-    }
-
-    if (!accessScope.isGlobal && !accessScope.companyIds.includes(companyId)) {
-      throw new NotFoundException('Empresa nao encontrada para este usuario.');
     }
   }
 

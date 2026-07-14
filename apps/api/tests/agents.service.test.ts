@@ -21,12 +21,25 @@ vi.mock("@dosc-syspro/config", () => ({
 
 import { AgentsService } from "../src/modules/agents/agents.service";
 
-describe("AgentsService desired state", () => {
+describe("AgentsService", () => {
   const prisma = {
     agentDevice: {
       count: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      upsert: vi.fn(),
+    },
+    agentDeviceRevocation: {
+      findUnique: vi.fn(),
+    },
+    remoteHost: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+    },
+    remoteDiscoveredHost: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
     },
     $transaction: vi.fn(),
   };
@@ -40,7 +53,59 @@ describe("AgentsService desired state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.$transaction.mockImplementation(async (operations: Array<Promise<unknown>>) => Promise.all(operations));
+    prisma.agentDeviceRevocation.findUnique.mockResolvedValue(null);
+    prisma.remoteHost.findFirst.mockResolvedValue(null);
+    prisma.remoteHost.findMany.mockResolvedValue([]);
     service = new AgentsService(prisma as any, authorizationService as any);
+  });
+
+  it("does not materialize remote discovery records during register without explicit remote ingress", async () => {
+    prisma.agentDevice.upsert.mockResolvedValue({
+      remoteHostId: null,
+      companyId: "company-1",
+    });
+
+    const response = await service.register("internal-key", {
+      deviceId: "device-123",
+      hostname: "SERVIDOR-01",
+      os: "Windows Server",
+      identitySource: "windows",
+      agentVersion: "go-agent-v1",
+      remoteLinkContext: {
+        rustdeskId: "123456789",
+        companyId: "company-1",
+      },
+    });
+
+    expect(response.success).toBe(true);
+    expect(prisma.remoteDiscoveredHost.findFirst).not.toHaveBeenCalled();
+    expect(prisma.remoteDiscoveredHost.create).not.toHaveBeenCalled();
+    expect(prisma.remoteDiscoveredHost.update).not.toHaveBeenCalled();
+  });
+
+  it("does not materialize remote discovery records during heartbeat without explicit remote ingress", async () => {
+    prisma.agentDevice.upsert.mockResolvedValue({
+      hostname: "SERVIDOR-01",
+      identitySource: "windows",
+      os: "Windows Server",
+      remoteHostId: null,
+      companyId: "company-1",
+    });
+
+    const response = await service.heartbeat("internal-key", {
+      deviceId: "device-123",
+      agentVersion: "go-agent-v1",
+      at: "2026-07-14T20:00:00.000Z",
+      remoteLinkContext: {
+        rustdeskId: "123456789",
+        companyId: "company-1",
+      },
+    });
+
+    expect(response.success).toBe(true);
+    expect(prisma.remoteDiscoveredHost.findFirst).not.toHaveBeenCalled();
+    expect(prisma.remoteDiscoveredHost.create).not.toHaveBeenCalled();
+    expect(prisma.remoteDiscoveredHost.update).not.toHaveBeenCalled();
   });
 
   it("returns all linked Syspro installations for a host with multiple companies", async () => {

@@ -19,7 +19,7 @@ export function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
     group: moduleName || categoryName || ticket.channel,
     status: ticket.status,
     statusLabel: mapStatusLabel(ticket.status),
-    priority: mapPriorityToLevel(ticket.priority),
+    priority: ticket.priority,
     customer: customerName,
     companyName,
     contactName,

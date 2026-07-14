@@ -38,13 +38,13 @@ export class DashboardOperacionalSliceService {
       ? await this.dashboardSupport.loadScopedContractsSummary(crmAccess.scopedCompanyIds)
       : undefined;
 
-    const tickets = ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').slice(0, 5);
+    const tickets = ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED').slice(0, 5);
     const totalOpen =
       ticketData.ticketsResponse?.success && ticketData.ticketsResponse.statusCounts
         ? ticketData.ticketsResponse.statusCounts.open +
           ticketData.ticketsResponse.statusCounts.development +
           ticketData.ticketsResponse.statusCounts.testing
-        : ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').length;
+        : ticketData.normalizedTickets.filter((ticket) => ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED').length;
 
     const hasSefazOffline = sefazRecords.some((record) => record.status === 'OFFLINE');
     const hasSefazUnstable = sefazRecords.some((record) => record.status === 'UNSTABLE');
@@ -85,8 +85,8 @@ export class DashboardOperacionalSliceService {
           total: scopedTicketRecords.length,
           support: scopedTicketRecords.filter((record) => record.team === 'SUPORTE').length,
           development: scopedTicketRecords.filter((record) => record.team === 'DESENVOLVIMENTO').length,
-          waiting: scopedTicketRecords.filter((record) => record.status === 'Aberto').length,
-          inProgress: scopedTicketRecords.filter((record) => record.status !== 'Aberto').length,
+          waiting: scopedTicketRecords.filter((record) => record.status === 'NEW' || record.status === 'UNASSIGNED' || record.status === 'TRIAGE').length,
+          inProgress: scopedTicketRecords.filter((record) => record.status === 'IN_PROGRESS' || record.status === 'TESTING' || record.status === 'WAITING_CUSTOMER' || record.status === 'WAITING_INTERNAL').length,
         },
         sefazHealth: sefazHealth as 'online' | 'unstable' | 'offline' | 'unknown',
         sefazRoutesCount: sefazData.configuredSefazRoutes.filter((route) => route.active).length,

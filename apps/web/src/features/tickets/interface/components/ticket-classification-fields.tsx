@@ -39,25 +39,21 @@ export function getCategoriesForTeam(
   return currentOption ? [currentOption, ...options] : options;
 }
 
-function mapPriorityToLevel(priority: TicketModulePriority) {
-  if (priority === "LOW") return 1;
-  if (priority === "HIGH" || priority === "CRITICAL") return 3;
-  return 2;
-}
-
 function parsePriorityOption(option: TicketModuleSettingsPriority): TicketModulePriority {
   const value = `${option.id} ${option.value} ${option.label}`.toLowerCase();
+  if (value.includes("critical") || value.includes("critica") || option.id === "4") return "CRITICAL";
   if (value.includes("low") || value.includes("baixa") || option.id === "1") return "LOW";
   if (value.includes("high") || value.includes("alta") || value.includes("urgent") || option.id === "3") return "HIGH";
   return "NORMAL";
 }
 
-function resolvePriorityLabel(priority: number, options: TicketModuleSettingsPriority[]) {
-  const match = options.find((option) => mapPriorityToLevel(parsePriorityOption(option)) === priority);
+function resolvePriorityLabel(priority: TicketModulePriority, options: TicketModuleSettingsPriority[]) {
+  const match = options.find((option) => parsePriorityOption(option) === priority);
   if (match) return match.label;
-  if (priority === 3) return "Alta";
-  if (priority === 1) return "Baixa";
-  return "Normal";
+  if (priority === "CRITICAL") return "Crítica";
+  if (priority === "HIGH") return "Alta";
+  if (priority === "LOW") return "Baixa";
+  return "Média";
 }
 
 export function NativeSelectPill({
@@ -144,7 +140,7 @@ export function PriorityDropdown({
   disabled,
   onChange,
 }: {
-  priority: number;
+  priority: TicketModulePriority;
   options: TicketModuleSettingsPriority[];
   disabled?: boolean;
   onChange: (priority: TicketModulePriority) => void;
@@ -155,38 +151,45 @@ export function PriorityDropdown({
 
   return (
     <NativeSelectPill
-      value={String(priority)}
+      value={priority}
       label={currentLabel}
       options={options.map((option) => ({
-        value: String(mapPriorityToLevel(parsePriorityOption(option))),
+        value: parsePriorityOption(option),
         label: option.label,
       }))}
       disabled={disabled}
       onChange={(value) => {
-        const selected = options.find((option) => String(mapPriorityToLevel(parsePriorityOption(option))) === value);
-        onChange(selected ? parsePriorityOption(selected) : value === "3" ? "HIGH" : value === "1" ? "LOW" : "NORMAL");
+        onChange(value as TicketModulePriority);
       }}
     />
   );
 }
 
+function resolveStatusLabel(status: TicketModuleStatus): string {
+  const option = statusOptions.find((opt) => opt.value === status);
+  return option ? option.label : status;
+}
+
 export function StatusDropdown({
   status,
+  statusLabel,
   disabled,
   onChange,
 }: {
-  status?: string | null;
+  status?: TicketModuleStatus | null;
+  statusLabel?: string | null;
   disabled?: boolean;
   onChange: (status: TicketModuleStatus) => void;
 }) {
-  const current = normalizeStatusValue(status);
+  const current = status || "";
+  const label = statusLabel || (status ? resolveStatusLabel(status) : "Desconhecido");
 
-  if (disabled) return <span className="text-xs">{status || "Desconhecido"}</span>;
+  if (disabled) return <span className="text-xs">{label}</span>;
 
   return (
     <NativeSelectPill
-      value={current || ""}
-      label={status || "Desconhecido"}
+      value={current}
+      label={label}
       options={statusOptions.map((option) => ({ value: option.value, label: option.label }))}
       disabled={disabled}
       onChange={(value) => onChange(value as TicketModuleStatus)}

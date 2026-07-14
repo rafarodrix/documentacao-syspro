@@ -13,19 +13,22 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false })
 type PriorityBucket = { label: string; count: number; color: string };
 
 function buildBuckets(records: DashboardOpenTicketRecord[], isDark: boolean): PriorityBucket[] {
-  let alta = 0;
-  let media = 0;
-  let baixa = 0;
+  let critical = 0;
+  let high = 0;
+  let normal = 0;
+  let low = 0;
   for (const record of records) {
-    const normalizedPriority = String(record.priority ?? "").trim().toLowerCase();
-    if (normalizedPriority === "alta") alta++;
-    else if (normalizedPriority.startsWith("m")) media++;
-    else baixa++;
+    const priority = String(record.priority ?? "").trim().toUpperCase();
+    if (priority === "CRITICAL") critical++;
+    else if (priority === "HIGH") high++;
+    else if (priority === "NORMAL") normal++;
+    else if (priority === "LOW") low++;
   }
   return [
-    { label: "Alta", count: alta, color: isDark ? "#f87171" : "#dc2626" },
-    { label: "Media", count: media, color: isDark ? "#fbbf24" : "#d97706" },
-    { label: "Baixa", count: baixa, color: isDark ? "#34d399" : "#059669" },
+    { label: "Crítica", count: critical, color: isDark ? "#f43f5e" : "#e11d48" },
+    { label: "Alta", count: high, color: isDark ? "#f87171" : "#dc2626" },
+    { label: "Média", count: normal, color: isDark ? "#fbbf24" : "#d97706" },
+    { label: "Baixa", count: low, color: isDark ? "#34d399" : "#059669" },
   ];
 }
 
@@ -95,8 +98,8 @@ export function TicketPriorityChart({ records }: { records: DashboardOpenTicketR
     [buckets, isDark, total],
   );
 
-  const alta = buckets[0].count;
-  const altaPct = total > 0 ? Math.round((alta / total) * 100) : 0;
+  const criticalOrHigh = buckets[0].count + buckets[1].count;
+  const altaPct = total > 0 ? Math.round((criticalOrHigh / total) * 100) : 0;
 
   return (
     <Card className="h-full border-border/60 bg-card shadow-sm">
@@ -105,7 +108,7 @@ export function TicketPriorityChart({ records }: { records: DashboardOpenTicketR
           <CardTitle className="text-sm">Prioridade dos tickets</CardTitle>
           <CardDescription className="text-sm">
             {hasData
-              ? `${alta} ticket${alta === 1 ? "" : "s"} de prioridade alta, equivalente a ${altaPct}% da fila aberta.`
+              ? `${criticalOrHigh} ticket${criticalOrHigh === 1 ? "" : "s"} de prioridade alta ou crítica, equivalente a ${altaPct}% da fila aberta.`
               : "Nenhum ticket aberto no recorte atual."}
           </CardDescription>
         </div>

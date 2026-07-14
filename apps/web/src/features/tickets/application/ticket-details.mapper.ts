@@ -64,9 +64,10 @@ export function mapTicketModuleDetailsResponse(response: TicketModuleDetailsResp
     ticket: {
       id: ticket.id,
       title: ticket.subject || "Sem assunto",
-      status: mapStatusLabel(ticket.status),
+      status: ticket.status,
+      statusLabel: mapStatusLabel(ticket.status),
       number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
-      priority: mapPriorityToLevel(ticket.priority),
+      priority: ticket.priority,
       companyId: ticket.companyId,
       companyName: ticket.company?.nomeFantasia || ticket.company?.razaoSocial || null,
       ownerId: ticket.assignedUserId,

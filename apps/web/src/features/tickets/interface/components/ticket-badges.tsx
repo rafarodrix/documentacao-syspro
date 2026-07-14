@@ -1,7 +1,8 @@
 import type { MouseEvent } from "react";
 import { Badge, Button } from "@dosc-syspro/ui";
 import { Loader2 } from "lucide-react";
-import type { TicketListItem, TicketPriorityLevel } from "./ticket-view.types";
+import type { TicketModulePriority } from "@dosc-syspro/contracts/ticket";
+import type { TicketListItem } from "./ticket-view.types";
 
 const STATUS_STYLES: Record<string, string> = {
   NEW: "bg-accent-blue/10 text-accent-blue border-accent-blue/20",
@@ -27,10 +28,11 @@ export function StatusBadge({ status, rawStatus }: { status?: string | null; raw
   );
 }
 
-export function PriorityBadge({ priority }: { priority: TicketPriorityLevel }) {
-  if (priority === 3) return <Badge variant="destructive" className="text-[10px] px-2 rounded-full">Alta</Badge>;
-  if (priority === 1) return <Badge variant="secondary" className="text-[10px] px-2 rounded-full bg-muted text-muted-foreground">Baixa</Badge>;
-  return <Badge variant="outline" className="text-[10px] px-2 text-muted-foreground rounded-full">Normal</Badge>;
+export function PriorityBadge({ priority }: { priority: TicketModulePriority }) {
+  if (priority === "CRITICAL") return <Badge variant="destructive" className="text-[10px] px-2 rounded-full border-accent-red/35 bg-accent-red/20 text-accent-red">Crítica</Badge>;
+  if (priority === "HIGH") return <Badge variant="destructive" className="text-[10px] px-2 rounded-full bg-accent-red/10 text-accent-red border-accent-red/20">Alta</Badge>;
+  if (priority === "NORMAL") return <Badge variant="outline" className="text-[10px] px-2 text-muted-foreground rounded-full">Média</Badge>;
+  return <Badge variant="secondary" className="text-[10px] px-2 rounded-full bg-muted text-muted-foreground">Baixa</Badge>;
 }
 
 export function SlaBadge({ ticket }: { ticket: TicketListItem }) {

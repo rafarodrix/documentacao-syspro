@@ -49,7 +49,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
     currentTeam, currentModule, currentCategory, currentPriority,
     initialTeam, initialModule, initialCategory, initialPriority,
     classificationDirty, requiresTransferNote, requiresTestingReturnNote,
-    changeTeam, changeClassification, resetClassificationDraft, persistWorkflowChange, saveClassification, mapLevelToPriority,
+    changeTeam, changeClassification, resetClassificationDraft, persistWorkflowChange, saveClassification,
   } = useTicketClassification(ticket, canManageTickets);
   const { isUpdatingOwners, onUpdateOwners } = useTicketOwners(ticket?.id);
 
@@ -153,7 +153,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                     <ClassificationDropdown value={currentCategory} fallback="Nao definida" options={categoryOptions} disabled={!canManageTickets || isPending} onChange={(category) => changeClassification({ category })} />
                   </EditableSidebarField>
                   <EditableSidebarField label="Estagio atual">
-                    <StatusDropdown status={ticket.status} disabled={!canManageTickets || isPending} onChange={changeStatus} />
+                    <StatusDropdown status={ticket.status} statusLabel={ticket.statusLabel} disabled={!canManageTickets || isPending} onChange={changeStatus} />
                   </EditableSidebarField>
                   <EditableSidebarField label="Prioridade">
                     <PriorityDropdown priority={currentPriority} options={ticketSettings.priorities} disabled={!canManageTickets || isPending} onChange={(priority) => changeClassification({ priority })} />
@@ -271,7 +271,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
           ...(currentTeam !== initialTeam ? { team: currentTeam } : {}),
           ...(currentModule !== initialModule ? { module: currentModule } : {}),
           ...(currentCategory !== initialCategory ? { category: currentCategory } : {}),
-          ...(currentPriority !== initialPriority ? { priority: mapLevelToPriority(currentPriority) } : {}),
+          ...(currentPriority !== initialPriority ? { priority: currentPriority } : {}),
           status: "IN_PROGRESS",
         }}
         successMessage={classificationDirty ? "Classificacao e estagio atualizados." : "Estagio atualizado."}

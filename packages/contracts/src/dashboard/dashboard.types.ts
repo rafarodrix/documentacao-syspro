@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ticketModulePrioritySchema, ticketModuleStatusSchema } from "../ticket/ticket-module-api.types";
 
 export const PORTAL_DASHBOARD_TIME_ZONE = "America/Sao_Paulo";
 
@@ -11,8 +12,8 @@ export const dashboardTicketSummarySchema = z.object({
   id: z.string().min(1),
   number: z.string().min(1),
   subject: z.string().min(1),
-  status: z.enum(["Aberto", "Em Análise", "Pendente", "Resolvido"]),
-  priority: z.enum(["Alta", "Média", "Baixa"]),
+  status: ticketModuleStatusSchema,
+  priority: ticketModulePrioritySchema,
   lastUpdate: z.string().min(1),
 });
 
@@ -23,8 +24,8 @@ export const dashboardOpenTicketRecordSchema = z.object({
   team: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).nullable(),
   module: z.string().nullable(),
   category: z.string().nullable(),
-  priority: z.enum(["Alta", "Média", "Baixa"]),
-  status: z.enum(["Aberto", "Em Análise", "Pendente"]),
+  priority: ticketModulePrioritySchema,
+  status: ticketModuleStatusSchema,
 });
 
 export const dashboardTicketKpisSchema = z.object({

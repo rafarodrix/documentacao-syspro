@@ -40,7 +40,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
     const [quickTemplates, setQuickTemplates] = useState(DEFAULT_TICKET_MODULE_SETTINGS.quickReplyTemplates);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const ticketSettings = useTicketModuleSettings();
-    const isClosed = ["closed", "merged", "fechado", "resolvido", "finalizado", "recusado"].includes(
+    const isClosed = ["closed", "merged", "fechado", "resolvido", "resolved", "finalizado", "recusado", "archived", "arquivado"].includes(
         (ticketStatus || "").toLowerCase(),
     );
 
