@@ -28,7 +28,7 @@ const EMPTY_TICKET: TicketListEntry = {
   id: "",
   number: "-",
   title: "Sem titulo",
-  status: "",
+  status: "NEW",
   statusLabel: "-",
   createdAt: "",
   updatedAt: "",

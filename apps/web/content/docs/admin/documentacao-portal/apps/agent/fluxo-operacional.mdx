@@ -1,7 +1,7 @@
 ---
 title: Agent - Fluxo Operacional
 description: Ciclo de vida completo do agente
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-14
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -71,11 +71,16 @@ ja esta vinculado e apto a bootstrap.
 | `bootstrapFlow` | Significado | Proximo passo |
 | --- | --- | --- |
 | `pending_link` | Maquina descoberta, mas ainda sem host vinculado | Aguardar vinculo |
-| `linked_host_detected` | Host vinculado existe, mas o portal ainda nao liberou bootstrap | Aguardar `installToken` |
-| `host_bootstrap_required` | Host vinculado requer bootstrap autenticado | Bootstrap |
-| `token_invalid` | Host vinculado com credencial remota invalida ou rotacionada | Bootstrap |
+| `linked_host_detected` | O `RemoteDiscoveredHost` ja esta vinculado no portal e segue aguardando ou reaproveitando bootstrap | Aguardar `installToken` |
+| `host_bootstrap_required` | O `RemoteDiscoveredHost` ja vinculado requer bootstrap autenticado | Bootstrap |
+| `token_invalid` | O `RemoteDiscoveredHost` ja vinculado tem credencial remota invalida ou rotacionada | Bootstrap |
 
 Se o host/dispositivo tiver sido removido do portal, o backend passa a bloquear a rematerializacao automatica no `discover`. Nesse caso o agente continua sem reaparecer ate nova autorizacao operacional ou reinstalacao controlada.
+
+O backend tambem nao faz mais autolink implicito por `rustdeskId` para hosts
+legados. Mesmo que exista um `RemoteHost` antigo com o mesmo identificador, a
+nova instalacao entra em `pending_link` ate existir `RemoteDiscoveredHost`
+explicito e vinculo/manual autorizacao no portal.
 
 ---
 

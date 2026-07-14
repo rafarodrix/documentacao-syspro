@@ -148,6 +148,5 @@ export function useTicketClassification(ticket: TicketDetailsItem | undefined, c
         resetClassificationDraft,
         persistWorkflowChange,
         saveClassification,
-        mapLevelToPriority,
     };
 }

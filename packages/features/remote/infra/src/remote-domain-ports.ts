@@ -72,6 +72,16 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value));
 }
 
+function buildDiscoverIdentityWhere(input: { rustdeskId: string | null; machineName: string | null }) {
+  if (input.rustdeskId) {
+    return {
+      OR: [{ agentExternalId: input.rustdeskId }, ...(input.machineName ? [{ machineName: input.machineName }] : [])],
+    };
+  }
+
+  return { machineName: input.machineName ?? undefined };
+}
+
 export function createRemoteDiscoverPort(params: {
   logger: RemoteLogger;
   transitions: Record<string, unknown>;
@@ -95,66 +105,22 @@ export function createRemoteDiscoverPort(params: {
       return toJsonValue(value);
     },
     async findDiscoveredHost(input) {
-      let autoLinkedHostId: string | null = null;
-      if (input.rustdeskId) {
-        const existingHost = await prisma.remoteHost.findFirst({
-          where: { agentExternalId: input.rustdeskId },
-          select: {
-            id: true,
-            agentDevice: {
-              select: {
-                deviceId: true,
-              },
-            },
-          },
-        });
-        if (existingHost) {
-          if (existingHost.agentDevice?.deviceId) {
-            const revokedDevice = await prisma.agentDeviceRevocation.findUnique({
-              where: { deviceId: existingHost.agentDevice.deviceId },
-              select: { id: true },
-            });
-
-            if (!revokedDevice) {
-              autoLinkedHostId = existingHost.id;
-            }
-          } else {
-            autoLinkedHostId = existingHost.id;
-          }
-        }
-      }
-
-      // Prioritize reusing a record that is already linked to the resolved host
-      // to avoid unique constraint violations on linkedHostId.
+      const identityWhere = buildDiscoverIdentityWhere(input);
       let discoveredHost = null;
-      if (autoLinkedHostId) {
-        discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
-          where: {
-            linkedHostId: autoLinkedHostId,
-            status: { not: "IGNORED" },
-          },
-        });
-      }
 
       // If a host was explicitly removed/ignored in the portal, keep that
       // tombstone authoritative until a new active host is intentionally
       // created for the same RustDesk identity.
-      if (!discoveredHost) {
-        const ignoredHost = await prisma.remoteDiscoveredHost.findFirst({
-          where: {
-            status: "IGNORED",
-            ...(input.rustdeskId
-              ? {
-                  OR: [{ agentExternalId: input.rustdeskId }, ...(input.machineName ? [{ machineName: input.machineName }] : [])],
-                }
-              : { machineName: input.machineName ?? undefined }),
-          },
-          orderBy: [{ updatedAt: "desc" }],
-        });
+      const ignoredHost = await prisma.remoteDiscoveredHost.findFirst({
+        where: {
+          status: "IGNORED",
+          ...identityWhere,
+        },
+        orderBy: [{ updatedAt: "desc" }],
+      });
 
-        if (ignoredHost) {
-          discoveredHost = ignoredHost;
-        }
+      if (ignoredHost) {
+        discoveredHost = ignoredHost;
       }
 
       // Fallback to searching by rustdeskId or machineName
@@ -162,32 +128,35 @@ export function createRemoteDiscoverPort(params: {
         discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
           where: {
             status: { not: "IGNORED" },
-            ...(input.rustdeskId
-              ? {
-                  OR: [{ agentExternalId: input.rustdeskId }, ...(input.machineName ? [{ machineName: input.machineName }] : [])],
-                }
-              : { machineName: input.machineName ?? undefined }),
+            ...identityWhere,
           },
           orderBy: [{ updatedAt: "desc" }],
         });
       }
 
       if (!discoveredHost) {
-        if (autoLinkedHostId) {
-          return {
-            id: "",
-            linkedHostId: autoLinkedHostId,
-            linkedAt: new Date(),
-            status: "LINKED",
-          };
+        if (input.rustdeskId) {
+          const existingHost = await prisma.remoteHost.findFirst({
+            where: { agentExternalId: input.rustdeskId },
+            select: { id: true },
+          });
+
+          if (existingHost) {
+            logger.info("remote.domain.discover.implicit_host_match_blocked", {
+              hostId: existingHost.id,
+              rustdeskId: input.rustdeskId,
+              machineName: input.machineName ?? null,
+            });
+          }
         }
+
         return null;
       }
 
       return {
         id: discoveredHost.id,
-        linkedHostId: discoveredHost.linkedHostId ?? autoLinkedHostId,
-        linkedAt: discoveredHost.linkedAt ?? (autoLinkedHostId ? new Date() : null),
+        linkedHostId: discoveredHost.linkedHostId ?? null,
+        linkedAt: discoveredHost.linkedAt ?? null,
         status: discoveredHost.status,
       };
     },

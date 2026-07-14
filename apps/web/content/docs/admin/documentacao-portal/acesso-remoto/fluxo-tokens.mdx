@@ -1,7 +1,7 @@
 ---
 title: Acesso Remoto - Tokens e Sessoes
 description: Ciclo de vida do agentToken, installToken, discoveryToken, credenciais de address book e estados de sessao remota.
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-14
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -80,6 +80,11 @@ O `discoveryToken` identifica a maquina antes do bootstrap.
 - `token_invalid`
 
 Quando um host/dispositivo e removido do portal, o `discover` deixa de rematerializar esse registro automaticamente. O retorno operacional permanece em modo de triagem ate nova autorizacao operacional ou reinstalacao controlada.
+
+O `discover` tambem nao promove mais uma maquina para `linked_host_detected`
+apenas porque encontrou um `RemoteHost` legado com o mesmo `rustdeskId`.
+Bootstrap autenticado so volta a acontecer depois de um `RemoteDiscoveredHost`
+explicito ser vinculado/autorizado no portal.
 
 ---
 

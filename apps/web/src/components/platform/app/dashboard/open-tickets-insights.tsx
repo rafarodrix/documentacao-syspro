@@ -73,7 +73,7 @@ function groupRecords(records: DashboardOpenTicketRecord[], key: BreakdownKind):
     const bucketKey = queryValue || `__empty__:${label}`;
     const current = counts.get(bucketKey) ?? { value: 0, open: 0, pending: 0, queryValue };
     current.value += 1;
-    if (record.status === "Aberto") current.open += 1;
+    if (record.status === "NEW" || record.status === "UNASSIGNED" || record.status === "TRIAGE") current.open += 1;
     else current.pending += 1;
     counts.set(bucketKey, current);
   }

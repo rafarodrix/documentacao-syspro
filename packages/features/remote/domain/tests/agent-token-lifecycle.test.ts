@@ -385,6 +385,42 @@ describe("agent token lifecycle", () => {
     expect(port.createDiscoveredHost).not.toHaveBeenCalled();
   });
 
+  it("keeps discover in pending mode when a legacy host exists without explicit discovery linkage", async () => {
+    const findLinkedHost = vi.fn(async () => ({
+      id: "host-legacy",
+      name: "ERP-MATRIZ-01",
+      installToken: "rhost_legacy",
+      agentTokenHash: "token-hash",
+      lastHeartbeatErrorMessage: null,
+    }));
+    const port = buildDiscoverPort({
+      findDiscoveredHost: vi.fn(async () => null),
+      findLinkedHost,
+      createDiscoveredHost: vi.fn(async () => ({ id: "disc-pending" })),
+    });
+
+    const result = await processDiscover(
+      {
+        schemaVersion: "discover.payload.v1",
+        discoveryToken: "DISCOVERY_TOKEN",
+        rustdeskId: "21187620068",
+        machineName: "ERP-MATRIZ-01",
+      },
+      { port },
+    );
+
+    expect(result.mode).toBe("pending");
+    expect(result.discoveredHostId).toBe("disc-pending");
+    expect(result.bootstrapFlow).toBe("pending_link");
+    expect(findLinkedHost).not.toHaveBeenCalled();
+    expect(port.createDiscoveredHost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        linkedHostId: null,
+        status: "PENDING_LINK",
+      }),
+    );
+  });
+
 
   it("rejects ACK FAILED with invalid reasonCode", async () => {
     const port = buildAckPort();
