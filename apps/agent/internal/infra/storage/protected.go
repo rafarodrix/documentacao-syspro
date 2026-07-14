@@ -23,30 +23,17 @@ func (s *ProtectedStateStore) SaveJSON(ctx context.Context, name string, value a
 		return s.inner.SaveJSON(ctx, name, value)
 	}
 
-	payload, err := marshalJSONObject(value)
+	payload, err := marshalJSONValue(value)
 	if err != nil {
 		return err
 	}
 
-	for _, field := range protectedFields {
-		plainText, _ := payload[field].(string)
-		delete(payload, field)
-		delete(payload, encryptedFieldName(field))
-
-		plainText = strings.TrimSpace(plainText)
-		if plainText == "" {
-			continue
-		}
-
-		protectedValue, err := protectString(plainText)
-		if err != nil {
-			return fmt.Errorf("protect %s in %s: %w", field, name, err)
-		}
-
-		payload[encryptedFieldName(field)] = protectedValue
+	protected, err := protectJSONValue(payload, buildProtectedFieldSet(protectedFields))
+	if err != nil {
+		return err
 	}
 
-	data, err := json.MarshalIndent(payload, "", "  ")
+	data, err := json.MarshalIndent(protected, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal protected json: %w", err)
 	}
@@ -67,39 +54,14 @@ func (s *ProtectedStateStore) LoadJSON(ctx context.Context, name string, dest an
 		return err
 	}
 
-	var payload map[string]any
+	var payload any
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return fmt.Errorf("unmarshal protected json: %w", err)
 	}
 
-	decoded := cloneJSONObject(payload)
-	migrated := cloneJSONObject(payload)
-	needsMigration := false
-
-	for _, field := range protectedFields {
-		encryptedName := encryptedFieldName(field)
-
-		if encryptedValue, ok := payload[encryptedName].(string); ok && strings.TrimSpace(encryptedValue) != "" {
-			plainText, err := unprotectString(encryptedValue)
-			if err != nil {
-				return fmt.Errorf("unprotect %s in %s: %w", field, name, err)
-			}
-			decoded[field] = plainText
-			continue
-		}
-
-		if plainText, ok := payload[field].(string); ok && strings.TrimSpace(plainText) != "" {
-			decoded[field] = plainText
-
-			protectedValue, err := protectString(plainText)
-			if err != nil {
-				return fmt.Errorf("migrate protected %s in %s: %w", field, name, err)
-			}
-
-			delete(migrated, field)
-			migrated[encryptedName] = protectedValue
-			needsMigration = true
-		}
+	decoded, migrated, needsMigration, err := decodeProtectedJSONValue(payload, buildProtectedFieldSet(protectedFields))
+	if err != nil {
+		return err
 	}
 
 	decodedData, err := json.Marshal(decoded)
@@ -127,6 +89,8 @@ func protectedFieldsForFile(name string) []string {
 	switch strings.TrimSpace(strings.ToLower(name)) {
 	case "remote_state.json":
 		return []string{"agent_token", "default_password", "runtime_password"}
+	case "pending_ack_queue.json":
+		return []string{"agent_token"}
 	case "agent_config.json":
 		return []string{"portal_api_key", "chatwoot_website_token", "remote_discovery_token"}
 	default:
@@ -138,24 +102,141 @@ func encryptedFieldName(field string) string {
 	return field + "_encrypted"
 }
 
-func marshalJSONObject(value any) (map[string]any, error) {
+func marshalJSONValue(value any) (any, error) {
 	data, err := json.Marshal(value)
 	if err != nil {
-		return nil, fmt.Errorf("marshal json object: %w", err)
+		return nil, fmt.Errorf("marshal json value: %w", err)
 	}
 
-	var payload map[string]any
+	var payload any
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return nil, fmt.Errorf("unmarshal json object: %w", err)
+		return nil, fmt.Errorf("unmarshal json value: %w", err)
 	}
 
 	return payload, nil
 }
 
-func cloneJSONObject(input map[string]any) map[string]any {
-	cloned := make(map[string]any, len(input))
-	for key, value := range input {
-		cloned[key] = value
+func protectJSONValue(value any, protectedFields map[string]struct{}) (any, error) {
+	switch typed := value.(type) {
+	case map[string]any:
+		result := make(map[string]any, len(typed))
+		for key, entry := range typed {
+			if _, shouldProtect := protectedFields[key]; shouldProtect {
+				plainText, _ := entry.(string)
+				plainText = strings.TrimSpace(plainText)
+				if plainText == "" {
+					continue
+				}
+				protectedValue, err := protectString(plainText)
+				if err != nil {
+					return nil, fmt.Errorf("protect %s: %w", key, err)
+				}
+				result[encryptedFieldName(key)] = protectedValue
+				continue
+			}
+
+			protectedEntry, err := protectJSONValue(entry, protectedFields)
+			if err != nil {
+				return nil, err
+			}
+			result[key] = protectedEntry
+		}
+		return result, nil
+	case []any:
+		result := make([]any, len(typed))
+		for i, entry := range typed {
+			protectedEntry, err := protectJSONValue(entry, protectedFields)
+			if err != nil {
+				return nil, err
+			}
+			result[i] = protectedEntry
+		}
+		return result, nil
+	default:
+		return value, nil
 	}
-	return cloned
+}
+
+func decodeProtectedJSONValue(value any, protectedFields map[string]struct{}) (decoded any, migrated any, needsMigration bool, err error) {
+	switch typed := value.(type) {
+	case map[string]any:
+		decodedMap := make(map[string]any, len(typed))
+		migratedMap := make(map[string]any, len(typed))
+		for key, entry := range typed {
+			if baseKey, isEncrypted := encryptedBaseField(key, protectedFields); isEncrypted {
+				encryptedValue, _ := entry.(string)
+				if strings.TrimSpace(encryptedValue) == "" {
+					continue
+				}
+				plainText, err := unprotectString(encryptedValue)
+				if err != nil {
+					return nil, nil, false, fmt.Errorf("unprotect %s: %w", baseKey, err)
+				}
+				decodedMap[baseKey] = plainText
+				migratedMap[key] = encryptedValue
+				continue
+			}
+
+			if _, shouldProtect := protectedFields[key]; shouldProtect {
+				plainText, _ := entry.(string)
+				plainText = strings.TrimSpace(plainText)
+				if plainText == "" {
+					continue
+				}
+				decodedMap[key] = plainText
+				protectedValue, err := protectString(plainText)
+				if err != nil {
+					return nil, nil, false, fmt.Errorf("migrate protected %s: %w", key, err)
+				}
+				migratedMap[encryptedFieldName(key)] = protectedValue
+				needsMigration = true
+				continue
+			}
+
+			decodedEntry, migratedEntry, childNeedsMigration, err := decodeProtectedJSONValue(entry, protectedFields)
+			if err != nil {
+				return nil, nil, false, err
+			}
+			decodedMap[key] = decodedEntry
+			migratedMap[key] = migratedEntry
+			needsMigration = needsMigration || childNeedsMigration
+		}
+		return decodedMap, migratedMap, needsMigration, nil
+	case []any:
+		decodedList := make([]any, len(typed))
+		migratedList := make([]any, len(typed))
+		for i, entry := range typed {
+			decodedEntry, migratedEntry, childNeedsMigration, err := decodeProtectedJSONValue(entry, protectedFields)
+			if err != nil {
+				return nil, nil, false, err
+			}
+			decodedList[i] = decodedEntry
+			migratedList[i] = migratedEntry
+			needsMigration = needsMigration || childNeedsMigration
+		}
+		return decodedList, migratedList, needsMigration, nil
+	default:
+		return value, value, false, nil
+	}
+}
+
+func buildProtectedFieldSet(fields []string) map[string]struct{} {
+	result := make(map[string]struct{}, len(fields))
+	for _, field := range fields {
+		trimmed := strings.TrimSpace(field)
+		if trimmed == "" {
+			continue
+		}
+		result[trimmed] = struct{}{}
+	}
+	return result
+}
+
+func encryptedBaseField(key string, protectedFields map[string]struct{}) (string, bool) {
+	for field := range protectedFields {
+		if key == encryptedFieldName(field) {
+			return field, true
+		}
+	}
+	return "", false
 }

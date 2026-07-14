@@ -43,7 +43,7 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 	portalClient := http.NewPortalClient(cfg, stateStore, logger)
 	executor := runtime.NewExecutor(logger)
 
-	eventBus := telemetry.NewAsyncBus(logger, 100)
+	eventBus := telemetry.NewAsyncBus(logger, stateStore, 100)
 	eventBus.Start(ctx)
 
 	identitySource := platform.NewWindowsIdentitySource(logger)

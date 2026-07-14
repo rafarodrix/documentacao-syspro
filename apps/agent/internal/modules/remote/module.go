@@ -480,11 +480,12 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	}
 
 	flushStats := m.flushPendingAcks(ctx, agentToken)
-	if flushStats.Sent > 0 || flushStats.Retained > 0 || flushStats.Discarded > 0 {
+	if flushStats.Sent > 0 || flushStats.Retained > 0 || flushStats.Discarded > 0 || flushStats.Deferred > 0 {
 		m.logger.Info("remote pending ack flush completed",
 			"sent", flushStats.Sent,
 			"retained", flushStats.Retained,
 			"discarded", flushStats.Discarded,
+			"deferred", flushStats.Deferred,
 		)
 	}
 
@@ -613,15 +614,22 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 			Message:    ack.message,
 			Details:    ack.details,
 		}); err != nil {
-			m.logger.Warn("remote command ack failed", "command_id", cmd.ID, "error", err)
+			failure := classifyRemoteFailure(err)
+			now := time.Now().UTC()
+			m.logger.Warn("remote command ack failed", "command_id", cmd.ID, "error_code", failure.Code, "error", err)
 			m.enqueueAck(ctx, pendingAck{
-				CommandID:  cmd.ID,
-				AgentToken: agentToken,
-				Status:     ack.status,
-				ReasonCode: ack.reasonCode,
-				Message:    ack.message,
-				Details:    ack.details,
-				EnqueuedAt: time.Now().UTC(),
+				CommandID:        cmd.ID,
+				AgentToken:       agentToken,
+				Status:           ack.status,
+				ReasonCode:       ack.reasonCode,
+				Message:          ack.message,
+				Details:          ack.details,
+				EnqueuedAt:       now,
+				LastAttemptAt:    now,
+				NextAttemptAt:    now.Add(nextAckRetryDelay(1)),
+				LastErrorCode:    failure.Code,
+				LastErrorMessage: failure.Message,
+				Attempts:         1,
 			})
 			continue
 		}
@@ -1193,6 +1201,7 @@ func enrichAgentMetrics(base any, system any, disks any, st *remoteState, stats 
 		"retained":  stats.Retained,
 		"discarded": stats.Discarded,
 		"failed":    stats.Failed,
+		"deferred":  stats.Deferred,
 	}
 	record["schemaVersions"] = map[string]any{
 		"discover": domain.RemoteDiscoverSchemaVersion,

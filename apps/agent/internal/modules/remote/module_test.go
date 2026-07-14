@@ -225,6 +225,27 @@ func TestPendingAckQueueFlushesOnNextSync(t *testing.T) {
 	if len(queued) != 1 {
 		t.Fatalf("expected one queued ack, got %d", len(queued))
 	}
+	if queued[0].NextAttemptAt.IsZero() {
+		t.Fatalf("expected queued ack to schedule a next attempt")
+	}
+
+	rawQueue, err := os.ReadFile(filepath.Join(stateDir, pendingAckFile))
+	if err != nil {
+		t.Fatalf("read raw ack queue file: %v", err)
+	}
+	var rawQueuePayload []map[string]any
+	if err := json.Unmarshal(rawQueue, &rawQueuePayload); err != nil {
+		t.Fatalf("unmarshal raw ack queue file: %v", err)
+	}
+	if len(rawQueuePayload) != 1 {
+		t.Fatalf("expected one raw queued ack entry, got %d", len(rawQueuePayload))
+	}
+	if _, ok := rawQueuePayload[0]["agent_token"]; ok {
+		t.Fatalf("expected plaintext agent_token to be absent from raw ack queue file")
+	}
+	if _, ok := rawQueuePayload[0]["agent_token_encrypted"]; !ok {
+		t.Fatalf("expected encrypted agent_token field in raw ack queue file")
+	}
 
 	second := module.Apply(ctx, managedRemoteDesiredState(), domain.CurrentModuleState{})
 	if second.Error != "" {
@@ -233,6 +254,26 @@ func TestPendingAckQueueFlushesOnNextSync(t *testing.T) {
 
 	if err := store.LoadJSON(ctx, pendingAckFile, &queued); err != nil {
 		t.Fatalf("reload pending ack queue: %v", err)
+	}
+	if len(queued) != 1 {
+		t.Fatalf("expected queue to wait for scheduled retry, got %d remaining items", len(queued))
+	}
+	if client.ackCount != 1 {
+		t.Fatalf("expected no immediate retry before nextAttemptAt, got %d ack attempts", client.ackCount)
+	}
+
+	queued[0].NextAttemptAt = time.Now().UTC().Add(-time.Second)
+	if err := store.SaveJSON(ctx, pendingAckFile, queued); err != nil {
+		t.Fatalf("force queued retry: %v", err)
+	}
+
+	third := module.Apply(ctx, managedRemoteDesiredState(), domain.CurrentModuleState{})
+	if third.Error != "" {
+		t.Fatalf("third apply returned error: %s", third.Error)
+	}
+
+	if err := store.LoadJSON(ctx, pendingAckFile, &queued); err != nil {
+		t.Fatalf("reload pending ack queue after forced retry: %v", err)
 	}
 	if len(queued) != 0 {
 		t.Fatalf("expected queue to be flushed, got %d remaining items", len(queued))

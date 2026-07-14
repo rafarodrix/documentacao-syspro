@@ -209,6 +209,11 @@ Envia `POST /api/remote/rustdesk/sync` com:
 - Atualiza snapshots operacionais do host
 - Reentrega comandos pendentes e registra comandos entregues
 
+No runtime local, os eventos criticos de operacao agora entram em uma
+`telemetry_outbox.json` persistida. O agent deixa de depender apenas de buffer
+em memoria para manter a trilha de `discover`, `bootstrap`, `sync`,
+`heartbeat` e `reconcile`.
+
 ---
 
 ## Fase 5 - ACK de comandos
@@ -225,6 +230,10 @@ Depois de executar comandos devolvidos pelo `sync`, o agente envia:
   "message": "Configuracao reaplicada com sucesso"
 }
 ```
+
+Se o ACK falhar, o agent grava a confirmacao em `pending_ack_queue.json` com
+token protegido, backoff persistido, proxima tentativa e ultimo erro
+estruturado. O replay deixa de depender apenas do processo atual.
 
 ---
 

@@ -139,6 +139,15 @@ O agente executa e confirma por:
 POST /api/remote/rustdesk/ack
 ```
 
+Quando o POST de ACK falha, a confirmacao entra em fila local persistida com:
+
+- `agent_token` protegido em disco
+- deduplicacao por `commandId`
+- `next_attempt_at`
+- `last_error_code`
+- `last_error_message`
+- backoff entre tentativas
+
 ---
 
 ## Observacao importante
