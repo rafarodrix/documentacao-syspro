@@ -99,10 +99,28 @@ export function createRemoteDiscoverPort(params: {
       if (input.rustdeskId) {
         const existingHost = await prisma.remoteHost.findFirst({
           where: { agentExternalId: input.rustdeskId },
-          select: { id: true },
+          select: {
+            id: true,
+            agentDevice: {
+              select: {
+                deviceId: true,
+              },
+            },
+          },
         });
         if (existingHost) {
-          autoLinkedHostId = existingHost.id;
+          if (existingHost.agentDevice?.deviceId) {
+            const revokedDevice = await prisma.agentDeviceRevocation.findUnique({
+              where: { deviceId: existingHost.agentDevice.deviceId },
+              select: { id: true },
+            });
+
+            if (!revokedDevice) {
+              autoLinkedHostId = existingHost.id;
+            }
+          } else {
+            autoLinkedHostId = existingHost.id;
+          }
         }
       }
 
@@ -116,6 +134,27 @@ export function createRemoteDiscoverPort(params: {
             status: { not: "IGNORED" },
           },
         });
+      }
+
+      // If a host was explicitly removed/ignored in the portal, keep that
+      // tombstone authoritative until a new active host is intentionally
+      // created for the same RustDesk identity.
+      if (!discoveredHost) {
+        const ignoredHost = await prisma.remoteDiscoveredHost.findFirst({
+          where: {
+            status: "IGNORED",
+            ...(input.rustdeskId
+              ? {
+                  OR: [{ agentExternalId: input.rustdeskId }, ...(input.machineName ? [{ machineName: input.machineName }] : [])],
+                }
+              : { machineName: input.machineName ?? undefined }),
+          },
+          orderBy: [{ updatedAt: "desc" }],
+        });
+
+        if (ignoredHost) {
+          discoveredHost = ignoredHost;
+        }
       }
 
       // Fallback to searching by rustdeskId or machineName
@@ -139,6 +178,7 @@ export function createRemoteDiscoverPort(params: {
             id: "",
             linkedHostId: autoLinkedHostId,
             linkedAt: new Date(),
+            status: "LINKED",
           };
         }
         return null;
@@ -148,6 +188,7 @@ export function createRemoteDiscoverPort(params: {
         id: discoveredHost.id,
         linkedHostId: discoveredHost.linkedHostId ?? autoLinkedHostId,
         linkedAt: discoveredHost.linkedAt ?? (autoLinkedHostId ? new Date() : null),
+        status: discoveredHost.status,
       };
     },
     async findLinkedHost(linkedHostId) {

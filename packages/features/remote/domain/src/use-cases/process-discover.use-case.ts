@@ -41,6 +41,19 @@ export async function processDiscover(
     machineName,
   });
 
+  if (discoveredHost?.status === "IGNORED" && !discoveredHost.linkedHostId) {
+    return {
+      contractVersion: "discover.v2",
+      mode: "pending",
+      discoveredHostId: discoveredHost.id,
+      heartbeatAuth: "discoveryToken",
+      bootstrapFlow: "pending_link",
+      transition: transitions.pending_link,
+      message:
+        "Esta maquina foi removida ou ignorada no portal. O discover nao vai rematerializar o host automaticamente ate nova autorizacao/reinstalacao operacional.",
+    };
+  }
+
   if (discoveredHost?.linkedHostId) {
     const linkedHost = await deps.port.findLinkedHost(discoveredHost.linkedHostId);
 

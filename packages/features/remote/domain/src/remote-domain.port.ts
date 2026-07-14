@@ -329,6 +329,7 @@ export type RemoteDiscoverExistingHost = {
   id: string;
   linkedHostId: string | null;
   linkedAt: Date | null;
+  status: "PENDING_LINK" | "LINKED" | "IGNORED";
 };
 
 export type RemoteDiscoverLinkedHost = {
@@ -491,4 +492,3 @@ export interface TrilinkRemoteDomain {
   rotateAddressBookCredential(payload: unknown): Promise<RotateAddressBookCredentialOutput>;
   revokeAddressBookCredential(payload: unknown): Promise<RevokeAddressBookCredentialOutput>;
 }
-

@@ -75,6 +75,8 @@ ja esta vinculado e apto a bootstrap.
 | `host_bootstrap_required` | Host vinculado requer bootstrap autenticado | Bootstrap |
 | `token_invalid` | Host vinculado com credencial remota invalida ou rotacionada | Bootstrap |
 
+Se o host/dispositivo tiver sido removido do portal, o backend passa a bloquear a rematerializacao automatica no `discover`. Nesse caso o agente continua sem reaparecer ate nova autorizacao operacional ou reinstalacao controlada.
+
 ---
 
 ## Fase 2 - Bootstrap

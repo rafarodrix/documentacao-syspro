@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { prisma, buildScopedWhere, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
 import { normalizeRustdeskIdStrict } from "./rustdesk-helpers";
@@ -361,7 +362,10 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
           id: input.hostId,
           ...scopedWhere,
         },
-        include: {
+        select: {
+          id: true,
+          machineName: true,
+          agentExternalId: true,
           sessions: {
             where: {
               status: { in: ["REQUESTED", "STARTED"] },
@@ -381,6 +385,36 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
       }
 
       await prisma.$transaction(async (tx) => {
+        const linkedDevice = await tx.agentDevice.findFirst({
+          where: { remoteHostId: input.hostId },
+          select: {
+            deviceId: true,
+            hostname: true,
+          },
+        });
+
+        if (linkedDevice) {
+          await tx.agentDeviceRevocation.upsert({
+            where: { deviceId: linkedDevice.deviceId },
+            create: {
+              deviceId: linkedDevice.deviceId,
+              hostname: linkedDevice.hostname,
+              reason: 'removed_by_remote_host_delete',
+            },
+            update: {
+              hostname: linkedDevice.hostname,
+              revokedAt: new Date(),
+              reason: 'removed_by_remote_host_delete',
+            },
+          });
+        }
+
+        await upsertIgnoredDiscoveredHost(tx, {
+          machineName: existingHost.machineName ?? null,
+          agentExternalId: existingHost.agentExternalId ?? null,
+          linkedHostId: input.hostId,
+        });
+
         await tx.agentDevice.updateMany({
           where: { remoteHostId: input.hostId },
           data: { remoteHostId: null },
@@ -648,7 +682,59 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
   };
 }
 
+async function upsertIgnoredDiscoveredHost(
+  tx: Prisma.TransactionClient,
+  input: {
+    machineName: string | null;
+    agentExternalId: string | null;
+    linkedHostId: string | null;
+  },
+) {
+  const machineName = input.machineName?.trim() || null;
+  const agentExternalId = input.agentExternalId?.trim() || null;
+  const linkedHostId = input.linkedHostId?.trim() || null;
 
+  if (!machineName && !agentExternalId && !linkedHostId) {
+    return;
+  }
+
+  const existing = await tx.remoteDiscoveredHost.findFirst({
+    where: {
+      OR: [
+        ...(linkedHostId ? [{ linkedHostId }] : []),
+        ...(agentExternalId ? [{ agentExternalId }] : []),
+        ...(machineName ? [{ machineName }] : []),
+      ],
+    },
+    orderBy: [{ updatedAt: "desc" }],
+    select: { id: true },
+  });
+
+  const data = {
+    machineName,
+    agentExternalId,
+    provider: "portal",
+    environment: "portal-removal",
+    description: "Host removido do portal. Reinstale ou reautorize o agente antes de rematerializar este registro.",
+    serviceStatus: "revoked",
+    status: "IGNORED" as const,
+    linkedHostId: null,
+    linkedAt: null,
+    lastHeartbeatAt: new Date(),
+  };
+
+  if (existing) {
+    await tx.remoteDiscoveredHost.update({
+      where: { id: existing.id },
+      data,
+    });
+    return;
+  }
+
+  await tx.remoteDiscoveredHost.create({
+    data,
+  });
+}
 
 
 

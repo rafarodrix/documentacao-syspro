@@ -107,10 +107,12 @@ function buildDiscoverPort(overrides: Partial<RemoteDiscoverPort> = {}): RemoteD
       id: "disc-1",
       linkedHostId: "host-1",
       linkedAt: new Date("2026-03-28T10:00:00.000Z"),
+      status: "LINKED",
     })),
     findLinkedHost: vi.fn(async () => ({
       id: "host-1",
       name: "ERP-MATRIZ-01",
+      installToken: "rhost_token",
       agentTokenHash: "token-hash",
       lastHeartbeatErrorMessage: null,
     })),
@@ -309,6 +311,7 @@ describe("agent token lifecycle", () => {
       findLinkedHost: vi.fn(async () => ({
         id: "host-1",
         name: "ERP-MATRIZ-01",
+        installToken: "rhost_token",
         agentTokenHash: "token-hash",
         lastHeartbeatErrorMessage: "agentToken rotacionado durante sync",
       })),
@@ -334,6 +337,7 @@ describe("agent token lifecycle", () => {
       findLinkedHost: vi.fn(async () => ({
         id: "host-1",
         name: "ERP-MATRIZ-01",
+        installToken: "rhost_token",
         agentTokenHash: null,
         lastHeartbeatErrorMessage: null,
       })),
@@ -352,6 +356,33 @@ describe("agent token lifecycle", () => {
     expect(result.mode).toBe("linked");
     expect(result.bootstrapFlow).toBe("host_bootstrap_required");
     expect(result.transition.requiresAuthenticatedBootstrap).toBe(true);
+  });
+
+  it("does not rematerialize ignored hosts after portal removal", async () => {
+    const port = buildDiscoverPort({
+      findDiscoveredHost: vi.fn(async () => ({
+        id: "disc-ignored",
+        linkedHostId: null,
+        linkedAt: null,
+        status: "IGNORED",
+      })),
+    });
+
+    const result = await processDiscover(
+      {
+        schemaVersion: "discover.payload.v1",
+        discoveryToken: "DISCOVERY_TOKEN",
+        rustdeskId: "21187620068",
+        machineName: "ERP-MATRIZ-01",
+      },
+      { port },
+    );
+
+    expect(result.mode).toBe("pending");
+    expect(result.discoveredHostId).toBe("disc-ignored");
+    expect(result.bootstrapFlow).toBe("pending_link");
+    expect(port.updateDiscoveredHost).not.toHaveBeenCalled();
+    expect(port.createDiscoveredHost).not.toHaveBeenCalled();
   });
 
 
@@ -425,6 +456,7 @@ describe("agent token lifecycle", () => {
         id: "disc-1",
         linkedHostId: "host-deleted",
         linkedAt: null,
+        status: "LINKED",
       })),
       findLinkedHost: vi.fn(async () => null),
       updateDiscoveredHost: vi.fn(async () => ({ id: "disc-1" })),
@@ -455,10 +487,12 @@ describe("agent token lifecycle", () => {
         id: "disc-1",
         linkedHostId: "host-1",
         linkedAt: new Date(),
+        status: "LINKED",
       })),
       findLinkedHost: vi.fn(async () => ({
         id: "host-1",
         name: "ERP-MATRIZ-01",
+        installToken: "rhost_token",
         agentTokenHash: "token-hash",
         lastHeartbeatErrorMessage: null,
       })),

@@ -798,6 +798,11 @@ export class AgentsService {
         deviceId: true,
         hostname: true,
         remoteHostId: true,
+        remoteHost: {
+          select: {
+            agentExternalId: true,
+          },
+        },
       },
     });
 
@@ -819,6 +824,12 @@ export class AgentsService {
           },
         });
       }
+
+      await this.upsertIgnoredDiscoveredHost(tx, {
+        machineName: device.hostname,
+        agentExternalId: device.remoteHost?.agentExternalId ?? null,
+        linkedHostId: device.remoteHostId,
+      });
 
       await tx.agentDevice.delete({ where: { deviceId: normalizedDeviceId } });
 
@@ -861,28 +872,7 @@ export class AgentsService {
   ): Promise<void> {
     const normalizedDeviceId = deviceId?.trim();
     if (!normalizedDeviceId) return;
-
-    if (linkContext) {
-      const { remoteHostId, rustdeskId } = linkContext;
-      if (remoteHostId || rustdeskId) {
-        const hostExists = await this.prisma.remoteHost.findFirst({
-          where: {
-            OR: [
-              ...(remoteHostId ? [{ id: remoteHostId }] : []),
-              ...(rustdeskId ? [{ agentExternalId: rustdeskId }] : []),
-            ],
-          },
-          select: { id: true },
-        });
-
-        if (hostExists) {
-          await this.prisma.agentDeviceRevocation.deleteMany({
-            where: { deviceId: normalizedDeviceId },
-          });
-          return;
-        }
-      }
-    }
+    void linkContext;
 
     const revoked = await this.prisma.agentDeviceRevocation.findUnique({
       where: { deviceId: normalizedDeviceId },
@@ -896,6 +886,60 @@ export class AgentsService {
         message: 'Este dispositivo foi removido do portal. Reinstale o agente para registrar novamente.',
       });
     }
+  }
+
+  private async upsertIgnoredDiscoveredHost(
+    client: Prisma.TransactionClient,
+    input: {
+      machineName: string | null;
+      agentExternalId: string | null;
+      linkedHostId: string | null;
+    },
+  ) {
+    const machineName = input.machineName?.trim() || null;
+    const agentExternalId = input.agentExternalId?.trim() || null;
+    const linkedHostId = input.linkedHostId?.trim() || null;
+
+    if (!machineName && !agentExternalId && !linkedHostId) {
+      return;
+    }
+
+    const existing = await client.remoteDiscoveredHost.findFirst({
+      where: {
+        OR: [
+          ...(linkedHostId ? [{ linkedHostId }] : []),
+          ...(agentExternalId ? [{ agentExternalId }] : []),
+          ...(machineName ? [{ machineName }] : []),
+        ],
+      },
+      orderBy: [{ updatedAt: 'desc' }],
+      select: { id: true },
+    });
+
+    const data = {
+      machineName,
+      agentExternalId,
+      provider: 'portal',
+      environment: 'portal-removal',
+      description: 'Host removido do portal. Reinstale ou reautorize o agente antes de rematerializar este registro.',
+      serviceStatus: 'revoked',
+      status: 'IGNORED' as const,
+      linkedHostId: null,
+      linkedAt: null,
+      lastHeartbeatAt: new Date(),
+    };
+
+    if (existing) {
+      await client.remoteDiscoveredHost.update({
+        where: { id: existing.id },
+        data,
+      });
+      return;
+    }
+
+    await client.remoteDiscoveredHost.create({
+      data,
+    });
   }
 
   async listRevocations(
