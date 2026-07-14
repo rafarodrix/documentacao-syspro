@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { processAck } from "../src/use-cases/process-ack.use-case";
+import { processBootstrap } from "../src/use-cases/process-bootstrap.use-case";
 import { processDiscover } from "../src/use-cases/process-discover.use-case";
 import { processSync } from "../src/use-cases/process-sync.use-case";
-import type { RemoteAckPort, RemoteDiscoverPort, RemoteSyncPort } from "../src/remote-domain.port";
+import type { RemoteAckPort, RemoteBootstrapPort, RemoteDiscoverPort, RemoteSyncPort } from "../src/remote-domain.port";
 
 function buildSyncPort(overrides: Partial<RemoteSyncPort> = {}): RemoteSyncPort {
   const port: RemoteSyncPort = {
@@ -143,7 +144,169 @@ function buildAckPort(overrides: Partial<RemoteAckPort> = {}): RemoteAckPort {
   return port;
 }
 
+function buildBootstrapPort(overrides: Partial<RemoteBootstrapPort> = {}): RemoteBootstrapPort {
+  const port: RemoteBootstrapPort = {
+    resolveHostByInstallToken: vi.fn(async () => ({
+      hostId: "host-1",
+      hostName: "ERP-MATRIZ-01",
+      companyId: "company-1",
+      companyName: "Empresa X",
+      agentExternalId: null,
+      machineName: "ERP-MATRIZ-01",
+      agentVersion: "1.4.6",
+      environment: "production",
+      lastKnownIp: "127.0.0.1",
+      discoveryStatus: "LINKED",
+      discoveryAgentExternalId: "21187620068",
+      discoveryMachineName: "ERP-MATRIZ-01",
+      discoveryLastHeartbeatAt: new Date("2026-03-28T10:00:00.000Z"),
+      bootstrapAuthorizedUntil: new Date("2026-03-28T10:30:00.000Z"),
+    })),
+    getConfigProfile: vi.fn(async () => ({
+      serverHost: "acesso.trilinksoftware.com.br",
+      apiHost: "acesso.trilinksoftware.com.br",
+      publicKey: "pub-key",
+      publicKeyHash: "pub-hash",
+      serverConfig: "cfg",
+      targetVersion: "1.4.6",
+      defaultPassword: "senha",
+      autoInstall: true,
+      autoUpgrade: true,
+      installerUrl: "https://downloads.example.com/rustdesk.exe",
+      installerChecksumSha256: "sha256",
+      installerPackageType: "exe",
+      installerSilentArgs: "/S",
+      restartServiceAfterApply: true,
+      suppressTrayShortcuts: true,
+      hideTray: true,
+      hideStopService: true,
+      allowRemoteConfigModification: false,
+      allowD3DRender: true,
+      enableDirectXCapture: true,
+    })),
+    issueAgentToken: vi.fn(async () => ({
+      token: "agt_valid",
+      tokenHash: "hash_valid",
+      issuedAt: new Date("2026-03-28T10:05:00.000Z"),
+    })),
+    hashPublicKey: vi.fn(() => "pub-hash"),
+    normalizeRustdeskId: vi.fn((value: string | null | undefined) => value ?? null),
+    resolveAlias: vi.fn(() => "EMPRESA X | ERP-MATRIZ-01"),
+    getAgentTokenExpiresAt: vi.fn((issuedAt: Date | null) => (issuedAt ? new Date(issuedAt.getTime() + 86400000) : null)),
+    saveProcessedBootstrap: vi.fn(async ({ host, rustdeskId, machineName, input, configProfile, issuedToken, reportedPublicKeyHash, alias }) => ({
+      id: host.hostId,
+      companyId: host.companyId,
+      agentExternalId: rustdeskId,
+      machineName,
+      agentVersion: input.agentVersion || host.agentVersion,
+      environment: input.environment || host.environment,
+      agentTokenIssuedAt: issuedToken.issuedAt,
+      lastKnownRustDeskAlias: alias,
+      lastKnownRustDeskVersion: configProfile.targetVersion,
+      lastKnownRustDeskServerHost: configProfile.serverHost,
+      lastKnownRustDeskApiHost: configProfile.apiHost,
+      lastKnownRustDeskPublicKeyHash: reportedPublicKeyHash,
+      lastRustDeskConfigSyncAt: new Date("2026-03-28T10:05:00.000Z"),
+    })),
+    logInfo: vi.fn(async () => {}),
+    logWarning: vi.fn(async () => {}),
+    ...overrides,
+  };
+
+  return port;
+}
+
 describe("agent token lifecycle", () => {
+  it("accepts bootstrap when discover authorization is recent and identity matches", async () => {
+    const port = buildBootstrapPort();
+
+    const result = await processBootstrap(
+      {
+        installToken: "rhost_token",
+        rustdeskId: "21187620068",
+        machineName: "ERP-MATRIZ-01",
+        agentVersion: "1.4.6",
+      },
+      {
+        port,
+        now: () => new Date("2026-03-28T10:10:00.000Z"),
+      },
+    );
+
+    expect(result.hostId).toBe("host-1");
+    expect(result.agentToken).toBe("agt_valid");
+    expect(port.saveProcessedBootstrap).toHaveBeenCalledOnce();
+  });
+
+  it("rejects bootstrap when discover authorization is stale or missing", async () => {
+    const port = buildBootstrapPort({
+      resolveHostByInstallToken: vi.fn(async () => ({
+        hostId: "host-1",
+        hostName: "ERP-MATRIZ-01",
+        companyId: "company-1",
+        companyName: "Empresa X",
+        agentExternalId: null,
+        machineName: "ERP-MATRIZ-01",
+        agentVersion: "1.4.6",
+        environment: "production",
+        lastKnownIp: "127.0.0.1",
+        discoveryStatus: "LINKED",
+        discoveryAgentExternalId: "21187620068",
+        discoveryMachineName: "ERP-MATRIZ-01",
+        discoveryLastHeartbeatAt: new Date("2026-03-28T08:00:00.000Z"),
+        bootstrapAuthorizedUntil: new Date("2026-03-28T08:30:00.000Z"),
+      })),
+    });
+
+    await expect(
+      processBootstrap(
+        {
+          installToken: "rhost_token",
+          rustdeskId: "21187620068",
+          machineName: "ERP-MATRIZ-01",
+        },
+        {
+          port,
+          now: () => new Date("2026-03-28T10:10:00.000Z"),
+        },
+      ),
+    ).rejects.toThrow("INSTALL_TOKEN_DISCOVERY_REQUIRED");
+
+    expect(port.logWarning).toHaveBeenCalledWith(
+      "remote.domain.bootstrap.authorization_blocked",
+      expect.objectContaining({
+        hostId: "host-1",
+        reason: "INSTALL_TOKEN_DISCOVERY_REQUIRED",
+      }),
+    );
+  });
+
+  it("rejects bootstrap when machine identity diverges from the authorized discover", async () => {
+    const port = buildBootstrapPort();
+
+    await expect(
+      processBootstrap(
+        {
+          installToken: "rhost_token",
+          rustdeskId: "99999999999",
+          machineName: "ERP-MATRIZ-01",
+        },
+        {
+          port,
+          now: () => new Date("2026-03-28T10:10:00.000Z"),
+        },
+      ),
+    ).rejects.toThrow("INSTALL_TOKEN_IDENTITY_MISMATCH");
+
+    expect(port.logWarning).toHaveBeenCalledWith(
+      "remote.domain.bootstrap.authorization_blocked",
+      expect.objectContaining({
+        hostId: "host-1",
+        reason: "INSTALL_TOKEN_IDENTITY_MISMATCH",
+      }),
+    );
+  });
+
   it("accepts sync when token is valid", async () => {
     const port = buildSyncPort();
 

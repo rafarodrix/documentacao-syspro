@@ -77,6 +77,11 @@ export type RemoteBootstrapHostContext = {
   agentVersion: string | null;
   environment: string | null;
   lastKnownIp: string | null;
+  discoveryStatus: "PENDING_LINK" | "LINKED" | "IGNORED" | null;
+  discoveryAgentExternalId: string | null;
+  discoveryMachineName: string | null;
+  discoveryLastHeartbeatAt: Date | null;
+  bootstrapAuthorizedUntil: Date | null;
 };
 
 export type RemoteBootstrapConfigProfile = {
@@ -146,6 +151,7 @@ export interface RemoteBootstrapPort {
   getAgentTokenExpiresAt(issuedAt: Date | null): Date | null;
   saveProcessedBootstrap(record: ProcessedBootstrapRecord): Promise<PersistedBootstrapHostSnapshot>;
   logInfo(event: string, fields: Record<string, unknown>): Promise<void>;
+  logWarning(event: string, fields: Record<string, unknown>): Promise<void>;
 }
 
 export type RemoteAckHostContext = {

@@ -92,6 +92,10 @@ permanente.
 Se o `discover` nao devolver `installToken`, o agente espera o proximo
 ciclo e nao tenta reaproveitar token local legado.
 
+O backend agora so aceita `bootstrap` quando esse `installToken` estiver
+amparado por um `discover` recente da mesma maquina vinculada. Token de
+instalacao sem triagem recente, ou vindo de identidade divergente, e rejeitado.
+
 ### Payload enviado
 
 ```json

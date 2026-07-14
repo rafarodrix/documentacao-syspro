@@ -48,6 +48,7 @@ const resolveAlias = resolveRustDeskAlias;
 
 const isAgentTokenExpired = isRemoteAgentTokenExpired;
 const getAgentTokenExpiresAt = getRemoteAgentTokenExpiresAt;
+const BOOTSTRAP_DISCOVER_AUTH_WINDOW_MS = 30 * 60 * 1000;
 
 async function getRemoteModuleSettingsSnapshot() {
   try {
@@ -282,10 +283,23 @@ export function createRemoteBootstrapPort(params: { logger: RemoteLogger; reques
               razaoSocial: true,
             },
           },
+          discoveryRecord: {
+            select: {
+              status: true,
+              agentExternalId: true,
+              machineName: true,
+              lastHeartbeatAt: true,
+            },
+          },
         },
       });
 
       if (!host) return null;
+
+      const discoveryLastHeartbeatAt = host.discoveryRecord?.lastHeartbeatAt ?? null;
+      const bootstrapAuthorizedUntil = discoveryLastHeartbeatAt
+        ? new Date(discoveryLastHeartbeatAt.getTime() + BOOTSTRAP_DISCOVER_AUTH_WINDOW_MS)
+        : null;
 
       return {
         hostId: host.id,
@@ -297,6 +311,11 @@ export function createRemoteBootstrapPort(params: { logger: RemoteLogger; reques
         agentVersion: host.agentVersion,
         environment: host.environment,
         lastKnownIp: host.lastKnownIp,
+        discoveryStatus: host.discoveryRecord?.status ?? null,
+        discoveryAgentExternalId: host.discoveryRecord?.agentExternalId ?? null,
+        discoveryMachineName: host.discoveryRecord?.machineName ?? null,
+        discoveryLastHeartbeatAt,
+        bootstrapAuthorizedUntil,
       };
     },
     async getConfigProfile() {
@@ -370,6 +389,9 @@ export function createRemoteBootstrapPort(params: { logger: RemoteLogger; reques
     },
     async logInfo(event, fields) {
       logger.info(event, fields);
+    },
+    async logWarning(event, fields) {
+      logger.warn(event, fields);
     },
   };
 }

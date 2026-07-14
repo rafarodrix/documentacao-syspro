@@ -1,5 +1,5 @@
 import { processBootstrapInputSchema, type ProcessBootstrapInput, type ProcessBootstrapOutput } from "../remote-domain.contracts";
-import type { RemoteBootstrapPort } from "../remote-domain.port";
+import type { RemoteBootstrapHostContext, RemoteBootstrapPort } from "../remote-domain.port";
 
 function normalizeNullable(value?: string | null): string | null {
   const next = value?.trim();
@@ -8,6 +8,32 @@ function normalizeNullable(value?: string | null): string | null {
 
 function normalizeComparable(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
+}
+
+function assertBootstrapAuthorization(
+  host: RemoteBootstrapHostContext,
+  input: ProcessBootstrapInput,
+  now: Date,
+) {
+  if (
+    host.discoveryStatus !== "LINKED" ||
+    !host.bootstrapAuthorizedUntil ||
+    host.bootstrapAuthorizedUntil.getTime() < now.getTime()
+  ) {
+    throw new Error("INSTALL_TOKEN_DISCOVERY_REQUIRED");
+  }
+
+  const inputRustdeskId = normalizeComparable(input.rustdeskId);
+  const discoveredRustdeskId = normalizeComparable(host.discoveryAgentExternalId);
+  if (inputRustdeskId && discoveredRustdeskId && inputRustdeskId !== discoveredRustdeskId) {
+    throw new Error("INSTALL_TOKEN_IDENTITY_MISMATCH");
+  }
+
+  const inputMachineName = normalizeComparable(input.machineName);
+  const discoveredMachineName = normalizeComparable(host.discoveryMachineName);
+  if (inputMachineName && discoveredMachineName && inputMachineName !== discoveredMachineName) {
+    throw new Error("INSTALL_TOKEN_IDENTITY_MISMATCH");
+  }
 }
 
 function normalizeInput(input: ProcessBootstrapInput): ProcessBootstrapInput {
@@ -31,6 +57,7 @@ export async function processBootstrap(
   deps: {
     port: RemoteBootstrapPort;
     requestIp?: string | null;
+    now?: () => Date;
   },
 ): Promise<ProcessBootstrapOutput> {
   const parsed = processBootstrapInputSchema.parse(payload);
@@ -39,6 +66,27 @@ export async function processBootstrap(
   const host = await deps.port.resolveHostByInstallToken(input.installToken);
   if (!host) {
     throw new Error("INSTALL_TOKEN_INVALID");
+  }
+
+  const now = deps.now ? deps.now() : new Date();
+
+  try {
+    assertBootstrapAuthorization(host, input, now);
+  } catch (error) {
+    await deps.port.logWarning("remote.domain.bootstrap.authorization_blocked", {
+      hostId: host.hostId,
+      companyId: host.companyId,
+      installTokenPresent: true,
+      discoveryStatus: host.discoveryStatus,
+      discoveryAgentExternalId: host.discoveryAgentExternalId,
+      discoveryMachineName: host.discoveryMachineName,
+      discoveryLastHeartbeatAt: host.discoveryLastHeartbeatAt?.toISOString() ?? null,
+      bootstrapAuthorizedUntil: host.bootstrapAuthorizedUntil?.toISOString() ?? null,
+      requestRustdeskId: input.rustdeskId ?? null,
+      requestMachineName: input.machineName ?? null,
+      reason: error instanceof Error ? error.message : "INSTALL_TOKEN_DISCOVERY_REQUIRED",
+    });
+    throw error;
   }
 
   const configProfile = await deps.port.getConfigProfile();

@@ -33,6 +33,16 @@ const REMOTE_DOMAIN_ERROR_MAP: Record<string, Omit<RemoteDomainHttpError, "data"
     message: "Token de instalacao invalido.",
     httpStatus: 404,
   },
+  INSTALL_TOKEN_DISCOVERY_REQUIRED: {
+    code: "INSTALL_TOKEN_DISCOVERY_REQUIRED",
+    message: "Bootstrap autenticado requer discover recente e vinculado para este host.",
+    httpStatus: 409,
+  },
+  INSTALL_TOKEN_IDENTITY_MISMATCH: {
+    code: "INSTALL_TOKEN_IDENTITY_MISMATCH",
+    message: "A identidade da maquina nao confere com a descoberta autorizada para este installToken.",
+    httpStatus: 409,
+  },
   AGENT_TOKEN_INVALID: {
     code: "AGENT_TOKEN_INVALID",
     message: "agentToken invalido ou expirado.",
@@ -215,4 +225,3 @@ export function mapRemoteDomainError(
     httpStatus: 500,
   };
 }
-

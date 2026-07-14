@@ -62,6 +62,35 @@ export const ticketModuleQueueCountsSchema = z.object({
   no_response: z.number().int().nonnegative(),
 });
 
+export const ticketModuleMetadataSchema = z.object({
+  category: z.string().nullable().optional(),
+  categoryType: z.string().nullable().optional(),
+  module: z.string().nullable().optional(),
+  currentTeam: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).nullable().optional(),
+  currentOwnerUserId: z.string().nullable().optional(),
+  currentOwnerName: z.string().nullable().optional(),
+  currentOwnerRole: z.string().nullable().optional(),
+  openedByUserId: z.string().nullable().optional(),
+  openedByName: z.string().nullable().optional(),
+  openedByEmail: z.string().nullable().optional(),
+  openedByRole: z.string().nullable().optional(),
+  slaPolicyName: z.string().nullable().optional(),
+  slaFirstResponseMinutes: z.number().nullable().optional(),
+  slaResolutionMinutes: z.number().nullable().optional(),
+  databaseUrl: z.string().nullable().optional(),
+  developmentVideoUrl: z.string().nullable().optional(),
+  supportOwnerUserId: z.string().nullable().optional(),
+  supportOwnerName: z.string().nullable().optional(),
+  developmentOwnerUserId: z.string().nullable().optional(),
+  developmentOwnerName: z.string().nullable().optional(),
+  resolvedByName: z.string().nullable().optional(),
+  resolvedByRole: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
+  chatwootConversationId: z.number().nullable().optional(),
+  chatwootContactId: z.number().nullable().optional(),
+  chatwootAccountId: z.number().nullable().optional(),
+}).catchall(z.unknown());
+
 export const ticketModuleCreateRequestSchema = z.object({
   title: z.string().trim().min(1),
   description: z.string().trim().min(1),
@@ -74,7 +103,7 @@ export const ticketModuleCreateRequestSchema = z.object({
   contactPhoneSnapshot: optionalTrimmedStringSchema,
   contactWhatsappSnapshot: optionalTrimmedStringSchema,
   contactNameSnapshot: optionalTrimmedStringSchema,
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: ticketModuleMetadataSchema.optional(),
   userSelectedCompanyId: optionalTrimmedStringSchema,
   customerEmail: optionalTrimmedEmailSchema,
   category: optionalTrimmedStringSchema,
@@ -203,7 +232,7 @@ export const ticketModuleRecordSchema = z.object({
   releaseModule: z.string().nullable().optional(),
   publishToReleases: z.boolean().optional(),
   externalThreadId: z.string().nullable().optional(),
-  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  metadata: ticketModuleMetadataSchema.nullable().optional(),
   contactPhoneSnapshot: z.string().nullable().optional(),
   contactWhatsappSnapshot: z.string().nullable().optional(),
   contactNameSnapshot: z.string().nullable().optional(),
@@ -255,6 +284,7 @@ export const ticketModuleLinkedCompaniesResponseSchema = z.object({
 
 export type TicketModuleStatus = z.infer<typeof ticketModuleStatusSchema>;
 export type TicketModulePriority = z.infer<typeof ticketModulePrioritySchema>;
+export type TicketModuleMetadata = z.infer<typeof ticketModuleMetadataSchema>;
 export type TicketModuleChannel = z.infer<typeof ticketModuleChannelSchema>;
 export type TicketModuleEntryPoint = z.infer<typeof ticketModuleEntryPointSchema>;
 export type TicketModuleDirection = z.infer<typeof ticketModuleDirectionSchema>;

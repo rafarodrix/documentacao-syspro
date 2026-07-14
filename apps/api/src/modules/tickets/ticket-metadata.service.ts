@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { TicketModuleSettings } from '@dosc-syspro/contracts/ticket';
+import type { TicketModuleSettings, TicketModuleMetadata } from '@dosc-syspro/contracts/ticket';
+import { ticketModuleMetadataSchema } from '@dosc-syspro/contracts/ticket';
 import type { Prisma, Role } from '@prisma/client';
 import { resolveCategoryType } from '@dosc-syspro/tickets-domain';
 import type { TicketOperatorCapabilities } from './ticket-access.service';
@@ -16,10 +17,12 @@ type TicketOwnerInput = {
 
 @Injectable()
 export class TicketMetadataService {
-  toRecord(metadata: Prisma.JsonValue | null | undefined): Record<string, unknown> {
-    return metadata && typeof metadata === 'object' && !Array.isArray(metadata)
-      ? { ...(metadata as Record<string, unknown>) }
+  toRecord(metadata: Prisma.JsonValue | null | undefined): TicketModuleMetadata {
+    const raw = metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? (metadata as Record<string, unknown>)
       : {};
+    const parsed = ticketModuleMetadataSchema.safeParse(raw);
+    return parsed.success ? parsed.data : raw;
   }
 
   buildInitialMetadata(input: {
@@ -68,7 +71,7 @@ export class TicketMetadataService {
   }
 
   resolveCurrentTeam(
-    metadata: Record<string, unknown>,
+    metadata: TicketModuleMetadata,
     capabilities: Pick<TicketOperatorCapabilities, 'canOwnSupportQueue' | 'canOwnDevelopmentQueue'>,
   ): TicketTeam {
     if (typeof metadata.currentTeam === 'string' && metadata.currentTeam.trim()) {
@@ -82,17 +85,17 @@ export class TicketMetadataService {
   }
 
   syncCategoryMetadata(
-    metadata: Record<string, unknown>,
+    metadata: TicketModuleMetadata,
     settings: TicketModuleSettings,
     category: string | null,
     currentTeam: string | null,
-  ) {
+  ): TicketModuleMetadata {
     metadata.category = category;
     metadata.categoryType = resolveCategoryType(settings, category, currentTeam);
     return metadata;
   }
 
-  assignCurrentOwner(metadata: Record<string, unknown>, input: TicketOwnerInput) {
+  assignCurrentOwner(metadata: TicketModuleMetadata, input: TicketOwnerInput): TicketModuleMetadata {
     metadata.currentOwnerUserId = input.userId;
     metadata.currentOwnerName = input.name;
     metadata.currentOwnerRole = input.role;

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Calendar, ChevronDown, ChevronUp, Clock3, Disc3, Loader2, UserRound, Zap } from "lucide-react";
 import { type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
@@ -13,6 +12,7 @@ import { useInternalUsers } from "@/features/user-access/interface/hooks/use-int
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { useTicketTimeline } from "@/features/tickets/interface/hooks/use-ticket-timeline";
+import { useTicketDetailsWorkflow } from "@/features/tickets/interface/hooks/use-ticket-details-workflow";
 import { TicketChat } from "@/features/tickets/interface/components/ticket-chat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/ticket-finalize-dialog";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
@@ -36,10 +36,6 @@ interface TicketDetailsProps {
 
 export function TicketDetails({ ticket, articles, messagePagination, canManageTickets, error }: TicketDetailsProps) {
   const router = useRouter();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [finalizeOpen, setFinalizeOpen] = useState(false);
-  const [testingReturnOpen, setTestingReturnOpen] = useState(false);
-
   const ticketSettings = useTicketModuleSettings();
   const internalUsers = useInternalUsers();
   const { timelineArticles, timelinePagination, isLoadingOlderArticles, loadOlderArticles } = useTicketTimeline(ticket, articles, messagePagination);
@@ -52,6 +48,21 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
     changeTeam, changeClassification, resetClassificationDraft, persistWorkflowChange, saveClassification,
   } = useTicketClassification(ticket, canManageTickets);
   const { isUpdatingOwners, onUpdateOwners } = useTicketOwners(ticket?.id);
+
+  const {
+    sidebarCollapsed,
+    setSidebarCollapsed,
+    finalizeOpen,
+    setFinalizeOpen,
+    testingReturnOpen,
+    setTestingReturnOpen,
+    changeStatus,
+  } = useTicketDetailsWorkflow({
+    ticketStatus: ticket?.status,
+    ticketSettings,
+    classificationDirty,
+    persistWorkflowChange,
+  });
 
   useTicketHotkeys({
     onChangeStatus: () => document.getElementById("transfer-ticket-btn")?.click(),
@@ -74,14 +85,6 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
   const canManageRelease = currentTeam === "DESENVOLVIMENTO" || Boolean(ticket.publishToReleases);
   const supportUsers = getAssignableUsers(internalUsers, "SUPORTE");
   const developmentUsers = getAssignableUsers(internalUsers, "DESENVOLVIMENTO");
-
-  const changeStatus = (status: TicketModuleStatus) => {
-    if (status === "RESOLVED") { setFinalizeOpen(true); return; }
-    if (status === "IN_PROGRESS" && ticket.status?.toLowerCase().includes("test") && ticketSettings.requireTestingReturnReason) {
-      setTestingReturnOpen(true); return;
-    }
-    persistWorkflowChange(status, classificationDirty ? "Classificacao e estagio atualizados." : "Estagio atualizado.");
-  };
 
   return (
     <div className="mx-auto max-w-360 animate-in fade-in slide-in-from-bottom-4 duration-500">
