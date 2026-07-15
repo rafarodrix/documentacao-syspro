@@ -100,6 +100,6 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 
 	return &Container{
 		AgentService: agentService,
-		IPCServer:    ipc.NewServer(cfg.Agent.IPCAddress, cfg.Agent.IPCToken, logger, uiStateService, uiStateService, uiStateService, uiStateService),
+		IPCServer:    ipc.NewServer(cfg.Agent.IPCAddress, cfg.Agent.IPCToken, logger, uiStateService, uiStateService, uiStateService, uiStateService, uiStateService),
 	}, nil
 }

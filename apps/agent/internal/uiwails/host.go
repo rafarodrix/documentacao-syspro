@@ -38,6 +38,10 @@ type notificationsClient interface {
 	ListNotifications(ctx context.Context) ([]uistate.Notification, error)
 }
 
+type supportSessionClient interface {
+	GetSupportSession(ctx context.Context) (uistate.SupportSession, error)
+}
+
 type actionsClient interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
@@ -187,6 +191,7 @@ type API struct {
 	setup         setupStatusClient
 	summary       summaryClient
 	notifications notificationsClient
+	support       supportSessionClient
 	actions       actionsClient
 	localState    localStateProvider
 
@@ -200,6 +205,7 @@ func NewAPI(logger Logger, host *Host, ipcClient *ipc.Client, localState localSt
 		setup:         ipcClient,
 		summary:       ipcClient,
 		notifications: ipcClient,
+		support:       ipcClient,
 		actions:       ipcClient,
 		localState:    localState,
 	}
@@ -275,10 +281,22 @@ func (a *API) ListNotifications() ([]uistate.Notification, error) {
 }
 
 func (a *API) GetSupportSession() (uistate.SupportSession, error) {
-	if a.localState == nil {
-		return uistate.SupportSession{}, fmt.Errorf("support session provider is not configured")
+	session, err := a.support.GetSupportSession(context.Background())
+	if err == nil {
+		return session, nil
 	}
-	return a.localState.SupportSession(context.Background())
+
+	a.logger.Info("wails support session fallback to local state", "error", err)
+	if a.localState == nil {
+		return uistate.SupportSession{}, err
+	}
+
+	fallback, fallbackErr := a.localState.SupportSession(context.Background())
+	if fallbackErr != nil {
+		return uistate.SupportSession{}, err
+	}
+
+	return fallback, nil
 }
 
 func (a *API) GetCurrentTarget() string {

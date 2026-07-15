@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -78,12 +79,12 @@ func newInstallerBuilder(agentRoot string) installerBuilder {
 			filepath.Join(agentRoot, "build", "bin", "agent-ui"),
 			filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64", "agent-ui.exe"),
 		},
-		stageRoot:       filepath.Join(agentRoot, "dist", "windows-installer", "staging"),
-		outputRoot:      filepath.Join(agentRoot, "dist", "windows-installer", "output"),
-		runtimeRoot:     filepath.Join(installerRoot, "runtime"),
-		sourceEnv:       filepath.Join(agentRoot, ".env"),
-		sourceEnvEx:     filepath.Join(agentRoot, ".env.example"),
-		issFile:         filepath.Join(installerRoot, "AgenteTrilink.iss"),
+		stageRoot:   filepath.Join(agentRoot, "dist", "windows-installer", "staging"),
+		outputRoot:  filepath.Join(agentRoot, "dist", "windows-installer", "output"),
+		runtimeRoot: filepath.Join(installerRoot, "runtime"),
+		sourceEnv:   filepath.Join(agentRoot, ".env"),
+		sourceEnvEx: filepath.Join(agentRoot, ".env.example"),
+		issFile:     filepath.Join(installerRoot, "AgenteTrilink.iss"),
 	}
 }
 
@@ -170,17 +171,18 @@ func (b installerBuilder) build(version string) error {
 }
 
 func (b installerBuilder) resolveVersion() (string, error) {
-	cmd := exec.Command("git", "-C", b.installerRoot, "describe", "--tags", "--match", "v*", "--abbrev=0")
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = io.Discard
-	if err := cmd.Run(); err == nil {
-		re := regexp.MustCompile(`^v?(\d+\.\d+\.\d+)`)
-		if match := re.FindStringSubmatch(strings.TrimSpace(stdout.String())); len(match) == 2 {
-			return match[1], nil
-		}
+	var tagVersion *semVersion
+	if resolved, ok := resolveGitTagVersion(b.installerRoot); ok {
+		tagVersion = &resolved
 	}
-	return "1.0.0", nil
+	var outputVersion *semVersion
+	if resolved, ok, err := resolveLatestInstallerOutputVersion(b.outputRoot); err != nil {
+		return "", err
+	} else if ok {
+		outputVersion = &resolved
+	}
+
+	return selectAutoVersion(tagVersion, outputVersion), nil
 }
 
 func (b installerBuilder) resolveUIBinary() (string, error) {
@@ -282,6 +284,121 @@ func locateISCC() (string, error) {
 		}
 	}
 	return "", errors.New("ISCC.exe nao encontrado. Instale o Inno Setup e rode novamente")
+}
+
+type semVersion struct {
+	major int
+	minor int
+	patch int
+}
+
+func (v semVersion) Less(other semVersion) bool {
+	if v.major != other.major {
+		return v.major < other.major
+	}
+	if v.minor != other.minor {
+		return v.minor < other.minor
+	}
+	return v.patch < other.patch
+}
+
+func (v semVersion) NextPatch() semVersion {
+	return semVersion{
+		major: v.major,
+		minor: v.minor,
+		patch: v.patch + 1,
+	}
+}
+
+func (v semVersion) String() string {
+	return fmt.Sprintf("%d.%d.%d", v.major, v.minor, v.patch)
+}
+
+func selectAutoVersion(tagVersion, outputVersion *semVersion) string {
+	switch {
+	case tagVersion == nil && outputVersion == nil:
+		return "1.0.0"
+	case tagVersion == nil:
+		return outputVersion.NextPatch().String()
+	case outputVersion == nil:
+		return tagVersion.NextPatch().String()
+	case outputVersion.Less(*tagVersion):
+		return tagVersion.NextPatch().String()
+	default:
+		return outputVersion.NextPatch().String()
+	}
+}
+
+func resolveGitTagVersion(installerRoot string) (semVersion, bool) {
+	cmd := exec.Command("git", "-C", installerRoot, "describe", "--tags", "--match", "v*", "--abbrev=0")
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = io.Discard
+	if err := cmd.Run(); err != nil {
+		return semVersion{}, false
+	}
+
+	version, ok := parseSemVersion(strings.TrimSpace(stdout.String()))
+	return version, ok
+}
+
+func resolveLatestInstallerOutputVersion(outputRoot string) (semVersion, bool, error) {
+	entries, err := os.ReadDir(outputRoot)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return semVersion{}, false, nil
+		}
+		return semVersion{}, false, fmt.Errorf("read installer output dir: %w", err)
+	}
+
+	latest := semVersion{}
+	found := false
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		version, ok := parseInstallerFileVersion(entry.Name())
+		if !ok {
+			continue
+		}
+		if !found || latest.Less(version) {
+			latest = version
+			found = true
+		}
+	}
+
+	return latest, found, nil
+}
+
+func parseInstallerFileVersion(name string) (semVersion, bool) {
+	matches := regexp.MustCompile(`^agente-trilink-setup-(\d+\.\d+\.\d+)\.exe$`).FindStringSubmatch(strings.ToLower(strings.TrimSpace(name)))
+	if len(matches) != 2 {
+		return semVersion{}, false
+	}
+	return parseSemVersion(matches[1])
+}
+
+func parseSemVersion(raw string) (semVersion, bool) {
+	matches := regexp.MustCompile(`^v?(\d+)\.(\d+)\.(\d+)$`).FindStringSubmatch(strings.TrimSpace(raw))
+	if len(matches) != 4 {
+		return semVersion{}, false
+	}
+
+	major, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return semVersion{}, false
+	}
+	minor, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return semVersion{}, false
+	}
+	patch, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return semVersion{}, false
+	}
+
+	return semVersion{major: major, minor: minor, patch: patch}, true
 }
 
 func buildInstallerReadme() string {

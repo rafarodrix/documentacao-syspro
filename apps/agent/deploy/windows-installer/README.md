@@ -76,6 +76,28 @@ Se já houver um builder compilado:
 .\agent-installer.exe build 1.0.54
 ```
 
+Se omitir a versao em `build`, o builder usa a maior versao encontrada entre:
+
+- a tag Git `v*` mais recente
+- o ultimo instalador em `apps/agent/dist/windows-installer/output`
+
+e incrementa automaticamente o patch.
+
+Exemplo:
+
+```powershell
+cd .\apps\agent
+.\agent-installer.exe build
+```
+
+Em ambientes Windows mais restritivos, o `go run .\cmd\agent-installer build` pode falhar porque o executavel temporario gerado em `%LocalAppData%\Temp` exige elevacao. Nesse caso, prefira o fluxo abaixo:
+
+```powershell
+cd .\apps\agent
+go build -o .\agent-installer.exe .\cmd\agent-installer
+.\agent-installer.exe build
+```
+
 O instalador compilado sai em:
 
 - `apps/agent/dist/windows-installer/output`

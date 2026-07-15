@@ -106,6 +106,32 @@ func (c *Client) GetSetupStatus(ctx context.Context) (uistate.SetupStatus, error
 	return status, nil
 }
 
+func (c *Client) GetSupportSession(ctx context.Context) (uistate.SupportSession, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/support/session", nil)
+	if err != nil {
+		return uistate.SupportSession{}, fmt.Errorf("build ipc support session request: %w", err)
+	}
+	c.applyAuth(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return uistate.SupportSession{}, fmt.Errorf("fetch ipc support session: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return uistate.SupportSession{}, fmt.Errorf("ipc support session returned status %d", resp.StatusCode)
+	}
+
+	var session uistate.SupportSession
+	if err := json.NewDecoder(resp.Body).Decode(&session); err != nil {
+		return uistate.SupportSession{}, fmt.Errorf("decode ipc support session: %w", err)
+	}
+
+	c.logger.Debug("ipc client fetched support session", "remote_status", session.Context.RemoteStatus, "rustdesk_id", session.Context.RustDeskID)
+	return session, nil
+}
+
 func (c *Client) OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error) {
 	return c.postAction(ctx, "/actions/support/open")
 }

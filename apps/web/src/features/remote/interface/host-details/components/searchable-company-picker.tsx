@@ -11,12 +11,14 @@ export function SearchableCompanyPicker({
   onChange,
   disabled,
   searchUrl,
+  hideUnlinked,
 }: {
   value: string;
   options: Array<{ id: string; label: string; searchText?: string }>;
   onChange: (value: string) => void;
   disabled?: boolean;
   searchUrl?: string;
+  hideUnlinked?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -83,17 +85,19 @@ export function SearchableCompanyPicker({
           className="mb-2"
         />
         <div className="max-h-60 space-y-1 overflow-auto">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
-            onClick={() => {
-              onChange(UNLINKED_COMPANY_VALUE);
-              setOpen(false);
-            }}
-          >
-            <span>Sem vinculo</span>
-            {value === UNLINKED_COMPANY_VALUE ? <Check className="h-4 w-4" /> : null}
-          </button>
+          {!hideUnlinked && (
+            <button
+              type="button"
+              className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+              onClick={() => {
+                onChange(UNLINKED_COMPANY_VALUE);
+                setOpen(false);
+              }}
+            >
+              <span>Sem vinculo</span>
+              {value === UNLINKED_COMPANY_VALUE ? <Check className="h-4 w-4" /> : null}
+            </button>
+          )}
           {filtered.map((option) => (
             <button
               key={option.id}

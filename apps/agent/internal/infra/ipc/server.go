@@ -29,6 +29,10 @@ type SetupProvider interface {
 	SetupStatus(ctx context.Context) (uistate.SetupStatus, error)
 }
 
+type SupportSessionProvider interface {
+	SupportSession(ctx context.Context) (uistate.SupportSession, error)
+}
+
 type ActionProvider interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
@@ -43,6 +47,7 @@ type Server struct {
 	summary       SummaryProvider
 	notifications NotificationProvider
 	setup         SetupProvider
+	support       SupportSessionProvider
 	actions       ActionProvider
 }
 
@@ -53,6 +58,7 @@ func NewServer(
 	summary SummaryProvider,
 	notifications NotificationProvider,
 	setup SetupProvider,
+	support SupportSessionProvider,
 	actions ActionProvider,
 ) *Server {
 	return &Server{
@@ -62,6 +68,7 @@ func NewServer(
 		summary:       summary,
 		notifications: notifications,
 		setup:         setup,
+		support:       support,
 		actions:       actions,
 	}
 }
@@ -153,6 +160,18 @@ func (s *Server) newMux() *http.ServeMux {
 			return
 		}
 		writeJSON(w, http.StatusOK, status)
+	})
+	mux.HandleFunc("/support/session", func(w http.ResponseWriter, r *http.Request) {
+		if !allowMethod(w, r, http.MethodGet) {
+			return
+		}
+
+		session, err := s.support.SupportSession(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, session)
 	})
 	mux.HandleFunc("/actions/support/open", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodPost) {

@@ -12,6 +12,9 @@ import {
   Monitor,
   RotateCcw,
   Info,
+  AlertCircle,
+  Fingerprint,
+  FileText,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -55,7 +58,7 @@ function normalizeSearchValue(value: string | null | undefined) {
 }
 
 function normalizeRustDeskId(value: string) {
-  const compact = value.replace(/\s+/g, "").trim();
+  const compact = value.replace(/\D/g, "").trim();
   if (!compact) return { normalized: null, isValid: true };
   if (!/^\d{7,12}$/.test(compact)) return { normalized: null, isValid: false };
   return { normalized: compact, isValid: true };
@@ -121,6 +124,11 @@ export function RemotePlatformDirectoryPanel({
   const [quickHostName, setQuickHostName] = useState("");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
   const [quickDescription, setQuickDescription] = useState("");
+  const [formErrors, setFormErrors] = useState<{
+    companyId?: string;
+    name?: string;
+    rustdeskId?: string;
+  }>({});
   const [pendingCompanyById, setPendingCompanyById] = useState<Record<string, string>>({});
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
@@ -132,7 +140,7 @@ export function RemotePlatformDirectoryPanel({
   const [isDeletingHost, setIsDeletingHost] = useState(false);
   const [ignoringPendingId, setIgnoringPendingId] = useState<string | null>(null);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
-
+  
   const searchParams = useSearchParams();
   const newHostParam = searchParams.get("newHost");
 
@@ -142,6 +150,10 @@ export function RemotePlatformDirectoryPanel({
       const params = new URLSearchParams(window.location.search);
       params.delete("newHost");
       router.replace(`?${params.toString()}`, { scroll: false });
+      setQuickHostName("");
+      setQuickRustdeskId("");
+      setQuickDescription("");
+      setFormErrors({});
     }
   };
 
@@ -182,16 +194,27 @@ export function RemotePlatformDirectoryPanel({
   async function handleQuickCreateHost() {
     if (isCreatingQuickHost) return;
 
-    if (!quickCompanyId || !quickHostName.trim() || !quickRustdeskId.trim() || !quickDescription.trim()) {
-      toast.error("Selecione a empresa e informe nome do host, ID remoto e descrição.");
+    const errors: typeof formErrors = {};
+    if (!quickCompanyId || quickCompanyId === "__unlinked__") {
+      errors.companyId = "Selecione uma empresa válida.";
+    }
+    if (!quickHostName.trim()) {
+      errors.name = "O nome do host é obrigatório.";
+    }
+    
+    const cleanRustdeskId = quickRustdeskId.replace(/\D/g, "");
+    if (!quickRustdeskId.trim()) {
+      errors.rustdeskId = "O ID remoto é obrigatório.";
+    } else if (!/^\d{7,12}$/.test(cleanRustdeskId)) {
+      errors.rustdeskId = "ID inválido. Informe apenas números com 7 a 12 dígitos.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
 
-    const rustdeskId = normalizeRustDeskId(quickRustdeskId);
-    if (!rustdeskId.isValid || !rustdeskId.normalized) {
-      toast.error("ID remoto inválido. Informe apenas números com 7 a 12 dígitos.");
-      return;
-    }
+    setFormErrors({});
 
     try {
       setIsCreatingQuickHost(true);
@@ -207,8 +230,8 @@ export function RemotePlatformDirectoryPanel({
             name: quickHostName.trim(),
             provider: "RustDesk",
             environment: null,
-            description: quickDescription.trim(),
-            agentExternalId: rustdeskId.normalized,
+            description: quickDescription.trim() || null,
+            agentExternalId: cleanRustdeskId,
             status: "ACTIVE",
           },
           signal: controller.signal,
@@ -538,65 +561,182 @@ export function RemotePlatformDirectoryPanel({
       {canCreateHosts && (
         <Dialog open={showQuickCreate} onOpenChange={handleOpenChange}>
           <DialogContent className="sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Adicionar host manualmente</DialogTitle>
-              <DialogDescription>
-                Cadastro rápido para consolidar um host, definir a empresa e publicar o contexto que o agente vai consumir.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
+            <div className="flex items-center gap-3 border-b border-border/40 pb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Monitor className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold">Cadastrar Host Remoto</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Registre uma máquina manualmente para suporte assistido via RustDesk e vínculo com a empresa.
+                </DialogDescription>
+              </div>
+            </div>
+
+            <div className="space-y-5 pt-2">
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Empresa</Label>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    Empresa
+                  </Label>
                   <SearchableCompanyPicker
                     value={quickCompanyId}
                     options={directory.companyOptions}
                     searchUrl="/api/remote/companies/search"
-                    onChange={setQuickCompanyId}
+                    onChange={(val) => {
+                      setQuickCompanyId(val);
+                      if (formErrors.companyId) {
+                        setFormErrors((prev) => ({ ...prev, companyId: undefined }));
+                      }
+                    }}
+                    hideUnlinked={true}
                   />
-                  <p className="text-xs text-muted-foreground">Pesquise por razao social, nome fantasia ou codigo operacional.</p>
+                  {formErrors.companyId ? (
+                    <p className="flex items-center gap-1 text-[11px] font-medium text-destructive mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {formErrors.companyId}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground mt-1">Pesquise por razão social, nome fantasia ou código operacional.</p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Nome do host</Label>
-                  <Input value={quickHostName} onChange={(e) => setQuickHostName(e.target.value)} placeholder="Ex.: SERVIDOR MATRIZ FISCAL" />
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
+                    Nome do host
+                  </Label>
+                  <Input
+                    value={quickHostName}
+                    onChange={(e) => {
+                      setQuickHostName(e.target.value);
+                      if (formErrors.name) {
+                        setFormErrors((prev) => ({ ...prev, name: undefined }));
+                      }
+                    }}
+                    placeholder="Ex.: SERVIDOR MATRIZ"
+                    className={cn(formErrors.name && "border-destructive focus-visible:ring-destructive/30")}
+                  />
+                  {formErrors.name && (
+                    <p className="flex items-center gap-1 text-[11px] font-medium text-destructive mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {formErrors.name}
+                    </p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>RustDesk ID</Label>
-                  <Input value={quickRustdeskId} onChange={(e) => setQuickRustdeskId(e.target.value)} placeholder="21187620068" />
-                  <p className="text-xs text-muted-foreground">Informe apenas números. O portal valida IDs com 7 a 12 dígitos.</p>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <Fingerprint className="h-3.5 w-3.5 text-muted-foreground" />
+                    RustDesk ID
+                  </Label>
+                  <Input
+                    value={quickRustdeskId}
+                    onChange={(e) => {
+                      setQuickRustdeskId(e.target.value);
+                      if (formErrors.rustdeskId) {
+                        setFormErrors((prev) => ({ ...prev, rustdeskId: undefined }));
+                      }
+                    }}
+                    placeholder="Ex.: 211 876 200 68"
+                    className={cn(formErrors.rustdeskId && "border-destructive focus-visible:ring-destructive/30")}
+                  />
+                  {formErrors.rustdeskId ? (
+                    <p className="flex items-center gap-1 text-[11px] font-medium text-destructive mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {formErrors.rustdeskId}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground mt-1">O portal valida identificadores de 7 a 12 dígitos.</p>
+                  )}
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Descricao operacional</Label>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    Descrição Operacional <span className="text-[10px] text-muted-foreground font-normal">(Opcional)</span>
+                  </Label>
                   <Input
                     list="quick-description-options"
                     value={quickDescription}
                     onChange={(e) => setQuickDescription(e.target.value)}
-                    placeholder="ERP matriz / servidor fiscal"
+                    placeholder="Ex.: ERP matriz / servidor fiscal"
                   />
                   <datalist id="quick-description-options">
-                    {QUICK_DESCRIPTION_TEMPLATES.map((option) => <option key={option} value={option} />)}
+                    {QUICK_DESCRIPTION_TEMPLATES.map((option) => (
+                      <option key={option} value={option} />
+                    ))}
                   </datalist>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview operacional</p>
-                <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
-                  <p><span className="text-muted-foreground">Empresa:</span> {directory.companyOptions.find((c) => c.id === quickCompanyId)?.label ?? "Nao selecionada"}</p>
-                  <p><span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Nao informado"}</p>
-                  <p><span className="text-muted-foreground">ID remoto:</span> {quickRustdeskId.trim() || "Nao informado"}</p>
+              <div className="rounded-xl border border-border/60 bg-muted/30 p-4 shadow-sm backdrop-blur-sm">
+                <div className="flex items-center justify-between border-b border-border/30 pb-2 mb-3">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-start gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse mt-1" />
+                    Visualização Operacional
+                  </span>
+                  {/* ds-allow: status */}
+                  <Badge variant="outline" className="h-5 border-emerald-500/20 bg-emerald-500/10 text-[9px] font-bold text-emerald-700 dark:text-emerald-400">
+                    Host Manual
+                  </Badge>
+                </div>
+                <div className="grid gap-2.5 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">Empresa:</span>
+                    <span className="font-semibold text-foreground truncate">
+                      {directory.companyOptions.find((c) => c.id === quickCompanyId)?.label ?? (
+                        <span className="text-muted-foreground/60 font-normal italic">Nenhuma empresa selecionada</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Monitor className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">Nome do Host:</span>
+                    <span className="font-semibold text-foreground truncate">
+                      {quickHostName.trim() || (
+                        <span className="text-muted-foreground/60 font-normal italic">Não informado</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Fingerprint className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">ID RustDesk:</span>
+                    {quickRustdeskId.trim() ? (
+                      <code className="bg-muted px-1.5 py-0.5 rounded font-mono font-bold border border-border/30 text-primary tracking-wider">
+                        {quickRustdeskId.replace(/\D/g, "") || quickRustdeskId}
+                      </code>
+                    ) : (
+                      <span className="text-muted-foreground/60 font-normal italic">Não informado</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-muted-foreground">Para máquinas sem empresa definida, prefira o fluxo de descoberta automática e vincule depois.</p>
-                <Button type="button" onClick={handleQuickCreateHost} disabled={isPending || isCreatingQuickHost} className="gap-2">
-                  {isCreatingQuickHost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                  {isCreatingQuickHost ? "Criando..." : "Criar host"}
-                </Button>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-border/40 pt-4">
+                <p className="text-[11px] text-muted-foreground max-w-sm">
+                  Para máquinas que possuem o Agente Trilink instalado, prefira a vinculação automática.
+                </p>
+                <div className="flex gap-2 shrink-0">
+                  <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isCreatingQuickHost} size="sm">
+                    Cancelar
+                  </Button>
+                  <Button type="button" onClick={handleQuickCreateHost} disabled={isPending || isCreatingQuickHost} size="sm" className="gap-1.5 shadow-sm">
+                    {isCreatingQuickHost ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Cadastrando...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-3.5 w-3.5" />
+                        Cadastrar Host
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </DialogContent>
