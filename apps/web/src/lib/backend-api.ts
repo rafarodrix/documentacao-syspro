@@ -1,5 +1,9 @@
 import { readCommonRuntimeConfig } from "@dosc-syspro/config";
 
+function isNextProductionBuildPhase(): boolean {
+  return process.env.NEXT_PHASE === "phase-production-build";
+}
+
 export function getBackendApiBaseUrl(): string {
   const configuredValue =
     process.env.APP_BACKEND_API_URL?.trim() ||
@@ -8,6 +12,14 @@ export function getBackendApiBaseUrl(): string {
 
   if (configuredValue) {
     return configuredValue.replace(/\/+$/, "");
+  }
+
+  // Durante `next build`, alguns modulos server-side sao avaliados apenas para
+  // gerar bundles/metadata. Nessa fase ainda nao ha chamadas reais ao backend,
+  // entao um fallback local evita falha prematura de build sem afrouxar a
+  // exigencia da variavel em runtime de producao.
+  if (isNextProductionBuildPhase()) {
+    return "http://127.0.0.1:3001/api";
   }
 
   if (process.env.NODE_ENV === "production") {
