@@ -95,8 +95,38 @@ type IngressCompatibilityAdjustments = {
   promotedHostnameToMachineName: boolean;
 };
 
+export type RemoteIngressClientSummary = {
+  kind: 'modern_go_agent' | 'legacy_powershell' | 'unknown';
+  userAgent: string | null;
+  agentRuntime: string | null;
+  agentVersion: string | null;
+};
+
 function readTrimmedString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+export function summarizeRemoteIngressClient(input: {
+  userAgent?: string | null;
+  agentRuntime?: string | null;
+  agentVersion?: string | null;
+}): RemoteIngressClientSummary {
+  const userAgent = readTrimmedString(input.userAgent);
+  const agentRuntime = readTrimmedString(input.agentRuntime);
+  const agentVersion = readTrimmedString(input.agentVersion);
+  const normalizedUserAgent = userAgent?.toLowerCase() ?? '';
+  const normalizedRuntime = agentRuntime?.toLowerCase() ?? '';
+
+  const isModernGoAgent =
+    normalizedRuntime === 'go-agent' || normalizedUserAgent === 'trilink-agent' || normalizedUserAgent.startsWith('trilink-agent/');
+  const isLegacyPowerShell = normalizedUserAgent.includes('windowspowershell/');
+
+  return {
+    kind: isModernGoAgent ? 'modern_go_agent' : isLegacyPowerShell ? 'legacy_powershell' : 'unknown',
+    userAgent,
+    agentRuntime,
+    agentVersion,
+  };
 }
 
 export function normalizeRemoteIngressPayload(
@@ -291,10 +321,17 @@ export async function executeRemoteIngressProcedure(input: {
   requestIp: string | null;
   requestId?: string;
   userAgent?: string | null;
+  agentRuntime?: string | null;
+  agentVersion?: string | null;
 }) {
   const remote = createRemoteFacade(input.logger, input.requestIp);
   const rawPayload = asObject(input.payload);
   const { payload, compatibility } = normalizeRemoteIngressPayload(input.procedure, rawPayload);
+  const client = summarizeRemoteIngressClient({
+    userAgent: input.userAgent,
+    agentRuntime: input.agentRuntime,
+    agentVersion: input.agentVersion,
+  });
   const enrichedPayload = {
     ...payload,
     metadata: {
@@ -306,6 +343,16 @@ export async function executeRemoteIngressProcedure(input: {
       correlationId: input.requestId ?? null,
     },
   };
+
+  if (input.procedure === 'bootstrap' && client.kind !== 'modern_go_agent') {
+    input.logger.warn('remote.ingress.bootstrap_client_mismatch', {
+      procedure: input.procedure,
+      requestIp: input.requestIp,
+      requestId: input.requestId ?? null,
+      client,
+      payloadSummary: summarizeRemoteIngressPayload(payload),
+    });
+  }
 
   try {
     switch (input.procedure) {
@@ -332,7 +379,7 @@ export async function executeRemoteIngressProcedure(input: {
       httpStatus: mapped.httpStatus,
       requestIp: input.requestIp,
       requestId: input.requestId ?? null,
-      userAgent: input.userAgent ?? null,
+      client,
       compatibility,
       payloadSummary: summarizeRemoteIngressPayload(payload),
       validationIssues: error instanceof ZodError ? summarizeZodIssues(error) : undefined,

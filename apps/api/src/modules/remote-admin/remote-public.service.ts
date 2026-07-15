@@ -33,6 +33,8 @@ export class RemotePublicService {
       requestId: this.getHeader(request, 'x-correlation-id') ?? undefined,
       requestIp: this.getRequestIp(request),
       userAgent: this.getHeader(request, 'user-agent'),
+      agentRuntime: this.getHeader(request, 'x-agent-runtime'),
+      agentVersion: this.getHeader(request, 'x-agent-version'),
       logger: {
         info: (event: string, meta?: Record<string, unknown>) => this.logger.log({ event, ...(meta ?? {}) }),
         warn: (event: string, meta?: Record<string, unknown>) => this.logger.warn({ event, ...(meta ?? {}) }),
