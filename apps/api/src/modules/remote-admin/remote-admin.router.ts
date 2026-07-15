@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { TrpcService } from '../trpc/trpc.service';
 import { RemoteAdminService } from './remote-admin.service';
 
-const hostActionSchema = z.enum(['REBOOTSTRAP', 'RESEND_CONFIG', 'REAPPLY_ALIAS']);
+const hostActionSchema = z.enum(['REBOOTSTRAP', 'RESEND_CONFIG', 'REAPPLY_ALIAS', 'UPGRADE_CLIENT']);
 
 const sessionFilterSchema = z.object({
   status: z

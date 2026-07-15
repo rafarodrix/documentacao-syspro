@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightLeft, Copy, Fingerprint, HardDriveDownload, RefreshCcw, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Copy, Fingerprint, HardDriveDownload, RefreshCcw, Trash2, ArrowUpCircle } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { MACHINE_PROFILE_LABEL } from "../host-details.constants";
@@ -31,9 +31,11 @@ type Props = {
   onRotateAgentToken: () => void;
   isRequestingResendConfig: boolean;
   isRequestingSelfHeal: boolean;
-  onRequestRemoteAction: (action: "RESEND_CONFIG" | "REAPPLY_ALIAS") => void;
+  onRequestRemoteAction: (action: "RESEND_CONFIG" | "REAPPLY_ALIAS" | "UPGRADE_CLIENT") => void;
   onDeleteHost: () => void;
   isDeletingHost: boolean;
+  isRequestingUpgrade: boolean;
+  onRevokeAgentToken: () => void;
 };
 
 export function HostSettingsTab({
@@ -50,6 +52,8 @@ export function HostSettingsTab({
   onRequestRemoteAction,
   onDeleteHost,
   isDeletingHost,
+  isRequestingUpgrade,
+  onRevokeAgentToken,
 }: Props) {
   const { moduleSettings } = details;
   const canDeleteHost =
@@ -227,6 +231,15 @@ export function HostSettingsTab({
               <HardDriveDownload className="h-4 w-4" />
               {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar alias do RustDesk"}
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => onRequestRemoteAction("UPGRADE_CLIENT")}
+              disabled={isRequestingUpgrade}
+              className="gap-2"
+            >
+              <ArrowUpCircle className="h-4 w-4" />
+              {isRequestingUpgrade ? "Solicitando..." : "Atualizar Cliente RustDesk"}
+            </Button>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             &ldquo;Forçar inicialização remota&rdquo; invalida a credencial atual e faz o agente executar novo bootstrap autenticado no próximo ciclo.
@@ -245,25 +258,43 @@ export function HostSettingsTab({
               Ações irreversíveis para este host remoto. Tenha certeza do que está fazendo.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">Excluir este host permanentemente</p>
-                <p className="text-xs text-muted-foreground">
-                  Remove o host do portal, limpa o token do agente e encerra a sincronização. Apenas use se o host estiver obsoleto.
-                </p>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 border-b border-border/30 pb-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Revogar credenciais do agente</p>
+                  <p className="text-xs text-muted-foreground">
+                    Invalida imediatamente o token de comunicação deste host. O agente parará de sincronizar dados até que um novo bootstrap seja realizado.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={onRevokeAgentToken}
+                  disabled={isRevokingAgentToken}
+                  className="border-red-500/35 hover:bg-red-500/10 text-red-500 font-semibold shadow-sm flex items-center gap-2 sm:self-start"
+                >
+                  <Fingerprint className="h-4 w-4 text-red-500" />
+                  {isRevokingAgentToken ? "Revogando..." : "Revogar acesso"}
+                </Button>
               </div>
-              <Button
-                variant="destructive"
-                onClick={onDeleteHost}
-                disabled={isDeletingHost}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm flex items-center gap-2 sm:self-start"
-              >
-                {isDeletingHost ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                {isDeletingHost ? "Excluindo..." : "Excluir host"}
-              </Button>
-            </div>
-          </CardContent>
+
+              <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Excluir este host permanentemente</p>
+                  <p className="text-xs text-muted-foreground">
+                    Remove o host do portal, limpa o token do agente e encerra a sincronização. Apenas use se o host estiver obsoleto.
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  onClick={onDeleteHost}
+                  disabled={isDeletingHost}
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm flex items-center gap-2 sm:self-start"
+                >
+                  {isDeletingHost ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  {isDeletingHost ? "Excluindo..." : "Excluir host"}
+                </Button>
+              </div>
+            </CardContent>
         </Card>
       )}
 

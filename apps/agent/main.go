@@ -38,9 +38,9 @@ func main() {
 	}
 
 	if backgroundMode {
-		container.UIHost.ConfigureStartup(uistate.TargetSupportConversation, false)
+		container.UIHost.ConfigureStartup(uistate.TargetSetupExperience, false)
 	} else {
-		container.UIHost.ConfigureStartup(uistate.TargetSupportConversation, true)
+		container.UIHost.ConfigureStartup(uistate.TargetSetupExperience, true)
 	}
 
 	if err := uiwails.RunApp(ctx, container.AgentUI, container.UIHost, frontendAssets, assets.IconICO); err != nil {

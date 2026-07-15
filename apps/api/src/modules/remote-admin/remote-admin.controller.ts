@@ -61,9 +61,9 @@ export class RemoteAdminController {
   }
 
   @Post('hosts/:id/actions')
-  async postHostAction(@Req() req: Request, @Param('id') id: string, @Body() body: { action?: 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS' }) {
+  async postHostAction(@Req() req: Request, @Param('id') id: string, @Body() body: { action?: 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS' | 'UPGRADE_CLIENT' }) {
     const action = body?.action;
-    if (action !== 'REBOOTSTRAP' && action !== 'RESEND_CONFIG' && action !== 'REAPPLY_ALIAS') {
+    if (action !== 'REBOOTSTRAP' && action !== 'RESEND_CONFIG' && action !== 'REAPPLY_ALIAS' && action !== 'UPGRADE_CLIENT') {
       return { success: false, error: 'Acao remota invalida.' };
     }
     return this.remoteAdminService.enqueueHostAction(id, action, req.headers);

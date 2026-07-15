@@ -66,7 +66,7 @@ export function RemoteHostDetailsPanel({
   const [ticketDetails, setTicketDetails] = useState<{ title: string; state: string; priority: string } | null>(null);
   const [isLoadingTicket, setIsLoadingTicket] = useState(false);
 
-  // ── Transitions ──────────────────────────────────────────────────────────────
+    // ── Transitions ──────────────────────────────────────────────────────────────
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
   const [isRequestingResendConfig, startRequestingResendConfig] = useTransition();
@@ -78,6 +78,8 @@ export function RemoteHostDetailsPanel({
   const [isStartingSession, startSessionTransition] = useTransition();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingHost, startDeletingHost] = useTransition();
+  const [isRequestingUpgrade, startRequestingUpgrade] = useTransition();
+  const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
 
   // ── Computed values (memos) ──────────────────────────────────────────────────
   const computed = useHostComputedValues(details, installationFilter);
@@ -248,6 +250,22 @@ export function RemoteHostDetailsPanel({
     });
   }
 
+  function handleRevokeAgentToken() {
+    startRevokingAgentToken(async () => {
+      try {
+        const result = await requestRemoteMutation<Record<string, unknown>>({
+          url: `/api/remote/hosts/${host.id}/agent-token`,
+          method: "DELETE",
+        });
+        toast.success(result.message ?? "Credencial do agente revogada.");
+        setShowRevokeConfirm(false);
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
   function handleDeleteHost() {
     startDeletingHost(async () => {
       try {
@@ -265,7 +283,7 @@ export function RemoteHostDetailsPanel({
     });
   }
 
-  function handleRequestRemoteAction(action: "RESEND_CONFIG" | "REAPPLY_ALIAS") {
+  function handleRequestRemoteAction(action: "RESEND_CONFIG" | "REAPPLY_ALIAS" | "UPGRADE_CLIENT") {
     const run = async () => {
       try {
         const result = await requestRemoteMutation<Record<string, unknown>>({
@@ -280,6 +298,7 @@ export function RemoteHostDetailsPanel({
       }
     };
     if (action === "RESEND_CONFIG") { startRequestingResendConfig(run); return; }
+    if (action === "UPGRADE_CLIENT") { startRequestingUpgrade(run); return; }
     startRequestingSelfHeal(run);
   }
 
@@ -559,6 +578,8 @@ export function RemoteHostDetailsPanel({
             onRequestRemoteAction={handleRequestRemoteAction}
             onDeleteHost={() => setShowDeleteConfirm(true)}
             isDeletingHost={isDeletingHost}
+            isRequestingUpgrade={isRequestingUpgrade}
+            onRevokeAgentToken={() => setShowRevokeConfirm(true)}
           />
         </TabsContent>
       </Tabs>
@@ -573,6 +594,18 @@ export function RemoteHostDetailsPanel({
         isLoading={isDeletingHost}
         variant="danger"
         onConfirm={handleDeleteHost}
+      />
+
+      <ConfirmActionDialog
+        open={showRevokeConfirm}
+        onOpenChange={setShowRevokeConfirm}
+        title="Revogar Acesso do Agente"
+        description={`Tem certeza que deseja revogar o token do agente associado a "${host.name}"? O portal parará de receber telemetria e atualizações desta máquina até que o agente seja reconfigurado.`}
+        confirmLabel="Revogar acesso"
+        cancelLabel="Cancelar"
+        isLoading={isRevokingAgentToken}
+        variant="danger"
+        onConfirm={handleRevokeAgentToken}
       />
     </div>
   );

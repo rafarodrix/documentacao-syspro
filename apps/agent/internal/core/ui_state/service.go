@@ -200,18 +200,18 @@ func (s *Service) SetupStatus(ctx context.Context) (SetupStatus, error) {
 			deriveDiscoverDetail(remoteState, remoteResult),
 		),
 		buildStep(
-			"rustdesk",
-			"Instalacao do remoto",
-			remoteState.RustDeskID != "" || remoteState.CurrentVersion != "" || remoteState.RustDeskExecutable != "",
-			deriveRustDeskInstallError(remoteState, remoteResult),
-			deriveRustDeskDetail(remoteState),
-		),
-		buildStep(
 			"link",
 			"Vinculo com a empresa",
 			remoteState.HostID != "" && remoteState.CompanyID != "",
 			"",
 			deriveLinkDetail(remoteState),
+		),
+		buildStep(
+			"rustdesk",
+			"Instalacao do remoto",
+			remoteState.RustDeskID != "" || remoteState.CurrentVersion != "" || remoteState.RustDeskExecutable != "",
+			deriveRustDeskInstallError(remoteState, remoteResult),
+			deriveRustDeskDetail(remoteState),
 		),
 		buildStep(
 			"sync",
@@ -587,7 +587,7 @@ func deriveDiscoverDetail(st persistedRemoteState, result *domain.ApplyResult) s
 		return "Host identificado no portal."
 	}
 	if st.LastBootstrapFlow != "" {
-		return "Fluxo remoto atual: " + st.LastBootstrapFlow
+		return describeBootstrapFlow(st.LastBootstrapFlow)
 	}
 	if result != nil && strings.TrimSpace(result.Message) != "" {
 		return result.Message
@@ -612,6 +612,8 @@ func deriveRustDeskInstallError(st persistedRemoteState, result *domain.ApplyRes
 
 func deriveRustDeskDetail(st persistedRemoteState) string {
 	switch {
+	case st.LastBootstrapFlow == "pending_link" && st.HostID == "" && st.CompanyID == "":
+		return "Bootstrap do RustDesk sera liberado assim que o host for vinculado no portal."
 	case st.RustDeskID != "":
 		return "RustDesk detectado no host: " + st.RustDeskID
 	case st.RustDeskExecutable != "":
@@ -627,6 +629,8 @@ func deriveLinkDetail(st persistedRemoteState) string {
 		return "Empresa vinculada: " + st.CompanyName
 	case st.HostID != "":
 		return "Host remoto criado e aguardando vinculo empresarial."
+	case st.LastBootstrapFlow == "pending_link":
+		return "Maquina descoberta. Aguardando vinculo no portal para liberar o bootstrap do RustDesk."
 	default:
 		return "Aguardando vinculacao da maquina a um host/empresa no portal."
 	}
@@ -674,6 +678,21 @@ func deriveStructuredRemoteError(st persistedRemoteState, phases ...string) stri
 		}
 	}
 	return ""
+}
+
+func describeBootstrapFlow(flow string) string {
+	switch strings.TrimSpace(strings.ToLower(flow)) {
+	case "pending_link":
+		return "Maquina descoberta e aguardando vinculo no portal."
+	case "host_bootstrap_required":
+		return "Host vinculado sem agentToken ativo. Bootstrap autenticado necessario."
+	case "token_invalid":
+		return "Credencial remota invalida ou expirada. Novo bootstrap necessario."
+	case "linked_host_detected":
+		return "Host vinculado detectado no portal."
+	default:
+		return "Fluxo remoto atual: " + flow
+	}
 }
 
 func buildRemoteErrorDetail(st persistedRemoteState) string {

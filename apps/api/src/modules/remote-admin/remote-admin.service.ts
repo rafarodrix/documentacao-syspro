@@ -15,7 +15,7 @@ import { cleanupExpiredRemoteSessions, getRemoteSessions } from './support/sessi
 import { buildScopedCompanyWhere, buildScopedHostWhere } from './support/scope';
 import type { RemoteSessionStatus, RemoteTenantScope } from './support/remote-admin.types';
 
-type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS';
+type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS' | 'UPGRADE_CLIENT';
 const DEFAULT_INSTALLATION_DIRECTORY = 'C:\\Syspro\\Server\\SysproServer.exe';
 
 function normalizeCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
@@ -308,11 +308,18 @@ export class RemoteAdminService {
       };
     }
 
-    const commandType = action === 'RESEND_CONFIG' ? 'REAPPLY_CONFIG' : 'REAPPLY_ALIAS';
+    const commandType =
+      action === 'RESEND_CONFIG'
+        ? 'REAPPLY_CONFIG'
+        : action === 'UPGRADE_CLIENT'
+          ? 'UPGRADE_CLIENT'
+          : 'REAPPLY_ALIAS';
     const reason =
       action === 'RESEND_CONFIG'
         ? 'Acao manual do portal: reenviar configuracao para o agente.'
-        : 'Acao manual do portal: reaplicar alias no agente.';
+        : action === 'UPGRADE_CLIENT'
+          ? 'Acao manual do portal: solicitar upgrade do client RustDesk.'
+          : 'Acao manual do portal: reaplicar alias no agente.';
 
     const existing = await prisma.remoteAgentCommand.findFirst({
       where: {

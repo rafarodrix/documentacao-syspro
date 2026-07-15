@@ -5,6 +5,7 @@ import {
   GetSupportSession,
   ListNotifications,
   OpenRemoteClient,
+  OpenSetupExperience,
   OpenSupportConversation,
   SyncSupportConversationContext,
 } from "./bindings";
@@ -104,6 +105,74 @@ function normalizeRoute(target?: string): Route {
   return target === "agent://support" ? "agent://support" : "agent://setup";
 }
 
+const bootstrapFlowLabels: Record<string, string> = {
+  pending_link: "aguardando vinculo no portal",
+  host_bootstrap_required: "host vinculado sem credencial ativa",
+  token_invalid: "credencial do host invalida ou expirada",
+  linked_host_detected: "host vinculado detectado",
+};
+
+function formatSetupCopy(value?: string | null): string {
+  const raw = value?.trim();
+  if (!raw) return "";
+
+  return Object.entries(bootstrapFlowLabels).reduce(
+    (text, [flow, label]) => text.replaceAll(flow, label),
+    raw,
+  );
+}
+
+function resolveStartupRoute(target: string | undefined, status: uistate.SetupStatus): Route {
+  if (!status.complete) return "agent://setup";
+  return normalizeRoute(target);
+}
+
+function getSetupHeadline(
+  status: uistate.SetupStatus,
+  activeStep: uistate.SetupStep | null | undefined,
+  overallState: "complete" | "error" | "running" | "idle",
+): string {
+  if (overallState === "complete") return "Provisionamento concluido";
+  return activeStep?.label ?? status.stage;
+}
+
+function getSetupDetail(
+  status: uistate.SetupStatus,
+  activeStep: uistate.SetupStep | null | undefined,
+  overallState: "complete" | "error" | "running" | "idle",
+): string {
+  if (overallState === "complete") return "Agente registrado e operacional.";
+  return formatSetupCopy(activeStep?.detail || status.summary || "Aguardando proxima etapa do onboarding.");
+}
+
+function getSetupHint(
+  status: uistate.SetupStatus,
+  activeStep: uistate.SetupStep | null | undefined,
+): string {
+  const combined = [
+    status.stage,
+    status.summary,
+    status.last_error,
+    ...status.steps.map((step) => step.detail),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (activeStep?.key === "link" || combined.includes("pending_link") || combined.includes("aguardando vincul")) {
+    return "Esta instalacao limpa depende do vinculo do host no portal antes do bootstrap do RustDesk.";
+  }
+  if (combined.includes("host_bootstrap_required")) {
+    return "O host ja foi identificado, mas ainda nao recebeu uma credencial valida para concluir o bootstrap.";
+  }
+  if (combined.includes("token_invalid")) {
+    return "A credencial remota anterior foi invalidada. O portal precisa emitir um novo bootstrap para este host.";
+  }
+  if (activeStep?.key === "rustdesk") {
+    return "O portal ja autorizou a maquina, mas o RustDesk ainda nao foi detectado nesta estacao.";
+  }
+  return "";
+}
+
 function App() {
   const [route, setRoute] = useState<Route>("agent://setup");
   const [setupStatus, setSetupStatus] = useState<uistate.SetupStatus>(defaultSetupStatus);
@@ -134,7 +203,7 @@ function App() {
           }),
         ]);
 
-        const nextRoute = normalizeRoute(target);
+        const nextRoute = resolveStartupRoute(target, status);
         setRoute(nextRoute);
         setSetupStatus(status);
         setNotifications(notifications);
@@ -343,6 +412,13 @@ function App() {
       });
   };
 
+  const openSetup = () => {
+    void OpenSetupExperience().catch((err) => {
+      console.error("OpenSetupExperience failed:", err);
+      setRoute("agent://setup");
+    });
+  };
+
   const pendingSteps = setupStatus.steps.filter((step) => step.status !== "complete");
   const completedSteps = setupStatus.steps.filter((step) => step.status === "complete");
   const activeStep = pendingSteps[0] ?? null;
@@ -390,10 +466,14 @@ function App() {
       {route === "agent://support" ? (
         <SupportScreen
           session={supportSession}
+          setupStatus={setupStatus}
+          activeStep={activeStep}
+          setupOverallState={setupOverallState}
           chatwootReady={chatwootReady}
           chatwootLoading={chatwootLoading}
           remoteOpening={remoteOpening}
           onOpenRemote={openRemote}
+          onOpenSetup={openSetup}
           onOpenSupport={openSupport}
         />
       ) : (
@@ -417,21 +497,18 @@ function SetupScreen(props: {
   overallState: "complete" | "error" | "running" | "idle";
 }) {
   const { status, pendingSteps, completedSteps, activeStep, overallState } = props;
-  const allSteps = [...pendingSteps, ...completedSteps];
   const [showCompleted, setShowCompleted] = useState(false);
+  const setupHeadline = getSetupHeadline(status, activeStep, overallState);
+  const setupDetail = getSetupDetail(status, activeStep, overallState);
+  const setupHint = getSetupHint(status, activeStep);
+  const visibleSteps = showCompleted || pendingSteps.length === 0 ? [...pendingSteps, ...completedSteps] : pendingSteps;
 
   return (
     <main className="panel setup-panel">
       <section className="setup-hero">
         <div className="setup-hero-left">
-          <div className="setup-stage-label">
-            {overallState === "complete" ? "Provisionamento concluido" : activeStep?.label ?? status.stage}
-          </div>
-          <div className="setup-stage-detail">
-            {overallState === "complete"
-              ? "Agente registrado e operacional."
-              : activeStep?.detail ?? status.summary}
-          </div>
+          <div className="setup-stage-label">{setupHeadline}</div>
+          <div className="setup-stage-detail">{setupDetail}</div>
         </div>
 
         <div className="setup-progress-ring">
@@ -454,7 +531,70 @@ function SetupScreen(props: {
           </div>
         </div>
       </section>
-</main>
+
+      <section className="setup-content-grid">
+        <div className={`setup-diagnostic-card state-${overallState}`}>
+          <div className="setup-card-kicker">Diagnostico atual</div>
+          <div className="setup-card-title">{setupHeadline}</div>
+          <div className="setup-card-detail">{setupDetail}</div>
+
+          {setupHint ? <div className="setup-callout">{setupHint}</div> : null}
+
+          {status.last_error ? (
+            <div className="setup-error-banner">
+              <span className="setup-error-title">Ultimo erro</span>
+              <span>{formatSetupCopy(status.last_error)}</span>
+            </div>
+          ) : null}
+
+          <div className="setup-facts-grid">
+            <div className="setup-fact-card">
+              <span className="setup-fact-label">Empresa</span>
+              <span className="setup-fact-value">{status.company_name || "Aguardando vinculo"}</span>
+            </div>
+            <div className="setup-fact-card">
+              <span className="setup-fact-label">Host</span>
+              <span className="setup-fact-value mono">{status.host_id || "Nao vinculado"}</span>
+            </div>
+          </div>
+        </div>
+
+        <RemoteAccessCard rustdeskId={status.rustdesk_id} />
+      </section>
+
+      <section className="setup-timeline-card">
+        <div className="setup-timeline-header">
+          <div>
+            <div className="setup-card-kicker">Checklist do onboarding</div>
+            <div className="setup-timeline-title">
+              {pendingSteps.length > 0
+                ? `${pendingSteps.length} etapa(s) restante(s)`
+                : "Todos os passos foram concluídos"}
+            </div>
+          </div>
+          {completedSteps.length > 0 && pendingSteps.length > 0 ? (
+            <button
+              type="button"
+              className="timeline-toggle"
+              onClick={() => setShowCompleted((value) => !value)}
+            >
+              <span className="timeline-toggle-icon">{showCompleted ? "-" : "+"}</span>
+              {showCompleted ? "Ocultar concluidas" : `Mostrar ${completedSteps.length} concluidas`}
+            </button>
+          ) : null}
+        </div>
+
+        <div className="setup-timeline-list">
+          {visibleSteps.length > 0 ? (
+            visibleSteps.map((step, index) => (
+              <TimelineItem key={`${step.key}-${index}`} step={step} isFirst={index === 0} />
+            ))
+          ) : (
+            <div className="timeline-empty">Nenhuma etapa registrada ainda.</div>
+          )}
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -508,30 +648,46 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
 
 function SupportScreen(props: {
   session: uistate.SupportSession | null;
+  setupStatus: uistate.SetupStatus;
+  activeStep?: uistate.SetupStep | null;
+  setupOverallState: "complete" | "error" | "running" | "idle";
   chatwootReady: boolean;
   chatwootLoading: boolean;
   remoteOpening: boolean;
   onOpenRemote: () => void;
+  onOpenSetup: () => void;
   onOpenSupport: () => void;
 }) {
-  const { session, chatwootReady, chatwootLoading, remoteOpening, onOpenRemote, onOpenSupport } = props;
+  const {
+    session,
+    setupStatus,
+    activeStep,
+    setupOverallState,
+    chatwootReady,
+    chatwootLoading,
+    remoteOpening,
+    onOpenRemote,
+    onOpenSetup,
+    onOpenSupport,
+  } = props;
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [chatDrawerExpanded, setChatDrawerExpanded] = useState(false);
   const context = session?.context;
   const chatConfigured = Boolean(session?.base_url?.trim() && session?.website_token?.trim());
+  const setupHeadline = getSetupHeadline(setupStatus, activeStep, setupOverallState);
+  const setupDetail = getSetupDetail(setupStatus, activeStep, setupOverallState);
+  const setupHint = getSetupHint(setupStatus, activeStep);
 
   const remoteId = context?.rustdeskId ?? "";
   const remotePassword = context?.remoteAccessPassword ?? "";
+  const remoteReady = Boolean(remoteId);
   const companyName = context?.companyDisplayName ?? "Cliente Trilink";
   const machineName = context?.machineName || context?.hostname || "Maquina em preparacao";
   const operatorName = context?.localUsername || "Operador local";
-  const remoteStateLabel =
-    context?.remoteStatus === "ready"
-      ? "Abrir aplicativo de atendimento"
-      : context?.remoteStatus === "pending"
-        ? "Configurando acesso remoto"
-        : "Instalacao remota em analise";
+  const remoteStateLabel = remoteReady
+    ? "Remoto pronto"
+    : formatSetupCopy(context?.remoteStatusText) || setupHeadline;
   const chatStateLabel = !chatConfigured
     ? "Canal nao configurado"
     : chatwootLoading
@@ -573,15 +729,44 @@ function SupportScreen(props: {
             type="button"
             className={`btn-secondary-inline support-action-button support-action-button-top ${remoteOpening ? "btn-loading" : ""}`}
             onClick={onOpenRemote}
-            disabled={remoteOpening}
+            disabled={remoteOpening || !remoteReady}
           >
-            {remoteOpening && <span className="btn-spinner btn-spinner-dark" />}
-            <span>{remoteOpening ? "Abrindo..." : "Abrir remoto"}</span>
+            {remoteOpening && remoteReady && <span className="btn-spinner btn-spinner-dark" />}
+            <span>
+              {!remoteReady ? "Instalacao pendente" : remoteOpening ? "Abrindo..." : "Abrir remoto"}
+            </span>
           </button>
         </div>
       </section>
 
       <section className="support-body compact">
+        {!remoteReady || !setupStatus.complete ? (
+          <div className={`support-diagnostic-card state-${setupOverallState}`}>
+            <div className="support-diagnostic-header">
+              <div className="support-diagnostic-copy">
+                <span className="support-summary-label">Diagnostico atual</span>
+                <div className="support-diagnostic-title">{setupHeadline}</div>
+              </div>
+              <button type="button" className="timeline-toggle" onClick={onOpenSetup}>
+                <span className="timeline-toggle-icon">+</span>
+                Ver setup
+              </button>
+            </div>
+            <div className="support-diagnostic-detail">{setupDetail}</div>
+            {context?.remoteStatusText ? (
+              <div className="support-diagnostic-meta">
+                Estado reportado pelo agent: {formatSetupCopy(context.remoteStatusText)}
+              </div>
+            ) : null}
+            {setupHint ? <div className="support-diagnostic-callout">{setupHint}</div> : null}
+            {setupStatus.last_error ? (
+              <div className="support-diagnostic-error">
+                Ultimo erro: {formatSetupCopy(setupStatus.last_error)}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="support-summary-grid support-summary-grid-compact">
           <div className="support-summary-card support-summary-card-primary">
             <span className="support-summary-label">Empresa</span>
