@@ -8,7 +8,7 @@ import {
 } from "./remote-host-agent-external-id";
 import { buildCompanyDisplayLabel, resolveScopedCompanyContext, type ScopedCompanyContext } from "./scoped-company-context";
 
-function buildInstallToken() {
+export function buildInstallToken() {
   return `rhost_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
 }
 

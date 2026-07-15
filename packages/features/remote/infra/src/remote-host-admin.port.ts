@@ -7,7 +7,7 @@ import {
   isRemoteHostAgentExternalIdUniqueError,
   throwRemoteHostAgentExternalIdConflict,
 } from "./remote-host-agent-external-id";
-import { linkDiscoveredHostRecord } from "./discovered-host-linking";
+import { buildInstallToken, linkDiscoveredHostRecord } from "./discovered-host-linking";
 import type {
   CreateHostInput,
   CreateHostOutput,
@@ -551,7 +551,6 @@ async function upsertIgnoredDiscoveredHost(
     data,
   });
 }
-
 
 
 

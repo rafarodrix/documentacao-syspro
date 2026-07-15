@@ -1,4 +1,4 @@
-import { processDiscoverInputSchema, type ProcessDiscoverOutput } from "../remote-domain.contracts";
+import { processDiscoverInputSchema, type DiscoverTransitionKey, type ProcessDiscoverOutput } from "../remote-domain.contracts";
 import type { RemoteDiscoverPort } from "../remote-domain.port";
 
 function normalizeNullable(value?: string | null): string | null {
@@ -9,7 +9,10 @@ function normalizeNullable(value?: string | null): string | null {
 function resolveLinkedBootstrapState(input: {
   agentTokenHash: string | null;
   lastHeartbeatErrorMessage: string | null;
-}) {
+}): {
+  bootstrapFlow: DiscoverTransitionKey;
+  requiresBootstrapToken: boolean;
+} {
   const hasMissingToken = !input.agentTokenHash;
   const hasInvalidToken =
     !hasMissingToken &&
