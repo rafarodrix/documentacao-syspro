@@ -1,10 +1,10 @@
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Progress } from "@dosc-syspro/ui";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Progress, Badge } from "@dosc-syspro/ui";
 import { formatDateTime } from "../host-details.helpers";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/formatters";
 import { useAckStream } from "@/features/remote/interface/hooks";
-import { Activity, HardDrive, Cpu, Laptop, Network, Globe } from "lucide-react";
+import { Activity, HardDrive, Cpu, Laptop, Network, Globe, ShieldAlert } from "lucide-react";
 
 type HostTechnicalTabProps = {
   details: RemoteHostDetails;
@@ -18,6 +18,8 @@ type HostTechnicalTabProps = {
   diskSnapshot: RemoteHostDetails["agentTelemetry"]["diskSnapshot"];
   sysproProcessSnapshot: RemoteHostDetails["agentTelemetry"]["sysproProcessSnapshot"];
   rebootPending: RemoteHostDetails["agentTelemetry"]["rebootPending"];
+  windowsUpdateStatus: RemoteHostDetails["agentTelemetry"]["windowsUpdateStatus"];
+  windowsUpdateStatusAt: RemoteHostDetails["agentTelemetry"]["windowsUpdateStatusAt"];
 };
 
 type LiveMetrics = {
@@ -64,6 +66,8 @@ export function HostTechnicalTab({
   diskSnapshot,
   sysproProcessSnapshot,
   rebootPending,
+  windowsUpdateStatus,
+  windowsUpdateStatusAt,
 }: HostTechnicalTabProps) {
   const { lastTelemetry, isConnected } = useAckStream(host.id);
   const agent = host.agent;
@@ -268,51 +272,127 @@ export function HostTechnicalTab({
             </CardContent>
           </Card>
 
-          <Card className="border-border/40 bg-muted/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Globe className="h-4 w-4 text-primary" />
-                Configurações de Rede
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between border-b border-border/30 py-1">
-                <span className="text-muted-foreground">IPv4 Local (Intranet)</span>
-                <span className="font-mono text-foreground">{machineIpv4 ?? "Sem leitura"}</span>
-              </div>
-              <div className="flex items-center justify-between border-b border-border/30 py-1">
-                <span className="text-muted-foreground">IP da Internet</span>
-                <span className="font-mono text-foreground">{internetIpv4 ?? "Sem leitura"}</span>
-              </div>
-              <div className="flex items-center justify-between border-b border-border/30 py-1">
-                <span className="text-muted-foreground">Gateway local</span>
-                <span className="font-mono text-foreground">{localGateway ?? "Sem leitura"}</span>
-              </div>
-              <div className="flex items-center justify-between border-b border-border/30 py-1">
-                <span className="text-muted-foreground">RustDesk ID</span>
-                <span className="font-mono text-foreground">{agent.rustdeskId ?? "Sem leitura"}</span>
-              </div>
-              <div className="flex items-center justify-between border-b border-border/30 py-1">
-                <span className="text-muted-foreground">Sincronizacao do RustDesk</span>
-                <span className="text-foreground">
-                  {agent.lastRustDeskConfigSyncAt ? formatDateTime(agent.lastRustDeskConfigSyncAt) : "Nunca"}
-                </span>
-              </div>
-
-              {networkSnapshot && Array.isArray(networkSnapshot["dnsServers"]) && networkSnapshot["dnsServers"].length > 0 && (
-                <div className="flex flex-col gap-1 py-1">
-                  <span className="text-muted-foreground">Servidores DNS</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {(networkSnapshot["dnsServers"] as string[]).map((dns: string) => (
-                      <span key={dns} className="rounded bg-muted/65 border border-border/30 px-1.5 py-0.5 font-mono text-xs text-foreground">
-                        {dns}
-                      </span>
-                    ))}
-                  </div>
+          <div className="space-y-6">
+            <Card className="border-border/40 bg-muted/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <Globe className="h-4 w-4 text-primary" />
+                  Configurações de Rede
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">IPv4 Local (Intranet)</span>
+                  <span className="font-mono text-foreground">{machineIpv4 ?? "Sem leitura"}</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">IP da Internet</span>
+                  <span className="font-mono text-foreground">{internetIpv4 ?? "Sem leitura"}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Gateway local</span>
+                  <span className="font-mono text-foreground">{localGateway ?? "Sem leitura"}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">RustDesk ID</span>
+                  <span className="font-mono text-foreground">{agent.rustdeskId ?? "Sem leitura"}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Sincronizacao do RustDesk</span>
+                  <span className="text-foreground">
+                    {agent.lastRustDeskConfigSyncAt ? formatDateTime(agent.lastRustDeskConfigSyncAt) : "Nunca"}
+                  </span>
+                </div>
+
+                {networkSnapshot && Array.isArray(networkSnapshot["dnsServers"]) && networkSnapshot["dnsServers"].length > 0 && (
+                  <div className="flex flex-col gap-1 py-1">
+                    <span className="text-muted-foreground">Servidores DNS</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {(networkSnapshot["dnsServers"] as string[]).map((dns: string) => (
+                        <span key={dns} className="rounded bg-muted/65 border border-border/30 px-1.5 py-0.5 font-mono text-xs text-foreground">
+                          {dns}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/40 bg-muted/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <ShieldAlert className="h-4 w-4 text-primary" />
+                  Windows Update
+                </CardTitle>
+                <CardDescription>Status das atualizações do sistema operacional.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Atualizações Pendentes</span>
+                  {windowsUpdateStatus?.["pendingCount"] !== undefined && windowsUpdateStatus?.["pendingCount"] !== null ? (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "font-semibold text-xs",
+                        Number(windowsUpdateStatus["pendingCount"]) > 0
+                          ? "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300" // ds-allow: status
+                          : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300", // ds-allow: status
+                      )}
+                    >
+                      {String(windowsUpdateStatus["pendingCount"])} pendente(s)
+                    </Badge>
+                  ) : (
+                    <span className="font-semibold text-foreground">Sem leitura</span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Reinicialização Requerida</span>
+                  {windowsUpdateStatus?.["rebootRequired"] !== undefined && windowsUpdateStatus?.["rebootRequired"] !== null ? (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "font-semibold text-xs",
+                        windowsUpdateStatus["rebootRequired"] === true
+                          ? "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300" // ds-allow: status
+                          : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300", // ds-allow: status
+                      )}
+                    >
+                      {windowsUpdateStatus["rebootRequired"] === true ? "Sim (Pendente)" : "Não"}
+                    </Badge>
+                  ) : (
+                    <span className="font-semibold text-foreground">Sem leitura</span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Última Verificação</span>
+                  <span className="text-foreground">
+                    {windowsUpdateStatusAt ? formatDateTime(windowsUpdateStatusAt) : "Nunca"}
+                  </span>
+                </div>
+
+                {windowsUpdateStatus &&
+                  Array.isArray(windowsUpdateStatus["pendingSignals"]) &&
+                  windowsUpdateStatus["pendingSignals"].length > 0 && (
+                    <div className="flex flex-col gap-1 py-1">
+                      <span className="text-muted-foreground">Indicadores e Sinais</span>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {(windowsUpdateStatus["pendingSignals"] as string[]).map((signal: string) => (
+                          <span
+                            key={signal}
+                            className="rounded bg-muted/65 border border-border/30 px-1.5 py-0.5 font-mono text-[10px] text-foreground"
+                          >
+                            {signal}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Adaptadores de Rede */}

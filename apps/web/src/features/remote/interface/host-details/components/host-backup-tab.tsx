@@ -9,24 +9,7 @@ type FirebirdData = {
   processRunning: boolean | null;
 };
 
-const UPCOMING_FEATURES = [
-  {
-    title: "Jobs gbak / nbackup",
-    description: "Agendamento automático de backup incremental e full via gbak/nbackup com retenção configurável.",
-  },
-  {
-    title: "Catálogo de artefatos",
-    description: "Registro de todos os backups gerados com metadados de tamanho, hash e status de validação.",
-  },
-  {
-    title: "Restauração assistida",
-    description: "Fluxo guiado para restauração pontual com validação de integridade antes da aplicação.",
-  },
-  {
-    title: "Notificações de falha",
-    description: "Alertas imediatos via portal e e-mail em caso de falha ou timeout no processo de backup.",
-  },
-] as const;
+
 
 export function HostBackupTab({ firebirdData }: { firebirdData: FirebirdData }) {
   return (
@@ -65,22 +48,7 @@ export function HostBackupTab({ firebirdData }: { firebirdData: FirebirdData }) 
               </div>
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {UPCOMING_FEATURES.map((feature) => (
-              <div key={feature.title} className="rounded-xl border border-dashed border-border/40 bg-muted/5 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-foreground">{feature.title}</p>
-                  <Badge
-                    variant="outline"
-                    className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px]"
-                  >
-                    Em desenvolvimento
-                  </Badge>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
-              </div>
-            ))}
-          </div>
+
         </CardContent>
       </Card>
     </div>

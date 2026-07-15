@@ -495,6 +495,8 @@ export function RemoteHostDetailsPanel({
             diskSnapshot={diskSnapshot}
             sysproProcessSnapshot={sysproProcessSnapshot}
             rebootPending={rebootPending}
+            windowsUpdateStatus={details.agentTelemetry.windowsUpdateStatus}
+            windowsUpdateStatusAt={details.agentTelemetry.windowsUpdateStatusAt}
           />
         </TabsContent>
 

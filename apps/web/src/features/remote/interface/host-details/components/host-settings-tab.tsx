@@ -5,20 +5,7 @@ import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitl
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { MACHINE_PROFILE_LABEL } from "../host-details.constants";
 
-const UPCOMING_FEATURES = [
-  {
-    title: "Políticas de acesso",
-    description: "Restrições de horário, IP e perfil de usuário para controle granular de quem pode acessar o host.",
-  },
-  {
-    title: "Vault de credenciais",
-    description: "Armazenamento seguro de credenciais de acesso local com rotação automática e auditoria.",
-  },
-  {
-    title: "Alertas e monitoramento",
-    description: "Notificações proativas para CPU crítica, disco baixo, agente offline e falhas de serviço.",
-  },
-] as const;
+
 
 type Props = {
   details: RemoteHostDetails;
@@ -298,25 +285,6 @@ export function HostSettingsTab({
         </Card>
       )}
 
-      <div>
-        <p className="mb-3 text-sm font-medium text-muted-foreground">Funcionalidades em desenvolvimento</p>
-        <div className="grid gap-4 md:grid-cols-2">
-          {UPCOMING_FEATURES.map((feature) => (
-            <div key={feature.title} className="rounded-xl border border-dashed border-border/40 bg-muted/5 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-foreground">{feature.title}</p>
-                <Badge
-                  variant="outline"
-                  className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px]"
-                >
-                  Em desenvolvimento
-                </Badge>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
