@@ -4,7 +4,7 @@ import { formatDateTime } from "../host-details.helpers";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/formatters";
 import { useAckStream } from "@/features/remote/interface/hooks";
-import { Activity, HardDrive, Cpu } from "lucide-react";
+import { Activity, HardDrive, Cpu, Laptop, Network, Globe } from "lucide-react";
 
 type HostTechnicalTabProps = {
   details: RemoteHostDetails;
@@ -68,6 +68,8 @@ export function HostTechnicalTab({
   const { lastTelemetry, isConnected } = useAckStream(host.id);
   const agent = host.agent;
   const versionInstallations = toVersionInstallations(sysproVersionSnapshot);
+
+  const { systemSnapshot, hardwareIdentity, networkSnapshot } = details.agentTelemetry;
 
   const currentMetrics: LiveMetrics = lastTelemetry || host.lastAgentMetrics || {};
   const cpuLoad = readMetricNumber(currentMetrics, "cpuLoad");
@@ -153,8 +155,8 @@ export function HostTechnicalTab({
           <Card className="border-border/40 bg-muted/5">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Cpu className="h-4 w-4 text-primary" />
-                Especificacoes do Host
+                <Laptop className="h-4 w-4 text-primary" />
+                Especificações do Host
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -162,16 +164,90 @@ export function HostTechnicalTab({
                 <span className="text-muted-foreground">Nome do Computador</span>
                 <span className="font-semibold text-foreground">{windowsComputerName ?? "Sem leitura"}</span>
               </div>
+
+              {!!hardwareIdentity?.["systemManufacturer"] && (
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Fabricante</span>
+                  <span className="font-semibold text-foreground">
+                    {String(hardwareIdentity["systemManufacturer"])}
+                  </span>
+                </div>
+              )}
+
+              {!!hardwareIdentity?.["systemModel"] && (
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Modelo do Sistema</span>
+                  <span className="font-semibold text-foreground">
+                    {String(hardwareIdentity["systemModel"])}
+                  </span>
+                </div>
+              )}
+
+              {!!systemSnapshot?.["osName"] && (
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Sistema Operacional</span>
+                  <span className="font-semibold text-foreground" title={systemSnapshot["osVersion"] ? `Versão: ${String(systemSnapshot["osVersion"])}` : ""}>
+                    {String(systemSnapshot["osName"])} {systemSnapshot["osArchitecture"] ? `(${String(systemSnapshot["osArchitecture"])})` : ""}
+                  </span>
+                </div>
+              )}
+
+              {!!systemSnapshot?.["osBuild"] && (
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Build do SO</span>
+                  <span className="font-semibold text-foreground">
+                    {String(systemSnapshot["osBuild"])}
+                  </span>
+                </div>
+              )}
+
+              {!!hardwareIdentity?.["baseboardModel"] && (
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Placa-Mãe</span>
+                  <span className="font-semibold text-foreground">
+                    {hardwareIdentity["baseboardVendor"] ? `${String(hardwareIdentity["baseboardVendor"])} ` : ""}
+                    {String(hardwareIdentity["baseboardModel"])}
+                  </span>
+                </div>
+              )}
+
+              {!!hardwareIdentity?.["biosVersion"] && (
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Versão da BIOS</span>
+                  <span className="font-semibold text-foreground">
+                    {String(hardwareIdentity["biosVersion"])}
+                  </span>
+                </div>
+              )}
+
+              {!!hardwareIdentity?.["systemSerial"] && (
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Número de Série</span>
+                  <span className="font-mono text-xs font-semibold text-foreground">
+                    {String(hardwareIdentity["systemSerial"])}
+                  </span>
+                </div>
+              )}
+
+              {!!hardwareIdentity?.["machineGuid"] && (
+                <div className="flex items-center justify-between border-b border-border/30 py-1">
+                  <span className="text-muted-foreground">Machine GUID</span>
+                  <span className="font-mono text-[11px] text-muted-foreground break-all" title={String(hardwareIdentity["machineGuid"])}>
+                    {String(hardwareIdentity["machineGuid"])}
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-center justify-between border-b border-border/30 py-1">
                 <span className="text-muted-foreground">Reboot Pendente</span>
-                <span className="font-semibold text-foreground">
-                  {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim (Necessario)" : "Nao"}
+                <span className={cn("font-semibold", rebootPending ? "text-amber-500 font-bold" : "text-foreground")}>
+                  {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim (Necessário)" : "Não"}
                 </span>
               </div>
               <div className="flex items-center justify-between border-b border-border/30 py-1">
                 <span className="text-muted-foreground">Firebird</span>
                 <span className="font-semibold text-foreground">
-                  {firebirdData.name ?? "Nao detectado"} {firebirdData.version ? `(${firebirdData.version})` : ""}
+                  {firebirdData.name ?? "Não detectado"} {firebirdData.version ? `(${firebirdData.version})` : ""}
                 </span>
               </div>
               <div className="flex items-center justify-between py-1">
@@ -185,7 +261,7 @@ export function HostTechnicalTab({
                   {firebirdData.processRunning === null
                     ? "Sem leitura"
                     : firebirdData.processRunning
-                      ? "Em execucao"
+                      ? "Em execução"
                       : "Parado"}
                 </span>
               </div>
@@ -195,8 +271,8 @@ export function HostTechnicalTab({
           <Card className="border-border/40 bg-muted/5">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Activity className="h-4 w-4 text-primary" />
-                Configuracoes de Rede
+                <Globe className="h-4 w-4 text-primary" />
+                Configurações de Rede
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -216,15 +292,105 @@ export function HostTechnicalTab({
                 <span className="text-muted-foreground">RustDesk ID</span>
                 <span className="font-mono text-foreground">{agent.rustdeskId ?? "Sem leitura"}</span>
               </div>
-              <div className="flex items-center justify-between py-1">
+              <div className="flex items-center justify-between border-b border-border/30 py-1">
                 <span className="text-muted-foreground">Sincronizacao do RustDesk</span>
                 <span className="text-foreground">
                   {agent.lastRustDeskConfigSyncAt ? formatDateTime(agent.lastRustDeskConfigSyncAt) : "Nunca"}
                 </span>
               </div>
+
+              {networkSnapshot && Array.isArray(networkSnapshot["dnsServers"]) && networkSnapshot["dnsServers"].length > 0 && (
+                <div className="flex flex-col gap-1 py-1">
+                  <span className="text-muted-foreground">Servidores DNS</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {(networkSnapshot["dnsServers"] as string[]).map((dns: string) => (
+                      <span key={dns} className="rounded bg-muted/65 border border-border/30 px-1.5 py-0.5 font-mono text-xs text-foreground">
+                        {dns}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
+
+        {/* Adaptadores de Rede */}
+        {networkSnapshot && Array.isArray(networkSnapshot["adapters"]) && networkSnapshot["adapters"].length > 0 && (
+          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+            <div className="flex items-center gap-2">
+              <Network className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium text-foreground">Adaptadores de rede ativos</p>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Interfaces de rede físicas e virtuais detectadas no último sync do host.
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {(networkSnapshot["adapters"] as Array<{
+                name: string;
+                friendlyName?: string;
+                mac?: string;
+                up: boolean;
+                mtu?: number;
+                addresses?: string[];
+              }>).map((adapter, index) => {
+                const addresses = Array.isArray(adapter.addresses) ? adapter.addresses : [];
+                return (
+                  <div
+                    key={`${adapter.name}-${index}`}
+                    className="rounded-xl border border-border/40 bg-background/60 p-3 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold text-sm text-foreground truncate" title={adapter.friendlyName || adapter.name}>
+                          {adapter.friendlyName || adapter.name}
+                        </span>
+                        <span
+                          className={cn(
+                            "rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                            adapter.up
+                              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" // ds-allow: status
+                              : "border-muted/40 bg-muted/20 text-muted-foreground",
+                          )}
+                        >
+                          {adapter.up ? "Ativo" : "Inativo"}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">Interface</p>
+                      <p className="font-mono text-xs text-foreground truncate">{adapter.name}</p>
+
+                      {adapter.mac && (
+                        <>
+                          <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground">Endereço MAC</p>
+                          <p className="font-mono text-xs text-foreground">{adapter.mac}</p>
+                        </>
+                      )}
+
+                      {addresses.length > 0 && (
+                        <>
+                          <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground">Endereços IP</p>
+                          <div className="mt-1 flex flex-col gap-1">
+                            {addresses.map((addr) => (
+                              <span key={addr} className="font-mono text-xs text-foreground break-all">
+                                {addr}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {adapter.mtu && (
+                      <div className="mt-3 border-t border-border/25 pt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>MTU</span>
+                        <span className="font-mono font-medium">{adapter.mtu}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
           <p className="text-sm font-medium text-foreground">Instalacoes e versoes do Syspro</p>

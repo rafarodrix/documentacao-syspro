@@ -109,6 +109,8 @@ Fluxo atual:
 - o `agent-ui.exe` empacotado deve vir do `wails build`; `go build` gera um binario invalido para Wails
 - o menu instalado tambem expone `Configurar agente`, que eleva um helper PowerShell para atualizar `PORTAL_BASE_URL` e o `REMOTE_DISCOVERY_TOKEN` sem editar o `.env` manualmente
 - o helper remove `REMOTE_INSTALL_TOKEN` legado para evitar bootstrap com token antigo apos reinstalacao
+- ao desinstalar mantendo a configuracao, o uninstall sanitiza `REMOTE_INSTALL_TOKEN` e limpa `remote_state.json`/filas locais para evitar rebootstrap legado na reinstalacao seguinte
+- ao pedir remocao do RustDesk, o uninstall tenta todas as entradas registradas, valida se ainda restou instalacao e aplica limpeza adicional de diretorios conhecidos
 - `start-agent.ps1` nao faz mais parte do fluxo principal
 - `ensure-webview2-runtime.ps1` nao faz mais parte do pacote nem do instalador
 - a geracao oficial do instalador nao usa mais wrappers PowerShell

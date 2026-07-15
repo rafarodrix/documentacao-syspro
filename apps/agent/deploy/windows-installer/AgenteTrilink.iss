@@ -216,7 +216,7 @@ end;
 
 // Escreve um script PowerShell temporario para desinstalar um programa pelo DisplayName.
 // Suporta desinstaladores MSI (MsiExec /X{GUID}) e EXE (/S).
-// Retorna True se o script foi executado (nao necessariamente se o programa foi removido).
+// Retorna True somente quando nao restam entradas instaladas para o DisplayName informado.
 function UninstallProgramByName(DisplayNamePattern: string): Boolean;
 var
   TmpScript: string;
@@ -233,34 +233,151 @@ begin
     Lines.Add('  ''HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'',');
     Lines.Add('  ''HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*''');
     Lines.Add(')');
-    Lines.Add('$entry = $regPaths | ForEach-Object {');
+    Lines.Add('function Get-MatchingEntries {');
+    Lines.Add('  param([string]$NamePattern)');
+    Lines.Add('  $regPaths | ForEach-Object {');
     Lines.Add('  Get-ItemProperty $_ -ErrorAction SilentlyContinue');
-    Lines.Add('} | Where-Object { $_.DisplayName -like "*$pattern*" } | Select-Object -First 1');
-    Lines.Add('if (-not $entry) { Write-Host "Not found: $pattern"; exit 0 }');
-    Lines.Add('Write-Host "Uninstalling: $($entry.DisplayName)"');
-    Lines.Add('$quiet = $entry.QuietUninstallString');
-    Lines.Add('$uninstall = $entry.UninstallString');
-    Lines.Add('if ($quiet) {');
-    Lines.Add('  cmd /c $quiet | Out-Null');
-    Lines.Add('} elseif ($uninstall -match ''MsiExec'') {');
-    Lines.Add('  $guid = [regex]::Match($uninstall, ''\{[^}]+\}'').Value');
-    Lines.Add('  if ($guid) { & msiexec.exe /x $guid /qn /norestart | Out-Null }');
-    Lines.Add('} elseif ($uninstall) {');
-    Lines.Add('  $exe = $uninstall -replace ''^"([^"]+)".*'', ''$1''');
-    Lines.Add('  if (Test-Path $exe) { & $exe /S | Out-Null }');
+    Lines.Add('  } | Where-Object { $_.DisplayName -like "*$NamePattern*" }');
     Lines.Add('}');
+    Lines.Add('$entries = @(Get-MatchingEntries -NamePattern $pattern)');
+    Lines.Add('if ($entries.Count -eq 0) { Write-Host "Not found: $pattern"; exit 0 }');
+    Lines.Add('foreach ($entry in $entries) {');
+    Lines.Add('  Write-Host "Uninstalling: $($entry.DisplayName)"');
+    Lines.Add('  $quiet = [string]$entry.QuietUninstallString');
+    Lines.Add('  $uninstall = [string]$entry.UninstallString');
+    Lines.Add('  if (-not [string]::IsNullOrWhiteSpace($quiet)) {');
+    Lines.Add('    Start-Process -FilePath ''cmd.exe'' -ArgumentList ''/c'', $quiet -Wait -WindowStyle Hidden');
+    Lines.Add('    continue');
+    Lines.Add('  }');
+    Lines.Add('  if ($uninstall -match ''MsiExec'') {');
+    Lines.Add('    $guid = [regex]::Match($uninstall, ''\{[^}]+\}'').Value');
+    Lines.Add('    if ($guid) {');
+    Lines.Add('      Start-Process -FilePath ''msiexec.exe'' -ArgumentList ''/x'', $guid, ''/qn'', ''/norestart'' -Wait -WindowStyle Hidden');
+    Lines.Add('      continue');
+    Lines.Add('    }');
+    Lines.Add('  }');
+    Lines.Add('  if (-not [string]::IsNullOrWhiteSpace($uninstall)) {');
+    Lines.Add('    $exe = $null');
+    Lines.Add('    $args = $null');
+    Lines.Add('    if ($uninstall -match ''^"([^"]+)"\s*(.*)$'') {');
+    Lines.Add('      $exe = $matches[1]');
+    Lines.Add('      $args = $matches[2]');
+    Lines.Add('    } elseif ($uninstall -match ''^(\S+)\s*(.*)$'') {');
+    Lines.Add('      $exe = $matches[1]');
+    Lines.Add('      $args = $matches[2]');
+    Lines.Add('    }');
+    Lines.Add('    if ($exe -and (Test-Path $exe)) {');
+    Lines.Add('      $argLine = [string]::Trim($args)');
+    Lines.Add('      if ([string]::IsNullOrWhiteSpace($argLine)) {');
+    Lines.Add('        $argLine = ''/S''');
+    Lines.Add('      } else {');
+    Lines.Add('        $argLine = $argLine + '' /S''');
+    Lines.Add('      }');
+    Lines.Add('      Start-Process -FilePath $exe -ArgumentList $argLine -Wait -WindowStyle Hidden');
+    Lines.Add('    }');
+    Lines.Add('  }');
+    Lines.Add('}');
+    Lines.Add('Start-Sleep -Seconds 2');
+    Lines.Add('$remaining = @(Get-MatchingEntries -NamePattern $pattern)');
+    Lines.Add('if ($remaining.Count -gt 0) {');
+    Lines.Add('  Write-Host ("Still installed: " + (($remaining | ForEach-Object { $_.DisplayName }) -join '', ''))');
+    Lines.Add('  exit 2');
+    Lines.Add('}');
+    Lines.Add('exit 0');
     Lines.SaveToFile(TmpScript);
   finally
     Lines.Free;
   end;
 
-  Result := Exec(
+  if not Exec(
     'powershell.exe',
     '-NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + TmpScript + '"',
     '', SW_HIDE, ewWaitUntilTerminated, RC
-  );
+  ) then
+  begin
+    DeleteFile(TmpScript);
+    Result := False;
+    Exit;
+  end;
 
   DeleteFile(TmpScript);
+  Result := RC = 0;
+end;
+
+procedure DeleteDirectoryIfExists(Path: string);
+begin
+  if (Trim(Path) <> '') and DirExists(Path) then
+    DelTree(Path, True, True, True);
+end;
+
+procedure DeleteRustDeskKnownDirectories;
+var
+  ProgramFilesX86: string;
+  ProgramFiles64: string;
+  ProgramDataDir: string;
+  RoamingAppData: string;
+  LocalAppDataDir: string;
+begin
+  DeleteDirectoryIfExists(ExpandConstant('{autopf}\RustDesk'));
+
+  ProgramFilesX86 := GetEnv('ProgramFiles(x86)');
+  if ProgramFilesX86 <> '' then
+    DeleteDirectoryIfExists(AddBackslash(ProgramFilesX86) + 'RustDesk');
+
+  ProgramFiles64 := GetEnv('ProgramW6432');
+  if ProgramFiles64 <> '' then
+    DeleteDirectoryIfExists(AddBackslash(ProgramFiles64) + 'RustDesk');
+
+  ProgramDataDir := GetEnv('ProgramData');
+  if ProgramDataDir <> '' then
+    DeleteDirectoryIfExists(AddBackslash(ProgramDataDir) + 'RustDesk');
+
+  RoamingAppData := GetEnv('APPDATA');
+  if RoamingAppData <> '' then
+    DeleteDirectoryIfExists(AddBackslash(RoamingAppData) + 'RustDesk');
+
+  LocalAppDataDir := GetEnv('LOCALAPPDATA');
+  if LocalAppDataDir <> '' then
+    DeleteDirectoryIfExists(AddBackslash(LocalAppDataDir) + 'RustDesk');
+end;
+
+procedure RemoveEnvKeyFromFile(FilePath: string; Key: string);
+var
+  Lines: TStringList;
+  I: Integer;
+  TrimmedLine: string;
+  Prefix: string;
+begin
+  if not FileExists(FilePath) then
+    Exit;
+
+  Prefix := Uppercase(Trim(Key)) + '=';
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(FilePath);
+    for I := Lines.Count - 1 downto 0 do
+    begin
+      TrimmedLine := Uppercase(Trim(Lines[I]));
+      if (TrimmedLine = '') or (Copy(TrimmedLine, 1, 1) = '#') then
+        continue;
+      if Pos(Prefix, TrimmedLine) = 1 then
+        Lines.Delete(I);
+    end;
+    Lines.SaveToFile(FilePath);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure SanitizeRetainedAgentState(DataDir: string);
+begin
+  if not DirExists(DataDir) then
+    Exit;
+
+  RemoveEnvKeyFromFile(AddBackslash(DataDir) + '.env', 'REMOTE_INSTALL_TOKEN');
+  DeleteFile(AddBackslash(DataDir) + 'remote_state.json');
+  DeleteFile(AddBackslash(DataDir) + 'pending_ack_queue.json');
+  DeleteFile(AddBackslash(DataDir) + 'telemetry_outbox.json');
 end;
 
 // Para o servico RustDesk, encerra o processo e desinstala o programa
@@ -274,7 +391,10 @@ begin
   // Encerra forcosamente o processo (cobre instalacoes sem servico e sessoesinterativas)
   Exec('taskkill.exe', '/IM rustdesk.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, RC);
   Sleep(1000);
-  UninstallProgramByName('RustDesk');
+  if not UninstallProgramByName('RustDesk') then
+    Log('RustDesk uninstall did not fully complete via registry uninstall entry; applying directory cleanup.');
+  Exec('sc.exe', 'delete RustDesk', '', SW_HIDE, ewWaitUntilTerminated, RC);
+  DeleteRustDeskKnownDirectories;
 end;
 
 // ---------------------------------------------------------------------------
@@ -328,6 +448,7 @@ begin
     DataDir := ExpandConstant('{commonappdata}\Trilink\Agent');
     if DirExists(DataDir) then
     begin
+      SanitizeRetainedAgentState(DataDir);
       Answer := MsgBox(
         'Deseja remover tambem os dados de configuracao e logs do agente?' + #13#10 +
         '(' + DataDir + ')' + #13#10#13#10 +
