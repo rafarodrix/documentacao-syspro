@@ -157,11 +157,10 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
   if (activeTab === "hosts") {
     const tenantScope = await getRemoteTenantScope();
     const directory = await getRemotePlatformDirectory(tenantScope);
-    const canCreateHosts = tenantScope.role !== "CLIENTE_ADMIN";
     const canManageRemote = await currentUserHasAnyPermission(["remote:manage", "tools:all"], {
       acceptCompanyScope: true,
     });
-    if (canCreateHosts) {
+    if (canManageRemote) {
       actions = (
         <Button asChild size="sm" className="h-9 gap-1.5 shrink-0 animate-in fade-in zoom-in-95 duration-200">
           <Link href="?tab=hosts&newHost=true">

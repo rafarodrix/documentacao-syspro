@@ -139,7 +139,7 @@ export function RemotePlatformDirectoryPanel({
   const [hostToDelete, setHostToDelete] = useState<DirectoryItem | null>(null);
   const [isDeletingHost, setIsDeletingHost] = useState(false);
   const [ignoringPendingId, setIgnoringPendingId] = useState<string | null>(null);
-  const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
+  const canCreateHosts = canManageRemote;
   
   const searchParams = useSearchParams();
   const newHostParam = searchParams.get("newHost");

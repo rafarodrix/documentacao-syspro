@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { getRemoteDiscoveredHostDetails } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { RemoteDiscoveredHostDetailsPanel } from "@/features/remote/interface/discovered-host-details-page";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 
 export default async function InfrastructureDiscoveredHostDetailsPage({
   params,
@@ -11,10 +11,9 @@ export default async function InfrastructureDiscoveredHostDetailsPage({
   params: Promise<{ discoveredHostId: string }>;
 }) {
   await requireSession();
-  const canAccess =
-    (await currentUserHasPermission("tools:all")) ||
-    ((await currentUserHasPermission("tools:basic")) &&
-      (await currentUserHasPermission("companies:view", { acceptCompanyScope: true })));
+  const canAccess = await currentUserHasAnyPermission(["remote:manage", "tools:all"], {
+    acceptCompanyScope: true,
+  });
   if (!canAccess) {
     redirect("/portal");
   }
