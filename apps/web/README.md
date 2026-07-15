@@ -122,6 +122,49 @@ cp apps/web/.env.e2e.example apps/web/.env.e2e
 - quando novos modelos Prisma forem adicionados ao schema compartilhado, é obrigatório regenerar o client
 - parte das integrações externas pode operar com fallback local quando o provider estiver indisponível
 
+## Deploy dedicado
+
+O frontend agora está preparado para self-hosting com output standalone do Next.js.
+
+Arquivos de deploy:
+
+- `apps/web/deploy/Dockerfile`
+- `apps/web/deploy/docker-compose.yml`
+
+Build da imagem com contexto na raiz do monorepo:
+
+```bash
+docker build -f apps/web/deploy/Dockerfile -t dosc-syspro-web .
+docker run --rm -p 3000:3000 --env-file apps/web/.env dosc-syspro-web
+```
+
+Healthcheck HTTP:
+
+```text
+GET /api/health
+```
+
+## Variáveis mínimas de produção
+
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_WEB_URL`
+- `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_AUTH_BASE_URL`
+- `NEXT_PUBLIC_API_URL`
+- `APP_BACKEND_API_URL`
+- `BETTER_AUTH_SECRET`
+- `INTERNAL_API_KEY`
+
+## Proxy reverso
+
+Ao publicar atrás de nginx, Traefik ou Dokploy, repasse obrigatoriamente:
+
+- `Host`
+- `X-Forwarded-Host`
+- `X-Forwarded-Proto`
+
+O frontend usa esses headers para resolver a origem efetiva em SSR, login e redirects.
+
 
 ## Próximos passos de arquitetura
 

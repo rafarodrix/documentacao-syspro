@@ -1,0 +1,33 @@
+services:
+  frontend:
+    build:
+      context: ../../..
+      dockerfile: apps/web/deploy/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_WEB_URL: ${NEXT_PUBLIC_WEB_URL}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      NEXT_PUBLIC_AUTH_BASE_URL: ${NEXT_PUBLIC_AUTH_BASE_URL}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      APP_BACKEND_API_URL: ${APP_BACKEND_API_URL}
+      APP_BACKEND_API: ${APP_BACKEND_API_URL}
+      APP_API_URL: ${APP_BACKEND_API_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      REMOTE_DISCOVERY_TOKEN: ${REMOTE_DISCOVERY_TOKEN:-}
+      REMOTE_AGENT_TOKEN_TTL_DAYS: ${REMOTE_AGENT_TOKEN_TTL_DAYS:-30}
+      REVALIDATE_TOKEN: ${REVALIDATE_TOKEN:-}
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
+      SEFAZ_CHECK_SECRET: ${SEFAZ_CHECK_SECRET:-}
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

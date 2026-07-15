@@ -125,6 +125,49 @@ Na interface atual de tarefas, o portal expoe:
 
 ---
 
+## Deploy proprio
+
+O `apps/web` agora suporta self-hosting com `Next.js standalone`.
+
+Arquivos operacionais:
+
+```text
+apps/web/deploy/Dockerfile
+apps/web/deploy/docker-compose.yml
+```
+
+Fluxo esperado:
+
+1. build da imagem com contexto na raiz do monorepo
+2. injeção das variaveis publicas no momento do build/deploy
+3. publicacao atras de proxy reverso
+4. healthcheck em `/api/health`
+
+### Variaveis criticas
+
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_WEB_URL`
+- `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_AUTH_BASE_URL`
+- `NEXT_PUBLIC_API_URL`
+- `APP_BACKEND_API_URL`
+- `BETTER_AUTH_SECRET`
+- `INTERNAL_API_KEY`
+
+> As variaveis `NEXT_PUBLIC_*` precisam estar corretas no build, porque o Next.js as incorpora no bundle entregue ao navegador.
+
+### Headers obrigatorios do proxy
+
+O proxy reverso deve repassar:
+
+- `Host`
+- `X-Forwarded-Host`
+- `X-Forwarded-Proto`
+
+O frontend usa esses headers para resolver origem efetiva, cookies, redirects e chamadas SSR autenticadas.
+
+---
+
 ## Documentacao interna
 
 Rota:

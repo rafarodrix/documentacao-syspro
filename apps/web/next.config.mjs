@@ -6,9 +6,10 @@ const withMDX = createMDX();
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   outputFileTracingRoot: path.join(process.cwd(), '../../'),
   eslint: {
-    // Lint permanece disponivel via `npm run lint`; evitamos duplicar esse custo no build do Vercel.
+    // Lint permanece disponivel via `npm run lint`; evitamos duplicar esse custo no build de deploy.
     ignoreDuringBuilds: true,
   },
   typescript: {
