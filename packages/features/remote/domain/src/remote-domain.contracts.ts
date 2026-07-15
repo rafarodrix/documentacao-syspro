@@ -96,6 +96,7 @@ export const processSyncInputSchema = z.object({
   sysproProcesses: z.unknown().optional(),
   sysproVersions: z.unknown().optional(),
   windowsUpdateStatus: z.unknown().optional(),
+  allServicesSnapshot: z.unknown().optional(),
   rebootPending: z.unknown().optional(),
   agentMetrics: z.unknown().optional(),
   metadata: z
@@ -192,7 +193,7 @@ export type BootstrapCompliance = {
 
 export type SyncCompliance = BootstrapCompliance;
 
-export type SyncCommandType = "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED";
+export type SyncCommandType = "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED";
 
 export type SyncCommandQueueItem = {
   id: string;
@@ -534,7 +535,6 @@ export type RevokeAddressBookCredentialOutput = {
   alreadyRevoked: boolean;
   message: string;
 };
-
 
 
 

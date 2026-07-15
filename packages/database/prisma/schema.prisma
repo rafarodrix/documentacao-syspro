@@ -132,6 +132,7 @@ enum RemoteAgentCommandType {
   REAPPLY_CONFIG
   UPGRADE_CLIENT
   ROTATE_TOKEN_REQUIRED
+  SERVICE_CONTROL
 }
 
 enum RemoteAgentCommandStatus {
@@ -792,6 +793,8 @@ model RemoteHost {
   lastSysproVersionSnapshotAt    DateTime?
   lastWindowsUpdateStatus        Json?
   lastWindowsUpdateStatusAt      DateTime?
+  lastAllServicesSnapshot        Json?
+  lastAllServicesSnapshotAt      DateTime?
   lastRebootPending              Boolean?
   lastRebootPendingAt            DateTime?
 

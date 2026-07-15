@@ -368,6 +368,58 @@ export class RemoteAdminService {
     };
   }
 
+  async enqueueServiceControl(
+    hostId: string,
+    serviceName: string,
+    serviceAction: 'start' | 'stop' | 'restart',
+    rawHeaders?: Record<string, unknown>,
+  ) {
+    const requester = await this.authorizationService.getRequester(rawHeaders as any);
+    const allowed = await this.authorizationService.userHasPermission(requester, 'tools:all');
+    if (!allowed) {
+      throw new ForbiddenException('Sem permissao para controlar servicos remotos.');
+    }
+
+    const tenantScope = await this.resolveTenantScope(rawHeaders);
+    const host = await prisma.remoteHost.findFirst({
+      where: buildScopedHostWhere(tenantScope, hostId),
+      select: { id: true, name: true },
+    });
+
+    if (!host) {
+      throw new ForbiddenException('Host remoto nao encontrado no escopo.');
+    }
+
+    const command = await prisma.remoteAgentCommand.create({
+      data: {
+        hostId,
+        type: 'SERVICE_CONTROL',
+        status: 'PENDING',
+        reason: `Acao manual do portal: ${serviceAction} servico ${serviceName}.`,
+        payload: {
+          source: 'portal.service_control',
+          requestedByUserId: requester.userId,
+          requestedAt: new Date().toISOString(),
+          serviceName,
+          action: serviceAction,
+        },
+      },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        reason: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      success: true,
+      data: command,
+      message: `Comando ${serviceAction} para ${serviceName} enfileirado. Aguarde ciclo de sync/ack.`,
+    };
+  }
+
   listRemoteSessions(rawHeaders?: Record<string, unknown>) {
     return this.callRemoteProcedure('sessionsList', {}, rawHeaders);
   }

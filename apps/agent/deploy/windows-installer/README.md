@@ -121,6 +121,12 @@ Observacao operacional:
 - isso normalmente indica artefato legado ainda residente na maquina
 - nesse cenario, nao trate como reinstalacao simples por cima; faca remocao/limpeza antes de instalar novamente
 
+Como confirmar que o agente novo esta falando com o portal:
+
+- no backend, `POST /api/remote/agents/discover`, `POST /api/remote/rustdesk/bootstrap` e `POST /api/remote/rustdesk/sync` devem aparecer com `user-agent = trilink-agent` ou `trilink-agent/<versao>`
+- no host, os logs locais do `agent-service` devem registrar `remote discover completed` e depois `sync completed`
+- no portal, o host descoberto ou vinculado deve atualizar `lastHeartbeatAt` e sair do estado parado em `Configurando`
+
 ## Seed de configuracao
 
 Se `apps/agent/.env` existir localmente, ele entra como seed inicial do instalador.

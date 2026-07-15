@@ -68,4 +68,18 @@ export class RemoteAdminController {
     }
     return this.remoteAdminService.enqueueHostAction(id, action, req.headers);
   }
+
+  @Post('hosts/:id/service-control')
+  async postHostServiceControl(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { serviceName?: string; action?: 'start' | 'stop' | 'restart' },
+  ) {
+    const serviceName = body?.serviceName?.trim();
+    const action = body?.action;
+    if (!serviceName || (action !== 'start' && action !== 'stop' && action !== 'restart')) {
+      return { success: false, error: 'Controle de servico remoto invalido.' };
+    }
+    return this.remoteAdminService.enqueueServiceControl(id, serviceName, action, req.headers);
+  }
 }

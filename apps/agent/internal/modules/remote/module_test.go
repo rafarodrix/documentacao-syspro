@@ -487,6 +487,60 @@ func newTestModule(store StateStore, client PortalClient, manager rustDeskContro
 	return module
 }
 
+type fakeServiceController struct {
+	started   []string
+	stopped   []string
+	restarted []string
+	err       error
+}
+
+func (f *fakeServiceController) Start(name string) error {
+	f.started = append(f.started, name)
+	return f.err
+}
+
+func (f *fakeServiceController) Stop(name string) error {
+	f.stopped = append(f.stopped, name)
+	return f.err
+}
+
+func (f *fakeServiceController) Restart(name string) error {
+	f.restarted = append(f.restarted, name)
+	return f.err
+}
+
+func TestExecuteCommandServiceControlRestartsNamedService(t *testing.T) {
+	t.Parallel()
+
+	controller := &fakeServiceController{}
+	module := New(nil, nil, noopLogger{}, noopEventBus{})
+	module.services = controller
+
+	payload, err := json.Marshal(serviceControlCommandPayload{
+		ServiceName: "Spooler",
+		Action:      "restart",
+	})
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+
+	ack := module.executeCommand(context.Background(), &remoteState{}, domain.RemoteSyncCommand{
+		ID:      "cmd-service-1",
+		Type:    domain.RemoteSyncCommandServiceControl,
+		Payload: payload,
+	})
+
+	if ack.status != domain.RemoteAckStatusAcknowledged {
+		t.Fatalf("expected acknowledged status, got %s", ack.status)
+	}
+	if len(controller.restarted) != 1 || controller.restarted[0] != "Spooler" {
+		t.Fatalf("expected service restart for Spooler, got %#v", controller.restarted)
+	}
+	if ack.details["serviceName"] != "Spooler" {
+		t.Fatalf("expected details to include serviceName, got %#v", ack.details)
+	}
+}
+
 type fakePortalClient struct {
 	discoverResp         *domain.RemoteDiscoverResponse
 	discoverErr          error

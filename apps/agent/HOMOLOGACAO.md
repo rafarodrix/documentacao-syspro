@@ -235,6 +235,8 @@ Diagnostico rapido pelos logs:
 - se `POST /api/remote/rustdesk/bootstrap` aparecer com `user-agent = WindowsPowerShell/5.1`, esse bootstrap nao veio do runtime Go atual do agente
 - nesse caso, a maquina ainda esta executando algum helper/script legado e instalar por cima nao garante limpeza suficiente
 - a acao correta passa a ser parar/remover o servico anterior, limpar o estado local e reinstalar com o pacote novo
+- se o agente novo estiver comunicando corretamente, os requests de `discover`/`bootstrap`/`sync` aparecem com `user-agent = trilink-agent` ou `trilink-agent/<versao>`
+- no log local do `agent-service`, a sequencia esperada e `remote discover completed` seguida de `sync completed`
 
 ## Observacao de arquitetura
 

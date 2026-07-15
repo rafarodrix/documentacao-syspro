@@ -19,14 +19,14 @@ function normalizeRecord(value: unknown): Record<string, unknown> | null {
   return normalized as Record<string, unknown>;
 }
 
-function normalizeRecordArray(value: unknown): Array<Record<string, unknown>> {
+function normalizeRecordArray(value: unknown, limit = 200): Array<Record<string, unknown>> {
   if (!Array.isArray(value)) return [];
   const list: Array<Record<string, unknown>> = [];
   for (const entry of value) {
     const normalized = normalizeRecord(entry);
     if (!normalized) continue;
     list.push(normalized);
-    if (list.length >= 200) break;
+    if (list.length >= limit) break;
   }
   return list;
 }
@@ -47,13 +47,14 @@ function normalizeOptionalRecordArrayWithWarning(
   value: unknown,
   warningCode: string,
   warnings: string[],
+  limit = 200,
 ): Array<Record<string, unknown>> {
   if (typeof value === "undefined" || value === null) return [];
   if (!Array.isArray(value)) {
     warnings.push(warningCode);
     return [];
   }
-  return normalizeRecordArray(value);
+  return normalizeRecordArray(value, limit);
 }
 
 function normalizeOptionalBooleanWithWarning(value: unknown, warningCode: string, warnings: string[]): boolean | null {
@@ -200,6 +201,12 @@ export async function processSync(
   const sysproProcesses = normalizeOptionalRecordArrayWithWarning(input.sysproProcesses, "SYNC_INVALID_SYSPRO_PROCESSES", warnings);
   const sysproVersions = normalizeOptionalRecordWithWarning(input.sysproVersions, "SYNC_INVALID_SYSPRO_VERSIONS", warnings);
   const windowsUpdateStatus = normalizeOptionalRecordWithWarning(input.windowsUpdateStatus, "SYNC_INVALID_WINDOWS_UPDATE_STATUS", warnings);
+  const allServicesSnapshot = normalizeOptionalRecordArrayWithWarning(
+    input.allServicesSnapshot,
+    "SYNC_INVALID_ALL_SERVICES_SNAPSHOT",
+    warnings,
+    1000,
+  );
   const rebootPending = normalizeOptionalBooleanWithWarning(input.rebootPending, "SYNC_INVALID_REBOOT_PENDING", warnings);
   const agentMetrics = normalizeOptionalRecordWithWarning(input.agentMetrics, "SYNC_INVALID_AGENT_METRICS", warnings);
   const missingExtendedSnapshots = [
@@ -207,6 +214,7 @@ export async function processSync(
     diskSnapshot.length === 0 ? "diskSnapshot" : null,
     sysproProcesses.length === 0 ? "sysproProcesses" : null,
     !windowsUpdateStatus ? "windowsUpdateStatus" : null,
+    allServicesSnapshot.length === 0 ? "allServicesSnapshot" : null,
   ].filter((value): value is string => Boolean(value));
 
   const inventory = await deps.port.getInventorySnapshot(context.hostId);
@@ -273,6 +281,7 @@ export async function processSync(
     sysproProcesses,
     sysproVersions,
     windowsUpdateStatus,
+    allServicesSnapshot,
     rebootPending,
     agentMetrics,
     normalizedSysproUpdates,
@@ -328,7 +337,9 @@ export async function processSync(
       lastFullSysproSnapshotAt: inventory.lastFullSnapshotAt?.toISOString() ?? null,
     },
     warnings,
-    actions: persisted.pendingCommands.map((command) => COMMAND_RESPONSE_MAP[command.type]),
+    actions: persisted.pendingCommands
+      .map((command) => COMMAND_RESPONSE_MAP[command.type])
+      .filter((value): value is "reapply_alias" | "reapply_config" | "upgrade_client" | "rotate_token_required" => Boolean(value)),
     commandQueue: persisted.pendingCommands.map((command) => ({
       id: command.id,
       type: command.type,
@@ -345,4 +356,3 @@ export async function processSync(
     },
   };
 }
-

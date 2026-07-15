@@ -293,6 +293,7 @@ export type ProcessedSyncRecord = {
   sysproProcesses: Array<Record<string, unknown>>;
   sysproVersions: Record<string, unknown> | null;
   windowsUpdateStatus: Record<string, unknown> | null;
+  allServicesSnapshot: Array<Record<string, unknown>>;
   rebootPending: boolean | null;
   agentMetrics: Record<string, unknown> | null;
   normalizedSysproUpdates: RemoteSyncIncomingUpdate[];

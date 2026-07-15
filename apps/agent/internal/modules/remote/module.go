@@ -126,7 +126,13 @@ type remoteDesiredIntent struct {
 // Os campos do RemoteSyncRequest ja sao do tipo any, entao retornar any e correto.
 // rebootPending e separado pois o portal persiste como Boolean no schema.
 type DeviceSnapshotProvider interface {
-	GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate any, rebootPending *bool)
+	GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate, allServices any, rebootPending *bool)
+}
+
+type namedServiceController interface {
+	Start(name string) error
+	Stop(name string) error
+	Restart(name string) error
 }
 
 type Module struct {
@@ -135,6 +141,7 @@ type Module struct {
 	logger          Logger
 	events          EventBus
 	device          DeviceSnapshotProvider
+	services        namedServiceController
 	discoveryToken  string
 	agentVersion    string
 	environment     string
@@ -173,6 +180,7 @@ func New(client PortalClient, store StateStore, logger Logger, events EventBus, 
 		store:        store,
 		logger:       logger,
 		events:       events,
+		services:     defaultNamedServiceController(),
 		agentVersion: "go-agent-v1",
 	}
 	for _, opt := range opts {
@@ -507,7 +515,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	// Injeta snapshots do device module se disponivel.
 	// Nil-safe: nos primeiros ciclos o device ainda nao coletou dados.
 	if m.device != nil {
-		devMetrics, devSystem, devNetwork, devSoftware, devHardware, devDisks, devServices, devVersions, devWindowsUpdate, devReboot := m.device.GetSyncSnapshots()
+		devMetrics, devSystem, devNetwork, devSoftware, devHardware, devDisks, devServices, devVersions, devWindowsUpdate, devAllServices, devReboot := m.device.GetSyncSnapshots()
 		syncReq.SystemSnapshot = devSystem
 		syncReq.NetworkSnapshot = devNetwork
 		syncReq.SoftwareSnapshot = devSoftware
@@ -516,6 +524,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		syncReq.SysproProcesses = devServices
 		syncReq.SysproVersions = devVersions
 		syncReq.WindowsUpdateStatus = devWindowsUpdate
+		syncReq.AllServicesSnapshot = devAllServices
 		syncReq.RebootPending = devReboot
 		syncReq.AgentMetrics = enrichAgentMetrics(devMetrics, devSystem, devDisks, st, flushStats)
 	}
@@ -761,6 +770,57 @@ func (m *Module) executeCommand(ctx context.Context, st *remoteState, cmd domain
 				"targetVersion":  st.TargetVersion,
 			},
 		}
+	case domain.RemoteSyncCommandServiceControl:
+		payload := parseServiceControlCommandPayload(cmd.Payload)
+		serviceName := strings.TrimSpace(payload.ServiceName)
+		action := strings.ToLower(strings.TrimSpace(payload.Action))
+		if serviceName == "" {
+			return commandAck{
+				status:     domain.RemoteAckStatusFailed,
+				reasonCode: domain.RemoteAckReasonCommandExecutionFailed,
+				message:    "service control failed: missing serviceName",
+			}
+		}
+
+		var err error
+		switch action {
+		case "start":
+			err = m.services.Start(serviceName)
+		case "stop":
+			err = m.services.Stop(serviceName)
+		case "restart":
+			err = m.services.Restart(serviceName)
+		default:
+			return commandAck{
+				status:     domain.RemoteAckStatusFailed,
+				reasonCode: domain.RemoteAckReasonCommandExecutionFailed,
+				message:    fmt.Sprintf("service control failed: unsupported action %q", payload.Action),
+				details: map[string]any{
+					"serviceName": serviceName,
+					"action":      payload.Action,
+				},
+			}
+		}
+		if err != nil {
+			return commandAck{
+				status:     domain.RemoteAckStatusFailed,
+				reasonCode: domain.RemoteAckReasonCommandExecutionFailed,
+				message:    fmt.Sprintf("service control failed: %v", err),
+				details: map[string]any{
+					"serviceName": serviceName,
+					"action":      action,
+				},
+			}
+		}
+		return commandAck{
+			status:     domain.RemoteAckStatusAcknowledged,
+			reasonCode: domain.RemoteAckReasonCommandProcessed,
+			message:    fmt.Sprintf("service %s %sed", serviceName, action),
+			details: map[string]any{
+				"serviceName": serviceName,
+				"action":      action,
+			},
+		}
 	default:
 		return commandAck{
 			status:     domain.RemoteAckStatusFailed,
@@ -935,6 +995,11 @@ type upgradeCommandPayload struct {
 	SilentArgs     string `json:"silentArgs"`
 }
 
+type serviceControlCommandPayload struct {
+	ServiceName string `json:"serviceName"`
+	Action      string `json:"action"`
+}
+
 func parseAliasCommandPayload(raw json.RawMessage) aliasCommandPayload {
 	var payload aliasCommandPayload
 	_ = json.Unmarshal(raw, &payload)
@@ -949,6 +1014,12 @@ func parseConfigCommandPayload(raw json.RawMessage) configCommandPayload {
 
 func parseUpgradeCommandPayload(raw json.RawMessage) upgradeCommandPayload {
 	var payload upgradeCommandPayload
+	_ = json.Unmarshal(raw, &payload)
+	return payload
+}
+
+func parseServiceControlCommandPayload(raw json.RawMessage) serviceControlCommandPayload {
+	var payload serviceControlCommandPayload
 	_ = json.Unmarshal(raw, &payload)
 	return payload
 }

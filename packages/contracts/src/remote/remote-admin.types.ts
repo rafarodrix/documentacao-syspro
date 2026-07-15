@@ -54,6 +54,7 @@ export type RemoteAgentCommandType =
   | "REAPPLY_ALIAS"
   | "REAPPLY_CONFIG"
   | "UPGRADE_CLIENT"
+  | "SERVICE_CONTROL"
   | "ROTATE_TOKEN_REQUIRED";
 export type RemoteAgentCommandStatus = "PENDING" | "DELIVERED" | "ACKNOWLEDGED" | "CANCELLED" | "FAILED";
 export type RemoteSessionAuditSource = "UI" | "WEBHOOK" | "JOB" | "AGENT" | "API";
@@ -567,6 +568,7 @@ export const remoteAgentCommandTypeSchema = z.enum([
   "REAPPLY_ALIAS",
   "REAPPLY_CONFIG",
   "UPGRADE_CLIENT",
+  "SERVICE_CONTROL",
   "ROTATE_TOKEN_REQUIRED",
 ]);
 export const remoteAgentCommandStatusSchema = z.enum(["PENDING", "DELIVERED", "ACKNOWLEDGED", "CANCELLED", "FAILED"]);

@@ -33,6 +33,7 @@ const (
 	RemoteSyncCommandReapplyAlias        RemoteSyncCommandType = "REAPPLY_ALIAS"
 	RemoteSyncCommandReapplyConfig       RemoteSyncCommandType = "REAPPLY_CONFIG"
 	RemoteSyncCommandUpgradeClient       RemoteSyncCommandType = "UPGRADE_CLIENT"
+	RemoteSyncCommandServiceControl      RemoteSyncCommandType = "SERVICE_CONTROL"
 	RemoteSyncCommandRotateTokenRequired RemoteSyncCommandType = "ROTATE_TOKEN_REQUIRED"
 )
 
@@ -165,6 +166,7 @@ type RemoteSyncRequest struct {
 	SysproProcesses     any    `json:"sysproProcesses,omitempty"`
 	SysproVersions      any    `json:"sysproVersions,omitempty"`
 	WindowsUpdateStatus any    `json:"windowsUpdateStatus,omitempty"`
+	AllServicesSnapshot any    `json:"allServicesSnapshot,omitempty"`
 	RebootPending       any    `json:"rebootPending,omitempty"`
 	AgentMetrics        any    `json:"agentMetrics,omitempty"`
 }

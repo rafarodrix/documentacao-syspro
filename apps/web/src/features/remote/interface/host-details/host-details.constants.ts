@@ -29,12 +29,13 @@ export const EXPECTED_SCHEMA_VERSIONS = {
 } as const;
 
 export const AGENT_COMMAND_LABEL: Record<
-  "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED",
+  "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED",
   string
 > = {
   REAPPLY_ALIAS: "Reaplicar alias",
   REAPPLY_CONFIG: "Reaplicar configuracao",
   UPGRADE_CLIENT: "Atualizar cliente",
+  SERVICE_CONTROL: "Controlar servico",
   ROTATE_TOKEN_REQUIRED: "Renovacao de credencial obrigatoria",
 };
 

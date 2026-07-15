@@ -4,6 +4,11 @@ import { TrpcService } from '../trpc/trpc.service';
 import { RemoteAdminService } from './remote-admin.service';
 
 const hostActionSchema = z.enum(['REBOOTSTRAP', 'RESEND_CONFIG', 'REAPPLY_ALIAS', 'UPGRADE_CLIENT']);
+const serviceControlSchema = z.object({
+  hostId: z.string(),
+  serviceName: z.string().trim().min(1),
+  action: z.enum(['start', 'stop', 'restart']),
+});
 
 const sessionFilterSchema = z.object({
   status: z
@@ -92,6 +97,12 @@ export class RemoteAdminRouter {
         .input(z.object({ hostId: z.string(), action: hostActionSchema }))
         .mutation(({ input, ctx }) =>
           this.remoteAdminService.enqueueHostAction(input.hostId, input.action, ctx.headers),
+        ),
+
+      enqueueServiceControl: this.trpc.publicProcedure
+        .input(serviceControlSchema)
+        .mutation(({ input, ctx }) =>
+          this.remoteAdminService.enqueueServiceControl(input.hostId, input.serviceName, input.action, ctx.headers),
         ),
 
       updateCompanyContext: this.trpc.publicProcedure

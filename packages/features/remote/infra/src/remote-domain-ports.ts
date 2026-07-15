@@ -38,6 +38,9 @@ function buildInstallToken() {
   return `rhost_${randomBytes(12).toString("hex")}`;
 }
 
+const DERIVED_COMMAND_TYPES = ["REAPPLY_ALIAS", "REAPPLY_CONFIG", "UPGRADE_CLIENT", "ROTATE_TOKEN_REQUIRED"] as const;
+const DELIVERABLE_COMMAND_TYPES = [...DERIVED_COMMAND_TYPES, "SERVICE_CONTROL"] as const;
+
 type RemoteLogger = {
   info(event: string, fields?: Record<string, unknown>): void;
   warn(event: string, fields?: Record<string, unknown>): void;
@@ -415,9 +418,9 @@ export async function revokeExpiredSyncAgentToken(agentToken?: string | null) {
 export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: string | null }): RemoteSyncPort {
   const { logger, requestIp } = params;
 
-  function mapDeliveredCommandType(value: string): "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED" {
-    if (["REAPPLY_ALIAS", "REAPPLY_CONFIG", "UPGRADE_CLIENT", "ROTATE_TOKEN_REQUIRED"].includes(value)) {
-      return value as "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED";
+  function mapDeliveredCommandType(value: string): "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED" {
+    if (DELIVERABLE_COMMAND_TYPES.includes(value as (typeof DELIVERABLE_COMMAND_TYPES)[number])) {
+      return value as "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED";
     }
     return "REAPPLY_CONFIG";
   }
@@ -524,6 +527,7 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
         diskSnapshotCount: record.diskSnapshot.length,
         sysproProcessCount: record.sysproProcesses.length,
         hasWindowsUpdateStatus: !!record.windowsUpdateStatus,
+        allServicesCount: record.allServicesSnapshot.length,
         rebootPending: record.rebootPending,
       });
 
@@ -573,6 +577,8 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
               lastSysproVersionSnapshotAt: record.sysproVersions ? record.heartbeatAt : undefined,
               lastWindowsUpdateStatus: record.windowsUpdateStatus ? toJsonValue(record.windowsUpdateStatus) : undefined,
               lastWindowsUpdateStatusAt: record.windowsUpdateStatus ? record.heartbeatAt : undefined,
+              lastAllServicesSnapshot: record.allServicesSnapshot.length ? toJsonValue(record.allServicesSnapshot) : undefined,
+              lastAllServicesSnapshotAt: record.allServicesSnapshot.length ? record.heartbeatAt : undefined,
               lastRebootPending: typeof record.rebootPending === "boolean" ? record.rebootPending : undefined,
               lastRebootPendingAt: typeof record.rebootPending === "boolean" ? record.heartbeatAt : undefined,
               lastAgentMetrics: record.agentMetrics ? toJsonValue(record.agentMetrics) : undefined,
@@ -642,8 +648,9 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
           for (const command of existingCommands) {
             if (
               command.status === "PENDING" &&
-              (!Object.values(COMMAND_TYPE_MAP).includes(command.type as any) ||
-                (command.type !== "ROTATE_TOKEN_REQUIRED" && !desiredTypes.includes(command.type as any)))
+              DERIVED_COMMAND_TYPES.includes(command.type as (typeof DERIVED_COMMAND_TYPES)[number]) &&
+              command.type !== "ROTATE_TOKEN_REQUIRED" &&
+              !desiredTypes.includes(command.type as any)
             ) {
               await tx.remoteAgentCommand.update({
                 where: { id: command.id },

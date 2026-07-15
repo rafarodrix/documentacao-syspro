@@ -61,6 +61,20 @@ export class RemotePortalController {
     return this.remoteAdminService.deleteRemoteHost(id, req.headers);
   }
 
+  @Post('hosts/:id/service-control')
+  controlHostService(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { serviceName?: string; action?: 'start' | 'stop' | 'restart' },
+  ) {
+    const serviceName = body?.serviceName?.trim();
+    const action = body?.action;
+    if (!serviceName || (action !== 'start' && action !== 'stop' && action !== 'restart')) {
+      return { success: false, error: 'Controle de servico remoto invalido.' };
+    }
+    return this.remoteAdminService.enqueueServiceControl(id, serviceName, action, req.headers);
+  }
+
   @Post('hosts/:id/agent-token')
   rotateHostAgentToken(@Req() req: Request, @Param('id') id: string) {
     return this.remoteAdminService.rotateRemoteHostAgentToken(id, req.headers);
