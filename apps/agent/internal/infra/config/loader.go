@@ -83,11 +83,7 @@ func getEnvBool(key string, fallback bool) bool {
 // On Windows this is %ProgramData%\Trilink\Agent\.env, readable by SYSTEM and users.
 func DefaultEnvFilePath() string {
 	if runtime.GOOS == "windows" {
-		programData := os.Getenv("ProgramData")
-		if programData == "" {
-			programData = `C:\ProgramData`
-		}
-		return filepath.Join(programData, "Trilink", "Agent", ".env")
+		return filepath.Join(defaultWindowsRuntimeRoot(), ".env")
 	}
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
 		return filepath.Join(home, ".trilink", "agent", ".env")
@@ -141,11 +137,7 @@ func getStateDir() string {
 	}
 
 	if runtime.GOOS == "windows" {
-		programData := os.Getenv("ProgramData")
-		if programData == "" {
-			programData = `C:\ProgramData`
-		}
-		return filepath.Join(programData, "Trilink", "agent")
+		return defaultWindowsRuntimeRoot()
 	}
 
 	home, err := os.UserHomeDir()
@@ -153,4 +145,12 @@ func getStateDir() string {
 		return filepath.Join(".", ".trilink", "agent")
 	}
 	return filepath.Join(home, ".trilink", "agent")
+}
+
+func defaultWindowsRuntimeRoot() string {
+	programData := os.Getenv("ProgramData")
+	if programData == "" {
+		programData = `C:\ProgramData`
+	}
+	return filepath.Join(programData, "Trilink", "Agent")
 }

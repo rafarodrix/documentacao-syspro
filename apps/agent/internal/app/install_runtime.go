@@ -15,6 +15,10 @@ import (
 // Windows service before SCM registration/start. This keeps installer startup
 // logic inside the Go binary rather than PowerShell wrappers.
 func PrepareInstallRuntime(exePath string) error {
+	return ensureRuntimeLayout(exePath)
+}
+
+func ensureRuntimeLayout(exePath string) error {
 	stateDir := config.DefaultStateDir()
 	envTarget := config.DefaultEnvFilePath()
 	installRoot := filepath.Dir(exePath)
@@ -29,40 +33,47 @@ func PrepareInstallRuntime(exePath string) error {
 		return fmt.Errorf("create env dir: %w", err)
 	}
 
-	if _, err := os.Stat(envTarget); os.IsNotExist(err) {
-		seedCandidates := []string{
-			filepath.Join(installRoot, "config", ".env"),
-			filepath.Join(installRoot, "config", ".env.example"),
-		}
-
-		seeded := false
-		for _, candidate := range seedCandidates {
-			if _, statErr := os.Stat(candidate); statErr == nil {
-				data, readErr := os.ReadFile(candidate)
-				if readErr != nil {
-					return fmt.Errorf("read env seed %s: %w", candidate, readErr)
-				}
-				if writeErr := os.WriteFile(envTarget, data, 0o600); writeErr != nil {
-					return fmt.Errorf("write env seed %s: %w", envTarget, writeErr)
-				}
-				seeded = true
-				break
-			}
-		}
-
-		if !seeded {
-			if err := os.WriteFile(envTarget, []byte("# Trilink Agent runtime config\n"), 0o600); err != nil {
-				return fmt.Errorf("create empty env file: %w", err)
-			}
-		}
-	} else if err != nil {
-		return fmt.Errorf("stat env target: %w", err)
+	if err := seedRuntimeEnvIfMissing(envTarget, installRoot); err != nil {
+		return err
 	}
 
 	if err := ensureEnvKey(envTarget, "AGENT_IPC_TOKEN", generateInstallToken()); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func seedRuntimeEnvIfMissing(envTarget, installRoot string) error {
+	if _, err := os.Stat(envTarget); err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("stat env target: %w", err)
+	}
+
+	seedCandidates := []string{
+		filepath.Join(installRoot, "config", ".env"),
+		filepath.Join(installRoot, "config", ".env.example"),
+	}
+
+	for _, candidate := range seedCandidates {
+		if _, statErr := os.Stat(candidate); statErr != nil {
+			continue
+		}
+
+		data, readErr := os.ReadFile(candidate)
+		if readErr != nil {
+			return fmt.Errorf("read env seed %s: %w", candidate, readErr)
+		}
+		if writeErr := os.WriteFile(envTarget, data, 0o600); writeErr != nil {
+			return fmt.Errorf("write env seed %s: %w", envTarget, writeErr)
+		}
+		return nil
+	}
+
+	if err := os.WriteFile(envTarget, []byte("# Trilink Agent runtime config\n"), 0o600); err != nil {
+		return fmt.Errorf("create empty env file: %w", err)
+	}
 	return nil
 }
 

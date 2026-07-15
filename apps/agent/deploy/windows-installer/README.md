@@ -137,6 +137,10 @@ Se nao existir, o pacote usa:
 
 O instalador nao sobrescreve `C:\ProgramData\Trilink\Agent\.env` se esse arquivo ja existir na maquina.
 
+Se o arquivo de runtime em `C:\ProgramData\Trilink\Agent\.env` for removido depois da instalacao,
+o servico tenta resemeá-lo automaticamente no proximo boot usando `C:\Program Files\Trilink\Agente\config\.env`
+ou `config\.env.example` como fallback, sem sobrescrever configuracoes ja existentes.
+
 ## Pre-requisito externo
 
 O `Microsoft Edge WebView2 Runtime` deve existir na maquina para a UI Wails abrir.

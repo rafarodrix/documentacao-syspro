@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -106,6 +107,13 @@ func loadEnvFile() {
 func LoadEnvFile() {
 	stateDir := config.DefaultStateDir()
 	path := config.DefaultEnvFilePath()
+	if exePath, err := os.Executable(); err == nil {
+		if err := ensureRuntimeLayout(exePath); err != nil {
+			log.Printf("warn: could not prepare runtime layout: %v", err)
+		}
+	} else {
+		log.Printf("warn: could not resolve executable for runtime layout: %v", err)
+	}
 
 	// Load DPAPI-protected secrets first so encrypted values take precedence.
 	loadSecretsIntoEnv(stateDir)

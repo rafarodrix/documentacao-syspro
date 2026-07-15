@@ -6,6 +6,31 @@ function normalizeNullable(value?: string | null): string | null {
   return next ? next : null;
 }
 
+function resolveLinkedBootstrapState(input: {
+  agentTokenHash: string | null;
+  lastHeartbeatErrorMessage: string | null;
+}) {
+  const hasMissingToken = !input.agentTokenHash;
+  const hasInvalidToken =
+    !hasMissingToken &&
+    !!input.lastHeartbeatErrorMessage
+      ?.toLowerCase()
+      .match(/agenttoken (invalido|expirado|rotacionado|indisponivel)/);
+
+  const bootstrapFlow = hasMissingToken
+    ? "host_bootstrap_required"
+    : hasInvalidToken
+      ? "token_invalid"
+      : "linked_host_detected";
+
+  return {
+    bootstrapFlow,
+    requiresBootstrapToken:
+      bootstrapFlow === "host_bootstrap_required" ||
+      bootstrapFlow === "token_invalid",
+  };
+}
+
 export async function processDiscover(
   payload: unknown,
   deps: {
@@ -32,6 +57,7 @@ export async function processDiscover(
 
   const heartbeatAt = deps.now ? deps.now() : new Date();
   const normalizedUpdates = deps.port.normalizeSysproUpdates(input.sysproUpdates);
+  const serializedSnapshot = deps.port.serializeSysproUpdatesSnapshot(normalizedUpdates);
   const normalizedMetrics = deps.port.normalizeSystemMetrics(input.systemMetrics);
   const serviceStatus = normalizeNullable(input.serviceStatus);
   const transitions = deps.port.getTransitions();
@@ -70,7 +96,7 @@ export async function processDiscover(
         provider: normalizeNullable(input.provider) ?? "RustDesk",
         description: normalizeNullable(input.description),
         serviceStatus,
-        installationsSnapshot: deps.port.serializeSysproUpdatesSnapshot(normalizedUpdates),
+        installationsSnapshot: serializedSnapshot,
         systemMetrics: normalizedMetrics,
         lastHeartbeatAt: heartbeatAt,
         linkedAt: discoveredHost.linkedAt ?? heartbeatAt,
@@ -82,21 +108,10 @@ export async function processDiscover(
         ? await deps.port.updateDiscoveredHost(discoveredHost.id, linkedPayload)
         : await deps.port.createDiscoveredHost(linkedPayload);
 
-      const hasMissingToken = !linkedHost.agentTokenHash;
-      const hasInvalidToken =
-        !hasMissingToken &&
-        !!linkedHost.lastHeartbeatErrorMessage
-          ?.toLowerCase()
-          .match(/agenttoken (invalido|expirado|rotacionado|indisponivel)/);
-
-      const bootstrapFlow = hasMissingToken
-        ? "host_bootstrap_required"
-        : hasInvalidToken
-          ? "token_invalid"
-          : "linked_host_detected";
-      const requiresBootstrapToken =
-        bootstrapFlow === "host_bootstrap_required" ||
-        bootstrapFlow === "token_invalid";
+      const { bootstrapFlow, requiresBootstrapToken } = resolveLinkedBootstrapState({
+        agentTokenHash: linkedHost.agentTokenHash,
+        lastHeartbeatErrorMessage: linkedHost.lastHeartbeatErrorMessage,
+      });
       const installToken = requiresBootstrapToken
         ? await deps.port.issueBootstrapInstallToken(linkedHost.id)
         : null;
@@ -128,6 +143,58 @@ export async function processDiscover(
     }
   }
 
+  const autoLinked = await deps.port.tryAutoLinkDiscoveredHost({
+    discoveredHostId: discoveredHost?.id ?? null,
+    machineName,
+    agentExternalId: rustdeskId,
+    agentVersion: normalizeNullable(input.agentVersion),
+    environment: normalizeNullable(input.environment),
+    provider: normalizeNullable(input.provider) ?? "RustDesk",
+    description: normalizeNullable(input.description),
+    serviceStatus,
+    installationsSnapshot: serializedSnapshot,
+    lastHeartbeatAt: heartbeatAt,
+  });
+
+  if (autoLinked) {
+    if (normalizedMetrics) {
+      await deps.port.updateLinkedHostMetrics(autoLinked.hostId, normalizedMetrics);
+    }
+
+    const { bootstrapFlow, requiresBootstrapToken } = resolveLinkedBootstrapState({
+      agentTokenHash: autoLinked.agentTokenHash,
+      lastHeartbeatErrorMessage: autoLinked.lastHeartbeatErrorMessage,
+    });
+    const installToken = requiresBootstrapToken
+      ? await deps.port.issueBootstrapInstallToken(autoLinked.hostId)
+      : null;
+
+    const transition = bootstrapFlow === "host_bootstrap_required"
+      ? transitions.host_bootstrap_required
+      : bootstrapFlow === "token_invalid"
+        ? transitions.token_invalid
+        : transitions.linked_host_detected;
+
+    const message = bootstrapFlow === "host_bootstrap_required"
+      ? "Maquina vinculada automaticamente por match unico de empresa. Execute o bootstrap autenticado para emitir nova credencial."
+      : bootstrapFlow === "token_invalid"
+        ? "Maquina vinculada automaticamente, mas a credencial atual foi invalidada/expirada. Execute o bootstrap autenticado para renovar o agentToken."
+        : "Maquina vinculada automaticamente por match unico de empresa.";
+
+    return {
+      contractVersion: "discover.v2",
+      mode: "linked",
+      discoveredHostId: autoLinked.discoveredHostId,
+      hostId: autoLinked.hostId,
+      hostName: autoLinked.hostName,
+      installToken: installToken ?? undefined,
+      heartbeatAuth: "agentToken",
+      bootstrapFlow,
+      transition,
+      message,
+    };
+  }
+
   const payloadToPersist = {
     machineName,
     agentExternalId: rustdeskId ?? null,
@@ -136,7 +203,7 @@ export async function processDiscover(
     provider: normalizeNullable(input.provider) ?? "RustDesk",
     description: normalizeNullable(input.description),
     serviceStatus,
-    installationsSnapshot: deps.port.serializeSysproUpdatesSnapshot(normalizedUpdates),
+    installationsSnapshot: serializedSnapshot,
     systemMetrics: normalizedMetrics,
     lastHeartbeatAt: heartbeatAt,
     status: "PENDING_LINK" as const,

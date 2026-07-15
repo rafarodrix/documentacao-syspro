@@ -28,6 +28,7 @@ import {
   isRemoteHostAgentExternalIdUniqueError,
   throwRemoteHostAgentExternalIdConflict,
 } from "./remote-host-agent-external-id";
+import { linkDiscoveredHostRecord, resolveAutoLinkCompanyId } from "./discovered-host-linking";
 import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
   REMOTE_MODULE_SETTINGS_KEY,
@@ -181,6 +182,77 @@ export function createRemoteDiscoverPort(params: {
       }
 
       return host;
+    },
+    async tryAutoLinkDiscoveredHost(input) {
+      const machineName = input.machineName?.trim() || null;
+      if (!machineName) {
+        return null;
+      }
+
+      const companyId = await resolveAutoLinkCompanyId({
+        installationsSnapshot: input.installationsSnapshot,
+      });
+      if (!companyId) {
+        return null;
+      }
+
+      const discoveredHostId = input.discoveredHostId?.trim() || null;
+      let effectiveDiscoveredHostId = discoveredHostId;
+
+      if (!effectiveDiscoveredHostId) {
+        const created = await prisma.remoteDiscoveredHost.create({
+          data: {
+            machineName,
+            agentExternalId: input.agentExternalId,
+            agentVersion: input.agentVersion,
+            environment: input.environment,
+            provider: input.provider,
+            description: input.description,
+            serviceStatus: input.serviceStatus,
+            installationsSnapshot: toJsonValue(input.installationsSnapshot),
+            lastHeartbeatAt: input.lastHeartbeatAt,
+            status: "PENDING_LINK",
+            linkedHostId: null,
+          },
+          select: { id: true },
+        });
+        effectiveDiscoveredHostId = created.id;
+      }
+
+      let result;
+      try {
+        result = await linkDiscoveredHostRecord({
+          discoveredHostId: effectiveDiscoveredHostId,
+          companyId,
+          name: machineName,
+        });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : "AUTO_LINK_FAILED";
+        if (
+          code === "HOST_AGENT_EXTERNAL_ID_CONFLICT" ||
+          code === "HOST_MACHINE_NAME_CONFLICT" ||
+          code === "HOST_AGENT_EXTERNAL_ID_INVALID"
+        ) {
+          logger.warn("remote.domain.discover.auto_link_skipped", {
+            discoveredHostId: effectiveDiscoveredHostId,
+            machineName,
+            companyId,
+            code,
+          });
+          return null;
+        }
+        throw error;
+      }
+
+      logger.info("remote.domain.discover.auto_linked", {
+        discoveredHostId: result.discoveredHostId,
+        hostId: result.hostId,
+        hostName: result.hostName,
+        companyId,
+        created: result.created,
+      });
+
+      return result;
     },
     async issueBootstrapInstallToken(hostId) {
       const updatedHost = await prisma.remoteHost.update({

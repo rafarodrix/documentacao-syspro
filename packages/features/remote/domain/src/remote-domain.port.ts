@@ -347,6 +347,15 @@ export type RemoteDiscoverLinkedHost = {
   lastHeartbeatErrorMessage: string | null;
 };
 
+export type RemoteDiscoverAutoLinkResult = {
+  discoveredHostId: string;
+  hostId: string;
+  hostName: string;
+  installToken: string | null;
+  agentTokenHash: string | null;
+  lastHeartbeatErrorMessage: string | null;
+};
+
 export type ProcessedDiscoverPayload = {
   machineName: string | null;
   agentExternalId: string | null;
@@ -372,6 +381,18 @@ export interface RemoteDiscoverPort {
   getTransitions(): RemoteDiscoverTransitionMap;
   findDiscoveredHost(input: { rustdeskId: string | null; machineName: string | null }): Promise<RemoteDiscoverExistingHost | null>;
   findLinkedHost(linkedHostId: string): Promise<RemoteDiscoverLinkedHost | null>;
+  tryAutoLinkDiscoveredHost(input: {
+    discoveredHostId: string | null;
+    machineName: string | null;
+    agentExternalId: string | null;
+    agentVersion: string | null;
+    environment: string | null;
+    provider: string;
+    description: string | null;
+    serviceStatus: string | null;
+    installationsSnapshot: unknown;
+    lastHeartbeatAt: Date;
+  }): Promise<RemoteDiscoverAutoLinkResult | null>;
   issueBootstrapInstallToken(hostId: string): Promise<string>;
   updateDiscoveredHost(id: string, payload: ProcessedDiscoverPayload): Promise<{ id: string }>;
   createDiscoveredHost(payload: ProcessedDiscoverPayload): Promise<{ id: string }>;

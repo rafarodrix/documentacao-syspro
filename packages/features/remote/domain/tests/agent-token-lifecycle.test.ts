@@ -117,6 +117,7 @@ function buildDiscoverPort(overrides: Partial<RemoteDiscoverPort> = {}): RemoteD
       agentTokenHash: "token-hash",
       lastHeartbeatErrorMessage: null,
     })),
+    tryAutoLinkDiscoveredHost: vi.fn(async () => null),
     issueBootstrapInstallToken: vi.fn(async () => "rhost_token"),
     updateDiscoveredHost: vi.fn(async () => ({ id: "disc-1" })),
     createDiscoveredHost: vi.fn(async () => ({ id: "disc-2" })),
@@ -613,6 +614,73 @@ describe("agent token lifecycle", () => {
     expect(result.bootstrapFlow).toBe("linked_host_detected");
     expect(result.installToken).toBeUndefined();
     expect(issueBootstrapInstallToken).not.toHaveBeenCalled();
+  });
+
+  it("auto-links discover when there is a single safe company match", async () => {
+    const tryAutoLinkDiscoveredHost = vi.fn(async () => ({
+      discoveredHostId: "disc-auto",
+      hostId: "host-auto",
+      hostName: "ERP-MATRIZ-01",
+      installToken: "rhost_auto",
+      agentTokenHash: null,
+      lastHeartbeatErrorMessage: null,
+    }));
+    const issueBootstrapInstallToken = vi.fn(async () => "rhost_auto_rotated");
+    const port = buildDiscoverPort({
+      findDiscoveredHost: vi.fn(async () => null),
+      tryAutoLinkDiscoveredHost,
+      issueBootstrapInstallToken,
+      createDiscoveredHost: vi.fn(async () => ({ id: "disc-pending" })),
+    });
+
+    const result = await processDiscover(
+      {
+        schemaVersion: "discover.payload.v1",
+        discoveryToken: "DISCOVERY_TOKEN",
+        rustdeskId: "21187620068",
+        machineName: "ERP-MATRIZ-01",
+        sysproUpdates: [{ empresa: "Cliente Trilink", caminho: "C:\\Syspro\\Server\\SysproServer.exe" }],
+      },
+      { port },
+    );
+
+    expect(result.mode).toBe("linked");
+    expect(result.hostId).toBe("host-auto");
+    expect(result.discoveredHostId).toBe("disc-auto");
+    expect(result.bootstrapFlow).toBe("host_bootstrap_required");
+    expect(result.installToken).toBe("rhost_auto_rotated");
+    expect(tryAutoLinkDiscoveredHost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        discoveredHostId: null,
+        machineName: "ERP-MATRIZ-01",
+      }),
+    );
+    expect(port.createDiscoveredHost).not.toHaveBeenCalled();
+  });
+
+  it("keeps discover pending when auto-link does not find a single safe match", async () => {
+    const tryAutoLinkDiscoveredHost = vi.fn(async () => null);
+    const port = buildDiscoverPort({
+      findDiscoveredHost: vi.fn(async () => null),
+      tryAutoLinkDiscoveredHost,
+      createDiscoveredHost: vi.fn(async () => ({ id: "disc-pending" })),
+    });
+
+    const result = await processDiscover(
+      {
+        schemaVersion: "discover.payload.v1",
+        discoveryToken: "DISCOVERY_TOKEN",
+        rustdeskId: "21187620068",
+        machineName: "ERP-MATRIZ-01",
+        sysproUpdates: [{ empresa: "Empresa Ambigua", caminho: "C:\\Syspro\\Server\\SysproServer.exe" }],
+      },
+      { port },
+    );
+
+    expect(result.mode).toBe("pending");
+    expect(result.discoveredHostId).toBe("disc-pending");
+    expect(tryAutoLinkDiscoveredHost).toHaveBeenCalled();
+    expect(port.createDiscoveredHost).toHaveBeenCalled();
   });
 
 

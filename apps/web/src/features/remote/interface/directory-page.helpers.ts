@@ -1,3 +1,4 @@
+import { normalizeSearchText } from "@dosc-syspro/shared";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 
@@ -208,4 +209,20 @@ export function buildPendingTooltip(item: RemotePlatformDirectory["pendingItems"
     return `Instalações: ${item.installationCompanies.join(" | ")}`;
   }
   return "Nenhuma instalação Syspro detectada no último heartbeat.";
+}
+
+export function matchesPendingCompanyFilter(
+  item: RemotePlatformDirectory["pendingItems"][number],
+  companyFilter: string,
+  selectedCompanyLabel: string | null,
+): boolean {
+  if (companyFilter === "all") return true;
+  if (!item.installationCompanies.length) return true;
+
+  const normalizedSelectedCompany = normalizeSearchText(selectedCompanyLabel, { preserveSeparators: false });
+  if (!normalizedSelectedCompany.length) return false;
+
+  return item.installationCompanies.some((company) =>
+    normalizeSearchText(company, { preserveSeparators: false }).includes(normalizedSelectedCompany),
+  );
 }

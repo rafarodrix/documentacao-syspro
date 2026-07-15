@@ -226,7 +226,7 @@ Verifique primeiro:
 - `REMOTE_DISCOVERY_TOKEN`
 - `SUPPORT_CHATWOOT_WEBSITE_TOKEN`
 - se o dominio configurado realmente expone as rotas `/api/remote/...`
-- se o host foi vinculado no portal
+- se o host foi vinculado no portal, ou se a empresa detectada pelo snapshot Syspro gera match unico para auto-vinculo seguro
 - se a configuracao `Agente Trilink > Remoto` tem instalador e SHA256 validos para downloads HTTP/HTTPS
 - se a maquina nao esta carregando um pacote antigo do agente anterior a remocao do `REMOTE_INSTALL_TOKEN` local
 
@@ -236,6 +236,7 @@ Diagnostico rapido pelos logs:
 - nesse caso, a maquina ainda esta executando algum helper/script legado e instalar por cima nao garante limpeza suficiente
 - a acao correta passa a ser parar/remover o servico anterior, limpar o estado local e reinstalar com o pacote novo
 - se o agente novo estiver comunicando corretamente, os requests de `discover`/`bootstrap`/`sync` aparecem com `user-agent = trilink-agent` ou `trilink-agent/<versao>`
+- quando o snapshot Syspro apontar uma unica empresa valida, o backend pode converter o `discover` direto para host vinculado sem etapa manual no portal
 - no log local do `agent-service`, a sequencia esperada e `remote discover completed` seguida de `sync completed`
 
 ## Observacao de arquitetura

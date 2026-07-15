@@ -33,6 +33,7 @@ import {
   formatRustDeskDisplay,
   getExtraCompanyCount,
   getHeartbeatMetaAt,
+  matchesPendingCompanyFilter,
   getPrimaryCompanyLabel,
 } from "@/features/remote/interface/directory-page.helpers";
 import { HostDirectoryActionsMenu } from "@/features/remote/interface/host-directory-actions-menu";
@@ -398,10 +399,7 @@ export function RemotePlatformDirectoryPanel({
     return directory.pendingItems
       .filter((item) => {
         const haystack = normalizeSearchValue([item.machineName, item.rustdeskId, item.agentVersion, item.provider, item.description, item.installationCompanies.join(" ")].filter(Boolean).join(" "));
-        const normalizedSelectedCompany = normalizeSearchValue(selectedCompanyLabel);
-        const matchesCompany =
-          companyFilter === "all" ||
-          (normalizedSelectedCompany.length > 0 && item.installationCompanies.some((company) => normalizeSearchValue(company).includes(normalizedSelectedCompany)));
+        const matchesCompany = matchesPendingCompanyFilter(item, companyFilter, selectedCompanyLabel);
         return (!term || haystack.includes(term)) && matchesCompany;
       })
       .sort((a, b) => {
