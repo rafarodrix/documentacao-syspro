@@ -40,6 +40,10 @@ func (c *Collector) CollectServices(_ []SysproInstallTarget) (*SysproProcessSnap
 	return &SysproProcessSnapshot{CollectedAt: nowRFC3339()}, nil
 }
 
+func (c *Collector) CollectAllServices() (*AllServicesSnapshot, error) {
+	return &AllServicesSnapshot{CollectedAt: nowRFC3339()}, nil
+}
+
 func (c *Collector) rebootPending() bool { return false }
 
 func (c *Collector) readExeVersion(_ string) string { return "" }

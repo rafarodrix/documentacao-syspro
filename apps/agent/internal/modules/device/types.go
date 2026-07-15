@@ -103,8 +103,16 @@ type ServiceStatus struct {
 	Name        string `json:"name"`                // ServiceName no SCM
 	DisplayName string `json:"displayName"`         // nome amigavel para exibicao
 	Status      string `json:"status"`              // "running" | "stopped" | "starting" | "stopping" | "not_installed" | "error"
+	StartType   string `json:"startType,omitempty"` // "auto" | "manual" | "disabled" | "delayed_auto" | "unknown"
 	PID         uint32 `json:"pid,omitempty"`       // 0 se nao estiver rodando
 	CompanyID   string `json:"companyId,omitempty"` // preenchido para servicos vinculados a empresa
+}
+
+// AllServicesSnapshot lista todos os servicos Windows registrados no SCM.
+// Coletado a cada 4 ciclos (~3 min) junto com o inventario geral.
+type AllServicesSnapshot struct {
+	CollectedAt string          `json:"collectedAt"`
+	Services    []ServiceStatus `json:"services"`
 }
 
 // SysproVersionSnapshot contem a versao e estado dos executaveis de cada instalacao Syspro.

@@ -6,4 +6,3 @@ export { TicketsFilters } from "@/features/tickets/interface/components/tickets-
 export { TicketsStats } from "@/features/tickets/interface/components/tickets-stats";
 export { TicketsTable } from "@/features/tickets/interface/components/tickets-table";
 export { TicketsSummary } from "@/features/tickets/interface/components/tickets-summary";
-export * from "./hooks";

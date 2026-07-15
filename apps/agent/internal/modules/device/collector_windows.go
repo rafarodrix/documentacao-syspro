@@ -350,6 +350,74 @@ func svcStateToString(state svc.State) string {
 	}
 }
 
+func svcStartTypeToString(startType uint32) string {
+	switch startType {
+	case windows.SERVICE_AUTO_START:
+		return "auto"
+	case windows.SERVICE_DEMAND_START:
+		return "manual"
+	case windows.SERVICE_DISABLED:
+		return "disabled"
+	case windows.SERVICE_BOOT_START, windows.SERVICE_SYSTEM_START:
+		return "auto"
+	default:
+		return "unknown"
+	}
+}
+
+// CollectAllServices enumera todos os servicos Windows registrados no SCM.
+// Usa mgr.ListServices + Config + Query para obter nome, status e tipo de inicio.
+// Custo ~20-50ms para ~200-300 servicos tipicos. Zero PowerShell.
+func (c *Collector) CollectAllServices() (*AllServicesSnapshot, error) {
+	m, err := mgr.Connect()
+	if err != nil {
+		return nil, fmt.Errorf("connect to SCM: %w", err)
+	}
+	defer m.Disconnect()
+
+	names, err := m.ListServices()
+	if err != nil {
+		return nil, fmt.Errorf("list services: %w", err)
+	}
+
+	snap := &AllServicesSnapshot{CollectedAt: nowRFC3339()}
+	snap.Services = make([]ServiceStatus, 0, len(names))
+
+	for _, name := range names {
+		s, openErr := m.OpenService(name)
+		if openErr != nil {
+			continue
+		}
+
+		cfg, cfgErr := s.Config()
+		q, qErr := s.Query()
+		s.Close()
+
+		entry := ServiceStatus{
+			Name: name,
+		}
+
+		if cfgErr == nil {
+			entry.DisplayName = cfg.DisplayName
+			entry.StartType = svcStartTypeToString(cfg.StartType)
+		} else {
+			entry.DisplayName = name
+			entry.StartType = "unknown"
+		}
+
+		if qErr == nil {
+			entry.Status = svcStateToString(q.State)
+			entry.PID = q.ProcessId
+		} else {
+			entry.Status = "error"
+		}
+
+		snap.Services = append(snap.Services, entry)
+	}
+
+	return snap, nil
+}
+
 // readExeVersion le ProductVersion de um executavel PE via GetFileVersionInfoW + VerQueryValueW.
 // Zero PowerShell, zero subprocess, funciona em Session 0 (LocalSystem). Custo ~0ms.
 func (c *Collector) readExeVersion(exePath string) string {

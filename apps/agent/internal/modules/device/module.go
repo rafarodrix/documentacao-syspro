@@ -26,6 +26,7 @@ type Module struct {
 	lastWindowsUpdate *WindowsUpdateStatusSnapshot
 	lastDisks         *DiskVolumeSnapshot
 	lastServices      *SysproProcessSnapshot
+	lastAllServices   *AllServicesSnapshot
 	lastVersions      *SysproVersionSnapshot
 }
 
@@ -133,6 +134,14 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 			m.lastDisks = disks
 			m.mu.Unlock()
 		}
+
+		if allSvc, err := m.collector.CollectAllServices(); err != nil {
+			m.logger.Warn("device: collect all services failed", "error", err)
+		} else {
+			m.mu.Lock()
+			m.lastAllServices = allSvc
+			m.mu.Unlock()
+		}
 	}
 
 	// Versao SysproServer: a cada 80 ciclos (~1h) ou na primeira execucao
@@ -168,7 +177,7 @@ func (m *Module) GetLastSnapshot() (
 //   - rebootPending: *bool (boolean JSON) — normalizeOptionalBooleanWithWarning
 //
 // Retorna nil em cada campo enquanto a primeira coleta nao ocorreu.
-func (m *Module) GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate any, rebootPending *bool) {
+func (m *Module) GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate, allServices any, rebootPending *bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if m.lastMetrics != nil {
@@ -199,6 +208,9 @@ func (m *Module) GetSyncSnapshots() (metrics, system, network, software, hardwar
 	}
 	if m.lastWindowsUpdate != nil {
 		windowsUpdate = m.lastWindowsUpdate
+	}
+	if m.lastAllServices != nil {
+		allServices = m.lastAllServices.Services // array completo de ServiceStatus
 	}
 	return
 }

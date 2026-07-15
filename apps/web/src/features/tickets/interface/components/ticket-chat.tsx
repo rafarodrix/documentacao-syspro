@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { DEFAULT_TICKET_MODULE_SETTINGS, TICKET_ATTACHMENT_ACCEPT_ATTRIBUTE } from "@dosc-syspro/contracts/ticket";
-import { useTicketChat } from "@/features/tickets/interface";
+import { useTicketChat } from "@/features/tickets/interface/hooks/use-ticket-chat";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { Avatar, AvatarFallback, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, ScrollArea, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { AlertCircle, Bot, Film, Headset, History, ImageIcon, Loader2, MessageSquareText, Mic, Paperclip, Send, User, X, FileText, Download, ExternalLink, ArrowDown } from "lucide-react";
