@@ -52,6 +52,11 @@ export class AgentsController {
     });
   }
 
+  @Get('host-options')
+  listHostOptions(@Req() req: Request, @Query('search') search?: string) {
+    return this.agentsService.listHostOptions(req.headers as Record<string, unknown>, { search });
+  }
+
   @Patch(':deviceId')
   linkDevice(@Req() req: Request, @Param('deviceId') deviceId: string, @Body() body: unknown) {
     return this.agentsService.linkDevice(req.headers as Record<string, unknown>, deviceId, body);

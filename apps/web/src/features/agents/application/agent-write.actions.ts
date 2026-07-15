@@ -10,9 +10,10 @@ export async function patchAgentDevice(
   if (!res.ok) {
     const json = await res.json().catch(() => null) as { error?: string } | null;
     const code = json?.error;
-    if (code === "HOST_ALREADY_LINKED") throw new Error("Este host já possui um dispositivo vinculado.");
-    if (code === "REMOTE_HOST_NOT_FOUND") throw new Error("Host remoto não encontrado.");
-    if (code === "AGENT_DEVICE_NOT_FOUND") throw new Error("Dispositivo não encontrado.");
+    if (code === "HOST_ALREADY_LINKED") throw new Error("Este host ja possui um dispositivo vinculado.");
+    if (code === "REMOTE_HOST_NOT_FOUND") throw new Error("Host remoto nao encontrado.");
+    if (code === "REMOTE_HOST_OUT_OF_SCOPE") throw new Error("Voce nao possui acesso a este host remoto.");
+    if (code === "AGENT_DEVICE_NOT_FOUND") throw new Error("Dispositivo nao encontrado.");
     throw new Error(`Falha ao atualizar dispositivo: ${res.status}`);
   }
 }
@@ -24,7 +25,7 @@ export async function deleteAgentDevice(deviceId: string): Promise<void> {
   if (!res.ok) {
     const json = await res.json().catch(() => null) as { error?: string; message?: string } | null;
     const code = json?.error;
-    if (code === "AGENT_DEVICE_NOT_FOUND") throw new Error("Dispositivo não encontrado.");
+    if (code === "AGENT_DEVICE_NOT_FOUND") throw new Error("Dispositivo nao encontrado.");
     throw new Error(json?.message ?? `Falha ao excluir dispositivo: ${res.status}`);
   }
 }
@@ -46,7 +47,7 @@ export async function getAgentRevocations(): Promise<Array<{ deviceId: string; h
   });
   if (!res.ok) {
     const json = await res.json().catch(() => null) as { message?: string } | null;
-    throw new Error(json?.message ?? `Falha ao listar exclusões: ${res.status}`);
+    throw new Error(json?.message ?? `Falha ao listar exclusoes: ${res.status}`);
   }
   return res.json().then((r) => r.data);
 }
@@ -57,8 +58,6 @@ export async function deleteAgentRevocation(deviceId: string): Promise<void> {
   });
   if (!res.ok) {
     const json = await res.json().catch(() => null) as { message?: string } | null;
-    throw new Error(json?.message ?? `Falha ao remover exclusão: ${res.status}`);
+    throw new Error(json?.message ?? `Falha ao remover exclusao: ${res.status}`);
   }
 }
-
-

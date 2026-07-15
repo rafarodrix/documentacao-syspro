@@ -7,6 +7,7 @@ import {
   type AgentDesiredState,
   type AgentDeviceListQuery,
   type AgentDeviceListResult,
+  type AgentHostOption,
   type AgentDeviceSummary,
   type AgentFleetStats,
 } from '@dosc-syspro/contracts/agent';
@@ -70,6 +71,11 @@ type AgentRemoteLinkContext = {
   remoteHostId?: string;
   companyId?: string;
   rustdeskId?: string;
+};
+
+type AgentManageScope = {
+  isGlobal: boolean;
+  companyIds: string[];
 };
 
 type DesiredStateDeviceRow = {
@@ -300,7 +306,8 @@ export class AgentsService {
     deviceId: string,
     body: unknown,
   ): Promise<{ success: true; data: AgentDeviceSummary }> {
-    await this.authorizationService.assertPermission(rawHeaders as any, 'agents:view');
+    const requester = await this.authorizationService.assertPermission(rawHeaders as any, 'agents:manage');
+    const scope = await this.authorizationService.resolveCompanyAccessScope(requester, 'agents:manage');
 
     const normalizedDeviceId = deviceId?.trim();
     if (!normalizedDeviceId) {
@@ -325,6 +332,7 @@ export class AgentsService {
       if (!host) {
         throw new NotFoundException({ success: false, error: 'REMOTE_HOST_NOT_FOUND' });
       }
+      this.assertCompanyInScope(host.companyId, scope, 'REMOTE_HOST_OUT_OF_SCOPE');
       hostCompanyId = host.companyId;
     }
 
@@ -358,6 +366,88 @@ export class AgentsService {
       }
       throw err;
     }
+  }
+
+  async listHostOptions(
+    rawHeaders: Record<string, unknown> | undefined,
+    query?: { search?: string },
+  ): Promise<{ success: true; data: AgentHostOption[] }> {
+    const requester = await this.authorizationService.assertPermission(rawHeaders as any, 'agents:manage');
+    const scope = await this.authorizationService.resolveCompanyAccessScope(requester, 'agents:manage');
+
+    if (!scope.isGlobal && scope.companyIds.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const search = query?.search?.trim();
+    const where: Prisma.RemoteHostWhereInput = {
+      ...(scope.isGlobal ? {} : { companyId: { in: scope.companyIds } }),
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
+              { machineName: { contains: search, mode: Prisma.QueryMode.insensitive } },
+              {
+                company: {
+                  is: {
+                    OR: [
+                      { nomeFantasia: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                      { razaoSocial: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                    ],
+                  },
+                },
+              },
+              {
+                agentDevice: {
+                  is: {
+                    OR: [
+                      { hostname: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                      { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                    ],
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const rows = await this.prisma.remoteHost.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        companyId: true,
+        status: true,
+        company: {
+          select: {
+            nomeFantasia: true,
+            razaoSocial: true,
+          },
+        },
+        agentDevice: {
+          select: {
+            deviceId: true,
+            hostname: true,
+          },
+        },
+      },
+      orderBy: [{ name: 'asc' }],
+      take: 50,
+    });
+
+    return {
+      success: true,
+      data: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        companyId: row.companyId,
+        companyName: row.company?.nomeFantasia?.trim() || row.company?.razaoSocial?.trim() || null,
+        status: row.status,
+        linkedDeviceId: row.agentDevice?.deviceId ?? null,
+        linkedDeviceHostname: row.agentDevice?.hostname ?? null,
+      })),
+    };
   }
 
   async getDesiredState(internalApiKey: string | undefined, deviceId: string) {
@@ -629,6 +719,13 @@ export class AgentsService {
     return candidates.reduce((latest, current) => {
       return current.getTime() > latest.getTime() ? current : latest;
     });
+  }
+
+  private assertCompanyInScope(companyId: string, scope: AgentManageScope, errorCode: string) {
+    if (scope.isGlobal) return;
+    if (!scope.companyIds.includes(companyId)) {
+      throw new ForbiddenException({ success: false, error: errorCode });
+    }
   }
 
   private buildEffectiveOnlineWhere(onlineSince: Date): Prisma.AgentDeviceWhereInput {

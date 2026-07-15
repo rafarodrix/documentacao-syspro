@@ -27,6 +27,7 @@ describe("AgentsService", () => {
       count: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      update: vi.fn(),
       upsert: vi.fn(),
     },
     agentDeviceRevocation: {
@@ -35,6 +36,7 @@ describe("AgentsService", () => {
     remoteHost: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     remoteDiscoveredHost: {
       findFirst: vi.fn(),
@@ -46,6 +48,7 @@ describe("AgentsService", () => {
 
   const authorizationService = {
     assertPermission: vi.fn(),
+    resolveCompanyAccessScope: vi.fn(),
   };
 
   let service: AgentsService;
@@ -56,6 +59,8 @@ describe("AgentsService", () => {
     prisma.agentDeviceRevocation.findUnique.mockResolvedValue(null);
     prisma.remoteHost.findFirst.mockResolvedValue(null);
     prisma.remoteHost.findMany.mockResolvedValue([]);
+    prisma.remoteHost.findUnique.mockResolvedValue(null);
+    authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: true, companyIds: [] });
     service = new AgentsService(prisma as any, authorizationService as any);
   });
 
@@ -248,5 +253,86 @@ describe("AgentsService", () => {
         ],
       },
     });
+  });
+
+  it("requires agents manage permission to link a device manually", async () => {
+    authorizationService.assertPermission.mockResolvedValue({ userId: "user-1", role: "ADMIN", email: "ops@example.com" });
+    authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: true, companyIds: [] });
+    prisma.remoteHost.findUnique.mockResolvedValue({ id: "host-1", companyId: "company-1" });
+    prisma.agentDevice.update.mockResolvedValue({
+      id: "device-row-1",
+      deviceId: "device-123",
+      hostname: "SERVIDOR",
+      os: "Windows Server",
+      identitySource: "machine-guid",
+      agentVersion: "go-agent-v1",
+      companyId: "company-1",
+      remoteHostId: "host-1",
+      firstSeenAt: new Date("2026-07-12T18:00:00.000Z"),
+      lastHeartbeatAt: new Date("2026-07-12T18:05:00.000Z"),
+      lastRegisteredAt: new Date("2026-07-12T18:00:00.000Z"),
+      company: {
+        id: "company-1",
+        nomeFantasia: "Empresa 1",
+        razaoSocial: "Empresa 1 LTDA",
+      },
+      remoteHost: {
+        id: "host-1",
+        name: "Servidor Principal",
+        lastHeartbeatAt: new Date("2026-07-12T18:05:00.000Z"),
+        lastHeartbeatSuccessAt: new Date("2026-07-12T18:05:00.000Z"),
+      },
+    });
+
+    await service.linkDevice({}, "device-123", { remoteHostId: "host-1" });
+
+    expect(authorizationService.assertPermission).toHaveBeenCalledWith({}, "agents:manage");
+  });
+
+  it("lists host options only inside the agent manage scope", async () => {
+    authorizationService.assertPermission.mockResolvedValue({ userId: "user-1", role: "CLIENTE_ADMIN", email: "cliente@example.com" });
+    authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: false, companyIds: ["company-1"] });
+    prisma.remoteHost.findMany.mockResolvedValue([
+      {
+        id: "host-1",
+        name: "Servidor Principal",
+        companyId: "company-1",
+        status: "ACTIVE",
+        company: {
+          nomeFantasia: "Empresa 1",
+          razaoSocial: "Empresa 1 LTDA",
+        },
+        agentDevice: {
+          deviceId: "device-123",
+          hostname: "SERVIDOR",
+        },
+      },
+    ]);
+
+    const response = await service.listHostOptions({}, { search: "Servidor" });
+
+    expect(authorizationService.assertPermission).toHaveBeenCalledWith({}, "agents:manage");
+    expect(authorizationService.resolveCompanyAccessScope).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "user-1" }),
+      "agents:manage",
+    );
+    expect(prisma.remoteHost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          companyId: { in: ["company-1"] },
+        }),
+      }),
+    );
+    expect(response.data).toEqual([
+      {
+        id: "host-1",
+        name: "Servidor Principal",
+        companyId: "company-1",
+        companyName: "Empresa 1",
+        status: "ACTIVE",
+        linkedDeviceId: "device-123",
+        linkedDeviceHostname: "SERVIDOR",
+      },
+    ]);
   });
 });

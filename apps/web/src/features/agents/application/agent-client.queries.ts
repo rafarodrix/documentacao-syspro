@@ -1,6 +1,8 @@
 import {
   agentDeviceListResultSchema,
+  agentHostOptionListSchema,
   type AgentDeviceListResult,
+  type AgentHostOption,
 } from "@dosc-syspro/contracts/agent";
 
 export async function fetchAgentDeviceListClient(params?: {
@@ -19,6 +21,18 @@ export async function fetchAgentDeviceListClient(params?: {
   const res = await fetch(`/api/agents${query ? `?${query}` : ""}`);
   if (!res.ok) throw new Error(`Falha ao consultar dispositivos: ${res.status}`);
   const json = (await res.json()) as { success: boolean; data: unknown };
-  if (!json?.success) throw new Error("Resposta inválida");
+  if (!json?.success) throw new Error("Resposta invalida");
   return agentDeviceListResultSchema.parse(json.data);
+}
+
+export async function fetchAgentHostOptionsClient(search?: string): Promise<AgentHostOption[]> {
+  const params = new URLSearchParams();
+  if (search?.trim()) params.set("search", search.trim());
+  const query = params.toString();
+
+  const res = await fetch(`/api/agents/host-options${query ? `?${query}` : ""}`);
+  if (!res.ok) throw new Error(`Falha ao consultar hosts: ${res.status}`);
+  const json = (await res.json()) as { success: boolean; data: unknown };
+  if (!json?.success) throw new Error("Resposta invalida");
+  return agentHostOptionListSchema.parse(json.data);
 }

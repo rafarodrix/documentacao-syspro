@@ -51,8 +51,21 @@ export const agentDevicePatchSchema = z.object({
   remoteHostId: z.string().nullable(),
 });
 
+export const agentHostOptionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  companyId: z.string().min(1),
+  companyName: z.string().nullable(),
+  status: z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE"]),
+  linkedDeviceId: z.string().nullable(),
+  linkedDeviceHostname: z.string().nullable(),
+});
+
+export const agentHostOptionListSchema = z.array(agentHostOptionSchema);
+
 export type AgentDeviceSummary = z.infer<typeof agentDeviceSummarySchema>;
 export type AgentDeviceListQuery = z.infer<typeof agentDeviceListQuerySchema>;
 export type AgentDeviceListResult = z.infer<typeof agentDeviceListResultSchema>;
 export type AgentFleetStats = z.infer<typeof agentFleetStatsSchema>;
 export type AgentDevicePatch = z.infer<typeof agentDevicePatchSchema>;
+export type AgentHostOption = z.infer<typeof agentHostOptionSchema>;

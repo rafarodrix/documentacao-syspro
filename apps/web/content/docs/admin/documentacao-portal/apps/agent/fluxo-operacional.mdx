@@ -82,6 +82,14 @@ legados. Mesmo que exista um `RemoteHost` antigo com o mesmo identificador, a
 nova instalacao entra em `pending_link` ate existir `RemoteDiscoveredHost`
 explicito e vinculo/manual autorizacao no portal.
 
+O vinculo manual agora pode ser concluido por dois caminhos do portal:
+
+- `Infraestrutura > Hosts`, pelo detalhe do host
+- `Infraestrutura > Agentes`, pelo detalhe do dispositivo
+
+Nos dois casos o backend continua sendo a fonte unica do vinculo
+`AgentDevice.remoteHostId`.
+
 ---
 
 ## Fase 2 - Bootstrap

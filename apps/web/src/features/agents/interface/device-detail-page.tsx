@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { ArrowLeft, Building2, Clock, ExternalLink, Monitor, WifiOff } from "lucide-react";
+import { ArrowLeft, Building2, Clock, Monitor, WifiOff } from "lucide-react";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { formatDateTime } from "@/lib/date";
 import { formatAgentHeartbeatLag, getAgentOfflineWarningMessage } from "@/features/agents/domain/agent-device-status";
 import { AgentDeviceDeleteSection } from "@/features/agents/interface/agent-device-delete-section";
+import { AgentHostLinkSection } from "@/features/agents/interface/agent-host-link-section";
 
 function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const result = formatDateTime(iso);
-  return result === "-" ? "—" : result;
+  return result === "-" ? "-" : result;
 }
 
 export function AgentDeviceDetailPanel({
@@ -36,8 +37,8 @@ export function AgentDeviceDetailPanel({
               {device.hostname ?? device.deviceId}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Último heartbeat: {formatAgentHeartbeatLag(device.heartbeatLagSeconds)}
-              {device.lastHeartbeatAt && ` — ${formatDate(device.lastHeartbeatAt)}`}
+              Ultimo heartbeat: {formatAgentHeartbeatLag(device.heartbeatLagSeconds)}
+              {device.lastHeartbeatAt && ` - ${formatDate(device.lastHeartbeatAt)}`}
             </p>
           </div>
           <div className="shrink-0">
@@ -64,13 +65,13 @@ export function AgentDeviceDetailPanel({
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <Monitor className="h-4 w-4" />
-              Informações do dispositivo
+              Informacoes do dispositivo
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <Detail label="Hostname" value={device.hostname} mono={false} />
             <Detail label="Sistema operacional" value={device.os} mono={false} />
-            <Detail label="Versão do agente" value={device.agentVersion} mono />
+            <Detail label="Versao do agente" value={device.agentVersion} mono />
             <Detail label="Identity source" value={device.identitySource} mono={false} />
             <div className="sm:col-span-2">
               <Detail label="Device ID" value={device.deviceId} mono />
@@ -83,25 +84,17 @@ export function AgentDeviceDetailPanel({
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <Building2 className="h-4 w-4" />
-                Empresa e vínculo
+                Empresa e vinculo
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <Detail label="Empresa" value={device.companyName} mono={false} />
-              <div className="rounded-lg border border-border/40 bg-background/50 p-3">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Host remoto</p>
-                {device.remoteHostId && device.remoteHostName ? (
-                  <Link
-                    href={`/portal/infraestrutura/hosts/${device.remoteHostId}`}
-                    className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                  >
-                    <ExternalLink className="h-3 w-3 shrink-0" />
-                    {device.remoteHostName}
-                  </Link>
-                ) : (
-                  <p className="mt-1 text-sm italic text-muted-foreground">—</p>
-                )}
-              </div>
+              <AgentHostLinkSection
+                deviceId={device.deviceId}
+                currentHostId={device.remoteHostId}
+                currentHostName={device.remoteHostName}
+                canManage={canManage}
+              />
             </CardContent>
           </Card>
 
@@ -109,13 +102,13 @@ export function AgentDeviceDetailPanel({
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                Histórico de datas
+                Historico de datas
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               <Detail label="Primeiro registro" value={formatDate(device.firstSeenAt)} mono={false} />
-              <Detail label="Último heartbeat" value={formatDate(device.lastHeartbeatAt)} mono={false} />
-              <Detail label="Último register" value={formatDate(device.lastRegisteredAt)} mono={false} />
+              <Detail label="Ultimo heartbeat" value={formatDate(device.lastHeartbeatAt)} mono={false} />
+              <Detail label="Ultimo register" value={formatDate(device.lastRegisteredAt)} mono={false} />
             </CardContent>
           </Card>
         </div>
@@ -145,7 +138,7 @@ function Detail({
     <div className="rounded-lg border border-border/40 bg-background/50 p-3">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={`mt-1 truncate text-sm text-foreground ${mono ? "font-mono" : ""}`}>
-        {value ?? <span className="italic text-muted-foreground">—</span>}
+        {value ?? <span className="italic text-muted-foreground">-</span>}
       </p>
     </div>
   );
