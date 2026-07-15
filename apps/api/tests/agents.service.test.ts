@@ -40,6 +40,7 @@ describe("AgentsService", () => {
     },
     remoteDiscoveredHost: {
       findFirst: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
@@ -60,6 +61,7 @@ describe("AgentsService", () => {
     prisma.remoteHost.findFirst.mockResolvedValue(null);
     prisma.remoteHost.findMany.mockResolvedValue([]);
     prisma.remoteHost.findUnique.mockResolvedValue(null);
+    prisma.remoteDiscoveredHost.findMany.mockResolvedValue([]);
     authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: true, companyIds: [] });
     service = new AgentsService(prisma as any, authorizationService as any);
   });
@@ -253,6 +255,37 @@ describe("AgentsService", () => {
         ],
       },
     });
+  });
+
+  it("treats unlinked device as online when matching discovery heartbeat is recent", async () => {
+    authorizationService.assertPermission.mockResolvedValue({ userId: "user-1" });
+    prisma.agentDevice.findUnique.mockResolvedValue({
+      id: "device-row-1",
+      deviceId: "device-123",
+      hostname: "SERVIDOR",
+      os: "Windows Server",
+      identitySource: "machine-guid",
+      agentVersion: "go-agent-v1",
+      companyId: null,
+      remoteHostId: null,
+      firstSeenAt: new Date("2026-07-12T18:00:00.000Z"),
+      lastHeartbeatAt: new Date(Date.now() - 20 * 60 * 1000),
+      lastRegisteredAt: new Date("2026-07-12T18:00:00.000Z"),
+      company: null,
+      remoteHost: null,
+    });
+    prisma.remoteDiscoveredHost.findMany.mockResolvedValue([
+      {
+        machineName: "SERVIDOR",
+        lastHeartbeatAt: new Date(Date.now() - 2 * 60 * 1000),
+      },
+    ]);
+
+    const response = await service.getDevice({}, "device-123");
+
+    expect(response.success).toBe(true);
+    expect(response.data.isOnline).toBe(true);
+    expect((response.data.heartbeatLagSeconds ?? 9999) < 5 * 60).toBe(true);
   });
 
   it("requires agents manage permission to link a device manually", async () => {

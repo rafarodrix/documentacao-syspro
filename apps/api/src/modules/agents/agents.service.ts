@@ -78,6 +78,11 @@ type AgentManageScope = {
   companyIds: string[];
 };
 
+type DiscoveredHeartbeatRow = {
+  machineName: string | null;
+  lastHeartbeatAt: Date | null;
+};
+
 type DesiredStateDeviceRow = {
   remoteHost: {
     id: string;
@@ -603,8 +608,14 @@ export class AgentsService {
       }),
     ]);
 
+    const discoveredHeartbeatMap = await this.loadDiscoveredHeartbeatMap(
+      (rows as unknown as DeviceRow[])
+        .filter((row) => !row.remoteHostId)
+        .map((row) => row.hostname),
+    );
+
     const items: AgentDeviceSummary[] = (rows as unknown as DeviceRow[]).map((row) =>
-      this.toSummary(row, onlineSince),
+      this.toSummary(row, onlineSince, discoveredHeartbeatMap.get(this.normalizeMachineNameKey(row.hostname))),
     );
 
     return {
@@ -642,7 +653,17 @@ export class AgentsService {
     }
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
-    return { success: true, data: this.toSummary(row as unknown as DeviceRow, onlineSince) };
+    const discoveredHeartbeatMap = await this.loadDiscoveredHeartbeatMap([
+      (row as unknown as DeviceRow).remoteHostId ? null : (row as unknown as DeviceRow).hostname,
+    ]);
+    return {
+      success: true,
+      data: this.toSummary(
+        row as unknown as DeviceRow,
+        onlineSince,
+        discoveredHeartbeatMap.get(this.normalizeMachineNameKey((row as unknown as DeviceRow).hostname)),
+      ),
+    };
   }
 
   async getFleetStats(
@@ -675,8 +696,8 @@ export class AgentsService {
     };
   }
 
-  private toSummary(row: DeviceRow, onlineSince: Date): AgentDeviceSummary {
-    const lastHeartbeat = this.resolveEffectiveHeartbeatAt(row);
+  private toSummary(row: DeviceRow, onlineSince: Date, discoveredHeartbeatAt?: Date | null): AgentDeviceSummary {
+    const lastHeartbeat = this.resolveEffectiveHeartbeatAt(row, discoveredHeartbeatAt);
     const isOnline = !!lastHeartbeat && lastHeartbeat >= onlineSince;
     const heartbeatLagSeconds = lastHeartbeat
       ? Math.max(0, differenceInSeconds(new Date(), lastHeartbeat))
@@ -707,11 +728,12 @@ export class AgentsService {
     return summary;
   }
 
-  private resolveEffectiveHeartbeatAt(row: DeviceRow): Date | null {
+  private resolveEffectiveHeartbeatAt(row: DeviceRow, discoveredHeartbeatAt?: Date | null): Date | null {
     const candidates = [
       row.lastHeartbeatAt,
       row.remoteHost?.lastHeartbeatSuccessAt ?? null,
       row.remoteHost?.lastHeartbeatAt ?? null,
+      discoveredHeartbeatAt ?? null,
     ].filter((value): value is Date => value instanceof Date);
 
     if (!candidates.length) return null;
@@ -726,6 +748,46 @@ export class AgentsService {
     if (!scope.companyIds.includes(companyId)) {
       throw new ForbiddenException({ success: false, error: errorCode });
     }
+  }
+
+  private normalizeMachineNameKey(value: string | null | undefined) {
+    return value?.trim().toLowerCase() ?? '';
+  }
+
+  private async loadDiscoveredHeartbeatMap(
+    machineNames: Array<string | null | undefined>,
+  ): Promise<Map<string, Date>> {
+    const normalized = Array.from(
+      new Set(machineNames.map((value) => value?.trim()).filter((value): value is string => !!value)),
+    );
+
+    if (!normalized.length) {
+      return new Map<string, Date>();
+    }
+
+    const rows = (await this.prisma.remoteDiscoveredHost.findMany({
+      where: {
+        status: { in: ['PENDING_LINK', 'LINKED'] },
+        OR: normalized.map((machineName) => ({
+          machineName: { equals: machineName, mode: 'insensitive' },
+        })),
+      },
+      select: {
+        machineName: true,
+        lastHeartbeatAt: true,
+      },
+      orderBy: [{ lastHeartbeatAt: 'desc' }, { updatedAt: 'desc' }],
+    })) as DiscoveredHeartbeatRow[];
+
+    const map = new Map<string, Date>();
+    for (const row of rows) {
+      if (!(row.lastHeartbeatAt instanceof Date)) continue;
+      const key = this.normalizeMachineNameKey(row.machineName);
+      if (!key || map.has(key)) continue;
+      map.set(key, row.lastHeartbeatAt);
+    }
+
+    return map;
   }
 
   private buildEffectiveOnlineWhere(onlineSince: Date): Prisma.AgentDeviceWhereInput {

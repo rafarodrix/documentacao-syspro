@@ -16,9 +16,15 @@ function formatDate(iso: string | null | undefined): string {
 export function AgentDeviceDetailPanel({
   device,
   canManage = false,
+  canManageRemote = false,
+  companyOptions = [],
+  matchedPendingHost = null,
 }: {
   device: AgentDeviceSummary;
   canManage?: boolean;
+  canManageRemote?: boolean;
+  companyOptions?: Array<{ id: string; label: string; searchText?: string }>;
+  matchedPendingHost?: { id: string; machineName: string | null } | null;
 }) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 pb-8 duration-700">
@@ -94,6 +100,9 @@ export function AgentDeviceDetailPanel({
                 currentHostId={device.remoteHostId}
                 currentHostName={device.remoteHostName}
                 canManage={canManage}
+                canManageRemote={canManageRemote}
+                companyOptions={companyOptions}
+                matchedPendingHost={matchedPendingHost}
               />
             </CardContent>
           </Card>

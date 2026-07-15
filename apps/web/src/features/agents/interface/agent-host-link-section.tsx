@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input } from "@dosc-syspro/ui";
@@ -9,6 +9,8 @@ import { Building2, ExternalLink, Link2, Loader2, Search, Unlink } from "lucide-
 import type { AgentHostOption } from "@dosc-syspro/contracts/agent";
 import { fetchAgentHostOptionsClient } from "@/features/agents/application/agent-client.queries";
 import { patchAgentDevice } from "@/features/agents/application/agent-write.actions";
+import { SearchableCompanyPicker } from "@/features/remote/interface/host-details/components/searchable-company-picker";
+import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 
 function getStatusLabel(status: AgentHostOption["status"]) {
   switch (status) {
@@ -28,28 +30,57 @@ export function AgentHostLinkSection({
   currentHostId,
   currentHostName,
   canManage,
+  canManageRemote,
+  companyOptions,
+  matchedPendingHost,
 }: {
   deviceId: string;
   currentHostId: string | null;
   currentHostName: string | null;
   canManage: boolean;
+  canManageRemote: boolean;
+  companyOptions: Array<{ id: string; label: string; searchText?: string }>;
+  matchedPendingHost: { id: string; machineName: string | null } | null;
 }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [hosts, setHosts] = useState<AgentHostOption[]>([]);
   const [isLoadingHosts, setIsLoadingHosts] = useState(false);
+  const [hostLoadError, setHostLoadError] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState(companyOptions[0]?.id ?? "");
+  const [projectedHostName, setProjectedHostName] = useState(matchedPendingHost?.machineName ?? "");
   const [isLinking, startLinking] = useTransition();
   const [isUnlinking, startUnlinking] = useTransition();
+  const [isLinkingPending, startLinkingPending] = useTransition();
 
   useEffect(() => {
     if (!pickerOpen) return;
     setIsLoadingHosts(true);
+    setHostLoadError(null);
     fetchAgentHostOptionsClient(search)
       .then((items) => setHosts(items))
-      .catch(() => setHosts([]))
+      .catch((error) => {
+        setHosts([]);
+        setHostLoadError(error instanceof Error ? error.message : "Falha ao carregar hosts.");
+      })
       .finally(() => setIsLoadingHosts(false));
   }, [pickerOpen, search]);
+
+  useEffect(() => {
+    if (!selectedCompanyId && companyOptions[0]?.id) {
+      setSelectedCompanyId(companyOptions[0].id);
+    }
+  }, [companyOptions, selectedCompanyId]);
+
+  useEffect(() => {
+    if (!projectedHostName && matchedPendingHost?.machineName) {
+      setProjectedHostName(matchedPendingHost.machineName);
+    }
+  }, [matchedPendingHost, projectedHostName]);
+
+  const trimmedProjectedHostName = projectedHostName.trim();
+  const availableHosts = useMemo(() => hosts, [hosts]);
 
   function handleLink(hostId: string) {
     startLinking(async () => {
@@ -72,6 +103,48 @@ export function AgentHostLinkSection({
         router.refresh();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Erro ao desvincular host.");
+      }
+    });
+  }
+
+  function handleLinkPendingDiscovery() {
+    if (!matchedPendingHost || !selectedCompanyId || !trimmedProjectedHostName) {
+      toast.error("Selecione a empresa e informe o nome do host.");
+      return;
+    }
+
+    startLinkingPending(async () => {
+      try {
+        const result = await requestRemoteMutation<{
+          hostId: string;
+          discoveredHostId: string;
+          created: boolean;
+        }>({
+          url: `/api/remote/discovered-hosts/${matchedPendingHost.id}/link`,
+          method: "POST",
+          body: {
+            companyId: selectedCompanyId,
+            name: trimmedProjectedHostName,
+          },
+        });
+
+        try {
+          await patchAgentDevice(deviceId, { remoteHostId: result.data.hostId });
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? `Host projetado, mas o vinculo do dispositivo falhou: ${error.message}`
+              : "Host projetado, mas o vinculo do dispositivo falhou.",
+          );
+          router.refresh();
+          return;
+        }
+
+        toast.success(result.data.created ? "Host criado e vinculado ao agente." : "Host existente vinculado ao agente.");
+        setPickerOpen(false);
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
       }
     });
   }
@@ -146,7 +219,7 @@ export function AgentHostLinkSection({
           <DialogHeader>
             <DialogTitle>Vincular host ao agente</DialogTitle>
             <DialogDescription>
-              Selecione um host ja cadastrado no portal para este dispositivo.
+              Primeiro tente vincular a um host existente. Se ainda nao existir host para esta maquina, use a descoberta pendente abaixo para criar e vincular no portal.
             </DialogDescription>
           </DialogHeader>
 
@@ -168,14 +241,20 @@ export function AgentHostLinkSection({
               </div>
             )}
 
-            {!isLoadingHosts && hosts.length === 0 && (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                Nenhum host disponivel neste escopo.
+            {!isLoadingHosts && hostLoadError && (
+              <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {hostLoadError}
+              </p>
+            )}
+
+            {!isLoadingHosts && !hostLoadError && availableHosts.length === 0 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Nenhum host existente encontrado neste escopo.
               </p>
             )}
 
             {!isLoadingHosts &&
-              hosts.map((host) => {
+              availableHosts.map((host) => {
                 const linkedElsewhere = !!host.linkedDeviceId && host.linkedDeviceId !== deviceId;
 
                 return (
@@ -209,6 +288,47 @@ export function AgentHostLinkSection({
                 );
               })}
           </div>
+
+          {matchedPendingHost && canManageRemote && (
+            <div className="space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+              <div>
+                <p className="text-sm font-medium text-foreground">Descoberta pendente encontrada</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  A maquina {matchedPendingHost.machineName ?? "sem nome"} apareceu no fluxo de descoberta, mas ainda nao tem host configurado. Selecione a empresa para criar e vincular agora.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Empresa</p>
+                <SearchableCompanyPicker
+                  value={selectedCompanyId}
+                  options={companyOptions}
+                  searchUrl="/api/remote/companies/search"
+                  onChange={setSelectedCompanyId}
+                  hideUnlinked
+                />
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Nome do host</p>
+                <Input
+                  value={projectedHostName}
+                  onChange={(event) => setProjectedHostName(event.target.value)}
+                  placeholder="Ex.: SERVIDOR MATRIZ FISCAL"
+                />
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleLinkPendingDiscovery}
+                disabled={isLinkingPending || !selectedCompanyId || !trimmedProjectedHostName}
+                className="gap-2"
+              >
+                {isLinkingPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+                {isLinkingPending ? "Criando vinculo..." : "Criar host e vincular"}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
