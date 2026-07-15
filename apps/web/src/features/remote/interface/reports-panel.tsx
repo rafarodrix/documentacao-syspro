@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Badge, DataTable } from "@dosc-syspro/ui";
+import { Badge, DataTable, Card } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/date";
 
@@ -139,8 +139,46 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Badge variant="outline" className="h-fit border-border/60 bg-background px-4 py-1 text-sm text-muted-foreground">
+      <div className="flex items-center justify-between">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 w-full mr-4">
+          <Card className="border-border/40 bg-card/65 p-4 flex flex-col justify-between shadow-sm">
+            <div>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total de Sessões</p>
+              <h3 className="text-xl font-bold text-foreground mt-1">{metrics.totalSessionsCount}</h3>
+            </div>
+            <p className="text-[9px] text-muted-foreground mt-2 border-t border-border/30 pt-1.5">Conexões fechadas no escopo</p>
+          </Card>
+
+          <Card className="border-border/40 bg-card/65 p-4 flex flex-col justify-between shadow-sm">
+            <div>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Chamados Atendidos</p>
+              <h3 className="text-xl font-bold text-foreground mt-1">{metrics.totalTicketsWithRemote}</h3>
+            </div>
+            <p className="text-[9px] text-muted-foreground mt-2 border-t border-border/30 pt-1.5">Tickets únicos com suporte</p>
+          </Card>
+
+          <Card className="border-border/40 bg-card/65 p-4 flex flex-col justify-between shadow-sm">
+            <div>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Média de Duração</p>
+              <h3 className="text-xl font-bold text-foreground mt-1">
+                {formatDuration(metrics.averageSessionDurationSeconds)}
+              </h3>
+            </div>
+            <p className="text-[9px] text-muted-foreground mt-2 border-t border-border/30 pt-1.5">Duração média de conexão</p>
+          </Card>
+
+          <Card className="border-border/40 bg-card/65 p-4 flex flex-col justify-between shadow-sm">
+            <div>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tempo p/ Conexão</p>
+              <h3 className="text-xl font-bold text-foreground mt-1">
+                {formatDuration(metrics.averageTimeToRemoteSeconds)}
+              </h3>
+            </div>
+            <p className="text-[9px] text-muted-foreground mt-2 border-t border-border/30 pt-1.5">Tempo do ticket até remoto</p>
+          </Card>
+        </div>
+
+        <Badge variant="outline" className="h-fit shrink-0 border-border/60 bg-background px-4 py-1 text-sm text-muted-foreground">
           <Calendar className="mr-2 h-4 w-4" />
           Ultimos 100 atendimentos
         </Badge>

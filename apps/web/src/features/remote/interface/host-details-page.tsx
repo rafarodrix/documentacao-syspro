@@ -479,6 +479,9 @@ export function RemoteHostDetailsPanel({
             contractValidationError={contractValidationError}
             serviceStatus={serviceStatus}
             orchestrationStrategy={orchestrationStrategy}
+            windowsUpdateStatus={details.agentTelemetry.windowsUpdateStatus}
+            sysproProcessSnapshot={sysproProcessSnapshot}
+            diskSnapshot={diskSnapshot}
           />
         </TabsContent>
 

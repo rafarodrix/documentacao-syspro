@@ -125,3 +125,34 @@ Credenciais podem ser rotacionadas ou revogadas.
 - `agentToken` cifrado com DPAPI no Windows
 - Credenciais de address book têm scope e podem ser revogadas individualmente
 - Rate limit em discovery: 5 req/min por IP
+
+---
+
+## Recursos de RMM Avançados (Agente Go)
+
+O portal Trilink integra um conjunto completo de ferramentas RMM de suporte remoto e inventário de telemetria coletada pelo Agente Go:
+
+### 1. Cadastro Manual & Normalização
+- Permite o cadastro manual de hosts RustDesk sem dependência imediata de um agente pré-instalado.
+- Os IDs RustDesk inseridos manualmente são normalizados automaticamente (`.replace(/\D/g, "")`) no frontend para remover caracteres especiais, garantindo a integridade nas buscas e conexões.
+
+### 2. Telemetria e Inventário de Hardware/Rede
+O agente reporta em cada ciclo informações estendidas exibidas na aba de **Monitoramento**:
+- **Especificações Físicas**: Fabricante, modelo do sistema, versão de BIOS, serial number do chassi e GUID único do Windows (`MachineGuid`).
+- **Sistema Operacional**: Nome comercial completo com arquitetura e número de build do Windows.
+- **Rede**: DNS da máquina e inventário de adaptadores de rede (físicos e virtuais) contendo endereço MAC, MTUs e todos os IPs vinculados.
+
+### 3. Inventário de Software Instalado
+A aba **Programas** lista todos os aplicativos instalados no registro do Windows (`softwareSnapshot`):
+- Filtro/busca em tempo real por nome, desenvolvedor, versão e local.
+- Paginação otimizada para alta performance.
+- Cópia com um clique dos diretórios de instalação de programas.
+
+### 4. Ações de Gerenciamento & Segurança
+Integrado à aba **Configurações**:
+- **Upgrade do RustDesk**: Enfileiramento do comando `UPGRADE_CLIENT` no agente remoto para atualização silenciosa do cliente de acesso.
+- **Revogação de Credenciais**: Botão visual na **Zona de Perigo** para apagar o token do agente (`DELETE /remote/hosts/:id/agent-token`), bloqueando a comunicação até que um novo bootstrap seja realizado.
+
+### 5. Métricas de Eficiência & Alertas Consolidados
+- **Métricas Globais (KPIs)**: Dashboard de eficiência listando tempo de resposta médio (desde a abertura do chamado até o primeiro acesso remoto) e duração média das sessões de suporte.
+- **Alertas de RMM**: Banner dinâmico na Visão Geral alertando sobre reinicializações pendentes, atualizações de segurança acumuladas do Windows Update (`pendingCount` e `pendingSignals`) ou falhas em serviços Windows monitorados (ex: Firebird parado).

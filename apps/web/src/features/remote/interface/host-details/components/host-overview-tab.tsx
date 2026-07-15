@@ -27,6 +27,9 @@ type Props = {
   contractValidationError: string | null;
   serviceStatus: ServiceStatus;
   orchestrationStrategy: string;
+  windowsUpdateStatus?: RemoteHostDetails["agentTelemetry"]["windowsUpdateStatus"];
+  sysproProcessSnapshot?: RemoteHostDetails["agentTelemetry"]["sysproProcessSnapshot"];
+  diskSnapshot?: RemoteHostDetails["agentTelemetry"]["diskSnapshot"];
 };
 
 function HeartbeatIndicator({ label }: { label: string }) {
@@ -61,11 +64,38 @@ export function HostOverviewTab({
   contractValidationError,
   serviceStatus,
   orchestrationStrategy,
+  windowsUpdateStatus,
+  sysproProcessSnapshot,
+  diskSnapshot,
 }: Props) {
+  const pendingUpdatesCount = windowsUpdateStatus?.["pendingCount"] ? Number(windowsUpdateStatus["pendingCount"]) : 0;
+
+  const sysproProcessDown = Array.isArray(sysproProcessSnapshot) && sysproProcessSnapshot.some((entry) => {
+    const running = entry["status"] === "running" || entry["running"] === true;
+    return running === false;
+  });
+
+  const diskLowMetrics = (host.lastAgentMetrics?.diskFree != null && Number(host.lastAgentMetrics.diskFree) < 5 * 1024 * 1024 * 1024);
+  const diskLow = diskLowMetrics || (Array.isArray(diskSnapshot) && diskSnapshot.some((entry) => {
+    const freePercent = typeof entry["freePercent"] === "number" ? entry["freePercent"] : null;
+    const freeGb = typeof entry["freeGb"] === "number" ? entry["freeGb"] : null;
+    const freeMb = typeof entry["freeMb"] === "number" ? entry["freeMb"] : null;
+    const totalMb = typeof entry["totalMb"] === "number" ? entry["totalMb"] : null;
+    const usedPct = typeof entry["usedPct"] === "number" ? entry["usedPct"] : null;
+    if (freePercent !== null && freePercent <= 10) return true;
+    if (freeGb !== null && freeGb <= 5) return true;
+    if (freeMb !== null && freeMb <= 5 * 1024) return true;
+    if (totalMb !== null && totalMb > 0 && freeMb !== null && freeMb / totalMb <= 0.1) return true;
+    if (usedPct !== null && usedPct >= 90) return true;
+    return false;
+  }));
+
   const hasCriticalAlert =
     !!rebootPending ||
-    (host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) ||
-    !!contractValidationError;
+    diskLow ||
+    !!contractValidationError ||
+    pendingUpdatesCount > 0 ||
+    sysproProcessDown;
 
   const cpuLoad = host.lastAgentMetrics?.cpuLoad ?? null;
   const ramUsedPc = host.lastAgentMetrics?.ramUsedPc ?? null;
@@ -152,7 +182,7 @@ export function HostOverviewTab({
         )}
 
         {hasCriticalAlert && (
-          <Card className="border-rose-500/20 bg-rose-500/5">
+          <Card className="border-rose-500/20 bg-rose-500/5 shadow-sm">
             <CardHeader className="px-4 pt-4 pb-2">
               <CardTitle className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-rose-500">
                 <AlertCircle className="h-3.5 w-3.5" />
@@ -166,10 +196,22 @@ export function HostOverviewTab({
                   Reinicialização necessária
                 </Badge>
               )}
-              {host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024 && (
+              {diskLow && (
                 <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
                   <Database className="mr-1.5 h-3 w-3" />
                   Espaço em disco crítico
+                </Badge>
+              )}
+              {sysproProcessDown && (
+                <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="mr-1.5 h-3 w-3 animate-pulse text-rose-500" />
+                  Serviço Syspro inativo
+                </Badge>
+              )}
+              {pendingUpdatesCount > 0 && (
+                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold">
+                  <Shield className="mr-1.5 h-3 w-3" />
+                  {pendingUpdatesCount} atualizações pendentes
                 </Badge>
               )}
               {contractValidationError && (
