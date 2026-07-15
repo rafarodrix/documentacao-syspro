@@ -6,4 +6,5 @@ export * from './host-installations-tab';
 export * from './host-overview-tab';
 export * from './host-settings-tab';
 export * from './host-technical-tab';
+export * from './host-software-tab';
 export * from './searchable-company-picker';

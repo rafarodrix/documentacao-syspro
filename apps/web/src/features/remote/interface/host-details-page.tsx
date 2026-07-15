@@ -20,6 +20,7 @@ import {
   HostTechnicalTab,
   HostInstallationsTab,
   HostAgentTab,
+  HostSoftwareTab,
 } from "./host-details/components";
 
 export function RemoteHostDetailsPanel({
@@ -432,11 +433,12 @@ export function RemoteHostDetailsPanel({
 
       <Tabs defaultValue="geral" className="space-y-6">
         <div className="flex w-full">
-          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:grid-cols-6">
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:grid-cols-7">
             <TabsTrigger value="geral">Visão Geral</TabsTrigger>
             <TabsTrigger value="monitoramento">Monitoramento</TabsTrigger>
             <TabsTrigger value="instalacoes">Instalações</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
+            <TabsTrigger value="softwares">Programas</TabsTrigger>
             <TabsTrigger value="bkp">BKP</TabsTrigger>
             <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
           </TabsList>
@@ -528,6 +530,13 @@ export function RemoteHostDetailsPanel({
             hiddenAcknowledgedCount={hiddenAcknowledgedCount}
             hasPendingInstallGuide={hasPendingInstallGuide}
             desiredSysproInstalls={desiredSysproInstalls}
+          />
+        </TabsContent>
+
+        <TabsContent value="softwares">
+          <HostSoftwareTab
+            softwareSnapshot={details.agentTelemetry.softwareSnapshot}
+            softwareSnapshotAt={details.agentTelemetry.softwareSnapshotAt}
           />
         </TabsContent>
 
