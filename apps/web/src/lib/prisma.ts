@@ -1,1 +1,0 @@
-export { prisma } from "@dosc-syspro/database";

@@ -2,12 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCookieCache } from "better-auth/cookies";
 import { APP_ROLES, type AppRole } from "@dosc-syspro/core";
 
-const LEGACY_DOCS_REDIRECTS: Record<string, string> = {
-  "/docs/suporte": "/portal/docs/suporte",
-  "/docs/manuais-tecnicos": "/portal/docs/suporte",
-  "/docs/treinamento/steps-comercial": "/portal/docs/cliente/primeiros-passos/steps-comercial",
-  "/docs/treinamento/steps-auto-center": "/portal/docs/cliente/primeiros-passos/steps-auto-center",
-};
 
 type CachedRole = { role: AppRole; expiresAt: number };
 type SessionCachePayload = {
@@ -112,13 +106,6 @@ function redirectTo(request: NextRequest, to: string) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const legacyDocsRedirect = LEGACY_DOCS_REDIRECTS[pathname];
-
-  if (legacyDocsRedirect) {
-    const url = request.nextUrl.clone();
-    url.pathname = legacyDocsRedirect;
-    return NextResponse.redirect(url, 307);
-  }
 
   const sessionToken = getSessionToken(request);
   const isAuthenticated = !!sessionToken;

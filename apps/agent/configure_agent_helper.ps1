@@ -107,7 +107,7 @@ function Restart-AgentService {
 Write-Host "=== CONFIGURADOR DO AGENTE TRILINK ===" -ForegroundColor Cyan
 Write-Host "O install token do host agora e obtido automaticamente pelo fluxo discover -> bootstrap do portal." -ForegroundColor DarkGray
 
-$portalUrl = Read-Host "Digite a URL do Portal (ex: https://ajuda.trilinksoftware.com.br)"
+$portalUrl = Read-Host "Digite a URL do Portal (ex: https://backend.trilinksoftware.com.br)"
 $discoveryToken = Read-Host "Digite o Token de Descoberta (REMOTE_DISCOVERY_TOKEN)"
 
 if ([string]::IsNullOrWhiteSpace($portalUrl)) {

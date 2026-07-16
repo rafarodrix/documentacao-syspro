@@ -2,12 +2,14 @@ import { Body, Controller, Delete, Get, Post, Query, Req, Res } from '@nestjs/co
 import type { Request, Response } from 'express';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { TaxService } from './tax.service';
+import { TaxSuggestionService } from './tax-suggestion.service';
 
 @Controller('tax')
 export class TaxController {
   constructor(
     private readonly taxService: TaxService,
     private readonly authorizationService: AuthorizationService,
+    private readonly taxSuggestionService: TaxSuggestionService,
   ) {}
 
   @Get('classifications')
@@ -69,5 +71,26 @@ export class TaxController {
     await this.authorizationService.assertPermission(req.headers, 'tools:all');
     const result = await this.taxService.processSyncChunk((body ?? {}) as Record<string, unknown>);
     return res.status(result.statusCode).json(result.body);
+  }
+
+  /**
+   * Sugestão de classificação tributária a partir de CSTs.
+   * Ferramenta pública acessível sem autenticação.
+   */
+  @Post('suggest')
+  suggestTaxClassification(
+    @Body() body: { cstIcms?: string; pIcms?: string; cstPis?: string; cstCofins?: string },
+    @Res() res: Response,
+  ) {
+    const { cstIcms, pIcms, cstPis, cstCofins } = body ?? {};
+
+    if (!cstIcms || !cstPis || !cstCofins) {
+      return res
+        .status(400)
+        .json({ error: 'Os campos cstIcms, cstPis e cstCofins sao obrigatorios.' });
+    }
+
+    const result = this.taxSuggestionService.suggest({ cstIcms, pIcms, cstPis, cstCofins });
+    return res.json(result);
   }
 }

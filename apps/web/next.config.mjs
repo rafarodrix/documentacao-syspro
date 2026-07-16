@@ -16,6 +16,14 @@ const nextConfig = {
     // Typecheck permanece disponivel via `npm run typecheck`; evita OOM no `next build` de deploy.
     ignoreBuildErrors: true,
   },
+  async redirects() {
+    return [
+      { source: '/docs/suporte', destination: '/portal/docs/suporte', permanent: false },
+      { source: '/docs/manuais-tecnicos', destination: '/portal/docs/suporte', permanent: false },
+      { source: '/docs/treinamento/steps-comercial', destination: '/portal/docs/cliente/primeiros-passos/steps-comercial', permanent: false },
+      { source: '/docs/treinamento/steps-auto-center', destination: '/portal/docs/cliente/primeiros-passos/steps-auto-center', permanent: false },
+    ];
+  },
   images: {
     remotePatterns: [
       {
