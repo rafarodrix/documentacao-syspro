@@ -329,18 +329,17 @@ export class ProcessOutgoingMessageUseCase {
         }));
 
         if (sendResult.messageId && messageId) {
-          try {
-            await this.prisma.messageLink.create({
-              data: {
-                chatwootMessageId: messageId,
-                chatwootConversationId: chatwootConversationId,
-                evolutionMessageId: sendResult.messageId,
-                companyId: link.companyId ?? null,
-                connectionId: link.connectionId ?? null,
-                connectionKey: link.connectionKey,
-              }
-            });
-          } catch (e: any) { /* ignora erro caso a mensagem ja esteja vinculada */ }
+          await this.persistOutgoingMessageLink({
+            chatwootMessageId: messageId,
+            chatwootConversationId,
+            evolutionMessageId: sendResult.messageId,
+            companyId: link.companyId ?? null,
+            connectionId: link.connectionId ?? null,
+            connectionKey: link.connectionKey,
+            stage: 'sent_media',
+            attachmentIndex,
+            attachmentCount: attachments.length,
+          });
         }
       }
 
@@ -427,20 +426,97 @@ export class ProcessOutgoingMessageUseCase {
     }));
 
     if (sendResult.messageId && messageId) {
-      try {
-        await this.prisma.messageLink.create({
-          data: {
-            chatwootMessageId: messageId,
-            chatwootConversationId: chatwootConversationId,
-            evolutionMessageId: sendResult.messageId,
-            companyId: resolvedLink.companyId ?? null,
-            connectionId: resolvedLink.connectionId ?? null,
-            connectionKey: resolvedLink.connectionKey,
-          }
-        });
-      } catch (e: any) { /* ignora erro caso a mensagem ja esteja vinculada */ }
+      await this.persistOutgoingMessageLink({
+        chatwootMessageId: messageId,
+        chatwootConversationId,
+        evolutionMessageId: sendResult.messageId,
+        companyId: resolvedLink.companyId ?? null,
+        connectionId: resolvedLink.connectionId ?? null,
+        connectionKey: resolvedLink.connectionKey,
+        stage: 'sent',
+      });
     }
 
+  }
+
+  private async persistOutgoingMessageLink(input: {
+    chatwootMessageId: string;
+    chatwootConversationId: string;
+    evolutionMessageId: string;
+    companyId: string | null;
+    connectionId: string | null;
+    connectionKey: string;
+    stage: 'sent' | 'sent_media';
+    attachmentIndex?: number;
+    attachmentCount?: number;
+  }) {
+    const where = {
+      connectionKey_chatwootMessageId: {
+        connectionKey: input.connectionKey,
+        chatwootMessageId: input.chatwootMessageId,
+      },
+    } as const;
+
+    const existingLink = await this.prisma.messageLink.findUnique({ where });
+    if (existingLink) {
+      this.logSkippedOutgoingMessageLink(input, existingLink.evolutionMessageId);
+      return existingLink;
+    }
+
+    const persistedLink = await this.prisma.messageLink.upsert({
+      where,
+      create: {
+        chatwootMessageId: input.chatwootMessageId,
+        chatwootConversationId: input.chatwootConversationId,
+        evolutionMessageId: input.evolutionMessageId,
+        companyId: input.companyId,
+        connectionId: input.connectionId,
+        connectionKey: input.connectionKey,
+      },
+      update: {
+        chatwootConversationId: input.chatwootConversationId,
+        companyId: input.companyId,
+        connectionId: input.connectionId,
+      },
+    });
+
+    if (persistedLink.evolutionMessageId !== input.evolutionMessageId) {
+      this.logSkippedOutgoingMessageLink(input, persistedLink.evolutionMessageId);
+    }
+
+    return persistedLink;
+  }
+
+  private logSkippedOutgoingMessageLink(
+    input: {
+      chatwootMessageId: string;
+      chatwootConversationId: string;
+      evolutionMessageId: string;
+      connectionKey: string;
+      stage: 'sent' | 'sent_media';
+      attachmentIndex?: number;
+      attachmentCount?: number;
+    },
+    existingEvolutionMessageId: string,
+  ) {
+    this.logger.warn(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'message_link_already_exists',
+      originStage: input.stage,
+      chatwootMessageId: input.chatwootMessageId,
+      chatwootConversationId: input.chatwootConversationId,
+      connectionKey: input.connectionKey,
+      existingEvolutionMessageId,
+      skippedEvolutionMessageId: input.evolutionMessageId,
+      attachmentIndex:
+        typeof input.attachmentIndex === 'number'
+          ? input.attachmentIndex
+          : null,
+      attachmentCount:
+        typeof input.attachmentCount === 'number'
+          ? input.attachmentCount
+          : null,
+    }));
   }
 
   private normalizeMessageType(value: unknown): 'incoming' | 'outgoing' | 'template' | 'unknown' {

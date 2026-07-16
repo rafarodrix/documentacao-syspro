@@ -25,6 +25,7 @@ describe("ProcessOutgoingMessageUseCase replies", () => {
     messageLink: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      upsert: vi.fn(),
     },
   };
 
@@ -76,6 +77,9 @@ describe("ProcessOutgoingMessageUseCase replies", () => {
     prisma.conversationLink.findMany.mockResolvedValue([]);
     prisma.messageLink.findUnique.mockResolvedValue(null);
     prisma.messageLink.create.mockResolvedValue({});
+    prisma.messageLink.upsert.mockResolvedValue({
+      evolutionMessageId: "evo-msg-1",
+    });
     evolutionClient.sendTextMessage.mockResolvedValue({
       messageId: "evo-msg-1",
       resolvedWhatsappNumber: "5511999999999",
@@ -178,10 +182,84 @@ describe("ProcessOutgoingMessageUseCase replies", () => {
       "cw-msg-real-9",
       undefined,
     );
-    expect(prisma.messageLink.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(prisma.messageLink.upsert).toHaveBeenCalledWith({
+      where: {
+        connectionKey_chatwootMessageId: {
+          connectionKey: "env:default",
+          chatwootMessageId: "cw-msg-real-9",
+        },
+      },
+      create: expect.objectContaining({
         chatwootMessageId: "cw-msg-real-9",
         evolutionMessageId: "evo-msg-1",
+      }),
+      update: expect.objectContaining({
+        chatwootConversationId: "conv-1",
+      }),
+    });
+  });
+
+  it("does not attempt duplicate message link inserts when one Chatwoot message sends multiple attachments", async () => {
+    chatwootClient.resolveAttachmentPayload.mockResolvedValue({
+      dataUrl: "data:image/png;base64,AAA",
+      mimetype: "image/png",
+      filename: "arquivo.png",
+    });
+    evolutionClient.sendMedia
+      .mockResolvedValueOnce({
+        messageId: "evo-media-1",
+        resolvedWhatsappNumber: "5511999999999",
+      })
+      .mockResolvedValueOnce({
+        messageId: "evo-media-2",
+        resolvedWhatsappNumber: "5511999999999",
+      });
+    prisma.messageLink.upsert.mockResolvedValueOnce({
+      evolutionMessageId: "evo-media-1",
+    });
+    prisma.messageLink.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ evolutionMessageId: "evo-media-1" });
+
+    await service.execute(
+      {
+        id: "cw-msg-media-1",
+        message_type: "outgoing",
+        content: "Arquivos",
+        attachments: [
+          {
+            id: "att-1",
+            file_type: "image",
+            data: { content_type: "image/png", filename: "arquivo-1.png" },
+          },
+          {
+            id: "att-2",
+            file_type: "image",
+            data: { content_type: "image/png", filename: "arquivo-2.png" },
+          },
+        ],
+        conversation: {
+          id: "conv-1",
+        },
+      },
+      { connection: connection as any },
+    );
+
+    expect(evolutionClient.sendMedia).toHaveBeenCalledTimes(2);
+    expect(prisma.messageLink.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.messageLink.upsert).toHaveBeenCalledWith({
+      where: {
+        connectionKey_chatwootMessageId: {
+          connectionKey: "env:default",
+          chatwootMessageId: "cw-msg-media-1",
+        },
+      },
+      create: expect.objectContaining({
+        chatwootMessageId: "cw-msg-media-1",
+        evolutionMessageId: "evo-media-1",
+      }),
+      update: expect.objectContaining({
+        chatwootConversationId: "conv-1",
       }),
     });
   });
