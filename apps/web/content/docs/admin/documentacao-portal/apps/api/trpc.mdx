@@ -1,7 +1,7 @@
 ---
 title: API — Módulo tRPC
 description: O módulo tRPC expõe um roteador federated que o frontend consome para chamadas type-safe, seguindo o padrão de sub-routers por domínio com forwardRef.
-lastUpdated: 2026-05-18
+lastUpdated: 2026-07-16
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -153,7 +153,7 @@ import { trpc } from "@/lib/api/trpc-client";
 await trpc.users.update.mutate({ id: userId, data: { isActive: false } });
 ```
 
-No servidor, o cliente usa `getBackendApiBaseUrl()` diretamente. No browser, passa pelo rewrite `/api/trpc → backend/trpc` configurado em `next.config.ts`.
+No servidor, o cliente usa `getBackendApiBaseUrl()` diretamente. No browser, passa pela rota App Router `apps/web/src/app/api/trpc/[[...all]]/route.ts`, que proxya `/api/trpc/*` para o backend sem depender de rewrites avaliados no build.
 
 Erros do backend (`ForbiddenException`, `NotFoundException`, etc.) são propagados como `TRPCClientError` e acessíveis via `error.message`.
 
@@ -166,4 +166,4 @@ O middleware tRPC fica montado em:
 /trpc/*   (GET e POST — Express adapter padrão)
 ```
 
-O Next.js redireciona `/api/trpc/*` para este endpoint via rewrite.
+No frontend self-hosted, a borda `/api/trpc/*` é uma rota explícita do App Router que encaminha a chamada para este endpoint no backend.
