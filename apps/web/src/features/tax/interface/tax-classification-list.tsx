@@ -1,7 +1,7 @@
 import { getTaxClassificationListViewData } from "@/features/tax/application/tax-read.queries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge } from "@dosc-syspro/ui";
 import { FileText, Database, ArrowRight } from "lucide-react";
-import { EmptyState } from "@/components/patterns";
+import { StaticEmptyState } from "@/components/patterns";
 
 export async function TaxClassificationList() {
   const { totalCount, items, previewLimit } = await getTaxClassificationListViewData();
@@ -9,7 +9,7 @@ export async function TaxClassificationList() {
   if (totalCount === 0) {
     return (
       <div className="mt-4">
-        <EmptyState
+        <StaticEmptyState
           icon={Database}
           title="Nenhuma classificação encontrada."
           description='Clique em "Sincronizar" para popular a base.'

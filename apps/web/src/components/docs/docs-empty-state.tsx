@@ -1,6 +1,6 @@
 import type { ElementType } from 'react';
 import { FileText } from 'lucide-react';
-import { EmptyState } from '@/components/patterns';
+import { StaticEmptyState } from '@/components/patterns';
 
 export function DocsEmptyState({
   message,
@@ -10,7 +10,7 @@ export function DocsEmptyState({
   icon?: ElementType;
 }) {
   return (
-    <EmptyState
+    <StaticEmptyState
       icon={icon}
       title={message}
       compact

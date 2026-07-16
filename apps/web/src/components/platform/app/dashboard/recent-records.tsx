@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Badge, Button } from "@dosc-syspro/ui";
 import { ArrowUpRight } from "lucide-react"
-import { EmptyState, SectionCard } from "@/components/patterns";
+import { SectionCard, StaticEmptyState } from "@/components/patterns";
 import { formatRelativeDate } from "@/lib/utils";
 
 export interface RecentRecordItem {
@@ -61,7 +61,7 @@ export function RecentRecords({
       contentClassName="flex-1"
     >
       {items.length === 0 ? (
-          <EmptyState
+          <StaticEmptyState
             title={emptyTitle}
             description={emptyDescription}
             className="h-full min-h-48"

@@ -3,7 +3,7 @@ import { ActivityChart } from "@/components/platform/app/dashboard/activity-char
 import { DashboardMetricGrid } from "../components/dashboard-metric-grid";
 import { getTarefasData } from "../../application/tarefas-dashboard.queries";
 import type { DashboardTarefasOverdueItem } from "@dosc-syspro/contracts/dashboard";
-import { EmptyState } from "@/components/patterns";
+import { StaticEmptyState } from "@/components/patterns";
 import { CheckCircle2 } from "lucide-react";
 
 const MONTH_NAMES = [
@@ -98,7 +98,7 @@ export async function SupportTarefasSubtab() {
                   ))}
                 </div>
               ) : (
-                <EmptyState
+                <StaticEmptyState
                   icon={CheckCircle2}
                   title="Tudo em dia!"
                   description="Nenhuma tarefa vencida nesta competencia."

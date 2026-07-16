@@ -20,7 +20,7 @@ import type {
   CompanyCockpitViewData,
 } from "@dosc-syspro/contracts/company";
 import { Badge, Button } from "@dosc-syspro/ui";
-import { EmptyState, MetricCard, PageHeader, PageShell, SectionCard } from "@/components/patterns";
+import { MetricCard, PageHeader, PageShell, SectionCard, StaticEmptyState } from "@/components/patterns";
 import { formatDate as formatDateSafe, formatDateTimeSafe } from "@/lib/date";
 import { formatCNPJ } from "@/lib/formatters";
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments";
@@ -708,7 +708,7 @@ export function CompanyCockpitPage({
                 );
               })}
               {!view.alerts.length && !view.recommendedActions.length ? (
-                <EmptyState
+                <StaticEmptyState
                   title="Sem prioridades abertas"
                   description="A conta esta estavel. Use as acoes rapidas para registrar o proximo movimento operacional."
                   dashed
@@ -744,7 +744,7 @@ export function CompanyCockpitPage({
                   tone={ticket.isResponseOverdue || ticket.isResolutionOverdue ? "warning" : undefined}
                 />
               )) : (
-                <EmptyState title="Nenhum ticket vinculado" description="Ainda nao existem chamados associados a esta empresa." dashed />
+                <StaticEmptyState title="Nenhum ticket vinculado" description="Ainda nao existem chamados associados a esta empresa." dashed />
               )}
             </div>
           </SectionCard>
@@ -795,7 +795,7 @@ export function CompanyCockpitPage({
                   tone={task.status === "OVERDUE" ? "warning" : undefined}
                 />
               )) : (
-                <EmptyState title="Nenhuma tarefa vinculada" description="A empresa ainda nao possui tarefas ou rotinas geradas." dashed />
+                <StaticEmptyState title="Nenhuma tarefa vinculada" description="A empresa ainda nao possui tarefas ou rotinas geradas." dashed />
               )}
             </div>
 
@@ -816,7 +816,7 @@ export function CompanyCockpitPage({
                     tone={item.status === "OVERDUE" ? "warning" : undefined}
                   />
                 )) : (
-                  <EmptyState title="Sem historico recente" description="Nenhuma competencia mensal recente foi encontrada para esta empresa." dashed />
+                  <StaticEmptyState title="Sem historico recente" description="Nenhuma competencia mensal recente foi encontrada para esta empresa." dashed />
                 )}
               </div>
             </div>
@@ -847,7 +847,7 @@ export function CompanyCockpitPage({
                   tone={conversation.isStale || Boolean(conversation.lastFailureAt) ? "warning" : undefined}
                 />
               )) : (
-                <EmptyState title="Sem conversas vinculadas" description="Ainda nao existem mapeamentos locais de conversa para esta empresa." dashed />
+                <StaticEmptyState title="Sem conversas vinculadas" description="Ainda nao existem mapeamentos locais de conversa para esta empresa." dashed />
               )}
             </div>
           </SectionCard>
@@ -879,7 +879,7 @@ export function CompanyCockpitPage({
                       tone={!host.lastHeartbeatSuccessAt ? "warning" : undefined}
                     />
                   )) : (
-                    <EmptyState title="Nenhum host cadastrado" description="Nao ha hosts remotos vinculados a esta empresa." dashed />
+                    <StaticEmptyState title="Nenhum host cadastrado" description="Nao ha hosts remotos vinculados a esta empresa." dashed />
                   )}
                 </div>
               </div>
@@ -900,7 +900,7 @@ export function CompanyCockpitPage({
                       ])}
                     />
                   )) : (
-                    <EmptyState title="Nenhuma sessao recente" description="Nao foram encontradas sessoes remotas recentes para esta empresa." dashed />
+                    <StaticEmptyState title="Nenhuma sessao recente" description="Nao foram encontradas sessoes remotas recentes para esta empresa." dashed />
                   )}
                 </div>
               </div>
@@ -932,7 +932,7 @@ export function CompanyCockpitPage({
                   tone={integration.status !== "ACTIVE" ? "warning" : undefined}
                 />
               )) : (
-                <EmptyState title="Nenhuma integracao vinculada" description="Esta empresa ainda nao possui conexoes persistidas de atendimento." dashed />
+                <StaticEmptyState title="Nenhuma integracao vinculada" description="Esta empresa ainda nao possui conexoes persistidas de atendimento." dashed />
               )}
             </div>
           </SectionCard>
@@ -955,7 +955,7 @@ export function CompanyCockpitPage({
                   ])}
                 />
               )) : (
-              <EmptyState
+              <StaticEmptyState
                 title="Sem releases especificas"
                 description="Ainda nao existem tickets desta empresa publicados nas notas de release."
                 dashed

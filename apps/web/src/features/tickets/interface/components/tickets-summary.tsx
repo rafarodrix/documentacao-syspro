@@ -3,7 +3,7 @@ import { Headset, ArrowUpRight, Clock, AlertTriangle, CheckCircle2, Inbox } from
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatRelativeDate } from "@/lib/date";
-import { EmptyState } from "@/components/patterns";
+import { StaticEmptyState } from "@/components/patterns";
 import type { TicketSummaryItem } from "@/features/tickets/domain/ticket-model";
 
 import type { TicketModulePriority, TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
@@ -55,7 +55,7 @@ export function TicketsSummary({ tickets }: TicketsSummaryProps) {
 
       <CardContent className="px-5 pb-5">
         {tickets.length === 0 ? (
-          <EmptyState icon={Headset} title="Sem chamados abertos" description="Tudo resolvido por aqui" className="min-h-[320px]" />
+          <StaticEmptyState icon={Headset} title="Sem chamados abertos" description="Tudo resolvido por aqui" className="min-h-[320px]" />
         ) : (
           <div className="min-h-[336px] space-y-1.5">
             {tickets.map((ticket) => {

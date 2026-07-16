@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Badge, Button } from "@dosc-syspro/ui";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import { cn, formatRelativeDate } from "@/lib/utils";
-import { EmptyState, SectionCard } from "@/components/patterns";
+import { SectionCard, StaticEmptyState } from "@/components/patterns";
 import { formatCNPJ } from "@/lib/formatters";
 
 type CompanyStatusValue = "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_DOCS";
@@ -72,7 +72,7 @@ export function RecentCompanies({
       contentClassName="flex-1"
     >
       {companies.length === 0 ? (
-        <EmptyState
+        <StaticEmptyState
           title={emptyTitle}
           description={emptyDescription}
           className="h-full min-h-48"

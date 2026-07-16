@@ -1,4 +1,5 @@
 export { EmptyState } from "./empty-state";
+export { StaticEmptyState } from "./static-empty-state";
 export { ErrorState, LoadingState, StaleState } from "./async-state";
 export { PageHeader } from "./page-header";
 export { PageShell } from "./page-shell";

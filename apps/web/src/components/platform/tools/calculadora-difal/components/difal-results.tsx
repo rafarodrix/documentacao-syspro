@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { ResultadoCalculo } from '../types';
 import { formatCurrency } from '@/lib/formatters';
-import { EmptyState } from '@/components/patterns';
+import { StaticEmptyState } from '@/components/patterns';
 
 interface ResultRowProps {
     icon: LucideIcon;
@@ -37,7 +37,7 @@ interface DifalResultsProps {
 export function DifalResults({ resultados, finalidade }: DifalResultsProps) {
     if (!resultados) {
         return (
-            <EmptyState
+            <StaticEmptyState
                 icon={Calculator}
                 title="Aguardando dados"
                 description="Preencha os valores para calcular."
