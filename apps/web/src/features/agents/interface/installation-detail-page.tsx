@@ -24,7 +24,11 @@ export function AgentInstallationDetailPanel({
   canManage?: boolean;
   canManageRemote?: boolean;
   companyOptions?: Array<{ id: string; label: string; searchText?: string }>;
-  matchedPendingHost?: { id: string; machineName: string | null } | null;
+  matchedPendingHost?: {
+    id: string;
+    machineName: string | null;
+    status: "PENDING_LINK" | "IGNORED";
+  } | null;
 }) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 pb-8 duration-700">

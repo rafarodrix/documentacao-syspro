@@ -52,6 +52,14 @@ export default async function AgentInstallationDetailPage({
             return timeB - timeA;
           })[0] ?? null
       : null;
+  const matchedPendingHostForPanel =
+    matchedPendingHost && (matchedPendingHost.status === "PENDING_LINK" || matchedPendingHost.status === "IGNORED")
+      ? {
+          id: matchedPendingHost.id,
+          machineName: matchedPendingHost.machineName,
+          status: matchedPendingHost.status,
+        }
+      : null;
 
   return (
     <AgentInstallationDetailPanel
@@ -59,15 +67,7 @@ export default async function AgentInstallationDetailPage({
       canManage={canManage}
       canManageRemote={canManageRemote}
       companyOptions={remoteDirectory?.companyOptions ?? []}
-      matchedPendingHost={
-        matchedPendingHost
-          ? {
-              id: matchedPendingHost.id,
-              machineName: matchedPendingHost.machineName,
-              status: matchedPendingHost.status,
-            }
-          : null
-      }
+      matchedPendingHost={matchedPendingHostForPanel}
     />
   );
 }

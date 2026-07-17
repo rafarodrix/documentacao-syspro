@@ -1,19 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { Activity, Cpu, Monitor, Plus } from "lucide-react";
+import { Activity, Monitor, Plus } from "lucide-react";
 import { Button } from "@dosc-syspro/ui";
 import { requireSession } from "@/lib/auth-helpers";
 import { PageHeader, PageShell } from "@/components/patterns";
 import { cn } from "@/lib/utils";
-import { fetchAgentInstallationList, fetchAgentFleetStats } from "@/features/agents/application/agent.queries";
-import { AgentDevicesPanel } from "@/features/agents/interface/devices-panel";
-import { getRemoteEfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { getRemotePlatformDirectory } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteSessions } from "@/features/remote/application/session-queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import type { RemoteSessionStatus } from "@/features/remote/domain/remote-host.types";
 import { RemotePlatformDirectoryPanel } from "@/features/remote/interface/directory-page";
+import { parseOperationsView, type OperationsView } from "@/features/remote/interface/operations-view";
 import { RemoteSessionsPanel } from "@/features/remote/interface/sessions-panel";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 
@@ -23,7 +21,6 @@ type PageProps = {
 
 type InfrastructureTab = "dispositivos" | "operacao" | "relatorios";
 type LegacyInfrastructureTab = InfrastructureTab | "sessoes" | "hosts" | "agentes";
-type OperationsView = "em_andamento" | "requer_acao" | "concluidas" | "falhas";
 
 function readParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return String(value[0] ?? "").trim();
@@ -46,11 +43,7 @@ function parseSessionStatus(value: string): RemoteSessionStatus | "ACTIVE" | und
     : undefined;
 }
 
-function parseOperationsView(value: string): OperationsView {
-  return value === "requer_acao" || value === "concluidas" || value === "falhas" ? value as OperationsView : "em_andamento";
-}
-
-function normalizeInfrastructureTab(tab: string, view: string): { tab: InfrastructureTab; view: OperationsView } {
+function normalizeInfrastructureTab(tab: string, view: string): { tab: InfrastructureTab; view?: OperationsView } {
   if (tab === "sessoes") {
     return { tab: "operacao", view: parseOperationsView(view || "em_andamento") };
   }
@@ -58,7 +51,7 @@ function normalizeInfrastructureTab(tab: string, view: string): { tab: Infrastru
     return { tab: "operacao", view: parseOperationsView(view) };
   }
   if (tab === "relatorios") {
-    return { tab: "relatorios", view: "eficiencia" };
+    return { tab: "relatorios" };
   }
   return { tab: "dispositivos", view: parseOperationsView(view) };
 }
@@ -135,7 +128,9 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
 
   const normalized = normalizeInfrastructureTab(requestedTab, tabParams.view);
   const activeTab = availableTabs.includes(normalized.tab) ? normalized.tab : availableTabs[0];
-  const operationsView = activeTab === "operacao" ? normalized.view : parseOperationsView(tabParams.view);
+  const fallbackOperationsView = parseOperationsView(tabParams.view);
+  const operationsView: OperationsView =
+    activeTab === "operacao" ? normalized.view ?? fallbackOperationsView : fallbackOperationsView;
 
   if (
     requestedTab &&
@@ -144,7 +139,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     redirect(
       buildTabHref(activeTab, {
         ...tabParams,
-        view: activeTab === "operacao" ? operationsView : tabParams.view,
+        view: activeTab === "operacao" ? operationsView : tabParams.view || "",
       }),
     );
   }
@@ -240,7 +235,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
               const Icon = meta.icon;
               const href = buildTabHref(tab, {
                 ...tabParams,
-                view: tab === "operacao" ? operationsView : tabParams.view,
+                view: tab === "operacao" ? operationsView : tabParams.view || "",
               });
               const isActive = activeTab === tab;
               return (

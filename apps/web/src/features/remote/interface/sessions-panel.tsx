@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { RemoteEfficiencyReportsPanel } from "@/features/remote/interface/reports-panel";
 import type { RemotePaginationMeta, RemoteSessionStatus } from "@/features/remote/domain/remote-host.types";
+import type { OperationsView } from "@/features/remote/interface/operations-view";
 import { formatDateOnly, formatDateTime } from "./host-details/host-details.helpers";
 
 interface SessionItem extends RemoteSessionSummary {
@@ -35,7 +36,6 @@ interface RemoteSessionSummary {
 }
 
 type StatusFilter = "ALL" | "ACTIVE" | RemoteSessionStatus;
-type OperationsView = "em_andamento" | "requer_acao" | "concluidas" | "falhas";
 
 interface RemoteSessionsPanelProps {
   sessions: SessionItem[];
