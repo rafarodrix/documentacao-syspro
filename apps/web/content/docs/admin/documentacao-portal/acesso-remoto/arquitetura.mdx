@@ -1,7 +1,7 @@
 ---
 title: Acesso Remoto - Arquitetura Completa
-description: Visao end-to-end do modulo de acesso remoto, incluindo componentes, endpoints do agente, estados do host, modelos de dados e fluxo completo de sessao.
-lastUpdated: 2026-05-18
+description: Visao end-to-end do modulo de acesso remoto dentro do novo modelo de agent, onde a instalacao local e separada da capability remota.
+lastUpdated: 2026-07-17
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -14,7 +14,7 @@ tags:
 # Acesso Remoto - Arquitetura Completa
 
 > Visao end-to-end do modulo de acesso remoto (RustDesk + Agente + Portal).
-> Atualizado em: 2026-05-05
+> Atualizado em: 2026-07-17
 
 ---
 
@@ -43,9 +43,9 @@ packages/features/remote/infra
   `- Implementacoes das ports (Prisma, HTTP)
 
 apps/agent (Go)
-  |- Registra e mantem heartbeat da maquina
-  |- Configura e gerencia o RustDesk local
-  `- Executa comandos enviados pelo portal
+  |- Mantem a identidade base da instalacao
+  |- Gerencia a capability remota do RustDesk
+  `- Executa reconcile, sync e comandos do portal
 
 RustDesk (open-source)
   |- Cliente: tecnico usa para se conectar
@@ -56,15 +56,16 @@ RustDesk (open-source)
 
 ## Mapa de endpoints
 
-### Endpoints do agente (autenticados com agentToken)
+### Endpoints do agente
 
 | Metodo | Endpoint                         | Uso                          |
 | ------ | -------------------------------- | ---------------------------- |
-| POST   | `/api/remote/agents/discover`    | Discovery (primeiro contato) |
-| POST   | `/api/remote/rustdesk/bootstrap` | Registro e obtencao de token |
-| POST   | `/api/remote/rustdesk/heartbeat` | Ciclo de heartbeat (30s)     |
-| POST   | `/api/remote/rustdesk/sync`      | Relatorio de sistema (60s)   |
-| POST   | `/api/remote/rustdesk/ack`       | Confirmacao de comandos      |
+| POST   | `/api/agents/register`           | Registro da instalacao base  |
+| POST   | `/api/agents/heartbeat`          | Heartbeat da instalacao      |
+| POST   | `/api/remote/agents/discover`    | Discovery da capability remota |
+| POST   | `/api/remote/rustdesk/bootstrap` | Bootstrap da capability remota |
+| POST   | `/api/remote/rustdesk/sync`      | Sync operacional do host remoto |
+| POST   | `/api/remote/rustdesk/ack`       | Confirmacao de comandos remotos |
 
 ### Endpoints administrativos (autenticados com sessao do portal)
 
@@ -86,52 +87,56 @@ RustDesk (open-source)
 
 ---
 
-## Estados do host
+## Camadas de identidade
 
 ```text
-               instala agente
-       ------------------------------>
-                                     DISCOVERED
-                                     (RemoteDiscoveredHost)
-                                         |
-                               admin vincula
-                                         |
-                                         v
-                                       ACTIVE
-                                     (RemoteHost)
-                                         |
-                              +----------+----------+
-                              |                     |
-                          heartbeats           problema config
-                          normais              ou sem contato
-                              |                     |
-                              v                     v
-                           ONLINE              OFFLINE/MISCONFIGURED
-                              |
-                         sessao ativa
-                              |
-                              v
-                         SESSION_BUSY
+Device
+  └── identidade fisica da maquina
+
+Agent Installation
+  └── identidade local da instalacao do agent
+
+Remote Capability
+  ├── RemoteDiscoveredHost
+  └── RemoteHost
 ```
 
 ---
 
-## Modelo de dados - RemoteHost
+## Estado atual do banco
+
+Hoje o banco ainda usa `AgentDevice` como read model transitório da instalação, com `deviceId`, `agentInstanceId` e `credentialId`.
+
+O split final planejado é:
+
+```text
+Device
+  └── 1:N AgentInstallation
+        └── 1:N AgentCapability
+```
+
+Enquanto essa etapa não chega, o módulo remoto continua usando:
+
+- `AgentDevice` para presença base da instalação
+- `RemoteDiscoveredHost` para triagem remota
+- `RemoteHost` para estado operacional do acesso remoto
+
+---
+
+## Modelo de dados operacional - RemoteHost
 
 ```prisma
 model RemoteHost {
   id                  String
   companyId           String
-  rustdeskId          String
-  hostname            String
-  agentToken          String?
-  agentTokenExpiresAt DateTime?
+  agentExternalId     String?
+  machineName         String?
+  agentTokenHash      String?
   lastHeartbeatAt     DateTime?
   status              RemoteHostStatus
-  sysproPath          String?
 
   company       Company
-  commands      RemoteAgentCommand[]
+  agentCommands RemoteAgentCommand[]
   sessions      RemoteSession[]
   sysproUpdates RemoteHostSysproUpdate[]
 }
@@ -175,8 +180,8 @@ model RemoteSession {
 
 4. RustDesk conecta via relay.trilink.com.br
 
-5. Agent-ui.exe na maquina do cliente aceita a conexao
-   `- agent-service notifica portal via heartbeat
+5. A capability remota do host continua sincronizada pelo `agent-service`
+   `- o portal ja conhece o estado do host via `sync`
 
 6. Portal atualiza sessao para STARTED
 
@@ -195,6 +200,6 @@ model RemoteSession {
 - Cada usuario do portal so acessa hosts das empresas as quais tem permissao.
 - `resolveScopedCompanyContext` valida o escopo em toda operacao administrativa.
 - Rate limit em discovery (5 req/min por IP) previne enumeracao.
-- `agentToken` e cifrado com DPAPI na maquina cliente.
+- `agentToken` continua sendo credencial da capability remota, nao da instalacao inteira.
 - Credenciais de address book tem escopo (GLOBAL ou COMPANY) e podem ser revogadas individualmente.
 - Todas as sessoes sao auditadas com inicio, fim, tecnico e duracao.

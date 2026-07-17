@@ -1,7 +1,7 @@
 ---
 title: Agent - Fluxo Operacional
-description: Ciclo de vida completo do agente
-lastUpdated: 2026-07-14
+description: Ciclo de vida do agente reorientado para device identity, installation identity e capabilities gerenciadas pelo core.
+lastUpdated: 2026-07-17
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -12,7 +12,7 @@ tags:
 
 # Agent - Fluxo Operacional
 
-> Como o agente se registra, opera e executa comandos do portal. Atualizado em: 2026-07-13
+> Como o agente resolve identidade, registra a instalação local e reconcilia capabilities no portal. Atualizado em: 2026-07-17
 
 ---
 
@@ -20,39 +20,101 @@ tags:
 
 ```text
 Instalacao
-  -> Discovery
+  -> Device identity
+  -> Agent installation identity
+  -> Register / heartbeat base
+  -> Discovery da capability remota
   -> Vinculo no portal
-  -> Bootstrap autenticado
+  -> Bootstrap autenticado da capability remota
   -> Sync continuo
   -> ACK de comandos
 ```
 
-### Resumo do fluxo
+## Regra central do novo escopo
 
-1. O agente faz `discover` com `discoveryToken`.
-2. O portal registra a maquina descoberta e informa o estado operacional.
-3. Depois do vinculo do host, o `discover` passa a devolver `installToken`.
-4. O agente usa esse `installToken` para executar `bootstrap`.
-5. O portal devolve `agentToken` e a configuracao esperada do RustDesk.
-6. O agente persiste o `agentToken` localmente com DPAPI.
-7. O reconcile passa a executar `sync` continuo com snapshots e metricas.
+O agente não usa mais a identidade remota como eixo principal do sistema.
 
-> Nota sobre bootstrap: o agente nao usa mais `REMOTE_INSTALL_TOKEN` local.
-> O `bootstrap` so acontece quando o `discover` devolve `installToken`
-> do portal para um host ja vinculado.
+- `device_id` representa a máquina física
+- `agent_instance_id` representa uma instalação local específica do agent
+- `credential_id` representa a credencial ativa dessa instalação
+- RustDesk passa a ser uma capability gerenciada pelo core, não a identidade do agente
 
-> Nota sobre heartbeat vs sync: `AgentDevice.lastHeartbeatAt` e atualizado
-> por `POST /api/agents/heartbeat`. Ja `RemoteHost.lastHeartbeatAt`,
-> metricas e snapshots operacionais sao atualizados por
-> `POST /api/remote/rustdesk/sync`.
+## Estado atual do corte
+
+Este corte já está ativo no código:
+
+1. o runtime local persiste `identity.json`
+2. o runtime local persiste `installation.json`
+3. `register` e `heartbeat` já publicam `deviceId`, `agentInstanceId` e `credentialId`
+4. o backend ainda grava esses campos em `AgentDevice` como base transitória
+
+A próxima etapa ainda não concluída é separar o banco em `Device`, `AgentInstallation` e `AgentCapability`.
 
 ---
 
-## Fase 1 - Discovery
+## Fase 1 - Device identity e installation identity
 
-O agente usa `discoveryToken` para se apresentar pela primeira vez.
-Esse fluxo serve para triagem inicial e para descobrir quando um host
-ja esta vinculado e apto a bootstrap.
+O bootstrap local do `agent-service` agora cria duas camadas de identidade:
+
+```text
+identity.json
+  -> device_id
+  -> hostname
+  -> os
+  -> identity_source
+
+installation.json
+  -> agent_instance_id
+  -> credential_id
+  -> installed_at
+```
+
+`device_id` continua estável para a máquina. Já `agent_instance_id` muda quando uma instalação nova for criada a partir de um runtime limpo.
+
+---
+
+## Fase 2 - Registro e heartbeat base da instalação
+
+O heartbeat base representa a presença da instalação, não o estado do RustDesk.
+
+### Payload atual de register
+
+```json
+{
+  "deviceId": "WIN-ABC123",
+  "agentInstanceId": "install_abc123",
+  "credentialId": "cred_abc123",
+  "hostname": "PC-CLIENTE-01",
+  "os": "windows",
+  "identitySource": "machine-guid",
+  "agentVersion": "go-agent-v1"
+}
+```
+
+### Payload atual de heartbeat
+
+```json
+{
+  "deviceId": "WIN-ABC123",
+  "agentInstanceId": "install_abc123",
+  "credentialId": "cred_abc123",
+  "agentVersion": "go-agent-v1",
+  "at": "2026-07-17T12:00:00.000Z"
+}
+```
+
+### Efeito persistido hoje
+
+- Atualiza a presença da instalação em `AgentDevice`
+- Mantém `lastHeartbeatAt` do cadastro base
+- Não publica snapshots operacionais do host remoto
+- Não substitui `sync` da capability remota
+
+---
+
+## Fase 3 - Discovery da capability remota
+
+O discovery continua existindo, mas agora deve ser lido como parte da capability remota, não da identidade da instalação.
 
 ### Payload enviado
 
@@ -75,27 +137,22 @@ ja esta vinculado e apto a bootstrap.
 | `host_bootstrap_required` | O `RemoteDiscoveredHost` ja vinculado requer bootstrap autenticado | Bootstrap |
 | `token_invalid` | O `RemoteDiscoveredHost` ja vinculado tem credencial remota invalida ou rotacionada | Bootstrap |
 
-Se o host/dispositivo tiver sido removido do portal, o backend passa a bloquear a rematerializacao automatica no `discover`. Nesse caso o agente continua sem reaparecer ate nova autorizacao operacional ou reinstalacao controlada.
+Se o host tiver sido removido do portal, o discovery deixa de rematerializar automaticamente a capability remota. A reinstalação ou a reautorização passa a recriar a instalação e, depois, reexecutar o fluxo remoto.
 
-O backend tambem nao faz mais autolink implicito por `rustdeskId` para hosts
-legados. Mesmo que exista um `RemoteHost` antigo com o mesmo identificador, a
-nova instalacao entra em `pending_link` ate existir `RemoteDiscoveredHost`
-explicito e vinculo/manual autorizacao no portal.
+O backend também não deve usar `rustdeskId` como identidade principal do agente. Ele vale só como identificador externo da capability remota.
 
 O vinculo manual agora pode ser concluido por dois caminhos do portal:
 
 - `Infraestrutura > Hosts`, pelo detalhe do host
 - `Infraestrutura > Agentes`, pelo detalhe do dispositivo
 
-Nos dois casos o backend continua sendo a fonte unica do vinculo
-`AgentDevice.remoteHostId`.
+Nos dois casos o backend continua sendo a fonte única do vínculo operacional enquanto o split completo de entidades não chega ao banco.
 
 ---
 
-## Fase 2 - Bootstrap
+## Fase 4 - Bootstrap da capability remota
 
-O agente troca o `installToken` recebido do portal por um `agentToken`
-permanente.
+O `installToken` e o `agentToken` passam a ser credenciais da capability remota.
 
 Se o `discover` nao devolver `installToken`, o agente espera o proximo
 ciclo e nao tenta reaproveitar token local legado.
@@ -132,8 +189,7 @@ tambem e invalidado no portal.
 }
 ```
 
-O `agentToken` e persistido localmente com DPAPI e passa a ser usado
-nas chamadas de `sync` e `ack`.
+O `agentToken` continua protegido localmente com DPAPI, mas não representa a instalação inteira do agent. Ele representa só a comunicação remota desse host/capability com o portal.
 
 O estado remoto persistido pelo agent tambem protege com DPAPI as senhas
 locais do RustDesk usadas pelo runtime (`default_password` e
@@ -146,39 +202,7 @@ a falhar fechado e entram no estado estruturado de erro local.
 
 ---
 
-## Fase 3 - Heartbeat separado
-
-O heartbeat de `POST /api/agents/heartbeat` mantem o cadastro do
-`AgentDevice` atualizado, mas nao publica snapshots do host remoto.
-
-### Payload enviado
-
-```json
-{
-  "deviceId": "WIN-ABC123",
-  "agentVersion": "go-agent-v1",
-  "remoteLinkContext": {
-    "remoteHostId": "host_...",
-    "companyId": "company_...",
-    "rustdeskId": "123456789"
-  }
-}
-```
-
-### Efeito persistido
-
-- Atualiza `AgentDevice.lastHeartbeatAt`
-- Mantem vinculo entre `AgentDevice` e `RemoteHost`
-- Nao cria nem reativa `RemoteDiscoveredHost` por fora do ingress oficial
-- Nao substitui o `sync` remoto
-
-Se uma maquina removida do portal precisar voltar, a retomada deve passar pelo
-fluxo oficial de `discover`/`bootstrap` apos reinstalacao ou reautorizacao
-operacional. `register`/`heartbeat` isolados nao rematerializam mais o host.
-
----
-
-## Fase 4 - Reconcile e Sync
+## Fase 5 - Reconcile e sync das capabilities
 
 O reconcile executa em ciclos e roda os modulos em ordem:
 
@@ -201,7 +225,7 @@ Coleta snapshots como:
 
 ### Remote module
 
-Envia `POST /api/remote/rustdesk/sync` com:
+Enquanto a capability remota ainda mora em `internal/modules/remote`, ela envia `POST /api/remote/rustdesk/sync` com:
 
 - `agentToken`
 - `rustdeskId`
@@ -224,7 +248,7 @@ em memoria para manter a trilha de `discover`, `bootstrap`, `sync`,
 
 ---
 
-## Fase 5 - ACK de comandos
+## Fase 6 - ACK de comandos
 
 Depois de executar comandos devolvidos pelo `sync`, o agente envia:
 
@@ -247,7 +271,7 @@ estruturado. O replay deixa de depender apenas do processo atual.
 
 ## Por que um host pode aparecer sem metricas
 
-1. O agente nunca completou o bootstrap e, portanto, nao possui `agentToken`.
+1. A instalação existe, mas a capability remota nunca completou bootstrap e, portanto, não possui `agentToken`.
 2. O `sync` nao esta executando com sucesso.
 3. O portal ainda nao devolveu `installToken` depois do vinculo.
 4. O host esta offline ha muito tempo e nunca chegou a publicar snapshots validos.
@@ -258,7 +282,7 @@ estruturado. O replay deixa de depender apenas do processo atual.
 
 | Sinal | Origem real |
 | --- | --- |
-| Ultimo contato do dispositivo | `AgentDevice.lastHeartbeatAt` |
+| Ultimo contato da instalação | `AgentDevice.lastHeartbeatAt` |
 | Ultimo contato da maquina remota | `RemoteHost.lastHeartbeatAt` |
 | CPU e RAM do host remoto | `RemoteHost.lastAgentMetrics` |
 | Status de convergencia RustDesk | resposta e compliance do `sync` |

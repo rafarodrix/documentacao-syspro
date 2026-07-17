@@ -1,7 +1,7 @@
 ---
 title: API — Módulo remote-admin
-description: O módulo remote-admin expõe endpoints REST para o agente Go (heartbeat, sync, ack, bootstrap, discover) e operações administrativas de hosts remotos.
-lastUpdated: 2026-05-18
+description: O módulo remote-admin expõe os endpoints públicos da capability remota do agente e as operações administrativas do portal para hosts, sessões e credenciais.
+lastUpdated: 2026-07-17
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -11,14 +11,14 @@ tags:
   - rustdesk
 ---
 
-> `apps/api/src/modules/remote-admin/` · Atualizado em: 2026-05-05
+> `apps/api/src/modules/remote-admin/` · Atualizado em: 2026-07-17
 
 ---
 
 ## Responsabilidade
 
 O módulo `remote-admin` expõe os endpoints REST que:
-1. Recebem chamadas do agente Go (heartbeat, sync, ack, bootstrap, discover)
+1. Recebem chamadas públicas da capability remota do agente (`discover`, `bootstrap`, `sync`, `ack`)
 2. Expõem operações administrativas do portal (iniciar sessão, listar hosts, etc.)
 3. Fazem a ponte entre os controllers HTTP e o `@dosc-syspro/remote-domain`
 
@@ -50,19 +50,27 @@ src/modules/remote-admin/
 
 ### `remote-public.controller.ts` — para o agente Go
 
-Endpoints sem autenticação de usuário, protegidos pelo `agentToken`:
+Endpoints sem autenticação de usuário, protegidos pelo `x-internal-api-key` do ingress e pelos tokens de domínio dentro do payload:
 
 | Método | Path                                     | Ação                                     |
 |--------|------------------------------------------|------------------------------------------|
 | POST   | `/api/remote/agents/discover`            | Discovery (primeiro contato)             |
-| POST   | `/api/remote/rustdesk/bootstrap`         | Registro e obtenção de agentToken        |
-| POST   | `/api/remote/rustdesk/heartbeat`         | Heartbeat periódico do agente            |
+| POST   | `/api/remote/rustdesk/bootstrap`         | Bootstrap da capability remota           |
 | POST   | `/api/remote/rustdesk/sync`              | Sync de estado e relatórios do sistema   |
 | POST   | `/api/remote/rustdesk/ack`               | Confirmação de comandos executados       |
 
 **Proteção anti-abuso:**
 - Rate limit em `/api/remote/agents/discover`: 5 req/min por IP
 - Resposta 429 quando excede a janela
+
+### Fora deste módulo
+
+O heartbeat base da instalação não vive em `remote-admin`.
+
+- `POST /api/agents/register`
+- `POST /api/agents/heartbeat`
+
+Esses endpoints pertencem ao módulo `agents` e representam a presença da instalação local do agent, não o estado operacional da capability remota.
 
 ### `remote-admin.controller.ts` — operações administrativas
 
@@ -104,7 +112,7 @@ Calculado em `support/operational-status.ts`:
 | `ONLINE`         | Último heartbeat < 2 minutos                                  |
 | `RECENT`         | Último heartbeat entre 2 e 15 minutos                         |
 | `OFFLINE`        | Último heartbeat > 15 minutos                                 |
-| `MISCONFIGURED`  | agentToken ausente, rustdeskId inválido ou config corrompida  |
+| `MISCONFIGURED`  | capability remota sem token válido, id externo inválido ou config corrompida |
 | `SESSION_BUSY`   | Há sessão ativa em andamento                                  |
 
 ---
@@ -118,7 +126,7 @@ O portal pode enfileirar comandos que o agente executa no próximo ciclo:
 | `REAPPLY_ALIAS`           | Reconfigura o alias/ID do RustDesk                    |
 | `REAPPLY_CONFIG`          | Reaplica o arquivo de configuração do RustDesk        |
 | `UPGRADE_CLIENT`          | Dispara atualização do cliente RustDesk               |
-| `ROTATE_TOKEN_REQUIRED`   | Força o agente a solicitar novo agentToken            |
+| `ROTATE_TOKEN_REQUIRED`   | Força a capability remota a solicitar novo agentToken |
 
 Comandos são persistidos no modelo `RemoteAgentCommand` com status PENDING → ACKNOWLEDGED.
 

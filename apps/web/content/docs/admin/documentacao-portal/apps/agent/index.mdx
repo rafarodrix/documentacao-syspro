@@ -1,7 +1,7 @@
 ---
 title: app/agent — Agente Windows (Go + Wails)
-description: O apps/agent é uma aplicação desktop para Windows que registra e mantém a máquina conectada ao portal Trilink, gerencia o RustDesk e coleta dados de hardware.
-lastUpdated: 2026-05-18
+description: O apps/agent é o runtime Windows que agora separa identidade do dispositivo, identidade da instalação local e capabilities gerenciadas pelo core do agente.
+lastUpdated: 2026-07-17
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -12,19 +12,19 @@ tags:
   - rustdesk
 ---
 
-> Stack: Go 1.26 · Wails v2 · RustDesk · IPC (Named Pipe)
-> Atualizado em: 2026-05-05
+> Stack: Go 1.26 · Wails v2 · IPC (Named Pipe) · Windows Service
+> Atualizado em: 2026-07-17
 
 ---
 
 ## Responsabilidade
 
 O `apps/agent` é uma aplicação desktop para Windows que:
-- Registra e mantém a máquina conectada ao portal Trilink
-- Gerencia o RustDesk (acesso remoto) na máquina local
-- Coleta dados de hardware e relatórios do Syspro
-- Executa backups do banco Firebird
-- Expõe uma UI local (Wails/React) para o usuário final
+- Resolve a identidade física do dispositivo (`device_id`)
+- Mantém uma identidade de instalação local independente (`agent_instance_id`)
+- Orquestra capabilities gerenciadas pelo core do agente
+- Expõe uma UI local (Wails/React) para onboarding, suporte e estado operacional
+- Publica heartbeat base da instalação e sync operacional das capabilities
 
 ---
 
@@ -38,10 +38,10 @@ agent-service.exe
   ├── Executa todo o trabalho crítico em background
   ├── Servidor IPC (named pipe)
   └── Responsabilidades:
-      - registro e bootstrap no portal
-      - heartbeat e sync periódico
-      - reconcile de estado desejado
-      - módulos: remote, backup, device, support, tunnel
+      - identidade do dispositivo e da instalação
+      - enrollment, heartbeat e desired state
+      - reconcile de capabilities e jobs tipados
+      - módulos atuais: remote, backup, device, support, tunnel
 
 agent-ui.exe  (alias: agent.exe)
   ├── Aplicação desktop Wails (WebView2 + React)
@@ -55,7 +55,42 @@ agent-ui.exe  (alias: agent.exe)
 
 ---
 
-## Estrutura de arquivos
+## Modelo de identidade
+
+O novo escopo do agente separa três conceitos:
+
+```text
+Device
+  └── representa a maquina fisica
+      - device_id
+      - hostname
+      - os
+      - identity_source
+
+Agent Installation
+  └── representa uma instalacao local especifica do agent
+      - agent_instance_id
+      - credential_id
+      - installed_at
+
+Capability
+  └── representa um componente externo gerenciado pelo core
+      - remote access / RustDesk
+      - backup / Firebird
+      - tunnel / Rathole
+      - upload / Rclone
+```
+
+### Estado atual do corte
+
+- O runtime local já persiste `identity.json` para o `device_id`.
+- O runtime local agora também persiste `installation.json` com `agent_instance_id` e `credential_id`.
+- O backend ainda usa `AgentDevice` como read model transitório, mas já recebe os campos da instalação.
+- A separação completa de banco em `Device / AgentInstallation / AgentCapability` é a próxima etapa do refactor.
+
+---
+
+## Estrutura de arquivos atual
 
 ```
 apps/agent/
@@ -73,14 +108,20 @@ apps/agent/
 │   │   ├── ui_bootstrap.go    ← bootstrap da UI (IPC client + Wails host)
 │   │   ├── container.go       ← struct Container (AgentService, IPCServer, AgentUI, UIHost)
 │   │   ├── run.go             ← RunService(), RunUI(), RunServiceDebug()
-│   │   ├── install_runtime.go ← instala RustDesk e dependências
+│   │   ├── install_runtime.go ← staging/instalação local de runtime
 │   │   ├── runtime_lock.go    ← lock para evitar múltiplas instâncias
 │   │   └── secrets.go         ← leitura/escrita de secrets (DPAPI no Windows)
 │   │
 │   ├── domain/                ← tipos de domínio do agente
 │   ├── core/                  ← serviços core do agente
-│   ├── modules/               ← módulos funcionais plugáveis
-│   │   ├── remote/            ← integração RustDesk
+│   │   ├── identity/          ← device + installation identity
+│   │   ├── registration/      ← enrollment base no portal
+│   │   ├── heartbeat/         ← heartbeat da instalação
+│   │   ├── desiredstate/      ← desired state vindo do portal
+│   │   ├── reconcile/         ← orquestra reconcile por módulo/capability
+│   │   └── ui_state/          ← read model da UI local
+│   ├── modules/               ← módulos funcionais atuais em transição para capabilities
+│   │   ├── remote/            ← capability remota ainda concentrada aqui
 │   │   ├── backup/            ← backup Firebird via gbak
 │   │   ├── device/            ← coleta de hardware
 │   │   ├── support/           ← funcionalidades de suporte remoto
@@ -92,39 +133,64 @@ apps/agent/
 ├── frontend/                  ← UI React (Vite + TypeScript)
 └── deploy/
     └── windows-installer/
-        └── AgenteTrilink.iss  ← script InnoSetup para installer Windows
+    └── AgenteTrilink.iss  ← script InnoSetup para installer Windows
 ```
 
 ---
 
-## Módulo `remote` (RustDesk)
+## Capabilities e módulos
 
-**Path:** `internal/modules/remote/`
+### Core do agente
 
-**Responsabilidades:**
-- Instala e configura o RustDesk na máquina
-- Aplica configuração enviada pelo portal (alias, servidor relay)
-- Reporta `rustdeskId` no heartbeat
-- Executa comandos da fila: REAPPLY_ALIAS, REAPPLY_CONFIG, UPGRADE_CLIENT
+- O core do agente já assume `device_id` e `agent_instance_id` como identidades diferentes.
+- `POST /api/agents/register` e `POST /api/agents/heartbeat` deixam de representar a capability remota; eles representam a presença da instalação.
+- O estado desejado continua sendo reconciliado em ciclos, mas a meta do refactor é convergir para um `Component Manager`.
+
+### Capability remota / RustDesk
+
+**Path atual:** `internal/modules/remote/`
+
+A capability remota ainda está concentrada no módulo `remote`, mas o novo escopo passa a tratá-la como um componente externo gerenciado pelo core, e não como identidade principal do agente.
+
+Hoje ela ainda acumula:
+
+- discover / bootstrap / sync / ack
+- token remoto do host
+- aplicação e leitura de configuração do RustDesk
+- instalação/upgrade do cliente remoto
+- fila de comandos remotos
+
+Esse acoplamento é exatamente o alvo da próxima extração para uma fronteira explícita de capability.
+
+### Outras capabilities atuais
+
+- `backup`: backup Firebird via `gbak`
+- `device`: snapshots de hardware, sistema, discos, serviços e versões
+- `support`: contexto de suporte e Chatwoot local
+- `tunnel`: espaço reservado para túnel gerenciado
 
 ---
 
-## Módulo `backup` (Firebird)
+## Persistência local
 
-**Path:** `internal/modules/backup/`
+Arquivos relevantes do runtime:
 
-Executa backup do banco de dados Firebird via `gbak`, comprime o resultado e faz upload para Cloudflare R2.
+```text
+identity.json
+  └── dados estáveis do dispositivo
 
----
+installation.json
+  └── agent_instance_id, credential_id, installed_at
 
-## Módulo `device`
+desired_state.json
+current_state.json
+apply_results.json
+remote_state.json
+telemetry_outbox.json
+pending_ack_queue.json
+```
 
-**Path:** `internal/modules/device/`
-
-Coleta dados de hardware do dispositivo Windows:
-- CPU, RAM, disco, uptime
-- Versão do OS, hostname
-- Exportado no sync periódico para o portal
+`remote_state.json` e a fila de ACK continuam existindo enquanto a capability remota ainda não foi isolada do módulo legado.
 
 ---
 
@@ -143,9 +209,11 @@ Coleta dados de hardware do dispositivo Windows:
 
 ## Secrets e segurança
 
-- `agentToken` persistido com **DPAPI** (Windows Data Protection API) — cifrado com a identidade da máquina
+- Segredos persistidos localmente continuam protegidos com **DPAPI** no Windows.
+- `credential_id` identifica a credencial ativa da instalação, mas não substitui o armazenamento protegido dos segredos reais.
+- `agentToken` remoto continua sendo tratado como credencial da capability remota, não da identidade base do agente.
 - Em não-Windows (dev): arquivo simples em `/tmp` (não usar em produção)
-- Rotação de token: o portal enfileira `ROTATE_TOKEN_REQUIRED`, o agente solicita novo token no próximo heartbeat
+- A rotação de token remoto continua chegando por comando tipado enquanto o fluxo remoto ainda usa bootstrap/sync/ack.
 
 ---
 
