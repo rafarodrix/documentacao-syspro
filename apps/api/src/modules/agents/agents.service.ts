@@ -132,6 +132,13 @@ type DiscoveredHeartbeatRow = {
   lastHeartbeatAt: Date | null;
 };
 
+type ManualLinkDiscoveredHostRow = {
+  id: string;
+  linkedHostId: string | null;
+  machineName: string | null;
+  agentExternalId: string | null;
+};
+
 type DesiredStateInstallationRow = {
   deviceRecord: {
     id: string;
@@ -512,15 +519,29 @@ export class AgentsService {
     }
 
     let hostCompanyId: string | undefined;
+    let targetHost:
+      | {
+          id: string;
+          companyId: string;
+          machineName: string | null;
+          agentExternalId: string | null;
+        }
+      | null = null;
     if (parsed.data.remoteHostId !== null) {
       const host = await this.prisma.remoteHost.findUnique({
         where: { id: parsed.data.remoteHostId },
-        select: { id: true, companyId: true },
+        select: {
+          id: true,
+          companyId: true,
+          machineName: true,
+          agentExternalId: true,
+        },
       });
       if (!host) {
         throw new NotFoundException({ success: false, error: 'REMOTE_HOST_NOT_FOUND' });
       }
       this.assertCompanyInScope(host.companyId, scope, 'REMOTE_HOST_OUT_OF_SCOPE');
+      targetHost = host;
       hostCompanyId = host.companyId;
     }
 
@@ -532,7 +553,23 @@ export class AgentsService {
             deviceRecord: { deviceId: normalizedDeviceId },
           },
           orderBy: [{ lastHeartbeatAt: 'desc' }, { updatedAt: 'desc' }],
-          select: { id: true },
+          select: {
+            id: true,
+            deviceRecord: {
+              select: {
+                hostname: true,
+              },
+            },
+            capabilities: {
+              where: {
+                kind: 'REMOTE',
+              },
+              take: 1,
+              select: {
+                externalId: true,
+              },
+            },
+          },
         });
 
         if (!installation) {
@@ -569,6 +606,16 @@ export class AgentsService {
               lastSeenAt: new Date(),
             },
           });
+
+          if (targetHost) {
+            await this.syncManualLinkDiscoveredHost(tx, {
+              remoteHostId: targetHost.id,
+              deviceMachineName: installation.deviceRecord?.hostname ?? null,
+              hostMachineName: targetHost.machineName,
+              capabilityExternalId: installation.capabilities?.[0]?.externalId ?? null,
+              hostAgentExternalId: targetHost.agentExternalId,
+            });
+          }
         }
 
         await tx.agentInstallation.update({
@@ -1030,6 +1077,117 @@ export class AgentsService {
 
   private normalizeMachineNameKey(value: string | null | undefined) {
     return value?.trim().toLowerCase() ?? '';
+  }
+
+  private normalizeLookupValue(value: string | null | undefined) {
+    return value?.trim().toLowerCase() ?? '';
+  }
+
+  private buildLookupValues(values: Array<string | null | undefined>) {
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+
+    for (const value of values) {
+      const trimmed = value?.trim();
+      const key = this.normalizeLookupValue(trimmed);
+      if (!trimmed || !key || seen.has(key)) continue;
+      seen.add(key);
+      normalized.push(trimmed);
+    }
+
+    return normalized;
+  }
+
+  private findManualLinkDiscoveredHostCandidate(
+    rows: ManualLinkDiscoveredHostRow[],
+    input: {
+      remoteHostId: string;
+      agentExternalIds: string[];
+      machineNames: string[];
+    },
+  ): ManualLinkDiscoveredHostRow | null {
+    const exactLinked = rows.find((row) => row.linkedHostId === input.remoteHostId);
+    if (exactLinked) {
+      return exactLinked;
+    }
+
+    const availableRows = rows.filter((row) => !row.linkedHostId || row.linkedHostId === input.remoteHostId);
+
+    for (const agentExternalId of input.agentExternalIds) {
+      const normalizedAgentExternalId = this.normalizeLookupValue(agentExternalId);
+      const match = availableRows.find(
+        (row) => this.normalizeLookupValue(row.agentExternalId) === normalizedAgentExternalId,
+      );
+      if (match) {
+        return match;
+      }
+    }
+
+    for (const machineName of input.machineNames) {
+      const normalizedMachineName = this.normalizeLookupValue(machineName);
+      const match = availableRows.find((row) => this.normalizeLookupValue(row.machineName) === normalizedMachineName);
+      if (match) {
+        return match;
+      }
+    }
+
+    return null;
+  }
+
+  private async syncManualLinkDiscoveredHost(
+    client: Prisma.TransactionClient,
+    input: {
+      remoteHostId: string;
+      deviceMachineName: string | null;
+      hostMachineName: string | null;
+      capabilityExternalId: string | null;
+      hostAgentExternalId: string | null;
+    },
+  ) {
+    const agentExternalIds = this.buildLookupValues([input.capabilityExternalId, input.hostAgentExternalId]);
+    const machineNames = this.buildLookupValues([input.deviceMachineName, input.hostMachineName]);
+
+    const rows = (await client.remoteDiscoveredHost.findMany({
+      where: {
+        OR: [
+          { linkedHostId: input.remoteHostId },
+          ...agentExternalIds.map((agentExternalId) => ({
+            agentExternalId: { equals: agentExternalId, mode: Prisma.QueryMode.insensitive },
+          })),
+          ...machineNames.map((machineName) => ({
+            machineName: { equals: machineName, mode: Prisma.QueryMode.insensitive },
+          })),
+        ],
+      },
+      orderBy: [{ linkedAt: 'desc' }, { lastHeartbeatAt: 'desc' }, { updatedAt: 'desc' }],
+      select: {
+        id: true,
+        linkedHostId: true,
+        machineName: true,
+        agentExternalId: true,
+      },
+    })) as ManualLinkDiscoveredHostRow[];
+
+    const candidate = this.findManualLinkDiscoveredHostCandidate(rows, {
+      remoteHostId: input.remoteHostId,
+      agentExternalIds,
+      machineNames,
+    });
+
+    if (!candidate) {
+      return;
+    }
+
+    await client.remoteDiscoveredHost.update({
+      where: { id: candidate.id },
+      data: {
+        linkedHostId: input.remoteHostId,
+        linkedAt: new Date(),
+        status: 'LINKED',
+        ...(machineNames[0] ? { machineName: machineNames[0] } : {}),
+        ...(agentExternalIds[0] ? { agentExternalId: agentExternalIds[0] } : {}),
+      },
+    });
   }
 
   private async loadDiscoveredHeartbeatMap(

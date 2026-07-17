@@ -134,7 +134,7 @@ export function RemotePlatformDirectoryPanel({
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [isCreatingQuickHost, setIsCreatingQuickHost] = useState(false);
-  const [showPendingItems, setShowPendingItems] = useState(() => directory.pendingItems.length > 0);
+
   const [linkingPendingId, setLinkingPendingId] = useState<string | null>(null);
   const [connectingHostId, setConnectingHostId] = useState<string | null>(null);
   const [hostToDelete, setHostToDelete] = useState<DirectoryItem | null>(null);
@@ -440,7 +440,7 @@ export function RemotePlatformDirectoryPanel({
 
   const displayedPendingItems = useMemo<PendingDirectoryItem[]>(() => {
     if (!canCreateHosts) return [];
-    if (scopeFilter === "online" || scopeFilter === "offline") return [];
+    if (scopeFilter !== "discovered") return [];
     return filteredPendingItems;
   }, [canCreateHosts, filteredPendingItems, scopeFilter]);
 
@@ -763,11 +763,7 @@ export function RemotePlatformDirectoryPanel({
       {/* ── Pending items ── */}
       {shouldShowPendingItems && (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 shadow-sm shadow-amber-500/5 backdrop-blur-md transition-all duration-300">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between px-4 py-3.5 text-left"
-            onClick={() => setShowPendingItems((prev) => !prev)}
-          >
+          <div className="flex w-full items-center justify-between px-4 py-3.5 border-b border-amber-500/20">
             <div>
               <p className="text-sm font-semibold text-foreground">Hosts sem vínculo</p>
               <p className="text-xs text-muted-foreground">Descobertos automaticamente pelo agente e aguardando definição da empresa no portal.</p>
@@ -775,10 +771,9 @@ export function RemotePlatformDirectoryPanel({
             <Badge variant="outline" className="border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 shadow-sm">
               {displayedPendingItems.length}
             </Badge>
-          </button>
+          </div>
 
-          {(showPendingItems || scopeFilter === "discovered") && (
-            <div className="border-t border-amber-500/20 px-2 py-3">
+          <div className="px-2 py-3">
               <div className="hidden md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,220px)_auto] md:gap-2 md:px-2 md:pb-1 md:text-[10px] md:font-semibold md:uppercase md:tracking-wide md:text-muted-foreground">
                 <span>Maquina</span>
                 <span>Empresa</span>
@@ -887,7 +882,6 @@ export function RemotePlatformDirectoryPanel({
                 })}
               </div>
             </div>
-          )}
         </div>
       )}
 

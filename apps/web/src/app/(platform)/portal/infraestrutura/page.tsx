@@ -21,8 +21,8 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type InfrastructureTab = "hosts" | "operacao" | "agentes";
-type LegacyInfrastructureTab = InfrastructureTab | "sessoes" | "relatorios";
+type InfrastructureTab = "dispositivos" | "operacao" | "relatorios";
+type LegacyInfrastructureTab = InfrastructureTab | "sessoes" | "hosts" | "agentes";
 type OperationsView = "todas" | "ativas" | "historico" | "eficiencia";
 
 function readParam(value: string | string[] | undefined) {
@@ -54,16 +54,13 @@ function normalizeInfrastructureTab(tab: string, view: string): { tab: Infrastru
   if (tab === "sessoes") {
     return { tab: "operacao", view: parseOperationsView(view || "ativas") };
   }
-  if (tab === "relatorios") {
-    return { tab: "operacao", view: "eficiencia" };
-  }
   if (tab === "operacao") {
     return { tab: "operacao", view: parseOperationsView(view) };
   }
-  if (tab === "agentes") {
-    return { tab: "agentes", view: parseOperationsView(view) };
+  if (tab === "relatorios") {
+    return { tab: "relatorios", view: "eficiencia" };
   }
-  return { tab: "hosts", view: parseOperationsView(view) };
+  return { tab: "dispositivos", view: parseOperationsView(view) };
 }
 
 function buildTabHref(tab: InfrastructureTab, params: Record<string, string>) {

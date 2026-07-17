@@ -394,13 +394,89 @@ describe("AgentsService", () => {
   it("requires agents manage permission to link a device manually", async () => {
     authorizationService.assertPermission.mockResolvedValue({ userId: "user-1", role: "ADMIN", email: "ops@example.com" });
     authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: true, companyIds: [] });
-    prisma.remoteHost.findUnique.mockResolvedValue({ id: "host-1", companyId: "company-1" });
-    prisma.agentInstallation.findFirst.mockResolvedValue({ id: "inst-row-1" });
+    prisma.remoteHost.findUnique.mockResolvedValue({
+      id: "host-1",
+      companyId: "company-1",
+      machineName: "SERVIDOR",
+      agentExternalId: "123456789",
+    });
+    prisma.agentInstallation.findFirst.mockResolvedValue({
+      id: "inst-row-1",
+      deviceRecord: { hostname: "SERVIDOR" },
+      capabilities: [{ externalId: "123456789" }],
+    });
     prisma.agentInstallation.findUnique.mockResolvedValue(buildInstallationRow());
 
     await service.linkDevice({}, "device-123", { remoteHostId: "host-1" });
 
     expect(authorizationService.assertPermission).toHaveBeenCalledWith({}, "agents:manage");
+  });
+
+  it("links the matching discovery record when a device is linked manually", async () => {
+    authorizationService.assertPermission.mockResolvedValue({ userId: "user-1", role: "ADMIN", email: "ops@example.com" });
+    authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: true, companyIds: [] });
+    prisma.remoteHost.findUnique.mockResolvedValue({
+      id: "host-1",
+      companyId: "company-1",
+      machineName: "SERVIDOR",
+      agentExternalId: "123456789",
+    });
+    prisma.agentInstallation.findFirst.mockResolvedValue({
+      id: "inst-row-1",
+      deviceRecord: { hostname: "SERVIDOR" },
+      capabilities: [{ externalId: "123456789" }],
+    });
+    prisma.remoteDiscoveredHost.findMany.mockResolvedValue([
+      {
+        id: "disc-1",
+        linkedHostId: null,
+        machineName: "SERVIDOR",
+        agentExternalId: "123456789",
+      },
+    ]);
+    prisma.agentInstallation.findUnique.mockResolvedValue(buildInstallationRow());
+
+    await service.linkDevice({}, "device-123", { remoteHostId: "host-1" });
+
+    expect(prisma.remoteDiscoveredHost.update).toHaveBeenCalledWith({
+      where: { id: "disc-1" },
+      data: expect.objectContaining({
+        linkedHostId: "host-1",
+        status: "LINKED",
+        machineName: "SERVIDOR",
+        agentExternalId: "123456789",
+        linkedAt: expect.any(Date),
+      }),
+    });
+  });
+
+  it("does not steal a discovery already linked to another host during manual linking", async () => {
+    authorizationService.assertPermission.mockResolvedValue({ userId: "user-1", role: "ADMIN", email: "ops@example.com" });
+    authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: true, companyIds: [] });
+    prisma.remoteHost.findUnique.mockResolvedValue({
+      id: "host-1",
+      companyId: "company-1",
+      machineName: "SERVIDOR",
+      agentExternalId: "123456789",
+    });
+    prisma.agentInstallation.findFirst.mockResolvedValue({
+      id: "inst-row-1",
+      deviceRecord: { hostname: "SERVIDOR" },
+      capabilities: [{ externalId: "123456789" }],
+    });
+    prisma.remoteDiscoveredHost.findMany.mockResolvedValue([
+      {
+        id: "disc-linked-elsewhere",
+        linkedHostId: "host-2",
+        machineName: "SERVIDOR",
+        agentExternalId: "123456789",
+      },
+    ]);
+    prisma.agentInstallation.findUnique.mockResolvedValue(buildInstallationRow());
+
+    await service.linkDevice({}, "device-123", { remoteHostId: "host-1" });
+
+    expect(prisma.remoteDiscoveredHost.update).not.toHaveBeenCalled();
   });
 
   it("lists host options only inside the agent manage scope", async () => {
