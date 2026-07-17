@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input } from "@dosc-syspro/ui";
-import { Building2, ExternalLink, Link2, Loader2, Search, Unlink } from "lucide-react";
+import { AlertTriangle, Building2, ExternalLink, Link2, Loader2, Search, Unlink } from "lucide-react";
 import type { AgentHostOption } from "@dosc-syspro/contracts/agent";
 import { fetchAgentHostOptionsClient } from "@/features/agents/application/agent-client.queries";
 import { patchAgentInstallation } from "@/features/agents/application/agent-write.actions";
@@ -40,7 +40,7 @@ export function AgentHostLinkSection({
   canManage: boolean;
   canManageRemote: boolean;
   companyOptions: Array<{ id: string; label: string; searchText?: string }>;
-  matchedPendingHost: { id: string; machineName: string | null } | null;
+  matchedPendingHost: { id: string; machineName: string | null; status: "PENDING_LINK" | "IGNORED" } | null;
 }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -53,6 +53,7 @@ export function AgentHostLinkSection({
   const [isLinking, startLinking] = useTransition();
   const [isUnlinking, startUnlinking] = useTransition();
   const [isLinkingPending, startLinkingPending] = useTransition();
+  const [isReactivatingPending, startReactivatingPending] = useTransition();
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -113,6 +114,11 @@ export function AgentHostLinkSection({
       return;
     }
 
+    if (matchedPendingHost.status === "IGNORED") {
+      toast.error("Esta descoberta foi bloqueada no portal. Reautorize antes de vincular.");
+      return;
+    }
+
     startLinkingPending(async () => {
       try {
         const result = await requestRemoteMutation<{
@@ -142,6 +148,23 @@ export function AgentHostLinkSection({
 
         toast.success(result.data.created ? "Host criado e vinculado ao agente." : "Host existente vinculado ao agente.");
         setPickerOpen(false);
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
+  function handleReactivatePendingDiscovery() {
+    if (!matchedPendingHost) return;
+
+    startReactivatingPending(async () => {
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/discovered-hosts/${matchedPendingHost.id}/reactivate`,
+          method: "POST",
+        });
+        toast.success("Descoberta reautorizada. Agora o host pode ser vinculado.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -292,9 +315,20 @@ export function AgentHostLinkSection({
           {matchedPendingHost && canManageRemote && (
             <div className="space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
               <div>
-                <p className="text-sm font-medium text-foreground">Descoberta pendente encontrada</p>
+                <div className="flex items-center gap-2">
+                  {matchedPendingHost.status === "IGNORED" ? (
+                    <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                  ) : (
+                    <Building2 className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                  )}
+                  <p className="text-sm font-medium text-foreground">
+                    {matchedPendingHost.status === "IGNORED" ? "Descoberta bloqueada encontrada" : "Descoberta pendente encontrada"}
+                  </p>
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  A maquina {matchedPendingHost.machineName ?? "sem nome"} apareceu no fluxo de descoberta, mas ainda nao tem host configurado. Selecione a empresa para criar e vincular agora.
+                  {matchedPendingHost.status === "IGNORED"
+                    ? `A maquina ${matchedPendingHost.machineName ?? "sem nome"} foi ignorada/removida anteriormente. Reautorize a descoberta para liberar o vinculo novamente.`
+                    : `A maquina ${matchedPendingHost.machineName ?? "sem nome"} apareceu no fluxo de descoberta, mas ainda nao tem host configurado. Selecione a empresa para criar e vincular agora.`}
                 </p>
               </div>
 
@@ -320,12 +354,28 @@ export function AgentHostLinkSection({
 
               <Button
                 type="button"
-                onClick={handleLinkPendingDiscovery}
-                disabled={isLinkingPending || !selectedCompanyId || !trimmedProjectedHostName}
+                onClick={matchedPendingHost.status === "IGNORED" ? handleReactivatePendingDiscovery : handleLinkPendingDiscovery}
+                disabled={
+                  matchedPendingHost.status === "IGNORED"
+                    ? isReactivatingPending
+                    : isLinkingPending || !selectedCompanyId || !trimmedProjectedHostName
+                }
                 className="gap-2"
               >
-                {isLinkingPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-                {isLinkingPending ? "Criando vinculo..." : "Criar host e vincular"}
+                {matchedPendingHost.status === "IGNORED" ? (
+                  isReactivatingPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />
+                ) : isLinkingPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
+                {matchedPendingHost.status === "IGNORED"
+                  ? isReactivatingPending
+                    ? "Reautorizando..."
+                    : "Reautorizar descoberta"
+                  : isLinkingPending
+                    ? "Criando vinculo..."
+                    : "Criar host e vincular"}
               </Button>
             </div>
           )}

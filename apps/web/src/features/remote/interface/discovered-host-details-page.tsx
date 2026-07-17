@@ -65,6 +65,7 @@ export function RemoteDiscoveredHostDetailsPanel({
   const [projectedHostName, setProjectedHostName] = useState(details.host.machineName ?? "");
   const [isLinking, startLinkTransition] = useTransition();
   const [isIgnoring, startIgnoreTransition] = useTransition();
+  const [isReactivating, startReactivateTransition] = useTransition();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -106,6 +107,11 @@ export function RemoteDiscoveredHostDetailsPanel({
   }
 
   function handleLinkHost() {
+    if (details.host.status === "IGNORED") {
+      toast.error("Esta descoberta esta bloqueada. Reautorize antes de vincular.");
+      return;
+    }
+
     if (!selectedCompanyId || !trimmedProjectedHostName) {
       toast.error("Selecione a empresa e informe o nome do host.");
       return;
@@ -128,6 +134,21 @@ export function RemoteDiscoveredHostDetailsPanel({
 
         toast.success(result.data.created ? "Host criado e vinculado." : "Host existente vinculado com sucesso.");
         router.push(`/portal/infraestrutura/hosts/${result.data.hostId}`);
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
+  function handleReactivateHost() {
+    startReactivateTransition(async () => {
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/discovered-hosts/${details.host.id}/reactivate`,
+          method: "POST",
+        });
+        toast.success("Descoberta reautorizada.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -165,7 +186,7 @@ export function RemoteDiscoveredHostDetailsPanel({
 
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                Sem vinculo
+                {details.host.status === "IGNORED" ? "Bloqueado" : "Sem vinculo"}
               </Badge>
               <Badge variant="outline" className={heartbeatMeta.className}>
                 {heartbeatMeta.label}
@@ -201,7 +222,9 @@ export function RemoteDiscoveredHostDetailsPanel({
         </div>
 
         <div className="mt-4 rounded-2xl border border-amber-500/15 bg-amber-500/5 p-3 text-xs text-muted-foreground">
-          Enquanto a maquina estiver sem vinculo, o acesso remoto abre direto no RustDesk e nao gera sessao auditada no portal.
+          {details.host.status === "IGNORED"
+            ? "Esta descoberta foi bloqueada pelo portal. Reautorize a maquina para voltar ao fluxo normal de vinculo."
+            : "Enquanto a maquina estiver sem vinculo, o acesso remoto abre direto no RustDesk e nao gera sessao auditada no portal."}
         </div>
       </section>
 
@@ -262,8 +285,9 @@ export function RemoteDiscoveredHostDetailsPanel({
               <span className="font-medium">Host projetado</span>
             </div>
             <p className="mt-2">
-              Defina a empresa e o nome final do host. Depois do vinculo, esta maquina passa a ter pagina completa,
-              sessoes auditadas e governanca remota normal.
+              {details.host.status === "IGNORED"
+                ? "A descoberta esta bloqueada. Reautorize primeiro para devolver esta maquina ao fluxo de vinculo."
+                : "Defina a empresa e o nome final do host. Depois do vinculo, esta maquina passa a ter pagina completa, sessoes auditadas e governanca remota normal."}
             </p>
             {companySuggestionLabel ? (
               <p className="mt-2 text-xs">
@@ -299,10 +323,20 @@ export function RemoteDiscoveredHostDetailsPanel({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={handleLinkHost} disabled={isLinking || !selectedCompanyId || !trimmedProjectedHostName}>
+            <Button
+              type="button"
+              onClick={handleLinkHost}
+              disabled={details.host.status === "IGNORED" || isLinking || !selectedCompanyId || !trimmedProjectedHostName}
+            >
               {isLinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
               {isLinking ? "Vinculando..." : "Vincular host"}
             </Button>
+            {details.host.status === "IGNORED" && (
+              <Button type="button" variant="secondary" onClick={handleReactivateHost} disabled={isReactivating}>
+                {isReactivating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                {isReactivating ? "Reautorizando..." : "Reautorizar descoberta"}
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={handleIgnoreHost} disabled={isIgnoring}>
               {isIgnoring ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock3 className="mr-2 h-4 w-4" />}
               {isIgnoring ? "Ignorando..." : "Ignorar descoberta"}

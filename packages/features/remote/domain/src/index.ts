@@ -23,6 +23,7 @@ import { createHost } from "./use-cases/create-host.use-case";
 import { updateHost } from "./use-cases/update-host.use-case";
 import { deleteHost } from "./use-cases/delete-host.use-case";
 import { ignoreDiscoveredHost } from "./use-cases/ignore-discovered-host.use-case";
+import { reactivateDiscoveredHost } from "./use-cases/reactivate-discovered-host.use-case";
 import { rotateHostAgentToken } from "./use-cases/rotate-host-agent-token.use-case";
 import { revokeHostAgentToken } from "./use-cases/revoke-host-agent-token.use-case";
 import { relinkHostSysproUpdate } from "./use-cases/relink-host-syspro-update.use-case";
@@ -177,6 +178,15 @@ export function createTrilinkRemote(deps: {
         port: deps.hostAdminPort,
       });
     },
+    async reactivateDiscoveredHost(payload: unknown) {
+      if (!deps.hostAdminPort) {
+        throw new Error("HOST_ADMIN_PORT_NOT_CONFIGURED");
+      }
+
+      return reactivateDiscoveredHost(payload, {
+        port: deps.hostAdminPort,
+      });
+    },
     async rotateHostAgentToken(payload: unknown) {
       if (!deps.hostAdminPort) {
         throw new Error("HOST_ADMIN_PORT_NOT_CONFIGURED");
@@ -268,6 +278,7 @@ export * from "./use-cases/create-host.use-case";
 export * from "./use-cases/update-host.use-case";
 export * from "./use-cases/delete-host.use-case";
 export * from "./use-cases/ignore-discovered-host.use-case";
+export * from "./use-cases/reactivate-discovered-host.use-case";
 export * from "./use-cases/rotate-host-agent-token.use-case";
 export * from "./use-cases/revoke-host-agent-token.use-case";
 export * from "./use-cases/relink-host-syspro-update.use-case";
@@ -288,4 +299,3 @@ export { mapRemoteDomainError } from "./errors";
 
 export * from './agent-token';
 export * from './ack-reason-codes';
-

@@ -26,6 +26,8 @@ import type {
   DeleteHostOutput,
   IgnoreDiscoveredHostInput,
   IgnoreDiscoveredHostOutput,
+  ReactivateDiscoveredHostInput,
+  ReactivateDiscoveredHostOutput,
   HostAgentTokenInput,
   RotateHostAgentTokenOutput,
   RevokeHostAgentTokenOutput,
@@ -481,6 +483,7 @@ export interface RemoteSessionPort {
 export interface RemoteHostAdminPort {
   linkDiscoveredHost(input: LinkDiscoveredHostInput): Promise<LinkDiscoveredHostOutput>;
   ignoreDiscoveredHost(input: IgnoreDiscoveredHostInput): Promise<IgnoreDiscoveredHostOutput>;
+  reactivateDiscoveredHost(input: ReactivateDiscoveredHostInput): Promise<ReactivateDiscoveredHostOutput>;
   createHost(input: CreateHostInput): Promise<CreateHostOutput>;
   updateHost(input: UpdateHostInput): Promise<UpdateHostOutput>;
   deleteHost(input: DeleteHostInput): Promise<DeleteHostOutput>;
@@ -512,6 +515,7 @@ export interface TrilinkRemoteDomain {
   updateHost(payload: unknown): Promise<UpdateHostOutput>;
   deleteHost(payload: unknown): Promise<DeleteHostOutput>;
   ignoreDiscoveredHost(payload: unknown): Promise<IgnoreDiscoveredHostOutput>;
+  reactivateDiscoveredHost(payload: unknown): Promise<ReactivateDiscoveredHostOutput>;
   rotateHostAgentToken(payload: unknown): Promise<RotateHostAgentTokenOutput>;
   revokeHostAgentToken(payload: unknown): Promise<RevokeHostAgentTokenOutput>;
   relinkHostSysproUpdate(payload: unknown): Promise<RelinkHostSysproUpdateOutput>;

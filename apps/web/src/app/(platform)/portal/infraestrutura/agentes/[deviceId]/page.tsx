@@ -64,6 +64,7 @@ export default async function AgentInstallationDetailPage({
           ? {
               id: matchedPendingHost.id,
               machineName: matchedPendingHost.machineName,
+              status: matchedPendingHost.status,
             }
           : null
       }

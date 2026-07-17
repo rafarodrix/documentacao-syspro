@@ -86,9 +86,12 @@ Requer autenticação de usuário e permissão `remote:manage`:
 | GET    | `/api/remote/hosts/fleet-stats`                   | Estatísticas da frota                    |
 | GET    | `/api/remote/discovered-hosts`                    | Hosts descobertos (pendente de link)     |
 | POST   | `/api/remote/discovered-hosts/:id/link`           | Vincula host descoberto a empresa/host   |
+| POST   | `/api/remote/discovered-hosts/:id/reactivate`     | Reautoriza descoberta bloqueada          |
 | POST   | `/api/remote/hosts/:id/agent-token`               | Rotação de agentToken                    |
 
 Hosts descobertos em `pending_link` continuam exigindo `remote:manage`, mas nao dependem mais de `role` legado no portal. Em escopo por empresa, o portal só expõe itens cuja empresa sugerida pelo `installationsSnapshot` coincide com uma empresa permitida ao usuário; o vínculo final continua validado no backend por `company scope`.
+
+Quando uma descoberta estiver em `IGNORED`, ela nao volta sozinha para a lista. O portal agora expõe uma reautorização explícita (`/reactivate`) para devolver a máquina ao fluxo de vínculo sem liberar rematerialização automática.
 
 ### `remote-portal.controller.ts` — sessões e address book
 

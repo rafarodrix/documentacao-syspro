@@ -1008,7 +1008,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
     }),
     tenantScope.isGlobalView || tenantScope.companyIds.length
       ? prisma.remoteDiscoveredHost.findMany({
-          where: { status: "PENDING_LINK", linkedHostId: null },
+          where: { status: { in: ["PENDING_LINK", "IGNORED"] }, linkedHostId: null },
           orderBy: [{ lastHeartbeatAt: "desc" }, { updatedAt: "desc" }],
           take: 100,
         })
@@ -1228,7 +1228,7 @@ export async function getRemoteDiscoveredHostDetails(
     prisma.remoteDiscoveredHost.findFirst({
       where: {
         id: discoveredHostId,
-        status: "PENDING_LINK",
+        status: { in: ["PENDING_LINK", "IGNORED"] },
         linkedHostId: null,
       },
       select: {

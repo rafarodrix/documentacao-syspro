@@ -18,6 +18,8 @@ import type {
   IgnoreDiscoveredHostOutput,
   LinkDiscoveredHostInput,
   LinkDiscoveredHostOutput,
+  ReactivateDiscoveredHostInput,
+  ReactivateDiscoveredHostOutput,
   RelinkHostSysproUpdateInput,
   RelinkHostSysproUpdateOutput,
   RevokeHostAgentTokenOutput,
@@ -65,6 +67,28 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
       });
 
       return { ignored: true, discoveredHostId: discoveredHost.id };
+    },
+
+    async reactivateDiscoveredHost(input: ReactivateDiscoveredHostInput): Promise<ReactivateDiscoveredHostOutput> {
+      const discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
+        where: { id: input.discoveredHostId },
+        select: { id: true, linkedHostId: true },
+      });
+
+      if (!discoveredHost) {
+        throw new Error("DISCOVERED_HOST_NOT_FOUND");
+      }
+
+      if (discoveredHost.linkedHostId) {
+        throw new Error("DISCOVERED_HOST_ALREADY_LINKED");
+      }
+
+      await prisma.remoteDiscoveredHost.update({
+        where: { id: discoveredHost.id },
+        data: { status: "PENDING_LINK" },
+      });
+
+      return { reactivated: true, discoveredHostId: discoveredHost.id };
     },
 
     async createHost(input: CreateHostInput): Promise<CreateHostOutput> {
@@ -582,5 +606,4 @@ async function upsertIgnoredDiscoveredHost(
     data,
   });
 }
-
 

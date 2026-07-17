@@ -444,6 +444,10 @@ export class RemoteAdminService {
     return this.callRemoteProcedure('ignoreDiscoveredHost', { discoveredHostId }, rawHeaders);
   }
 
+  reactivateDiscoveredHost(discoveredHostId: string, rawHeaders?: Record<string, unknown>) {
+    return this.callRemoteProcedure('reactivateDiscoveredHost', { discoveredHostId }, rawHeaders);
+  }
+
   createRemoteHost(body: unknown, rawHeaders?: Record<string, unknown>) {
     return this.callRemoteProcedure('hostsCreate', body, rawHeaders);
   }
@@ -658,8 +662,21 @@ export class RemoteAdminService {
       return { success: true, data: (result as { session: unknown }).session };
     }
 
-    if (procedure === 'hostsDelete' || procedure === 'ignoreDiscoveredHost') {
-      return { success: true, ...(procedure === 'ignoreDiscoveredHost' && result && typeof result === 'object' ? { data: result } : {}) };
+    if (
+      procedure === 'hostsDelete' ||
+      procedure === 'ignoreDiscoveredHost' ||
+      procedure === 'reactivateDiscoveredHost'
+    ) {
+      return {
+        success: true,
+        ...(
+          (procedure === 'ignoreDiscoveredHost' || procedure === 'reactivateDiscoveredHost') &&
+          result &&
+          typeof result === 'object'
+            ? { data: result }
+            : {}
+        ),
+      };
     }
 
     if (procedure === 'linkDiscoveredHost') {

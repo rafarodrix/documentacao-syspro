@@ -23,6 +23,7 @@ export type RemoteAdminProcedure =
   | 'sessionsStop'
   | 'linkDiscoveredHost'
   | 'ignoreDiscoveredHost'
+  | 'reactivateDiscoveredHost'
   | 'hostsCreate'
   | 'hostsUpdate'
   | 'hostsDelete'
@@ -273,6 +274,8 @@ export async function executeRemoteAdminProcedure(input: {
         return await remote.linkDiscoveredHost({ ...payload, scope });
       case 'ignoreDiscoveredHost':
         return await remote.ignoreDiscoveredHost({ ...payload, scope });
+      case 'reactivateDiscoveredHost':
+        return await remote.reactivateDiscoveredHost({ ...payload, scope });
       case 'hostsCreate':
         return await remote.createHost({ ...payload, scope });
       case 'hostsUpdate':

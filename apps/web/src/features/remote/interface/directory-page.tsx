@@ -140,6 +140,7 @@ export function RemotePlatformDirectoryPanel({
   const [hostToDelete, setHostToDelete] = useState<DirectoryItem | null>(null);
   const [isDeletingHost, setIsDeletingHost] = useState(false);
   const [ignoringPendingId, setIgnoringPendingId] = useState<string | null>(null);
+  const [reactivatingPendingId, setReactivatingPendingId] = useState<string | null>(null);
   const canCreateHosts = canManageRemote;
   
   const searchParams = useSearchParams();
@@ -310,6 +311,24 @@ export function RemotePlatformDirectoryPanel({
       toast.error(getRemoteApiErrorMessage(error));
     } finally {
       setIgnoringPendingId(null);
+    }
+  }
+
+  async function handleReactivateDiscoveredHost(id: PendingDirectoryItem["id"]) {
+    if (reactivatingPendingId === id) return;
+
+    try {
+      setReactivatingPendingId(id);
+      await requestRemoteMutation({
+        url: `/api/remote/discovered-hosts/${id}/reactivate`,
+        method: "POST",
+      });
+      toast.success("Descoberta reautorizada. Agora o host pode ser vinculado.");
+      startTransition(() => router.refresh());
+    } catch (error) {
+      toast.error(getRemoteApiErrorMessage(error));
+    } finally {
+      setReactivatingPendingId((current) => (current === id ? null : current));
     }
   }
 
@@ -770,7 +789,8 @@ export function RemotePlatformDirectoryPanel({
                 {displayedPendingItems.map((item) => {
                   const selectedCompanyId = pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? "";
                   const proposedHostName = (pendingNameById[item.id] ?? item.machineName ?? "").trim();
-                  const canLinkPendingHost = Boolean(selectedCompanyId && proposedHostName);
+                  const isIgnoredPendingHost = item.status === "IGNORED";
+                  const canLinkPendingHost = !isIgnoredPendingHost && Boolean(selectedCompanyId && proposedHostName);
                   const isLinkingPendingHost = linkingPendingId === item.id;
 
                   return (
@@ -783,11 +803,21 @@ export function RemotePlatformDirectoryPanel({
                           <p className="truncate text-sm font-medium text-foreground">
                             {item.machineName ?? "Maquina sem nome"}
                           </p>
+                          {isIgnoredPendingHost && (
+                            <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">
+                              Bloqueado
+                            </Badge>
+                          )}
                           <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
                         </div>
                         <p className="truncate text-[11px] text-muted-foreground">
                           {buildPendingIdentitySubtitle(item)}
                         </p>
+                        {isIgnoredPendingHost && (
+                          <p className="mt-1 text-[11px] text-destructive/90">
+                            Esta descoberta foi ignorada/removida anteriormente e precisa ser reautorizada antes do vinculo.
+                          </p>
+                        )}
                       </div>
 
                       <div className="min-w-0">
@@ -815,11 +845,25 @@ export function RemotePlatformDirectoryPanel({
                         <Button
                           type="button"
                           size="sm"
-                          onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}
-                          disabled={!canLinkPendingHost || isLinkingPendingHost}
+                          onClick={
+                            isIgnoredPendingHost
+                              ? () => void handleReactivateDiscoveredHost(item.id)
+                              : () => handleLinkDiscoveredHost(item.id, item.machineName)
+                          }
+                          disabled={
+                            isIgnoredPendingHost
+                              ? reactivatingPendingId === item.id
+                              : !canLinkPendingHost || isLinkingPendingHost
+                          }
                           className="h-8"
                         >
-                          {isLinkingPendingHost ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular"}
+                          {isIgnoredPendingHost ? (
+                            reactivatingPendingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Reautorizar"
+                          ) : isLinkingPendingHost ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Vincular"
+                          )}
                         </Button>
                         {canManageRemote && (
                           <Button
