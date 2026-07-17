@@ -166,10 +166,11 @@ export async function linkDiscoveredHostRecord(input: {
     });
 
     if (existingByMachine) {
+      const existingMachineAgentExternalId = normalizeRustdeskIdStrict(existingByMachine.agentExternalId?.trim() || null);
       if (
         agentExternalId &&
-        existingByMachine.agentExternalId &&
-        existingByMachine.agentExternalId !== agentExternalId
+        existingMachineAgentExternalId &&
+        existingMachineAgentExternalId !== agentExternalId
       ) {
         throw new Error("HOST_MACHINE_NAME_CONFLICT");
       }
