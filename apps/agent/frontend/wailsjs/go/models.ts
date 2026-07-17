@@ -19,9 +19,9 @@ export namespace uistate {
 	export class AgentCapabilityView {
 	    kind: string;
 	    externalId?: string;
-	    accessPassword?: string;
 	    status?: string;
 	    statusText?: string;
+	    lastSyncAt?: string;
 	    ready: boolean;
 	
 	    static createFrom(source: any = {}) {
@@ -32,9 +32,9 @@ export namespace uistate {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.kind = source["kind"];
 	        this.externalId = source["externalId"];
-	        this.accessPassword = source["accessPassword"];
 	        this.status = source["status"];
 	        this.statusText = source["statusText"];
+	        this.lastSyncAt = source["lastSyncAt"];
 	        this.ready = source["ready"];
 	    }
 	}
@@ -305,4 +305,3 @@ export namespace uistate {
 	}
 
 }
-

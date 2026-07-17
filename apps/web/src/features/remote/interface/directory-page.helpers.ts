@@ -114,66 +114,35 @@ export function buildUnifiedHealthMeta(
   if (item.productStatus === "IN_SERVICE") {
     return {
       label: "Em atendimento",
-      detail: contactDetail,
+      detail: "Serviço em execução",
       className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
       dotClass: "bg-indigo-500 shadow-[0_0_0_4px_rgba(99,102,241,0.12)]",
+    };
+  }
+
+  if (item.productStatus === "PROVISIONING_REMOTE" || item.productStatus === "AWAITING_LINK") {
+    return {
+      label: "Sem avaliação",
+      detail: "Dispositivo em configuração",
+      className: "border-border/60 bg-muted/30 text-muted-foreground",
+      dotClass: "bg-muted shadow-[0_0_0_4px_rgba(156,163,175,0.12)]",
     };
   }
 
   if (item.productStatus === "ATTENTION_REQUIRED" || signals.length > 0) {
     return {
       label: "Atenção",
-      detail: signals[0] ?? product.label,
-      className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-      dotClass: "bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]",
+      detail: signals[0] ?? "Verificar capacidades",
+      className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+      dotClass: "bg-amber-500 shadow-[0_0_0_4px_rgba(245,158,11,0.12)]",
     };
   }
-
-  if (heartbeat.bucket === "missing") {
-    return {
-      label: "Offline",
-      detail: product.label === "Remoto pronto" ? "sem contato recente" : product.label,
-      className: heartbeat.className,
-      dotClass: heartbeat.dotClass,
-    };
-  }
-
-  if (heartbeat.bucket === "stale") {
-    return {
-      label: "Instável",
-      detail: contactDetail,
-      className: heartbeat.className,
-      dotClass: heartbeat.dotClass,
-    };
-  }
-
-  if (item.productStatus === "PROVISIONING_REMOTE") {
-    return {
-      label: "Provisionando",
-      detail: contactDetail,
-      className: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-      dotClass: "bg-sky-500 shadow-[0_0_0_4px_rgba(14,165,233,0.12)]",
-    };
-  }
-
-  if (item.productStatus === "AWAITING_LINK") {
-    return {
-      label: "Sem vínculo",
-      detail: contactDetail,
-      className: product.className,
-      dotClass: heartbeat.dotClass,
-    };
-  }
-
-  const metricsParts: string[] = [contactDetail];
-  if (item.lastAgentMetrics?.cpuLoad != null) metricsParts.push(`CPU ${item.lastAgentMetrics.cpuLoad}%`);
-  if (item.lastAgentMetrics?.ramUsedPc != null) metricsParts.push(`RAM ${item.lastAgentMetrics.ramUsedPc}%`);
 
   return {
-    label: "Pronto",
-    detail: metricsParts.join(" · "),
-    className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    dotClass: heartbeat.dotClass,
+    label: "Saudável",
+    detail: "Todos os serviços operacionais",
+    className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    dotClass: "bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]",
   };
 }
 
