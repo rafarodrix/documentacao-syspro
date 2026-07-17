@@ -19,7 +19,7 @@ import {
   HostComponentsTab,
   HostSettingsTab,
   HostTechnicalTab,
-  HostSoftwareTab,
+  HostInventoryTab,
 } from "./host-details/components";
 
 export function RemoteHostDetailsPanel({
@@ -515,11 +515,7 @@ export function RemoteHostDetailsPanel({
         </TabsContent>
 
         <TabsContent value="softwares" className="space-y-6">
-          <HostSoftwareTab
-            softwareSnapshot={details.agentTelemetry.softwareSnapshot}
-            softwareSnapshotAt={details.agentTelemetry.softwareSnapshotAt}
-            sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
-          />
+          <HostInventoryTab details={details} />
         </TabsContent>
 
         <TabsContent value="bkp" className="space-y-6">

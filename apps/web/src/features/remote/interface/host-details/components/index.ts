@@ -8,5 +8,5 @@ export * from './settings-installations-view';
 export * from './host-overview-tab';
 export * from './host-settings-tab';
 export * from './host-technical-tab';
-export * from './host-software-tab';
+export * from './inventory/host-inventory-tab';
 export * from './searchable-company-picker';

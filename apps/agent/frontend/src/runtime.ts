@@ -1,8 +1,17 @@
-import { EventsOff, EventsOn as WailsEventsOn } from "../wailsjs/runtime/runtime";
+type WailsRuntime = {
+  EventsOn: (eventName: string, callback: (...data: any[]) => void) => void;
+  EventsOff: (eventName: string) => void;
+};
+
+declare global {
+  interface Window {
+    runtime: WailsRuntime;
+  }
+}
 
 export function EventsOn(eventName: string, callback: (...data: any[]) => void) {
-  WailsEventsOn(eventName, callback);
+  window.runtime.EventsOn(eventName, callback);
   return () => {
-    EventsOff(eventName);
+    window.runtime.EventsOff(eventName);
   };
 }

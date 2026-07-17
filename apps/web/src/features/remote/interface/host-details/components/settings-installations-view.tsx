@@ -198,10 +198,6 @@ export function SettingsInstallationsView({
           </div>
         </CardContent>
       </Card>
-              : "Nenhuma instalação cadastrada ainda. Use o cadastro manual acima ou aguarde o próximo inventário do agente."}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

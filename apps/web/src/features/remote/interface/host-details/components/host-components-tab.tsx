@@ -26,13 +26,13 @@ export function HostComponentsTab({
 }: HostComponentsTabProps) {
   // 1. Trilink Agent
   let agentStatus: ComponentStatus = "not_installed";
-  if (agent.version) {
+  if (agent.agentVersion) {
     const isOffline = agent.lastHeartbeatAt && differenceInMinutes(new Date(), new Date(agent.lastHeartbeatAt)) > 5;
     agentStatus = isOffline ? "failed" : "operational";
   }
 
   // 2. RustDesk
-  const rustDeskVersion = details.agentTelemetry?.softwareSnapshot?.rustDeskVersion as string | undefined;
+  const rustDeskVersion = agent.lastKnownRustDeskVersion;
   const rustdeskId = agent.rustdeskId;
   let rustDeskStatus: ComponentStatus = "not_installed";
   if (rustdeskId || rustDeskVersion) {
@@ -73,7 +73,7 @@ export function HostComponentsTab({
           title="Trilink Agent"
           status={agentStatus}
           details={[
-            { label: "Versão", value: agent.version || "Desconhecida" },
+            { label: "Versão", value: agent.agentVersion || "Desconhecida" },
             { label: "Último contato", value: formatRelativeHeartbeat(agent.lastHeartbeatAt) },
           ]}
           actions={
