@@ -185,7 +185,6 @@ export function HostSettingsTab(props: Props) {
             visibleAgentCommands={props.visibleAgentCommands}
             hiddenAcknowledgedCount={props.hiddenAcknowledgedCount}
             hasPendingInstallGuide={props.hasPendingInstallGuide}
-            desiredSysproInstalls={props.desiredSysproInstalls}
           />
         </TabsContent>
 

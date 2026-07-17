@@ -244,7 +244,7 @@ func logicalDriveStrings() ([]string, error) {
 }
 
 // CollectServices verifica servicos Windows via SCM nativo. Custo < 5ms. Zero PowerShell.
-func (c *Collector) CollectServices(sysproInstalls []SysproInstallTarget) (*SysproProcessSnapshot, error) {
+func (c *Collector) CollectServices(sysproTopology *SysproVersionSnapshot) (*SysproProcessSnapshot, error) {
 	m, err := mgr.Connect()
 	if err != nil {
 		return nil, fmt.Errorf("connect to SCM: %w", err)
@@ -271,15 +271,31 @@ func (c *Collector) CollectServices(sysproInstalls []SysproInstallTarget) (*Sysp
 		})
 	}
 
-	for _, install := range sysproInstalls {
-		status, pid := detectSysproServer(m, install.ServerPath)
-		snap.Services = append(snap.Services, ServiceStatus{
-			Name:        "SysproServer",
-			DisplayName: fmt.Sprintf("SysPro Server (%s)", install.CompanyName),
-			Status:      status,
-			PID:         pid,
-			CompanyID:   install.CompanyID,
-		})
+	if sysproTopology != nil {
+		for _, group := range sysproTopology.InstallationGroups {
+			for _, server := range group.ServerInstances {
+				if !strings.EqualFold(server.Validation.Status, "VALIDATED") {
+					continue
+				}
+				status, pid := detectSysproServer(m, server.RootPath, server.ExecutablePath)
+				displayName := "Syspro Server"
+				if len(server.CompanyHints) > 0 && strings.TrimSpace(server.CompanyHints[0].CompanyName) != "" {
+					displayName = fmt.Sprintf("Syspro Server (%s)", server.CompanyHints[0].CompanyName)
+				} else if base := filepath.Base(server.RootPath); strings.TrimSpace(base) != "" {
+					displayName = fmt.Sprintf("Syspro Server (%s)", base)
+				}
+				snap.Services = append(snap.Services, ServiceStatus{
+					Name:             "SysproServer",
+					DisplayName:      displayName,
+					Status:           status,
+					PID:              pid,
+					CompanyID:        firstServerCompanyID(server.CompanyHints),
+					InstanceID:       server.ID,
+					RootPath:         server.RootPath,
+					ValidationStatus: server.Validation.Status,
+				})
+			}
+		}
 	}
 
 	return snap, nil
@@ -301,8 +317,8 @@ func queryService(m *mgr.Mgr, name string) (status string, pid uint32) {
 // detectSysproServer localiza o servico SysPro Server em tres camadas:
 //  1. ServiceName fixo "SysproServer"
 //  2. DisplayName contendo "syspro" (cobre versoes com nome diferente)
-//  3. Existencia do SysproServer.exe no serverPath
-func detectSysproServer(m *mgr.Mgr, serverPath string) (status string, pid uint32) {
+//  3. Existencia do SysproServer.exe na instancia validada
+func detectSysproServer(m *mgr.Mgr, serverPath string, executablePath string) (status string, pid uint32) {
 	status, pid = queryService(m, "SysproServer")
 	if status != "not_installed" {
 		return
@@ -327,7 +343,12 @@ func detectSysproServer(m *mgr.Mgr, serverPath string) (status string, pid uint3
 		}
 	}
 
-	if serverPath != "" {
+	switch {
+	case executablePath != "":
+		if _, statErr := os.Stat(executablePath); statErr == nil {
+			return "stopped", 0
+		}
+	case serverPath != "":
 		if _, statErr := os.Stat(filepath.Join(serverPath, "SysproServer.exe")); statErr == nil {
 			return "stopped", 0
 		}
@@ -418,12 +439,13 @@ func (c *Collector) CollectAllServices() (*AllServicesSnapshot, error) {
 	return snap, nil
 }
 
-// readExeVersion le ProductVersion de um executavel PE via GetFileVersionInfoW + VerQueryValueW.
-// Zero PowerShell, zero subprocess, funciona em Session 0 (LocalSystem). Custo ~0ms.
-func (c *Collector) readExeVersion(exePath string) string {
+// readExeVersionDetails le ProductVersion e FileVersion de um executavel PE via
+// GetFileVersionInfoW + VerQueryValueW. Zero PowerShell, zero subprocess, funciona
+// em Session 0 (LocalSystem). Custo ~0ms.
+func (c *Collector) readExeVersionDetails(exePath string) SysproExecutableVersion {
 	pathPtr, err := windows.UTF16PtrFromString(exePath)
 	if err != nil {
-		return ""
+		return SysproExecutableVersion{}
 	}
 
 	var handle uintptr
@@ -432,7 +454,7 @@ func (c *Collector) readExeVersion(exePath string) string {
 		uintptr(unsafe.Pointer(&handle)),
 	)
 	if size == 0 {
-		return ""
+		return SysproExecutableVersion{}
 	}
 
 	buf := make([]byte, size)
@@ -443,7 +465,7 @@ func (c *Collector) readExeVersion(exePath string) string {
 		uintptr(unsafe.Pointer(&buf[0])),
 	)
 	if r1 == 0 {
-		return ""
+		return SysproExecutableVersion{}
 	}
 
 	var info *vsFixedFileInfo
@@ -456,12 +478,29 @@ func (c *Collector) readExeVersion(exePath string) string {
 		uintptr(unsafe.Pointer(&infoLen)),
 	)
 	if r1 == 0 || info == nil {
-		return ""
+		return SysproExecutableVersion{}
 	}
 
-	major := info.ProductVersionMS >> 16
-	minor := info.ProductVersionMS & 0xFFFF
-	patch := info.ProductVersionLS >> 16
-	build := info.ProductVersionLS & 0xFFFF
-	return fmt.Sprintf("%d.%d.%d.%d", major, minor, patch, build)
+	formatVersion := func(ms, ls uint32) string {
+		major := ms >> 16
+		minor := ms & 0xFFFF
+		patch := ls >> 16
+		build := ls & 0xFFFF
+		return fmt.Sprintf("%d.%d.%d.%d", major, minor, patch, build)
+	}
+
+	return SysproExecutableVersion{
+		ProductVersion: formatVersion(info.ProductVersionMS, info.ProductVersionLS),
+		FileVersion:    formatVersion(info.FileVersionMS, info.FileVersionLS),
+		Source:         "EXECUTABLE_VERSION_RESOURCE",
+	}
+}
+
+func firstServerCompanyID(hints []SysproCompanyHint) string {
+	for _, hint := range hints {
+		if strings.TrimSpace(hint.CompanyID) != "" {
+			return hint.CompanyID
+		}
+	}
+	return ""
 }

@@ -100,12 +100,15 @@ type SysproProcessSnapshot struct {
 
 // ServiceStatus representa o estado de um servico Windows.
 type ServiceStatus struct {
-	Name        string `json:"name"`                // ServiceName no SCM
-	DisplayName string `json:"displayName"`         // nome amigavel para exibicao
-	Status      string `json:"status"`              // "running" | "stopped" | "starting" | "stopping" | "not_installed" | "error"
-	StartType   string `json:"startType,omitempty"` // "auto" | "manual" | "disabled" | "delayed_auto" | "unknown"
-	PID         uint32 `json:"pid,omitempty"`       // 0 se nao estiver rodando
-	CompanyID   string `json:"companyId,omitempty"` // preenchido para servicos vinculados a empresa
+	Name             string `json:"name"`                       // ServiceName no SCM
+	DisplayName      string `json:"displayName"`                // nome amigavel para exibicao
+	Status           string `json:"status"`                     // "running" | "stopped" | "starting" | "stopping" | "not_installed" | "error"
+	StartType        string `json:"startType,omitempty"`        // "auto" | "manual" | "disabled" | "delayed_auto" | "unknown"
+	PID              uint32 `json:"pid,omitempty"`              // 0 se nao estiver rodando
+	CompanyID        string `json:"companyId,omitempty"`        // preenchido para servicos vinculados a empresa
+	InstanceID       string `json:"instanceId,omitempty"`       // instancia Syspro validada associada
+	RootPath         string `json:"rootPath,omitempty"`         // diretorio raiz da instancia validada
+	ValidationStatus string `json:"validationStatus,omitempty"` // VALIDATED | PARTIAL
 }
 
 // AllServicesSnapshot lista todos os servicos Windows registrados no SCM.
@@ -115,19 +118,81 @@ type AllServicesSnapshot struct {
 	Services    []ServiceStatus `json:"services"`
 }
 
-// SysproVersionSnapshot contem a versao e estado dos executaveis de cada instalacao Syspro.
-// Coletado a cada ~1h (80 ciclos de sync). Usa GetFileVersionInfoW nativo — zero PowerShell.
+// SysproVersionSnapshot contem a topologia descoberta do Syspro na maquina.
+// O agente trata os caminhos vindos do portal como hints e promove apenas
+// instancias validadas de SysproServer.exe para diagnostico profundo.
 type SysproVersionSnapshot struct {
-	CollectedAt   string              `json:"collectedAt"`
-	Installations []SysproInstallInfo `json:"installations"`
+	CollectedAt          string                    `json:"collectedAt"`
+	MachineRole          string                    `json:"machineRole"`
+	ValidatedServerCount int                       `json:"validatedServerCount"`
+	InstallationGroups   []SysproInstallationGroup `json:"installationGroups"`
 }
 
-// SysproInstallInfo descreve o estado atual de uma instalacao Syspro monitorada.
-type SysproInstallInfo struct {
-	CompanyID   string  `json:"companyId"`
-	CompanyName string  `json:"companyName"`
-	ServerPath  string  `json:"serverPath"`
-	ExeExists   bool    `json:"exeExists"`
-	ExeVersion  string  `json:"exeVersion,omitempty"`
-	ExeSizeMB   float64 `json:"exeSizeMb,omitempty"`
+type SysproInstallationGroup struct {
+	ID                string                 `json:"id"`
+	RootPath          string                 `json:"rootPath"`
+	Roles             []string               `json:"roles,omitempty"`
+	Classification    string                 `json:"classification"`
+	Confidence        string                 `json:"confidence,omitempty"`
+	ClientInstances   []SysproClientInstance `json:"clientInstances,omitempty"`
+	ServerInstances   []SysproServerInstance `json:"serverInstances,omitempty"`
+	SharedDirectories []string               `json:"sharedDirectories,omitempty"`
+	DiscoveryEvidence []string               `json:"discoveryEvidence,omitempty"`
+}
+
+type SysproClientInstance struct {
+	RootPath string   `json:"rootPath"`
+	Status   string   `json:"status"`
+	Evidence []string `json:"evidence,omitempty"`
+}
+
+type SysproServerInstance struct {
+	ID                string                  `json:"id"`
+	RootPath          string                  `json:"rootPath"`
+	ExecutablePath    string                  `json:"executablePath,omitempty"`
+	ConfigurationPath string                  `json:"configurationPath,omitempty"`
+	IsapiDLLPath      string                  `json:"isapiDllPath,omitempty"`
+	DataDirectories   []SysproDataDirectory   `json:"dataDirectories,omitempty"`
+	Version           SysproExecutableVersion `json:"version"`
+	Update            SysproUpdateInfo        `json:"update"`
+	Execution         SysproServerExecution   `json:"execution"`
+	Validation        SysproValidation        `json:"validation"`
+	CompanyHints      []SysproCompanyHint     `json:"companyHints,omitempty"`
+	ExecutableSizeMB  float64                 `json:"executableSizeMb,omitempty"`
+}
+
+type SysproDataDirectory struct {
+	Path      string `json:"path"`
+	Source    string `json:"source"`
+	Validated bool   `json:"validated"`
+}
+
+type SysproExecutableVersion struct {
+	ProductVersion string `json:"productVersion,omitempty"`
+	FileVersion    string `json:"fileVersion,omitempty"`
+	Source         string `json:"source,omitempty"`
+}
+
+type SysproUpdateInfo struct {
+	UpdatedAt  string `json:"updatedAt,omitempty"`
+	Source     string `json:"source,omitempty"`
+	Confidence string `json:"confidence,omitempty"`
+}
+
+type SysproServerExecution struct {
+	ProcessRunning bool   `json:"processRunning"`
+	ServiceStatus  string `json:"serviceStatus,omitempty"`
+	PID            uint32 `json:"pid,omitempty"`
+}
+
+type SysproValidation struct {
+	Status   string   `json:"status"`
+	Evidence []string `json:"evidence,omitempty"`
+}
+
+type SysproCompanyHint struct {
+	CompanyID   string `json:"companyId,omitempty"`
+	CompanyName string `json:"companyName,omitempty"`
+	Path        string `json:"path,omitempty"`
+	Source      string `json:"source,omitempty"`
 }

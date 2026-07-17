@@ -12,6 +12,7 @@ import {
   readContractSchemaVersions,
   extractContractValidationError,
   resolveExpectedRustDeskAlias,
+  readSysproValidatedServers,
 } from "../host-details.helpers";
 import { DEFAULT_INSTALLATION_DIRECTORY } from "../host-details.constants";
 import { resolveRemoteNetworkFields } from "../network-addresses";
@@ -167,7 +168,7 @@ export function useHostComputedValues(
       );
   }, [dedupedInstallationContexts, details.company.installationDirectory]);
 
-  const desiredSysproInstalls = useMemo(
+  const desiredSysproHints = useMemo(
     () =>
       dedupedInstallationContexts
         .filter((context) => !!context.update.companyId)
@@ -177,9 +178,7 @@ export function useHostComputedValues(
             context.company?.razaoSocial?.trim() ||
             context.update.resolvedCompanyName?.trim() ||
             context.update.companyLabel.trim();
-          const rawPath = context.update.path.trim();
-          const serverPath = /\.exe$/i.test(rawPath) ? rawPath.replace(/[/\\][^/\\]+\.exe$/i, "") : rawPath;
-          return { companyId: context.update.companyId!, companyName, serverPath };
+          return { companyId: context.update.companyId!, companyName, path: context.update.path.trim() };
         }),
     [dedupedInstallationContexts],
   );
@@ -240,11 +239,8 @@ export function useHostComputedValues(
         (extractStringFromPayload(latestAutoHealCommand.resultPayload, ["serviceStatusAfter", "currentServiceStatus", "afterStatus", "statusAfter"]) ||
           extractStringFromPayload(latestAutoHealCommand.payload, ["serviceStatusAfter", "currentServiceStatus", "afterStatus", "statusAfter"]))) ??
       host.serviceStatus;
-    const versionEntries = Array.isArray(sysproVersionSnapshot?.["installations"])
-      ? (sysproVersionSnapshot["installations"] as Array<Record<string, unknown>>)
-      : [];
-    const collectedVersions = versionEntries
-      .map((entry) => (typeof entry["exeVersion"] === "string" ? entry["exeVersion"].trim() : ""))
+    const collectedVersions = readSysproValidatedServers(sysproVersionSnapshot)
+      .map((entry) => entry.productVersion ?? entry.fileVersion ?? "")
       .filter((value) => !!value);
     const erpVersion = collectedVersions[0] ?? null;
     const erpPaths = Array.from(new Set(installations.map((entry) => entry.path.trim()).filter((path) => !!path)));
@@ -379,7 +375,7 @@ export function useHostComputedValues(
     hasPendingInstallGuide,
     dedupedInstallationContexts,
     installations,
-    desiredSysproInstalls,
+    desiredSysproHints,
     detectedCompanyCount,
     canManageInstallations,
     unlinkedInstallationsCount,

@@ -24,14 +24,14 @@ export function DiagnosticsHardwareView({ hardwareIdentity, hardwareIdentityAt }
   const hw = hardwareIdentity;
 
   const fields = [
-    { label: "Fabricante", value: (hw.manufacturer as string) || "Desconhecido" },
-    { label: "Modelo", value: (hw.model as string) || "Desconhecido" },
-    { label: "Placa-Mãe", value: (hw.baseboard as string) || "Desconhecido" },
-    { label: "Processador", value: (hw.cpu as string) || "Desconhecido" },
-    { label: "Arquitetura", value: (hw.architecture as string) || "Desconhecido" },
-    { label: "Memória Física", value: hw.totalMemoryBytes ? `${Math.round(Number(hw.totalMemoryBytes) / (1024 * 1024 * 1024))} GB` : "Desconhecido" },
-    { label: "BIOS", value: (hw.biosVersion as string) || "Desconhecido" },
-    { label: "Número de Série", value: (hw.serialNumber as string) || "Não reportado" },
+    { label: "ID da Máquina (GUID)", value: (hw.machineGuid as string) || "Não reportado" },
+    { label: "Número de Série", value: (hw.systemSerial as string) || "Não reportado" },
+    { label: "Fabricante", value: (hw.systemManufacturer as string) || "Desconhecido" },
+    { label: "Modelo", value: (hw.systemModel as string) || "Desconhecido" },
+    { label: "Placa-Mãe (Fabricante)", value: (hw.baseboardVendor as string) || "Desconhecido" },
+    { label: "Placa-Mãe (Modelo)", value: (hw.baseboardModel as string) || "Desconhecido" },
+    { label: "Versão da BIOS", value: (hw.biosVersion as string) || "Desconhecido" },
+    { label: "Arquitetura da CPU", value: (hw.cpuArchitecture as string) || "Desconhecido" },
   ];
 
   return (
@@ -41,7 +41,7 @@ export function DiagnosticsHardwareView({ hardwareIdentity, hardwareIdentityAt }
           <div>
             <CardTitle className="text-lg">Inventário de Hardware</CardTitle>
             <CardDescription>
-              Especificações físicas do dispositivo.
+              Especificações físicas do dispositivo reportadas pelo agente.
             </CardDescription>
           </div>
           <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">

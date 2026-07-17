@@ -53,11 +53,6 @@ export type SettingsAgentViewProps = {
   }>;
   hiddenAcknowledgedCount: number;
   hasPendingInstallGuide: boolean;
-  desiredSysproInstalls: Array<{
-    companyId: string;
-    companyName: string;
-    serverPath: string;
-  }>;
 }
 
 export function SettingsAgentView({
@@ -76,7 +71,6 @@ export function SettingsAgentView({
   visibleAgentCommands,
   hiddenAcknowledgedCount,
   hasPendingInstallGuide,
-  desiredSysproInstalls,
 }: SettingsAgentViewProps) {
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
@@ -147,35 +141,7 @@ export function SettingsAgentView({
                 </div>
               </div>
 
-              <div className="mt-3 rounded-xl border border-border/50 bg-background/60 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Desired state do dispositivo</p>
-                    <p className="text-sm text-muted-foreground">
-                      Instalações Syspro que o portal está projetando para o módulo `device`.
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
-                    {desiredSysproInstalls.length} instalação(ões)
-                  </Badge>
-                </div>
-                {desiredSysproInstalls.length ? (
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {desiredSysproInstalls.map((install) => (
-                      <div key={`${install.companyId}-${install.serverPath}`} className="rounded-lg border border-border/40 bg-background/50 p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
-                        <p className="mt-1 text-sm text-foreground">{install.companyName}</p>
-                        <p className="mt-3 text-[11px] uppercase tracking-wide text-muted-foreground">server_path</p>
-                        <p className="mt-1 break-all font-mono text-xs text-foreground">{install.serverPath}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-4 rounded-lg border border-dashed border-border/50 bg-background/40 p-3 text-sm text-muted-foreground">
-                    Nenhuma instalação vinculada está sendo projetada para o agente.
-                  </div>
-                )}
-              </div>
+
               <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Última descoberta</p>

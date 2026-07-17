@@ -111,7 +111,6 @@ export function RemoteHostDetailsPanel({
     localGateway,
     firebirdData,
     heartbeat,
-    desiredSysproInstalls,
   } = computed;
 
   const ticketNumber = useSearchParams().get("ticketNumber");
@@ -575,7 +574,6 @@ export function RemoteHostDetailsPanel({
             visibleAgentCommands={visibleAgentCommands}
             hiddenAcknowledgedCount={hiddenAcknowledgedCount}
             hasPendingInstallGuide={hasPendingInstallGuide}
-            desiredSysproInstalls={desiredSysproInstalls}
           />
         </TabsContent>
       </Tabs>

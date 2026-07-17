@@ -1,25 +1,26 @@
 "use client";
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Badge } from "@dosc-syspro/ui";
-import { Folder, Info, Server, Building2, TerminalSquare } from "lucide-react";
-import { formatDateTime } from "../../host-details.helpers";
+import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Building2, Folder, Server } from "lucide-react";
+import { formatDateTime, readSysproInstallationGroups } from "../../host-details.helpers";
 
 type Props = {
-  sysproVersionSnapshot: Array<Record<string, unknown>> | null;
+  sysproVersionSnapshot: Record<string, unknown> | null;
   sysproVersionSnapshotAt: string | null;
 };
 
 export function DiagnosticsSysproView({ sysproVersionSnapshot, sysproVersionSnapshotAt }: Props) {
   const displaySnapshotDate = sysproVersionSnapshotAt ? formatDateTime(sysproVersionSnapshotAt) : "Nunca";
+  const groups = readSysproInstallationGroups(sysproVersionSnapshot);
 
   return (
     <div className="space-y-6">
       <Card className="border-border/50">
-        <CardHeader className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pb-4">
+        <CardHeader className="flex flex-col space-y-2 pb-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div>
             <CardTitle className="text-lg">Instalações Syspro</CardTitle>
             <CardDescription>
-              Lista de instalações detectadas fisicamente no disco pelo Go Agent.
+              Grupos, componentes e instâncias validadas fisicamente pelo agente nesta máquina.
             </CardDescription>
           </div>
           <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
@@ -27,65 +28,100 @@ export function DiagnosticsSysproView({ sysproVersionSnapshot, sysproVersionSnap
           </Badge>
         </CardHeader>
         <CardContent className="space-y-4">
-          {(!sysproVersionSnapshot || sysproVersionSnapshot.length === 0) ? (
-            <div className="rounded-xl border border-dashed border-border/40 p-8 text-center bg-muted/10">
+          {groups.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border/40 bg-muted/10 p-8 text-center">
               <Folder className="mx-auto h-8 w-8 text-muted-foreground" />
-              <p className="mt-2 text-sm font-medium text-foreground">Nenhuma pasta física localizada</p>
-              <p className="mt-1 text-xs text-muted-foreground">O agente não identificou diretórios correspondentes ao padrão do Syspro no momento.</p>
+              <p className="mt-2 text-sm font-medium text-foreground">Nenhuma topologia Syspro descoberta</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                O agente ainda não validou nenhuma instância de servidor ou grupo relevante nesta máquina.
+              </p>
             </div>
           ) : (
             <div className="grid gap-4">
-              {sysproVersionSnapshot.map((folder, idx) => {
-                const path = typeof folder["path"] === "string" ? folder["path"] : "Desconhecido";
-                const exeVersion = typeof folder["exeVersion"] === "string" ? folder["exeVersion"] : null;
-                const exeExists = folder["exeExists"] === true;
-                const exeSizeMB = typeof folder["exeSizeMB"] === "number" ? folder["exeSizeMB"] : null;
+              {groups.map((group) => (
+                <div key={group.id} className="rounded-xl border border-border/50 bg-background/50 p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    <span className="font-semibold text-base text-foreground">{group.rootPath}</span>
+                    <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
+                      {group.classification ?? "UNKNOWN"}
+                    </Badge>
+                    {group.confidence ? (
+                      <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
+                        {group.confidence}
+                      </Badge>
+                    ) : null}
+                  </div>
 
-                return (
-                  <div key={`${path}-${idx}`} className="rounded-xl border border-border/50 bg-background/50 shadow-sm p-5 space-y-4 flex flex-col md:flex-row md:items-start justify-between gap-6">
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Server className="h-5 w-5 text-primary shrink-0" />
-                        <span className="font-semibold text-base text-foreground">
-                          Syspro Server / Executável
-                        </span>
-                        {!exeExists && (
-                          <Badge variant="destructive" className="ml-2 text-[10px] py-0 border-transparent shadow-none bg-red-500/10 text-red-700 dark:text-red-400">
-                            Atenção
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 mt-4">
-                        <div className="text-sm">
-                          <span className="text-muted-foreground block text-xs">Diretório Raiz</span>
-                          <span className="font-mono break-all">{path}</span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-muted-foreground block text-xs">Versão Detectada</span>
-                          {exeExists ? (
-                            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-medium">v{exeVersion ?? "Não lida"}</span>
-                          ) : (
-                            <span className="text-muted-foreground">Sem executável</span>
-                          )}
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-muted-foreground block text-xs">Origem</span>
-                          <span>Autodescoberta pelo agente</span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-muted-foreground block text-xs">Validação</span>
-                          {exeExists ? (
-                            <span className="text-emerald-600 dark:text-emerald-400">Executável confirmado ({exeSizeMB?.toFixed(1)} MB)</span>
-                          ) : (
-                            <span className="text-red-500 dark:text-red-400">Executável não encontrado na pasta</span>
-                          )}
-                        </div>
-                      </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm">
+                    <div>
+                      <span className="block text-xs text-muted-foreground">Papéis</span>
+                      <span>{group.roles.join(", ") || "Sem leitura"}</span>
+                    </div>
+                    <div>
+                      <span className="block text-xs text-muted-foreground">Clientes</span>
+                      <span>{group.clientInstances.length}</span>
+                    </div>
+                    <div>
+                      <span className="block text-xs text-muted-foreground">Servidores</span>
+                      <span>{group.serverInstances.length}</span>
+                    </div>
+                    <div>
+                      <span className="block text-xs text-muted-foreground">Evidências</span>
+                      <span>{group.discoveryEvidence.join(", ") || "Sem leitura"}</span>
                     </div>
                   </div>
-                );
-              })}
+
+                  <div className="mt-4 grid gap-4">
+                    {group.serverInstances.map((server) => (
+                      <div key={server.id} className="rounded-xl border border-border/40 bg-background/60 p-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Server className="h-4 w-4 text-primary" />
+                          <span className="font-medium text-foreground">{server.rootPath}</span>
+                          <Badge
+                            variant={server.validationStatus === "VALIDATED" ? "outline" : "destructive"}
+                            className="border-border/60 bg-background/70"
+                          >
+                            {server.validationStatus ?? "UNKNOWN"}
+                          </Badge>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm">
+                          <div>
+                            <span className="block text-xs text-muted-foreground">Versão</span>
+                            <span className="font-mono text-foreground">
+                              {server.productVersion ?? server.fileVersion ?? "Sem leitura"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="block text-xs text-muted-foreground">Atualizado em</span>
+                            <span>{server.updatedAt ? formatDateTime(server.updatedAt) : "Sem leitura"}</span>
+                          </div>
+                          <div>
+                            <span className="block text-xs text-muted-foreground">Origem da data</span>
+                            <span>{server.updateSource ?? "Sem leitura"}</span>
+                          </div>
+                          <div>
+                            <span className="block text-xs text-muted-foreground">Executável</span>
+                            <span>{server.executableSizeMb ? `${server.executableSizeMb.toFixed(1)} MB` : "Sem leitura"}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 text-sm">
+                          <div>
+                            <span className="block text-xs text-muted-foreground">Arquivos validados</span>
+                            <span>{server.validationEvidence.join(", ") || "Sem leitura"}</span>
+                          </div>
+                          <div>
+                            <span className="block text-xs text-muted-foreground">Diretórios de dados</span>
+                            <span>{server.dataDirectories.map((entry) => entry.path).join(", ") || "Sem leitura"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

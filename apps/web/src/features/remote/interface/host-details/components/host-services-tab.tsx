@@ -5,6 +5,7 @@ import { Button } from "@dosc-syspro/ui";
 import { Copy, Terminal, ShieldAlert, MonitorSmartphone, RefreshCw, Globe } from "lucide-react";
 import { differenceInMinutes } from "@/lib/date";
 import { ReactNode } from "react";
+import { readSysproValidatedServers } from "../host-details.helpers";
 
 type HostServicesTabProps = {
   host: RemoteHostDetails["host"];
@@ -185,10 +186,8 @@ export function HostServicesTab({
   }
 
   // 5. Syspro Server
-  const installs = Array.isArray(sysproVersionSnapshot?.["installations"])
-    ? (sysproVersionSnapshot["installations"] as Record<string, unknown>[])
-    : [];
-  const hasSyspro = installs.length > 0;
+  const servers = readSysproValidatedServers(sysproVersionSnapshot);
+  const hasSyspro = servers.length > 0;
   let sysproStatus: ComponentStatus = hasSyspro ? "operational" : "not_installed";
   
   if (sysproStatus !== "not_installed") {
@@ -198,7 +197,8 @@ export function HostServicesTab({
       status: sysproStatus,
       statusLabel: "Operacional",
       details: [
-        { label: "Instalações Detectadas", value: installs.length.toString() },
+        { label: "Instâncias validadas", value: servers.length.toString() },
+        { label: "Versão principal", value: servers[0]?.productVersion ?? servers[0]?.fileVersion ?? "Sem leitura" },
       ],
       actions: (
         <Button variant="outline" size="sm" className="h-8 text-xs">

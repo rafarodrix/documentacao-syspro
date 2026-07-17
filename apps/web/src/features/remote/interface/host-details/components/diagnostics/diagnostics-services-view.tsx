@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Input, Badge, Button } from "@dosc-syspro/ui";
-import { Search, Info } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDateTime } from "../../host-details.helpers";
 
 type Props = {
@@ -11,43 +11,35 @@ type Props = {
   sysproProcessSnapshotAt: string | null;
 };
 
-export function DiagnosticsServicesView({ systemSnapshot, sysproProcessSnapshot, sysproProcessSnapshotAt }: Props) {
+export function DiagnosticsServicesView({ sysproProcessSnapshot, sysproProcessSnapshotAt }: Props) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 15;
 
   const displayDate = sysproProcessSnapshotAt ? formatDateTime(sysproProcessSnapshotAt) : "Nunca";
 
-  // Aqui tentamos consolidar serviços. Se a telemetria vier num formato específico futuramente, ajustamos.
   const parsedServices = useMemo(() => {
-    let rawList: any[] = [];
-    
-    // Tenta encontrar uma lista de serviços no systemSnapshot
-    if (systemSnapshot && Array.isArray(systemSnapshot.services)) {
-      rawList = systemSnapshot.services;
-    } 
-    // Ou usa o sysproProcessSnapshot se ele contiver serviços
-    else if (Array.isArray(sysproProcessSnapshot)) {
-      rawList = sysproProcessSnapshot;
-    }
+    const rawList = Array.isArray(sysproProcessSnapshot) ? sysproProcessSnapshot : [];
 
     return rawList.map((srv: any) => {
-      const name = (srv.displayName || srv.name || srv.Caption || "Desconhecido") as string;
-      const internalName = (srv.name || srv.Name || "") as string;
-      const startMode = (srv.startMode || srv.StartMode || "Desconhecido") as string;
-      const account = (srv.startName || srv.account || srv.StartName || "Desconhecido") as string;
-      const state = (srv.state || srv.State || srv.status || "Desconhecido") as string;
+      const internalName = (srv.name || srv.Name || srv.ServiceName || "") as string;
+      const displayName = (srv.displayName || srv.DisplayName || srv.Caption || internalName || "Desconhecido") as string;
+      const startType = (srv.startType || srv.StartType || srv.startMode || "Desconhecido") as string;
+      const status = (srv.status || srv.state || srv.State || "Desconhecido") as string;
+      const pid = (srv.pid || srv.ProcessId || 0) as number;
+      const companyId = (srv.companyId || "") as string;
 
       return {
-        id: internalName || name,
-        name: name.trim(),
+        id: internalName || displayName,
         internalName: internalName.trim(),
-        startMode: startMode.trim(),
-        account: account.trim(),
-        state: state.trim(),
+        displayName: displayName.trim(),
+        startType: startType.trim(),
+        status: status.trim(),
+        pid,
+        companyId,
       };
-    }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [systemSnapshot, sysproProcessSnapshot]);
+    }).sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [sysproProcessSnapshot]);
 
   const filteredServices = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -55,9 +47,9 @@ export function DiagnosticsServicesView({ systemSnapshot, sysproProcessSnapshot,
     
     return parsedServices.filter(
       (srv) =>
-        srv.name.toLowerCase().includes(query) ||
+        srv.displayName.toLowerCase().includes(query) ||
         srv.internalName.toLowerCase().includes(query) ||
-        srv.state.toLowerCase().includes(query)
+        srv.status.toLowerCase().includes(query)
     );
   }, [parsedServices, search]);
 
@@ -69,9 +61,17 @@ export function DiagnosticsServicesView({ systemSnapshot, sysproProcessSnapshot,
 
   const getStateColor = (state: string) => {
     const s = state.toLowerCase();
-    if (s.includes("run") || s.includes("rodando") || s.includes("execut")) return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20";
-    if (s.includes("stop") || s.includes("parad")) return "bg-muted text-muted-foreground border-border";
+    if (s === "running" || s.includes("rodando") || s.includes("execut")) return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20";
+    if (s === "stopped" || s.includes("parad")) return "bg-muted text-muted-foreground border-border";
     return "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20";
+  };
+
+  const formatStartType = (type: string) => {
+    const t = type.toLowerCase();
+    if (t === "auto" || t === "delayed_auto") return "Automático";
+    if (t === "manual") return "Manual";
+    if (t === "disabled") return "Desativado";
+    return type;
   };
 
   return (
@@ -79,9 +79,9 @@ export function DiagnosticsServicesView({ systemSnapshot, sysproProcessSnapshot,
       <Card className="border-border/50">
         <CardHeader className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pb-4">
           <div>
-            <CardTitle className="text-lg">Serviços do Windows</CardTitle>
+            <CardTitle className="text-lg">Processos Monitorados</CardTitle>
             <CardDescription>
-              Serviços identificados pelo agente durante a coleta de inventário.
+              Serviços Syspro e processos críticos identificados pelo agente. {filteredServices.length} serviços listados.
             </CardDescription>
           </div>
           <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
@@ -105,36 +105,34 @@ export function DiagnosticsServicesView({ systemSnapshot, sysproProcessSnapshot,
           {filteredServices.length > 0 ? (
             <div className="overflow-x-auto rounded-xl border border-border/50 bg-background/60">
               <table className="w-full border-collapse text-left text-sm">
-                <thead className="bg-muted/30">
+                <thead className="bg-muted/50 backdrop-blur-md">
                   <tr className="border-b border-border/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     <th className="p-4">Serviço</th>
-                    <th className="p-4 hidden md:table-cell">Nome Interno</th>
-                    <th className="p-4 hidden lg:table-cell">Inicialização</th>
-                    <th className="p-4 hidden lg:table-cell">Conta</th>
-                    <th className="p-4 text-right">Estado na Coleta</th>
+                    <th className="p-4">Nome Interno</th>
+                    <th className="p-4 hidden sm:table-cell">Tipo de Início</th>
+                    <th className="p-4 hidden md:table-cell">PID</th>
+                    <th className="p-4 text-right">Estado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {paginatedServices.map((srv, index) => (
-                    <tr key={`${srv.id}-${index}`} className="hover:bg-muted/5 transition-colors">
-                      <td className="p-4 font-medium text-foreground">
-                        {srv.name}
-                        <div className="md:hidden text-xs text-muted-foreground mt-1 font-normal">
-                          {srv.internalName}
-                        </div>
+                  {paginatedServices.map((srv) => (
+                    <tr key={srv.id} className="hover:bg-muted/10 transition-colors">
+                      <td className="p-4">
+                        <div className="font-medium text-foreground">{srv.displayName}</div>
+                        {srv.companyId && <div className="text-[10px] text-muted-foreground mt-0.5">Empresa ID: {srv.companyId}</div>}
                       </td>
-                      <td className="p-4 hidden md:table-cell font-mono text-xs text-muted-foreground">
+                      <td className="p-4 font-mono text-xs text-muted-foreground">
                         {srv.internalName}
                       </td>
-                      <td className="p-4 hidden lg:table-cell text-xs text-muted-foreground">
-                        {srv.startMode}
+                      <td className="p-4 hidden sm:table-cell text-muted-foreground text-xs">
+                        {formatStartType(srv.startType)}
                       </td>
-                      <td className="p-4 hidden lg:table-cell text-xs text-muted-foreground">
-                        {srv.account}
+                      <td className="p-4 hidden md:table-cell font-mono text-muted-foreground text-xs">
+                        {srv.pid > 0 ? srv.pid : "--"}
                       </td>
                       <td className="p-4 text-right">
-                        <Badge variant="outline" className={getStateColor(srv.state)}>
-                          {srv.state}
+                        <Badge variant="outline" className={getStateColor(srv.status)}>
+                          {srv.status === "running" ? "Rodando" : srv.status === "stopped" ? "Parado" : srv.status}
                         </Badge>
                       </td>
                     </tr>
@@ -143,28 +141,37 @@ export function DiagnosticsServicesView({ systemSnapshot, sysproProcessSnapshot,
               </table>
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-border/40 p-8 text-center bg-muted/10">
-              <Info className="mx-auto h-8 w-8 text-muted-foreground" />
-              <p className="mt-2 text-sm font-medium text-foreground">Nenhum serviço correspondente encontrado</p>
+            <div className="p-8 text-center text-muted-foreground bg-muted/10 rounded-xl border border-dashed border-border/50">
+              Nenhum processo foi encontrado com esse filtro.
             </div>
           )}
 
-          {filteredServices.length > 0 && (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pt-2">
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
               <span className="text-xs text-muted-foreground">
-                Exibindo {Math.min(filteredServices.length, (currentPage - 1) * PAGE_SIZE + 1)} a{" "}
-                {Math.min(filteredServices.length, currentPage * PAGE_SIZE)} de {filteredServices.length}{" "}
-                serviços.
+                Mostrando {((currentPage - 1) * PAGE_SIZE) + 1} até {Math.min(currentPage * PAGE_SIZE, filteredServices.length)} de {filteredServices.length}
               </span>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                  Anterior
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-xs font-medium text-foreground">
-                  Página {currentPage} de {totalPages}
-                </span>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                  Próxima
+                <div className="text-sm text-muted-foreground px-2">
+                  {currentPage} de {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>

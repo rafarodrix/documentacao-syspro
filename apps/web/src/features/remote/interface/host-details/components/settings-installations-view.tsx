@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/formatters";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { SearchableCompanyPicker } from "./searchable-company-picker";
-import { formatDateTime, getSysproUpdateHealthMeta } from "../host-details.helpers";
+import { formatDateTime, getSysproUpdateHealthMeta, resolveSysproServerForPath } from "../host-details.helpers";
 import {
   COMPANY_SERVER_TYPE_LABEL,
   DEFAULT_INSTALLATION_DIRECTORY,
@@ -26,22 +26,11 @@ type CompanyContextDraft = {
   observacoes: string;
 };
 
-function normalizeInstallationPath(value: unknown) {
-  return typeof value === "string" ? value.trim().replace(/[\\/]+/g, "/").toLowerCase() : "";
-}
-
 export function resolveSysproVersionInfoForPath(
   sysproVersionSnapshot: Record<string, unknown> | null,
   installationPath: string,
 ) {
-  const targetPath = normalizeInstallationPath(installationPath);
-  if (!targetPath) return null;
-
-  const installs = Array.isArray(sysproVersionSnapshot?.["installations"])
-    ? (sysproVersionSnapshot["installations"] as Record<string, unknown>[])
-    : [];
-
-  return installs.find((inst) => normalizeInstallationPath(inst["serverPath"]) === targetPath) ?? null;
+  return resolveSysproServerForPath(sysproVersionSnapshot, installationPath);
 }
 
 export type SettingsInstallationsViewProps = {

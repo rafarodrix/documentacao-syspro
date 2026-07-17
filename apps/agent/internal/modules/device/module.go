@@ -9,9 +9,8 @@ import (
 
 // Module e o modulo de coleta de contexto e metricas do dispositivo.
 // Ciclos de coleta:
-//   - Metricas (memoria, CPU, reboot) e servicos: todo Apply (~45s)
-//   - Disco por unidade: a cada 4 ciclos (~3 min)
-//   - Versao do SysproServer.exe: a cada 80 ciclos (~1h) ou no primeiro ciclo
+//   - Metricas (memoria, CPU, reboot), servicos e topologia Syspro: todo Apply (~45s)
+//   - Disco por unidade e inventario geral: a cada 4 ciclos (~3 min)
 type Module struct {
 	collector  *Collector
 	logger     Logger
@@ -64,7 +63,11 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 	}
 
 	m.cycleCount++
-	installs := toCollectorInstalls(desired.Device.SysproInstalls)
+	sysproHints := toCollectorHints(desired.Device.SysproInstallationHints)
+	sysproSnapshot := m.collector.CollectSysproInstallations(ctx, sysproHints)
+	m.mu.Lock()
+	m.lastVersions = sysproSnapshot
+	m.mu.Unlock()
 
 	// Metricas e servicos: todo ciclo (~45s)
 	if desired.Device.CollectMetrics {
@@ -76,7 +79,7 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 			m.mu.Unlock()
 		}
 
-		if services, err := m.collector.CollectServices(installs); err != nil {
+		if services, err := m.collector.CollectServices(sysproSnapshot); err != nil {
 			m.logger.Warn("device: collect services failed", "error", err)
 		} else {
 			m.mu.Lock()
@@ -144,14 +147,6 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 		}
 	}
 
-	// Versao SysproServer: a cada 80 ciclos (~1h) ou na primeira execucao
-	if len(installs) > 0 && (m.cycleCount == 1 || m.cycleCount%80 == 0) {
-		snap := m.collector.CollectSysproVersions(ctx, installs)
-		m.mu.Lock()
-		m.lastVersions = snap
-		m.mu.Unlock()
-	}
-
 	return domain.ApplyResult{Module: "device", Changed: true, Message: "device snapshot collected"}
 }
 
@@ -215,15 +210,14 @@ func (m *Module) GetSyncSnapshots() (metrics, system, network, software, hardwar
 	return
 }
 
-// toCollectorInstalls converte domain.SysproInstallTarget para o tipo interno do collector.
-func toCollectorInstalls(targets []domain.SysproInstallTarget) []SysproInstallTarget {
-	out := make([]SysproInstallTarget, len(targets))
+// toCollectorHints converte domain.SysproInstallationHint para o tipo interno do collector.
+func toCollectorHints(targets []domain.SysproInstallationHint) []SysproInstallationHint {
+	out := make([]SysproInstallationHint, len(targets))
 	for i, t := range targets {
-		out[i] = SysproInstallTarget{
+		out[i] = SysproInstallationHint{
 			CompanyID:   t.CompanyID,
 			CompanyName: t.CompanyName,
-			ServerPath:  t.ServerPath,
-			DataPath:    t.DataPath,
+			Path:        t.Path,
 		}
 	}
 	return out

@@ -1,8 +1,10 @@
 "use client";
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@dosc-syspro/ui";
-import { formatDateTime } from "../../host-details.helpers";
+import { formatDateTime, readSysproInstallationGroups } from "../../host-details.helpers";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
+import { Badge } from "@dosc-syspro/ui";
+import { Monitor, Cpu, HardDrive, LayoutTemplate, Activity } from "lucide-react";
 
 type Props = {
   details: RemoteHostDetails;
@@ -11,32 +13,32 @@ type Props = {
 export function DiagnosticsSummaryView({ details }: Props) {
   const telemetry = details.agentTelemetry;
 
-  const getSystemInfo = () => {
-    if (!telemetry.systemSnapshot) return { os: "Desconhecido", domain: "N/A" };
-    const snap = telemetry.systemSnapshot;
-    return {
-      os: (snap.osName as string) || "Windows",
-      domain: (snap.domain as string) || (snap.workgroup as string) || "N/A",
-    };
-  };
+  const sysSnap = telemetry.systemSnapshot || {};
+  const hwSnap = telemetry.hardwareIdentity || {};
+  const netSnap = telemetry.networkSnapshot || {};
+  const metricsSnap = telemetry.agentMetrics || {};
+  const winUpdate = telemetry.windowsUpdateStatus || {};
 
-  const getHardwareInfo = () => {
-    if (!telemetry.hardwareIdentity) return { manufacturer: "Desconhecido", model: "Desconhecido", cpu: "Desconhecido", ram: "Desconhecido" };
-    const snap = telemetry.hardwareIdentity;
-    return {
-      manufacturer: (snap.manufacturer as string) || "Desconhecido",
-      model: (snap.model as string) || "Desconhecido",
-      cpu: (snap.cpu as string) || "Desconhecido",
-      ram: snap.totalMemoryBytes ? `${Math.round(Number(snap.totalMemoryBytes) / (1024 * 1024 * 1024))} GB` : "Desconhecido",
-    };
-  };
+  const osName = (sysSnap.osName as string) || "Desconhecido";
+  const hostname = (sysSnap.hostname as string) || "Desconhecido";
+  
+  const manufacturer = (hwSnap.systemManufacturer as string) || "Desconhecido";
+  const model = (hwSnap.systemModel as string) || "Desconhecido";
+  const arch = (hwSnap.cpuArchitecture as string) || "Desconhecido";
+  
+  const memoryTotalMb = typeof metricsSnap.memoryTotalMb === "number" ? metricsSnap.memoryTotalMb : null;
+  const memoryStr = memoryTotalMb !== null ? `${Math.round(memoryTotalMb / 1024)} GB` : "Desconhecido";
+
+  const dnsServers = Array.isArray(netSnap.dnsServers) ? netSnap.dnsServers.join(", ") : "N/A";
+  const rebootPending = (winUpdate.rebootRequired === true) || (metricsSnap.rebootPending === true);
 
   const getCounts = () => {
+    const sysproGroups = readSysproInstallationGroups(telemetry.sysproVersionSnapshot);
     return {
       volumes: telemetry.diskSnapshot?.length || 0,
       softwares: telemetry.softwareSnapshot?.length || 0,
       services: telemetry.sysproProcessSnapshot?.length || 0,
-      syspro: Array.isArray(telemetry.sysproVersionSnapshot) ? telemetry.sysproVersionSnapshot.length : 0,
+      syspro: sysproGroups.length,
     };
   };
 
@@ -44,60 +46,91 @@ export function DiagnosticsSummaryView({ details }: Props) {
     return telemetry.systemSnapshotAt ? formatDateTime(telemetry.systemSnapshotAt) : "Nunca";
   };
 
-  const sysInfo = getSystemInfo();
-  const hwInfo = getHardwareInfo();
   const counts = getCounts();
 
   return (
     <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-border/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">SO & Identidade</CardTitle>
+            <Monitor className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold truncate" title={osName}>{osName}</div>
+            <p className="text-xs text-muted-foreground mt-1 truncate">Host: {hostname}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Hardware</CardTitle>
+            <Cpu className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold truncate">{manufacturer}</div>
+            <p className="text-xs text-muted-foreground mt-1 truncate">{model} ({arch})</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rede (DNS)</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold truncate">{dnsServers.split(",")[0] || "N/A"}</div>
+            <p className="text-xs text-muted-foreground mt-1 truncate">{dnsServers}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Saúde & Updates</CardTitle>
+            <HardDrive className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">
+              {rebootPending ? (
+                <span className="text-rose-500">Reboot Pendente</span>
+              ) : (
+                <span className="text-emerald-500">Saudável</span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 truncate">Memória: {memoryStr}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="text-lg">Resumo do Dispositivo</CardTitle>
-          <CardDescription>
-            Visão geral das características físicas e lógicas deste computador.
-          </CardDescription>
+        <CardHeader className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pb-4">
+          <div>
+            <CardTitle className="text-lg">Metadados de Inventário</CardTitle>
+            <CardDescription>
+              Volume de dados coletados neste dispositivo.
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
+            Última coleta geral: {getLastSync()}
+          </Badge>
         </CardHeader>
         <CardContent>
           <div className="grid gap-x-8 gap-y-4 grid-cols-1 md:grid-cols-2 text-sm">
             <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
-              <span className="text-muted-foreground">Sistema operacional</span>
-              <span className="font-medium text-foreground">{sysInfo.os}</span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
-              <span className="text-muted-foreground">Fabricante</span>
-              <span className="font-medium text-foreground">{hwInfo.manufacturer}</span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
-              <span className="text-muted-foreground">Modelo</span>
-              <span className="font-medium text-foreground">{hwInfo.model}</span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
-              <span className="text-muted-foreground">Processador</span>
-              <span className="font-medium text-foreground text-right">{hwInfo.cpu}</span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
-              <span className="text-muted-foreground">Memória instalada</span>
-              <span className="font-medium text-foreground">{hwInfo.ram}</span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
               <span className="text-muted-foreground">Volumes (Discos)</span>
-              <span className="font-medium text-foreground">{counts.volumes}</span>
+              <span className="font-medium text-foreground">{counts.volumes} particões montadas</span>
             </div>
             <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
               <span className="text-muted-foreground">Softwares instalados</span>
-              <span className="font-medium text-foreground">{counts.softwares}</span>
+              <span className="font-medium text-foreground">{counts.softwares} programas</span>
             </div>
             <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
-              <span className="text-muted-foreground">Serviços monitorados</span>
-              <span className="font-medium text-foreground">{counts.services}</span>
+              <span className="text-muted-foreground">Processos Syspro Monitorados</span>
+              <span className="font-medium text-foreground">{counts.services} serviços</span>
             </div>
             <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
-              <span className="text-muted-foreground">Instalações Syspro</span>
-              <span className="font-medium text-foreground">{counts.syspro}</span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/30">
-              <span className="text-muted-foreground">Última coleta</span>
-              <span className="font-medium text-foreground">{getLastSync()}</span>
+              <span className="text-muted-foreground">Instalações Syspro rastreadas</span>
+              <span className="font-medium text-foreground">{counts.syspro} instâncias</span>
             </div>
           </div>
         </CardContent>

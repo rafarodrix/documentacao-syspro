@@ -278,6 +278,141 @@ export function extractStringFromPayload(
   return null;
 }
 
+export type SysproInstallationGroupView = {
+  id: string;
+  rootPath: string;
+  classification: string | null;
+  roles: string[];
+  confidence: string | null;
+  sharedDirectories: string[];
+  discoveryEvidence: string[];
+  clientInstances: Array<{ rootPath: string; status: string | null; evidence: string[] }>;
+  serverInstances: SysproServerInstanceView[];
+};
+
+export type SysproServerInstanceView = {
+  id: string;
+  rootPath: string;
+  executablePath: string | null;
+  configurationPath: string | null;
+  isapiDllPath: string | null;
+  validationStatus: string | null;
+  validationEvidence: string[];
+  productVersion: string | null;
+  fileVersion: string | null;
+  versionSource: string | null;
+  updatedAt: string | null;
+  updateSource: string | null;
+  updateConfidence: string | null;
+  executableSizeMb: number | null;
+  companyHints: Array<{ companyId: string | null; companyName: string | null; path: string | null }>;
+  dataDirectories: Array<{ path: string; source: string | null; validated: boolean }>;
+  execution: { processRunning: boolean | null; serviceStatus: string | null; pid: number | null };
+};
+
+function readRecordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === "object" && !Array.isArray(entry))
+    : [];
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0) : [];
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function readNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readBoolean(value: unknown) {
+  return typeof value === "boolean" ? value : null;
+}
+
+function normalizeInstallationPath(value: string | null) {
+  return value ? value.trim().replace(/[\\/]+/g, "/").toLowerCase() : "";
+}
+
+export function readSysproInstallationGroups(snapshot: Record<string, unknown> | null): SysproInstallationGroupView[] {
+  const groups = readRecordArray(snapshot?.["installationGroups"]);
+  return groups.map((group, index) => {
+    const serverInstances = readRecordArray(group["serverInstances"]).map<SysproServerInstanceView>((server, serverIndex) => ({
+      id: readString(server["id"]) ?? `server-${index}-${serverIndex}`,
+      rootPath: readString(server["rootPath"]) ?? "Desconhecido",
+      executablePath: readString(server["executablePath"]),
+      configurationPath: readString(server["configurationPath"]),
+      isapiDllPath: readString(server["isapiDllPath"]),
+      validationStatus: readString((server["validation"] as Record<string, unknown> | null)?.["status"]),
+      validationEvidence: readStringArray((server["validation"] as Record<string, unknown> | null)?.["evidence"]),
+      productVersion: readString((server["version"] as Record<string, unknown> | null)?.["productVersion"]),
+      fileVersion: readString((server["version"] as Record<string, unknown> | null)?.["fileVersion"]),
+      versionSource: readString((server["version"] as Record<string, unknown> | null)?.["source"]),
+      updatedAt: readString((server["update"] as Record<string, unknown> | null)?.["updatedAt"]),
+      updateSource: readString((server["update"] as Record<string, unknown> | null)?.["source"]),
+      updateConfidence: readString((server["update"] as Record<string, unknown> | null)?.["confidence"]),
+      executableSizeMb: readNumber(server["executableSizeMb"]),
+      companyHints: readRecordArray(server["companyHints"]).map((hint) => ({
+        companyId: readString(hint["companyId"]),
+        companyName: readString(hint["companyName"]),
+        path: readString(hint["path"]),
+      })),
+      dataDirectories: readRecordArray(server["dataDirectories"]).map((directory) => ({
+        path: readString(directory["path"]) ?? "Desconhecido",
+        source: readString(directory["source"]),
+        validated: directory["validated"] === true,
+      })),
+      execution: {
+        processRunning: readBoolean((server["execution"] as Record<string, unknown> | null)?.["processRunning"]),
+        serviceStatus: readString((server["execution"] as Record<string, unknown> | null)?.["serviceStatus"]),
+        pid: readNumber((server["execution"] as Record<string, unknown> | null)?.["pid"]),
+      },
+    }));
+
+    return {
+      id: readString(group["id"]) ?? `group-${index}`,
+      rootPath: readString(group["rootPath"]) ?? "Desconhecido",
+      classification: readString(group["classification"]),
+      roles: readStringArray(group["roles"]),
+      confidence: readString(group["confidence"]),
+      sharedDirectories: readStringArray(group["sharedDirectories"]),
+      discoveryEvidence: readStringArray(group["discoveryEvidence"]),
+      clientInstances: readRecordArray(group["clientInstances"]).map((client) => ({
+        rootPath: readString(client["rootPath"]) ?? "Desconhecido",
+        status: readString(client["status"]),
+        evidence: readStringArray(client["evidence"]),
+      })),
+      serverInstances,
+    };
+  });
+}
+
+export function readSysproValidatedServers(snapshot: Record<string, unknown> | null): SysproServerInstanceView[] {
+  return readSysproInstallationGroups(snapshot).flatMap((group) =>
+    group.serverInstances.filter((server) => server.validationStatus === "VALIDATED"),
+  );
+}
+
+export function resolveSysproServerForPath(
+  snapshot: Record<string, unknown> | null,
+  installationPath: string,
+): SysproServerInstanceView | null {
+  const targetPath = normalizeInstallationPath(installationPath);
+  if (!targetPath) return null;
+
+  const servers = readSysproValidatedServers(snapshot);
+  return (
+    servers.find((server) => normalizeInstallationPath(server.rootPath) === targetPath) ??
+    servers.find((server) => normalizeInstallationPath(server.executablePath) === targetPath) ??
+    servers.find((server) =>
+      server.companyHints.some((hint) => normalizeInstallationPath(hint.path) === targetPath),
+    ) ??
+    null
+  );
+}
+
 export function readBootstrapRateMetrics(agentMetrics: Record<string, unknown> | null) {
   const raw = agentMetrics?.["bootstrapRate24h"];
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {

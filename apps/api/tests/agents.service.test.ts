@@ -266,16 +266,16 @@ describe("AgentsService", () => {
     expect(response.success).toBe(true);
     expect(response.data.device.collect_inventory).toBe(true);
     expect(response.data.device.collect_metrics).toBe(true);
-    expect(response.data.device.syspro_installs).toEqual([
+    expect(response.data.device.syspro_installation_hints).toEqual([
       {
         company_id: "company-a",
         company_name: "Empresa A",
-        server_path: "C:\\Syspro\\EmpresaA",
+        path: "C:\\Syspro\\EmpresaA",
       },
       {
         company_id: "company-b",
         company_name: "Empresa B SA",
-        server_path: "D:\\Syspro\\EmpresaB",
+        path: "D:\\Syspro\\EmpresaB",
       },
     ]);
   });

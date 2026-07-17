@@ -36,7 +36,7 @@ func (c *Collector) CollectDisks(_ context.Context) (*DiskVolumeSnapshot, error)
 	return &DiskVolumeSnapshot{CollectedAt: nowRFC3339()}, nil
 }
 
-func (c *Collector) CollectServices(_ []SysproInstallTarget) (*SysproProcessSnapshot, error) {
+func (c *Collector) CollectServices(_ *SysproVersionSnapshot) (*SysproProcessSnapshot, error) {
 	return &SysproProcessSnapshot{CollectedAt: nowRFC3339()}, nil
 }
 
@@ -46,4 +46,6 @@ func (c *Collector) CollectAllServices() (*AllServicesSnapshot, error) {
 
 func (c *Collector) rebootPending() bool { return false }
 
-func (c *Collector) readExeVersion(_ string) string { return "" }
+func (c *Collector) readExeVersionDetails(_ string) SysproExecutableVersion {
+	return SysproExecutableVersion{}
+}

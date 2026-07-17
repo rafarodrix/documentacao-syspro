@@ -48,7 +48,12 @@ export function HostDiagnosticsTab({ details }: Props) {
       </TabsContent>
 
       <TabsContent value="sistema" className="m-0 space-y-6">
-        <DiagnosticsSystemView systemSnapshot={telemetry.systemSnapshot} systemSnapshotAt={telemetry.systemSnapshotAt} />
+        <DiagnosticsSystemView 
+          systemSnapshot={telemetry.systemSnapshot} 
+          systemSnapshotAt={telemetry.systemSnapshotAt} 
+          windowsUpdateStatus={telemetry.windowsUpdateStatus}
+          windowsUpdateStatusAt={telemetry.windowsUpdateStatusAt}
+        />
       </TabsContent>
 
       <TabsContent value="softwares" className="m-0 space-y-6">

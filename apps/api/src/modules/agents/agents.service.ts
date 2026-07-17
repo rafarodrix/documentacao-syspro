@@ -790,7 +790,7 @@ export class AgentsService {
       remoteSettings.rustDeskServerHost &&
       remoteSettings.rustDeskServerConfig,
     );
-    const sysproInstalls = this.buildDeviceSysproInstalls(installation);
+    const sysproInstallationHints = this.buildDeviceSysproInstallationHints(installation);
 
     return {
       version: 1,
@@ -832,22 +832,24 @@ export class AgentsService {
         version: 'go-agent-v1',
         collect_inventory: true,
         collect_metrics: true,
-        syspro_installs: sysproInstalls,
+        syspro_installation_hints: sysproInstallationHints,
       },
     };
   }
 
-  private buildDeviceSysproInstalls(installation: DesiredStateInstallationRow): NonNullable<AgentDesiredState['device']['syspro_installs']> {
+  private buildDeviceSysproInstallationHints(
+    installation: DesiredStateInstallationRow,
+  ): NonNullable<AgentDesiredState['device']['syspro_installation_hints']> {
     const updates = this.getRemoteCapability(installation)?.remoteHost?.sysproUpdates ?? [];
-    const installs: NonNullable<AgentDesiredState['device']['syspro_installs']> = [];
+    const hints: NonNullable<AgentDesiredState['device']['syspro_installation_hints']> = [];
     const seen = new Set<string>();
 
     for (const update of updates) {
       const companyId = update.companyId?.trim();
-      const serverPath = update.path?.trim();
-      if (!companyId || !serverPath) continue;
+      const path = update.path?.trim();
+      if (!companyId || !path) continue;
 
-      const dedupeKey = `${companyId.toLowerCase()}::${serverPath.replace(/[\\/]+/g, '\\').toLowerCase()}`;
+      const dedupeKey = `${companyId.toLowerCase()}::${path.replace(/[\\/]+/g, '\\').toLowerCase()}`;
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
 
@@ -857,14 +859,14 @@ export class AgentsService {
         update.companyLabel.trim() ||
         companyId;
 
-      installs.push({
+      hints.push({
         company_id: companyId,
         company_name: companyName,
-        server_path: serverPath,
+        path,
       });
     }
 
-    return installs;
+    return hints;
   }
 
   async listDevices(
