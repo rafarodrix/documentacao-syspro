@@ -1914,6 +1914,8 @@ model IntegrationConnection {
 model AgentDevice {
   id             String  @id @default(cuid())
   deviceId       String  @unique
+  agentInstanceId String? @unique
+  credentialId    String? @unique
   hostname       String?
   os             String?
   identitySource String?
@@ -1930,6 +1932,8 @@ model AgentDevice {
   lastRegisteredAt  DateTime?
 
   @@index([deviceId])
+  @@index([agentInstanceId])
+  @@index([credentialId])
   @@index([lastHeartbeatAt])
   @@index([companyId])
   @@index([companyId, lastHeartbeatAt])

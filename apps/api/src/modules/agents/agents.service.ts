@@ -45,6 +45,8 @@ const DESIRED_STATE_DEVICE_INCLUDE = {
 type DeviceRow = {
   id: string;
   deviceId: string;
+  agentInstanceId: string | null;
+  credentialId: string | null;
   hostname: string | null;
   os: string | null;
   identitySource: string | null;
@@ -129,6 +131,8 @@ export class AgentsService {
       where: { deviceId: payload.deviceId },
       create: {
         deviceId: payload.deviceId,
+        agentInstanceId: payload.agentInstanceId,
+        credentialId: payload.credentialId,
         hostname: payload.hostname ?? null,
         os: payload.os ?? null,
         identitySource: payload.identitySource ?? null,
@@ -139,6 +143,8 @@ export class AgentsService {
         lastHeartbeatAt: now,
       },
       update: {
+        agentInstanceId: payload.agentInstanceId,
+        credentialId: payload.credentialId,
         hostname: payload.hostname ?? undefined,
         os: payload.os ?? undefined,
         identitySource: payload.identitySource ?? undefined,
@@ -157,6 +163,8 @@ export class AgentsService {
     this.logger.log({
       event: 'agent.registered',
       deviceId: payload.deviceId,
+      agentInstanceId: payload.agentInstanceId,
+      credentialId: payload.credentialId,
       hostname: payload.hostname,
       os: payload.os,
       identitySource: payload.identitySource,
@@ -171,6 +179,7 @@ export class AgentsService {
         registered: true,
         receivedAt: now.toISOString(),
         deviceId: payload.deviceId,
+        agentInstanceId: payload.agentInstanceId,
       },
     };
   }
@@ -197,12 +206,16 @@ export class AgentsService {
       where: { deviceId: payload.deviceId },
       create: {
         deviceId: payload.deviceId,
+        agentInstanceId: payload.agentInstanceId,
+        credentialId: payload.credentialId,
         agentVersion: payload.agentVersion ?? null,
         companyId: remoteLinkContext.companyId ?? null,
         firstSeenAt: now,
         lastHeartbeatAt: now,
       },
       update: {
+        agentInstanceId: payload.agentInstanceId,
+        credentialId: payload.credentialId,
         agentVersion: payload.agentVersion ?? undefined,
         companyId: remoteLinkContext.companyId ?? undefined,
         lastHeartbeatAt: now,
@@ -223,6 +236,7 @@ export class AgentsService {
         received: true,
         receivedAt: now.toISOString(),
         deviceId: payload.deviceId,
+        agentInstanceId: payload.agentInstanceId,
       },
     };
   }
@@ -710,6 +724,8 @@ export class AgentsService {
     const summary = {
       id: row.id,
       deviceId: row.deviceId,
+      agentInstanceId: row.agentInstanceId ?? null,
+      credentialId: row.credentialId ?? null,
       hostname: row.hostname,
       os: row.os,
       identitySource: row.identitySource,

@@ -7,11 +7,11 @@ import (
 )
 
 type IdentityProvider interface {
-	Get(ctx context.Context) (domain.DeviceIdentity, error)
+	Get(ctx context.Context) (domain.AgentIdentity, error)
 }
 
 type RegistrationService interface {
-	EnsureRegistered(ctx context.Context, id domain.DeviceIdentity) error
+	EnsureRegistered(ctx context.Context, id domain.AgentIdentity) error
 }
 
 type HeartbeatService interface {

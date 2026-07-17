@@ -3,6 +3,8 @@ import { z } from "zod";
 export const agentDeviceSummarySchema = z.object({
   id: z.string().min(1),
   deviceId: z.string().min(1),
+  agentInstanceId: z.string().nullable(),
+  credentialId: z.string().nullable(),
   hostname: z.string().nullable(),
   os: z.string().nullable(),
   identitySource: z.string().nullable(),

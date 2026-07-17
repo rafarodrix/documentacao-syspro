@@ -78,18 +78,20 @@ func NewPortalClient(cfg config.Config, store StateStore, logger Logger) *Portal
 	}
 }
 
-func (c *PortalClient) RegisterDevice(ctx context.Context, id domain.DeviceIdentity) error {
+func (c *PortalClient) RegisterDevice(ctx context.Context, id domain.AgentIdentity) error {
 	if !c.cfg.Portal.AgentAPIEnabled {
-		c.logger.Info("agent registration api disabled; using local registration state", "device_id", id.DeviceID)
+		c.logger.Info("agent registration api disabled; using local registration state", "device_id", id.Device.DeviceID)
 		return nil
 	}
 
 	body := map[string]any{
-		"deviceId":       id.DeviceID,
-		"hostname":       id.Hostname,
-		"os":             id.OS,
-		"identitySource": id.IdentitySource,
-		"agentVersion":   c.cfg.Agent.Version,
+		"deviceId":        id.Device.DeviceID,
+		"agentInstanceId": id.Installation.AgentInstanceID,
+		"credentialId":    id.Installation.CredentialID,
+		"hostname":        id.Device.Hostname,
+		"os":              id.Device.OS,
+		"identitySource":  id.Device.IdentitySource,
+		"agentVersion":    c.cfg.Agent.Version,
 	}
 	if link := c.loadRemoteLinkContext(ctx); link != nil {
 		body["remoteLinkContext"] = map[string]any{
@@ -108,13 +110,17 @@ func (c *PortalClient) SendHeartbeat(ctx context.Context) error {
 		return nil
 	}
 
-	var id domain.DeviceIdentity
-	_ = c.store.LoadJSON(ctx, "identity.json", &id)
+	identity, err := c.loadAgentIdentity(ctx)
+	if err != nil {
+		return fmt.Errorf("load local identity for heartbeat: %w", err)
+	}
 
 	body := map[string]any{
-		"deviceId":     id.DeviceID,
-		"agentVersion": c.cfg.Agent.Version,
-		"at":           time.Now().UTC(),
+		"deviceId":        identity.Device.DeviceID,
+		"agentInstanceId": identity.Installation.AgentInstanceID,
+		"credentialId":    identity.Installation.CredentialID,
+		"agentVersion":    c.cfg.Agent.Version,
+		"at":              time.Now().UTC(),
 	}
 	if link := c.loadRemoteLinkContext(ctx); link != nil {
 		body["remoteLinkContext"] = map[string]any{
@@ -123,7 +129,7 @@ func (c *PortalClient) SendHeartbeat(ctx context.Context) error {
 			"rustdeskId":   link.RustDeskID,
 		}
 	}
-	_, err := c.post(ctx, "/api/agents/heartbeat", body)
+	_, err = c.post(ctx, "/api/agents/heartbeat", body)
 	return err
 }
 
@@ -164,6 +170,23 @@ func (c *PortalClient) GetDesiredState(ctx context.Context) (domain.DesiredState
 		return domain.DesiredState{}, fmt.Errorf("parse desired state: %w", err)
 	}
 	return state, nil
+}
+
+func (c *PortalClient) loadAgentIdentity(ctx context.Context) (domain.AgentIdentity, error) {
+	var device domain.DeviceIdentity
+	if err := c.store.LoadJSON(ctx, "identity.json", &device); err != nil {
+		return domain.AgentIdentity{}, err
+	}
+
+	var installation domain.AgentInstallation
+	if err := c.store.LoadJSON(ctx, "installation.json", &installation); err != nil {
+		return domain.AgentIdentity{}, err
+	}
+
+	return domain.AgentIdentity{
+		Device:       device,
+		Installation: installation,
+	}, nil
 }
 
 func (c *PortalClient) Discover(ctx context.Context, req domain.RemoteDiscoverRequest) (*domain.RemoteDiscoverResponse, error) {

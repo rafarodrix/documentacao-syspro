@@ -7,7 +7,7 @@ import (
 )
 
 type PortalClient interface {
-	RegisterDevice(ctx context.Context, id domain.DeviceIdentity) error
+	RegisterDevice(ctx context.Context, id domain.AgentIdentity) error
 }
 
 type StateStore interface {

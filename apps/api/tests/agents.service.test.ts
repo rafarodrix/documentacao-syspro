@@ -74,6 +74,8 @@ describe("AgentsService", () => {
 
     const response = await service.register("internal-key", {
       deviceId: "device-123",
+      agentInstanceId: "install-123",
+      credentialId: "cred-123",
       hostname: "SERVIDOR-01",
       os: "Windows Server",
       identitySource: "windows",
@@ -101,6 +103,8 @@ describe("AgentsService", () => {
 
     const response = await service.heartbeat("internal-key", {
       deviceId: "device-123",
+      agentInstanceId: "install-123",
+      credentialId: "cred-123",
       agentVersion: "go-agent-v1",
       at: "2026-07-14T20:00:00.000Z",
       remoteLinkContext: {

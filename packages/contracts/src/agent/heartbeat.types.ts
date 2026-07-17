@@ -8,6 +8,8 @@ const remoteLinkContextSchema = z.object({
 
 export const agentHeartbeatPayloadSchema = z.object({
   deviceId: z.string().trim().min(1),
+  agentInstanceId: z.string().trim().min(1),
+  credentialId: z.string().trim().min(1),
   agentVersion: z.string().trim().min(1),
   at: z.union([z.string().trim().min(1), z.date()]),
   remoteLinkContext: remoteLinkContextSchema.optional(),
@@ -17,6 +19,7 @@ export const agentHeartbeatResultSchema = z.object({
   received: z.boolean(),
   receivedAt: z.string().trim().min(1),
   deviceId: z.string().trim().min(1),
+  agentInstanceId: z.string().trim().min(1),
 });
 
 export type AgentHeartbeatPayload = z.infer<typeof agentHeartbeatPayloadSchema>;

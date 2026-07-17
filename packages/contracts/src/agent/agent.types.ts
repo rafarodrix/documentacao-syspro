@@ -8,6 +8,8 @@ const remoteLinkContextSchema = z.object({
 
 export const agentRegisterPayloadSchema = z.object({
   deviceId: z.string().trim().min(1),
+  agentInstanceId: z.string().trim().min(1),
+  credentialId: z.string().trim().min(1),
   hostname: z.string().trim().min(1),
   os: z.string().trim().min(1),
   identitySource: z.string().trim().min(1),
@@ -19,6 +21,7 @@ export const agentRegisterResultSchema = z.object({
   registered: z.boolean(),
   receivedAt: z.string().trim().min(1),
   deviceId: z.string().trim().min(1),
+  agentInstanceId: z.string().trim().min(1),
 });
 
 export type AgentRegisterPayload = z.infer<typeof agentRegisterPayloadSchema>;
