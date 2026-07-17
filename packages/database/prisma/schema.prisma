@@ -297,6 +297,22 @@ enum TaskRequestStatus {
   FAILED
 }
 
+enum AgentCapabilityKind {
+  REMOTE
+  BACKUP
+  TUNNEL
+  SUPPORT
+  DEVICE
+}
+
+enum AgentCapabilityStatus {
+  PENDING
+  ACTIVE
+  DEGRADED
+  DISABLED
+  REVOKED
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -372,6 +388,8 @@ model Company {
   userAccessProfiles           UserAccessProfile[]
   convertedCrmLeads            CrmLead[]                     @relation("CrmLeadConvertedCompany")
   agentDevices                 AgentDevice[]
+  agentInstallations           AgentInstallation[]
+  agentCapabilities            AgentCapability[]
   taskConfig                   TaskConfig?
   tasks                        Task[]
   taskRequests                 TaskRequest[]
@@ -806,6 +824,7 @@ model RemoteHost {
   discoveryRecord RemoteDiscoveredHost?
   agentCommands   RemoteAgentCommand[]
   agentDevice     AgentDevice?
+  agentCapabilities AgentCapability[]
 
   @@index([companyId, status])
   @@index([installToken])
@@ -1939,6 +1958,84 @@ model AgentDevice {
   @@index([companyId, lastHeartbeatAt])
   @@index([remoteHostId])
   @@map("agent_device")
+}
+
+model Device {
+  id             String   @id @default(cuid())
+  deviceId       String   @unique
+  hostname       String?
+  os             String?
+  identitySource String?
+  firstSeenAt    DateTime @default(now())
+  lastSeenAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  installations AgentInstallation[]
+
+  @@index([lastSeenAt])
+  @@map("device")
+}
+
+model AgentInstallation {
+  id              String   @id @default(cuid())
+  deviceRecordId  String
+  deviceRecord    Device   @relation(fields: [deviceRecordId], references: [id], onDelete: Cascade)
+  agentInstanceId String   @unique
+  credentialId    String   @unique
+  agentVersion    String?
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  firstSeenAt      DateTime  @default(now())
+  lastHeartbeatAt  DateTime?
+  lastRegisteredAt DateTime?
+  installedAt      DateTime  @default(now())
+  supersededAt     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  capabilities AgentCapability[]
+
+  @@index([deviceRecordId])
+  @@index([companyId])
+  @@index([lastHeartbeatAt])
+  @@index([supersededAt])
+  @@index([companyId, lastHeartbeatAt])
+  @@index([deviceRecordId, supersededAt])
+  @@map("agent_installation")
+}
+
+model AgentCapability {
+  id             String               @id @default(cuid())
+  installationId String
+  installation   AgentInstallation    @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  kind           AgentCapabilityKind
+  status         AgentCapabilityStatus @default(PENDING)
+  externalId     String?
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  remoteHostId String?     @unique
+  remoteHost   RemoteHost? @relation(fields: [remoteHostId], references: [id], onDelete: SetNull)
+
+  firstSeenAt      DateTime @default(now())
+  lastSeenAt       DateTime?
+  lastSyncAt       DateTime?
+  lastErrorAt      DateTime?
+  lastErrorMessage String?  @db.Text
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([installationId, kind])
+  @@index([kind, status])
+  @@index([companyId])
+  @@index([externalId])
+  @@index([lastSeenAt])
+  @@map("agent_capability")
 }
 
 model AgentDeviceRevocation {

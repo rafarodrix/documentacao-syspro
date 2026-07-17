@@ -2227,7 +2227,7 @@ export class CompaniesService {
         this.prisma.conversationLink.count({ where: { companyId } }),
         this.prisma.messageLink.count({ where: { companyId } }),
         this.prisma.integrationConnection.count({ where: { companyId } }),
-        this.prisma.agentDevice.count({ where: legacyWhere({ companyId }) }),
+        this.prisma.agentInstallation.count({ where: legacyWhere({ companyId, supersededAt: null }) }),
         this.prisma.remoteAddressBookCredential.count({ where: { companyId } }),
         this.prisma.remoteHostSysproUpdate.count({ where: { companyId } }),
       ]);

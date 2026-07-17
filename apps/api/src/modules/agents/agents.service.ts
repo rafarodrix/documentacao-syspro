@@ -20,53 +20,100 @@ import { AuthorizationService } from '../authorization/authorization.service';
 
 const ONLINE_THRESHOLD_SECONDS = 5 * 60;
 
-const DEVICE_INCLUDE = {
-  company: { select: { id: true, nomeFantasia: true, razaoSocial: true } },
-  remoteHost: { select: { id: true, name: true, lastHeartbeatAt: true, lastHeartbeatSuccessAt: true } },
-} as const;
-
-const DESIRED_STATE_DEVICE_INCLUDE = {
-  remoteHost: {
+const INSTALLATION_INCLUDE = {
+  deviceRecord: {
     select: {
       id: true,
-      sysproUpdates: {
+      deviceId: true,
+      hostname: true,
+      os: true,
+      identitySource: true,
+    },
+  },
+  company: { select: { id: true, nomeFantasia: true, razaoSocial: true } },
+  capabilities: {
+    where: { kind: 'REMOTE' as const },
+    select: {
+      id: true,
+      kind: true,
+      status: true,
+      externalId: true,
+      remoteHostId: true,
+      companyId: true,
+      remoteHost: {
         select: {
-          companyId: true,
-          companyLabel: true,
-          path: true,
-          company: { select: { nomeFantasia: true, razaoSocial: true } },
+          id: true,
+          name: true,
+          lastHeartbeatAt: true,
+          lastHeartbeatSuccessAt: true,
         },
-        orderBy: [{ path: 'asc' }, { companyLabel: 'asc' }] as Prisma.RemoteHostSysproUpdateOrderByWithRelationInput[],
       },
     },
   },
 } as const;
 
-type DeviceRow = {
+const DESIRED_STATE_INSTALLATION_INCLUDE = {
+  deviceRecord: {
+    select: { id: true, deviceId: true },
+  },
+  capabilities: {
+    where: { kind: 'REMOTE' as const },
+    take: 1,
+    select: {
+      remoteHost: {
+        select: {
+          id: true,
+          sysproUpdates: {
+            select: {
+              companyId: true,
+              companyLabel: true,
+              path: true,
+              company: { select: { nomeFantasia: true, razaoSocial: true } },
+            },
+            orderBy: [{ path: 'asc' }, { companyLabel: 'asc' }] as Prisma.RemoteHostSysproUpdateOrderByWithRelationInput[],
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+type InstallationRow = {
   id: string;
-  deviceId: string;
-  agentInstanceId: string | null;
-  credentialId: string | null;
-  hostname: string | null;
-  os: string | null;
-  identitySource: string | null;
+  agentInstanceId: string;
+  credentialId: string;
   agentVersion: string | null;
   companyId: string | null;
-  remoteHostId: string | null;
   firstSeenAt: Date;
   lastHeartbeatAt: Date | null;
   lastRegisteredAt: Date | null;
+  supersededAt: Date | null;
+  deviceRecord: {
+    id: string;
+    deviceId: string;
+    hostname: string | null;
+    os: string | null;
+    identitySource: string | null;
+  };
   company: {
     id: string;
     nomeFantasia: string | null;
     razaoSocial: string;
   } | null;
-  remoteHost: {
+  capabilities: Array<{
     id: string;
-    name: string;
-    lastHeartbeatAt: Date | null;
-    lastHeartbeatSuccessAt: Date | null;
-  } | null;
+    kind: 'REMOTE';
+    status: string;
+    externalId: string | null;
+    remoteHostId: string | null;
+    companyId: string | null;
+    remoteHost: {
+      id: string;
+      name: string;
+      lastHeartbeatAt: Date | null;
+      lastHeartbeatSuccessAt: Date | null;
+    } | null;
+  }>;
 };
 
 type AgentRemoteLinkContext = {
@@ -85,19 +132,25 @@ type DiscoveredHeartbeatRow = {
   lastHeartbeatAt: Date | null;
 };
 
-type DesiredStateDeviceRow = {
-  remoteHost: {
+type DesiredStateInstallationRow = {
+  deviceRecord: {
     id: string;
-    sysproUpdates: Array<{
-      companyId: string | null;
-      companyLabel: string;
-      path: string;
-      company: {
-        nomeFantasia: string | null;
-        razaoSocial: string;
-      } | null;
-    }>;
-  } | null;
+    deviceId: string;
+  };
+  capabilities: Array<{
+    remoteHost: {
+      id: string;
+      sysproUpdates: Array<{
+        companyId: string | null;
+        companyLabel: string;
+        path: string;
+        company: {
+          nomeFantasia: string | null;
+          razaoSocial: string;
+        } | null;
+      }>;
+    } | null;
+  }>;
 } | null;
 
 @Injectable()
@@ -127,37 +180,21 @@ export class AgentsService {
 
     await this.assertDeviceNotRevoked(parsed.data.deviceId, remoteLinkContext);
 
-    const device = await this.prisma.agentDevice.upsert({
-      where: { deviceId: payload.deviceId },
-      create: {
-        deviceId: payload.deviceId,
-        agentInstanceId: payload.agentInstanceId,
-        credentialId: payload.credentialId,
-        hostname: payload.hostname ?? null,
-        os: payload.os ?? null,
-        identitySource: payload.identitySource ?? null,
-        agentVersion: payload.agentVersion ?? null,
-        companyId: remoteLinkContext.companyId ?? null,
-        firstSeenAt: now,
-        lastRegisteredAt: now,
-        lastHeartbeatAt: now,
-      },
-      update: {
-        agentInstanceId: payload.agentInstanceId,
-        credentialId: payload.credentialId,
-        hostname: payload.hostname ?? undefined,
-        os: payload.os ?? undefined,
-        identitySource: payload.identitySource ?? undefined,
-        agentVersion: payload.agentVersion ?? undefined,
-        companyId: remoteLinkContext.companyId ?? undefined,
-        lastRegisteredAt: now,
-        lastHeartbeatAt: now,
-      },
+    const installation = await this.upsertInstallationPresence({
+      deviceId: payload.deviceId,
+      agentInstanceId: payload.agentInstanceId,
+      credentialId: payload.credentialId,
+      hostname: payload.hostname,
+      os: payload.os,
+      identitySource: payload.identitySource,
+      agentVersion: payload.agentVersion,
+      remoteLinkContext,
+      now,
+      markRegistered: true,
     });
 
-    const registeredDevice = device as { remoteHostId?: string | null; companyId: string | null };
-    if (!registeredDevice.remoteHostId) {
-      await this.tryLinkRemoteHost(payload.deviceId, remoteLinkContext, registeredDevice.companyId);
+    if (!this.getRemoteCapability(installation)?.remoteHostId) {
+      await this.tryLinkRemoteHost(installation.id, payload.deviceId, remoteLinkContext, installation.companyId);
     }
 
     this.logger.log({
@@ -202,32 +239,18 @@ export class AgentsService {
 
     await this.assertDeviceNotRevoked(parsed.data.deviceId, remoteLinkContext);
 
-    const device = await this.prisma.agentDevice.upsert({
-      where: { deviceId: payload.deviceId },
-      create: {
-        deviceId: payload.deviceId,
-        agentInstanceId: payload.agentInstanceId,
-        credentialId: payload.credentialId,
-        agentVersion: payload.agentVersion ?? null,
-        companyId: remoteLinkContext.companyId ?? null,
-        firstSeenAt: now,
-        lastHeartbeatAt: now,
-      },
-      update: {
-        agentInstanceId: payload.agentInstanceId,
-        credentialId: payload.credentialId,
-        agentVersion: payload.agentVersion ?? undefined,
-        companyId: remoteLinkContext.companyId ?? undefined,
-        lastHeartbeatAt: now,
-      },
+    const installation = await this.upsertInstallationPresence({
+      deviceId: payload.deviceId,
+      agentInstanceId: payload.agentInstanceId,
+      credentialId: payload.credentialId,
+      agentVersion: payload.agentVersion,
+      remoteLinkContext,
+      now,
+      markRegistered: false,
     });
 
-    const heartbeatDevice = device as {
-      remoteHostId?: string | null;
-      companyId: string | null;
-    };
-    if (!heartbeatDevice.remoteHostId) {
-      await this.tryLinkRemoteHost(payload.deviceId, remoteLinkContext, heartbeatDevice.companyId);
+    if (!this.getRemoteCapability(installation)?.remoteHostId) {
+      await this.tryLinkRemoteHost(installation.id, payload.deviceId, remoteLinkContext, installation.companyId);
     }
 
     return {
@@ -242,11 +265,12 @@ export class AgentsService {
   }
 
   /**
-   * Best-effort: bind an AgentDevice to the RemoteHost explicitly referenced
+   * Best-effort: bind an AgentInstallation capability to the RemoteHost explicitly referenced
    * by the remote runtime state. We do not infer by hostname because common
    * names such as "SERVIDOR" collide across customers.
    */
   private async tryLinkRemoteHost(
+    installationId: string,
     deviceId: string,
     linkContext: AgentRemoteLinkContext,
     companyId: string | null,
@@ -260,7 +284,10 @@ export class AgentsService {
           where: {
             id: linkContext.remoteHostId,
             ...(effectiveCompanyId ? { companyId: effectiveCompanyId } : {}),
-            OR: [{ agentDevice: null }, { agentDevice: { deviceId } }],
+            OR: [
+              { agentCapabilities: { none: { kind: 'REMOTE' } } },
+              { agentCapabilities: { some: { installationId, kind: 'REMOTE' } } },
+            ],
           } as any,
           select: { id: true, companyId: true },
         });
@@ -271,7 +298,10 @@ export class AgentsService {
           where: {
             agentExternalId: linkContext.rustdeskId,
             ...(effectiveCompanyId ? { companyId: effectiveCompanyId } : {}),
-            OR: [{ agentDevice: null }, { agentDevice: { deviceId } }],
+            OR: [
+              { agentCapabilities: { none: { kind: 'REMOTE' } } },
+              { agentCapabilities: { some: { installationId, kind: 'REMOTE' } } },
+            ],
           } as any,
           select: { id: true, companyId: true },
           take: 2,
@@ -284,12 +314,39 @@ export class AgentsService {
       if (!match) return;
 
 
-      const data: Record<string, unknown> = { remoteHostId: match.id };
-      if (match.companyId && !companyId) {
-        data.companyId = match.companyId;
-      }
+      await this.prisma.$transaction(async (tx) => {
+        if (match.companyId && !companyId) {
+          await tx.agentInstallation.update({
+            where: { id: installationId },
+            data: { companyId: match.companyId },
+          });
+        }
 
-      await this.prisma.agentDevice.update({ where: { deviceId }, data: data as any });
+        await tx.agentCapability.upsert({
+          where: {
+            installationId_kind: {
+              installationId,
+              kind: 'REMOTE',
+            },
+          },
+          create: {
+            installationId,
+            kind: 'REMOTE',
+            status: 'ACTIVE',
+            externalId: linkContext.rustdeskId ?? null,
+            companyId: match.companyId ?? companyId ?? null,
+            remoteHostId: match.id,
+            lastSeenAt: new Date(),
+          },
+          update: {
+            status: 'ACTIVE',
+            externalId: linkContext.rustdeskId ?? undefined,
+            companyId: match.companyId ?? companyId ?? undefined,
+            remoteHostId: match.id,
+            lastSeenAt: new Date(),
+          },
+        });
+      });
 
       this.logger.log({
         event: 'agent.host_linked',
@@ -302,6 +359,118 @@ export class AgentsService {
     } catch (err) {
       this.logger.warn({ event: 'agent.host_link_failed', deviceId, error: String(err) });
     }
+  }
+
+  private async upsertInstallationPresence(input: {
+    deviceId: string;
+    agentInstanceId: string;
+    credentialId: string;
+    hostname?: string | null;
+    os?: string | null;
+    identitySource?: string | null;
+    agentVersion?: string | null;
+    remoteLinkContext: AgentRemoteLinkContext;
+    now: Date;
+    markRegistered: boolean;
+  }): Promise<InstallationRow> {
+    const installation = await this.prisma.$transaction(async (tx) => {
+      const device = await tx.device.upsert({
+        where: { deviceId: input.deviceId },
+        create: {
+          deviceId: input.deviceId,
+          hostname: input.hostname ?? null,
+          os: input.os ?? null,
+          identitySource: input.identitySource ?? null,
+          firstSeenAt: input.now,
+          lastSeenAt: input.now,
+        },
+        update: {
+          hostname: input.hostname ?? undefined,
+          os: input.os ?? undefined,
+          identitySource: input.identitySource ?? undefined,
+          lastSeenAt: input.now,
+        },
+      });
+
+      const installation = await tx.agentInstallation.upsert({
+        where: { agentInstanceId: input.agentInstanceId },
+        create: {
+          deviceRecordId: device.id,
+          agentInstanceId: input.agentInstanceId,
+          credentialId: input.credentialId,
+          agentVersion: input.agentVersion ?? null,
+          companyId: input.remoteLinkContext.companyId ?? null,
+          firstSeenAt: input.now,
+          lastHeartbeatAt: input.now,
+          lastRegisteredAt: input.markRegistered ? input.now : null,
+          installedAt: input.now,
+        },
+        update: {
+          deviceRecordId: device.id,
+          credentialId: input.credentialId,
+          agentVersion: input.agentVersion ?? undefined,
+          companyId: input.remoteLinkContext.companyId ?? undefined,
+          lastHeartbeatAt: input.now,
+          lastRegisteredAt: input.markRegistered ? input.now : undefined,
+          supersededAt: null,
+        },
+      });
+
+      await tx.agentInstallation.updateMany({
+        where: {
+          deviceRecordId: device.id,
+          id: { not: installation.id },
+          supersededAt: null,
+        },
+        data: {
+          supersededAt: input.now,
+        },
+      });
+
+      if (
+        input.remoteLinkContext.remoteHostId ||
+        input.remoteLinkContext.rustdeskId ||
+        input.remoteLinkContext.companyId
+      ) {
+        await tx.agentCapability.upsert({
+          where: {
+            installationId_kind: {
+              installationId: installation.id,
+              kind: 'REMOTE',
+            },
+          },
+          create: {
+            installationId: installation.id,
+            kind: 'REMOTE',
+            status: 'PENDING',
+            externalId: input.remoteLinkContext.rustdeskId ?? null,
+            companyId: input.remoteLinkContext.companyId ?? null,
+            lastSeenAt: input.now,
+          },
+          update: {
+            externalId: input.remoteLinkContext.rustdeskId ?? undefined,
+            companyId: input.remoteLinkContext.companyId ?? undefined,
+            lastSeenAt: input.now,
+          },
+        });
+      }
+
+      return tx.agentInstallation.findUnique({
+        where: { id: installation.id },
+        include: INSTALLATION_INCLUDE as any,
+      });
+    });
+
+    return installation as unknown as InstallationRow;
+  }
+
+  private getRemoteCapability(
+    row: { capabilities?: Array<Record<string, any>> } | null | undefined,
+  ): Record<string, any> | null {
+    if (!row || !Array.isArray(row.capabilities)) {
+      return null;
+    }
+    return row.capabilities[0] ?? null;
   }
 
   private normalizeRemoteLinkContext(input: unknown): AgentRemoteLinkContext {
@@ -356,14 +525,63 @@ export class AgentsService {
     }
 
     try {
-      const updateData: Prisma.AgentDeviceUncheckedUpdateInput = {
-        remoteHostId: parsed.data.remoteHostId,
-        ...(hostCompanyId ? { companyId: hostCompanyId } : {}),
-      };
-      const row = await this.prisma.agentDevice.update({
-        where: { deviceId: normalizedDeviceId },
-        data: updateData,
-        include: DEVICE_INCLUDE,
+      const row = await this.prisma.$transaction(async (tx) => {
+        const installation = await tx.agentInstallation.findFirst({
+          where: {
+            supersededAt: null,
+            deviceRecord: { deviceId: normalizedDeviceId },
+          },
+          orderBy: [{ lastHeartbeatAt: 'desc' }, { updatedAt: 'desc' }],
+          select: { id: true },
+        });
+
+        if (!installation) {
+          throw new NotFoundException({ success: false, error: 'AGENT_DEVICE_NOT_FOUND' });
+        }
+
+        if (parsed.data.remoteHostId === null) {
+          await tx.agentCapability.deleteMany({
+            where: {
+              installationId: installation.id,
+              kind: 'REMOTE',
+            },
+          });
+        } else {
+          await tx.agentCapability.upsert({
+            where: {
+              installationId_kind: {
+                installationId: installation.id,
+                kind: 'REMOTE',
+              },
+            },
+            create: {
+              installationId: installation.id,
+              kind: 'REMOTE',
+              status: 'ACTIVE',
+              companyId: hostCompanyId ?? null,
+              remoteHostId: parsed.data.remoteHostId,
+              lastSeenAt: new Date(),
+            },
+            update: {
+              status: 'ACTIVE',
+              companyId: hostCompanyId ?? undefined,
+              remoteHostId: parsed.data.remoteHostId,
+              lastSeenAt: new Date(),
+            },
+          });
+        }
+
+        await tx.agentInstallation.update({
+          where: { id: installation.id },
+          data: {
+            ...(hostCompanyId ? { companyId: hostCompanyId } : {}),
+          },
+        });
+
+        return tx.agentInstallation.findUnique({
+          where: { id: installation.id },
+          include: INSTALLATION_INCLUDE as any,
+        });
       });
       const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
 
@@ -373,7 +591,7 @@ export class AgentsService {
         remoteHostId: parsed.data.remoteHostId,
       });
 
-      return { success: true, data: this.toSummary(row, onlineSince) };
+      return { success: true, data: this.toSummary(row as unknown as InstallationRow, onlineSince) };
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError) {
         if (err.code === 'P2002') {
@@ -417,12 +635,18 @@ export class AgentsService {
                 },
               },
               {
-                agentDevice: {
-                  is: {
-                    OR: [
-                      { hostname: { contains: search, mode: Prisma.QueryMode.insensitive } },
-                      { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } },
-                    ],
+                agentCapabilities: {
+                  some: {
+                    kind: 'REMOTE',
+                    installation: {
+                      supersededAt: null,
+                      deviceRecord: {
+                        OR: [
+                          { hostname: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                          { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                        ],
+                      },
+                    },
                   },
                 },
               },
@@ -444,10 +668,26 @@ export class AgentsService {
             razaoSocial: true,
           },
         },
-        agentDevice: {
+        agentCapabilities: {
+          where: {
+            kind: 'REMOTE',
+            installation: {
+              supersededAt: null,
+            },
+          },
+          take: 1,
+          orderBy: [{ updatedAt: 'desc' }],
           select: {
-            deviceId: true,
-            hostname: true,
+            installation: {
+              select: {
+                deviceRecord: {
+                  select: {
+                    deviceId: true,
+                    hostname: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -463,8 +703,8 @@ export class AgentsService {
         companyId: row.companyId,
         companyName: row.company?.nomeFantasia?.trim() || row.company?.razaoSocial?.trim() || null,
         status: row.status,
-        linkedDeviceId: row.agentDevice?.deviceId ?? null,
-        linkedDeviceHostname: row.agentDevice?.hostname ?? null,
+        linkedDeviceId: row.agentCapabilities[0]?.installation.deviceRecord.deviceId ?? null,
+        linkedDeviceHostname: row.agentCapabilities[0]?.installation.deviceRecord.hostname ?? null,
       })),
     };
   }
@@ -490,16 +730,20 @@ export class AgentsService {
   private async buildDesiredState(deviceId: string): Promise<AgentDesiredState> {
     const remoteSettings = await getRemoteModuleSettingsSnapshot();
     const chatwoot = readChatwootRuntimeConfig();
-    const device = (await this.prisma.agentDevice.findUnique({
-      where: { deviceId },
-      select: DESIRED_STATE_DEVICE_INCLUDE,
-    })) as DesiredStateDeviceRow;
+    const installation = (await this.prisma.agentInstallation.findFirst({
+      where: {
+        supersededAt: null,
+        deviceRecord: { deviceId },
+      },
+      orderBy: [{ lastHeartbeatAt: 'desc' }, { updatedAt: 'desc' }],
+      select: DESIRED_STATE_INSTALLATION_INCLUDE,
+    })) as DesiredStateInstallationRow;
 
     const remoteEnabled = Boolean(
       remoteSettings.rustDeskServerHost &&
       remoteSettings.rustDeskServerConfig,
     );
-    const sysproInstalls = this.buildDeviceSysproInstalls(device);
+    const sysproInstalls = this.buildDeviceSysproInstalls(installation);
 
     return {
       version: 1,
@@ -546,8 +790,8 @@ export class AgentsService {
     };
   }
 
-  private buildDeviceSysproInstalls(device: DesiredStateDeviceRow): NonNullable<AgentDesiredState['device']['syspro_installs']> {
-    const updates = device?.remoteHost?.sysproUpdates ?? [];
+  private buildDeviceSysproInstalls(installation: DesiredStateInstallationRow): NonNullable<AgentDesiredState['device']['syspro_installs']> {
+    const updates = this.getRemoteCapability(installation)?.remoteHost?.sysproUpdates ?? [];
     const installs: NonNullable<AgentDesiredState['device']['syspro_installs']> = [];
     const seen = new Set<string>();
 
@@ -591,15 +835,24 @@ export class AgentsService {
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
 
-    const filters: Prisma.AgentDeviceWhereInput[] = [];
+    const filters: Prisma.AgentInstallationWhereInput[] = [{ supersededAt: null }];
     if (companyId) filters.push({ companyId });
-    if (remoteHostId) filters.push({ remoteHostId });
+    if (remoteHostId) {
+      filters.push({
+        capabilities: {
+          some: {
+            kind: 'REMOTE',
+            remoteHostId,
+          },
+        },
+      });
+    }
     if (search) {
       filters.push({
         OR: [
-          { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } },
-          { hostname: { contains: search, mode: Prisma.QueryMode.insensitive } },
-          { os: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          { deviceRecord: { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } } },
+          { deviceRecord: { hostname: { contains: search, mode: Prisma.QueryMode.insensitive } } },
+          { deviceRecord: { os: { contains: search, mode: Prisma.QueryMode.insensitive } } },
         ],
       });
     }
@@ -609,27 +862,27 @@ export class AgentsService {
       filters.push(this.buildEffectiveOfflineWhere(onlineSince));
     }
 
-    const where: Prisma.AgentDeviceWhereInput = filters.length ? { AND: filters } : {};
+    const where: Prisma.AgentInstallationWhereInput = filters.length ? { AND: filters } : {};
 
     const [total, rows] = await this.prisma.$transaction([
-      this.prisma.agentDevice.count({ where }),
-      this.prisma.agentDevice.findMany({
+      this.prisma.agentInstallation.count({ where }),
+      this.prisma.agentInstallation.findMany({
         where,
-        orderBy: [{ lastHeartbeatAt: 'desc' }, { hostname: 'asc' }],
+        orderBy: [{ lastHeartbeatAt: 'desc' }, { updatedAt: 'desc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: DEVICE_INCLUDE as any,
+        include: INSTALLATION_INCLUDE as any,
       }),
     ]);
 
     const discoveredHeartbeatMap = await this.loadDiscoveredHeartbeatMap(
-      (rows as unknown as DeviceRow[])
-        .filter((row) => !row.remoteHostId)
-        .map((row) => row.hostname),
+      (rows as unknown as InstallationRow[])
+        .filter((row) => !this.getRemoteCapability(row)?.remoteHostId)
+        .map((row) => row.deviceRecord.hostname),
     );
 
-    const items: AgentDeviceSummary[] = (rows as unknown as DeviceRow[]).map((row) =>
-      this.toSummary(row, onlineSince, discoveredHeartbeatMap.get(this.normalizeMachineNameKey(row.hostname))),
+    const items: AgentDeviceSummary[] = (rows as unknown as InstallationRow[]).map((row) =>
+      this.toSummary(row, onlineSince, discoveredHeartbeatMap.get(this.normalizeMachineNameKey(row.deviceRecord.hostname))),
     );
 
     return {
@@ -657,9 +910,13 @@ export class AgentsService {
       throw new BadRequestException({ success: false, error: 'INVALID_DEVICE_ID' });
     }
 
-    const row = await this.prisma.agentDevice.findUnique({
-      where: { deviceId: normalizedDeviceId },
-      include: DEVICE_INCLUDE as any,
+    const row = await this.prisma.agentInstallation.findFirst({
+      where: {
+        supersededAt: null,
+        deviceRecord: { deviceId: normalizedDeviceId },
+      },
+      orderBy: [{ lastHeartbeatAt: 'desc' }, { updatedAt: 'desc' }],
+      include: INSTALLATION_INCLUDE as any,
     });
 
     if (!row) {
@@ -668,14 +925,16 @@ export class AgentsService {
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
     const discoveredHeartbeatMap = await this.loadDiscoveredHeartbeatMap([
-      (row as unknown as DeviceRow).remoteHostId ? null : (row as unknown as DeviceRow).hostname,
+      this.getRemoteCapability(row as unknown as InstallationRow)?.remoteHostId
+        ? null
+        : (row as unknown as InstallationRow).deviceRecord.hostname,
     ]);
     return {
       success: true,
       data: this.toSummary(
-        row as unknown as DeviceRow,
+        row as unknown as InstallationRow,
         onlineSince,
-        discoveredHeartbeatMap.get(this.normalizeMachineNameKey((row as unknown as DeviceRow).hostname)),
+        discoveredHeartbeatMap.get(this.normalizeMachineNameKey((row as unknown as InstallationRow).deviceRecord.hostname)),
       ),
     };
   }
@@ -688,12 +947,13 @@ export class AgentsService {
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
     const effectiveOnlineWhere = this.buildEffectiveOnlineWhere(onlineSince);
     const seenWhere = this.buildHasEffectiveHeartbeatWhere();
+    const activeWhere: Prisma.AgentInstallationWhereInput = { supersededAt: null };
 
     const [total, online, unseen, withCompany] = await this.prisma.$transaction([
-      this.prisma.agentDevice.count(),
-      this.prisma.agentDevice.count({ where: effectiveOnlineWhere }),
-      this.prisma.agentDevice.count({ where: { NOT: seenWhere } }),
-      this.prisma.agentDevice.count({ where: { companyId: { not: null } } }),
+      this.prisma.agentInstallation.count({ where: activeWhere }),
+      this.prisma.agentInstallation.count({ where: { AND: [activeWhere, effectiveOnlineWhere] } }),
+      this.prisma.agentInstallation.count({ where: { AND: [activeWhere, { NOT: seenWhere }] } }),
+      this.prisma.agentInstallation.count({ where: { AND: [activeWhere, { companyId: { not: null } }] } }),
     ]);
 
     return {
@@ -710,7 +970,8 @@ export class AgentsService {
     };
   }
 
-  private toSummary(row: DeviceRow, onlineSince: Date, discoveredHeartbeatAt?: Date | null): AgentDeviceSummary {
+  private toSummary(row: InstallationRow, onlineSince: Date, discoveredHeartbeatAt?: Date | null): AgentDeviceSummary {
+    const remoteCapability = this.getRemoteCapability(row);
     const lastHeartbeat = this.resolveEffectiveHeartbeatAt(row, discoveredHeartbeatAt);
     const isOnline = !!lastHeartbeat && lastHeartbeat >= onlineSince;
     const heartbeatLagSeconds = lastHeartbeat
@@ -723,17 +984,17 @@ export class AgentsService {
 
     const summary = {
       id: row.id,
-      deviceId: row.deviceId,
+      deviceId: row.deviceRecord.deviceId,
       agentInstanceId: row.agentInstanceId ?? null,
       credentialId: row.credentialId ?? null,
-      hostname: row.hostname,
-      os: row.os,
-      identitySource: row.identitySource,
+      hostname: row.deviceRecord.hostname,
+      os: row.deviceRecord.os,
+      identitySource: row.deviceRecord.identitySource,
       agentVersion: row.agentVersion,
       companyId: row.companyId,
       companyName,
-      remoteHostId: row.remoteHostId,
-      remoteHostName: row.remoteHost?.name ?? null,
+      remoteHostId: remoteCapability?.remoteHostId ?? null,
+      remoteHostName: remoteCapability?.remoteHost?.name ?? null,
       firstSeenAt: row.firstSeenAt.toISOString(),
       lastHeartbeatAt: lastHeartbeat ? lastHeartbeat.toISOString() : null,
       lastRegisteredAt: row.lastRegisteredAt ? row.lastRegisteredAt.toISOString() : null,
@@ -744,11 +1005,12 @@ export class AgentsService {
     return summary;
   }
 
-  private resolveEffectiveHeartbeatAt(row: DeviceRow, discoveredHeartbeatAt?: Date | null): Date | null {
+  private resolveEffectiveHeartbeatAt(row: InstallationRow, discoveredHeartbeatAt?: Date | null): Date | null {
+    const remoteCapability = this.getRemoteCapability(row);
     const candidates = [
       row.lastHeartbeatAt,
-      row.remoteHost?.lastHeartbeatSuccessAt ?? null,
-      row.remoteHost?.lastHeartbeatAt ?? null,
+      remoteCapability?.remoteHost?.lastHeartbeatSuccessAt ?? null,
+      remoteCapability?.remoteHost?.lastHeartbeatAt ?? null,
       discoveredHeartbeatAt ?? null,
     ].filter((value): value is Date => value instanceof Date);
 
@@ -806,27 +1068,55 @@ export class AgentsService {
     return map;
   }
 
-  private buildEffectiveOnlineWhere(onlineSince: Date): Prisma.AgentDeviceWhereInput {
+  private buildEffectiveOnlineWhere(onlineSince: Date): Prisma.AgentInstallationWhereInput {
     return {
       OR: [
         { lastHeartbeatAt: { gte: onlineSince } },
-        { remoteHost: { is: { lastHeartbeatSuccessAt: { gte: onlineSince } } } },
-        { remoteHost: { is: { lastHeartbeatAt: { gte: onlineSince } } } },
+        {
+          capabilities: {
+            some: {
+              kind: 'REMOTE',
+              remoteHost: { is: { lastHeartbeatSuccessAt: { gte: onlineSince } } },
+            },
+          },
+        },
+        {
+          capabilities: {
+            some: {
+              kind: 'REMOTE',
+              remoteHost: { is: { lastHeartbeatAt: { gte: onlineSince } } },
+            },
+          },
+        },
       ],
     };
   }
 
-  private buildHasEffectiveHeartbeatWhere(): Prisma.AgentDeviceWhereInput {
+  private buildHasEffectiveHeartbeatWhere(): Prisma.AgentInstallationWhereInput {
     return {
       OR: [
         { lastHeartbeatAt: { not: null } },
-        { remoteHost: { is: { lastHeartbeatSuccessAt: { not: null } } } },
-        { remoteHost: { is: { lastHeartbeatAt: { not: null } } } },
+        {
+          capabilities: {
+            some: {
+              kind: 'REMOTE',
+              remoteHost: { is: { lastHeartbeatSuccessAt: { not: null } } },
+            },
+          },
+        },
+        {
+          capabilities: {
+            some: {
+              kind: 'REMOTE',
+              remoteHost: { is: { lastHeartbeatAt: { not: null } } },
+            },
+          },
+        },
       ],
     };
   }
 
-  private buildEffectiveOfflineWhere(onlineSince: Date): Prisma.AgentDeviceWhereInput {
+  private buildEffectiveOfflineWhere(onlineSince: Date): Prisma.AgentInstallationWhereInput {
     return {
       NOT: this.buildEffectiveOnlineWhere(onlineSince),
     };
@@ -843,16 +1133,27 @@ export class AgentsService {
       throw new BadRequestException({ success: false, error: 'INVALID_DEVICE_ID' });
     }
 
-    const device = await this.prisma.agentDevice.findUnique({
+    const device = await this.prisma.device.findUnique({
       where: { deviceId: normalizedDeviceId },
       select: {
         id: true,
         deviceId: true,
         hostname: true,
-        remoteHostId: true,
-        remoteHost: {
+        installations: {
+          where: { supersededAt: null },
           select: {
-            agentExternalId: true,
+            id: true,
+            capabilities: {
+              where: { kind: 'REMOTE' },
+              select: {
+                remoteHostId: true,
+                remoteHost: {
+                  select: {
+                    agentExternalId: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -863,9 +1164,12 @@ export class AgentsService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      if (device.remoteHostId) {
+      const linkedCapabilities = device.installations.flatMap((installation) => installation.capabilities);
+
+      for (const capability of linkedCapabilities) {
+        if (!capability.remoteHostId) continue;
         await tx.remoteHost.update({
-          where: { id: device.remoteHostId },
+          where: { id: capability.remoteHostId },
           data: {
             agentTokenHash: null,
             agentTokenIssuedAt: null,
@@ -879,11 +1183,16 @@ export class AgentsService {
 
       await this.upsertIgnoredDiscoveredHost(tx, {
         machineName: device.hostname,
-        agentExternalId: device.remoteHost?.agentExternalId ?? null,
-        linkedHostId: device.remoteHostId,
+        agentExternalId: linkedCapabilities[0]?.remoteHost?.agentExternalId ?? null,
+        linkedHostId: linkedCapabilities[0]?.remoteHostId ?? null,
       });
 
-      await tx.agentDevice.delete({ where: { deviceId: normalizedDeviceId } });
+      await tx.agentInstallation.deleteMany({
+        where: { deviceRecordId: device.id },
+      });
+      await tx.device.delete({
+        where: { id: device.id },
+      });
 
       await tx.agentDeviceRevocation.upsert({
         where: { deviceId: normalizedDeviceId },
@@ -905,7 +1214,7 @@ export class AgentsService {
     this.logger.log({
       event: 'agent.device_deleted',
       deviceId: normalizedDeviceId,
-      remoteHostId: device.remoteHostId,
+      remoteHostId: device.installations[0]?.capabilities[0]?.remoteHostId ?? null,
       revokedByUserId: requester.userId,
     });
 
@@ -1034,12 +1343,26 @@ export class AgentsService {
 
     const thresholdDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 
-    // 1. Delete AgentDevices that are offline > 30 days and have no company or remoteHost link
-    const deletedDevicesResult = await this.prisma.agentDevice.deleteMany({
+    // 1. Delete agent installations that are offline > 30 days and have no company or remote capability link
+    const deletedDevicesResult = await this.prisma.agentInstallation.deleteMany({
       where: {
+        supersededAt: null,
         lastHeartbeatAt: { lt: thresholdDate },
         companyId: null,
-        remoteHostId: null,
+        capabilities: {
+          none: {
+            kind: 'REMOTE',
+            remoteHostId: { not: null },
+          },
+        },
+      },
+    });
+
+    await this.prisma.device.deleteMany({
+      where: {
+        installations: {
+          none: {},
+        },
       },
     });
 

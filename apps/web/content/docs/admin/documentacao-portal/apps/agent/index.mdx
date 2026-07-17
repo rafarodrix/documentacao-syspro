@@ -85,8 +85,9 @@ Capability
 
 - O runtime local já persiste `identity.json` para o `device_id`.
 - O runtime local agora também persiste `installation.json` com `agent_instance_id` e `credential_id`.
-- O backend ainda usa `AgentDevice` como read model transitório, mas já recebe os campos da instalação.
-- A separação completa de banco em `Device / AgentInstallation / AgentCapability` é a próxima etapa do refactor.
+- O backend agora persiste a presença base em `Device` e `AgentInstallation`.
+- A capability remota agora passa a ser materializada em `AgentCapability`, ligada ao `RemoteHost`.
+- `AgentDevice` permanece apenas como legado residual no schema até a limpeza final do banco.
 
 ---
 

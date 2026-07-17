@@ -105,9 +105,7 @@ Remote Capability
 
 ## Estado atual do banco
 
-Hoje o banco ainda usa `AgentDevice` como read model transitório da instalação, com `deviceId`, `agentInstanceId` e `credentialId`.
-
-O split final planejado é:
+O split principal do banco já está ativo:
 
 ```text
 Device
@@ -115,11 +113,15 @@ Device
         └── 1:N AgentCapability
 ```
 
-Enquanto essa etapa não chega, o módulo remoto continua usando:
+No fluxo atual:
 
-- `AgentDevice` para presença base da instalação
+- `Device` representa a máquina física
+- `AgentInstallation` representa a instalação local e seu heartbeat base
+- `AgentCapability` representa a capability remota associada ao `RemoteHost`
 - `RemoteDiscoveredHost` para triagem remota
 - `RemoteHost` para estado operacional do acesso remoto
+
+`AgentDevice` permanece apenas como estrutura legada residual enquanto a limpeza final do banco não é concluída.
 
 ---
 

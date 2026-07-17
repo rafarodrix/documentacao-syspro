@@ -46,9 +46,10 @@ Este corte já está ativo no código:
 1. o runtime local persiste `identity.json`
 2. o runtime local persiste `installation.json`
 3. `register` e `heartbeat` já publicam `deviceId`, `agentInstanceId` e `credentialId`
-4. o backend ainda grava esses campos em `AgentDevice` como base transitória
+4. o backend já grava esses campos em `Device` e `AgentInstallation`
+5. o vínculo operacional remoto agora é materializado em `AgentCapability`
 
-A próxima etapa ainda não concluída é separar o banco em `Device`, `AgentInstallation` e `AgentCapability`.
+`AgentDevice` ficou relegado a legado residual de banco e não é mais a fonte principal do fluxo base do agent.
 
 ---
 

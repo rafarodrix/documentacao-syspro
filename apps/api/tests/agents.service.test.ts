@@ -21,14 +21,97 @@ vi.mock("@dosc-syspro/config", () => ({
 
 import { AgentsService } from "../src/modules/agents/agents.service";
 
+function buildInstallationRow(input?: {
+  companyId?: string | null;
+  company?: { id: string; nomeFantasia: string | null; razaoSocial: string } | null;
+  deviceRecord?: {
+    id: string;
+    deviceId: string;
+    hostname: string | null;
+    os: string | null;
+    identitySource: string | null;
+  };
+  lastHeartbeatAt?: Date | null;
+  lastRegisteredAt?: Date | null;
+  remoteCapability?: {
+    id?: string;
+    status?: string;
+    externalId?: string | null;
+    remoteHostId?: string | null;
+    companyId?: string | null;
+    remoteHost?: {
+      id: string;
+      name: string;
+      lastHeartbeatAt: Date | null;
+      lastHeartbeatSuccessAt: Date | null;
+    } | null;
+  } | null;
+}) {
+  return {
+    id: "inst-row-1",
+    agentInstanceId: "install-123",
+    credentialId: "cred-123",
+    agentVersion: "go-agent-v1",
+    companyId: input?.companyId ?? "company-1",
+    firstSeenAt: new Date("2026-07-12T18:00:00.000Z"),
+    lastHeartbeatAt: input?.lastHeartbeatAt ?? new Date("2026-07-12T18:05:00.000Z"),
+    lastRegisteredAt: input?.lastRegisteredAt ?? new Date("2026-07-12T18:00:00.000Z"),
+    supersededAt: null,
+    deviceRecord: input?.deviceRecord ?? {
+      id: "device-row-1",
+      deviceId: "device-123",
+      hostname: "SERVIDOR",
+      os: "Windows Server",
+      identitySource: "windows",
+    },
+    company: input?.company ?? {
+      id: "company-1",
+      nomeFantasia: "Empresa 1",
+      razaoSocial: "Empresa 1 LTDA",
+    },
+    capabilities: input?.remoteCapability
+      ? [
+          {
+            id: input.remoteCapability.id ?? "cap-row-1",
+            kind: "REMOTE",
+            status: input.remoteCapability.status ?? "ACTIVE",
+            externalId: input.remoteCapability.externalId ?? "123456789",
+            remoteHostId: input.remoteCapability.remoteHostId ?? "host-1",
+            companyId: input.remoteCapability.companyId ?? input?.companyId ?? "company-1",
+            remoteHost:
+              input.remoteCapability.remoteHost ?? {
+                id: "host-1",
+                name: "Servidor Principal",
+                lastHeartbeatAt: new Date("2026-07-12T18:05:00.000Z"),
+                lastHeartbeatSuccessAt: new Date("2026-07-12T18:05:00.000Z"),
+              },
+          },
+        ]
+      : [],
+  };
+}
+
 describe("AgentsService", () => {
   const prisma = {
-    agentDevice: {
-      count: vi.fn(),
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
+    device: {
       upsert: vi.fn(),
+      findUnique: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    agentInstallation: {
+      count: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      upsert: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    agentCapability: {
+      upsert: vi.fn(),
+      deleteMany: vi.fn(),
     },
     agentDeviceRevocation: {
       findUnique: vi.fn(),
@@ -37,12 +120,14 @@ describe("AgentsService", () => {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      update: vi.fn(),
     },
     remoteDiscoveredHost: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      deleteMany: vi.fn(),
     },
     $transaction: vi.fn(),
   };
@@ -56,21 +141,35 @@ describe("AgentsService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    prisma.$transaction.mockImplementation(async (operations: Array<Promise<unknown>>) => Promise.all(operations));
+    prisma.$transaction.mockImplementation(async (input: unknown) => {
+      if (typeof input === "function") {
+        return input(prisma as any);
+      }
+      return Promise.all(input as Array<Promise<unknown>>);
+    });
     prisma.agentDeviceRevocation.findUnique.mockResolvedValue(null);
     prisma.remoteHost.findFirst.mockResolvedValue(null);
     prisma.remoteHost.findMany.mockResolvedValue([]);
     prisma.remoteHost.findUnique.mockResolvedValue(null);
     prisma.remoteDiscoveredHost.findMany.mockResolvedValue([]);
+    prisma.device.upsert.mockResolvedValue({ id: "device-row-1" });
+    prisma.agentInstallation.upsert.mockResolvedValue({ id: "inst-row-1" });
+    prisma.agentInstallation.updateMany.mockResolvedValue({ count: 0 });
+    prisma.agentInstallation.findUnique.mockResolvedValue(buildInstallationRow());
+    prisma.agentCapability.upsert.mockResolvedValue({ id: "cap-row-1" });
     authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: true, companyIds: [] });
     service = new AgentsService(prisma as any, authorizationService as any);
   });
 
   it("does not materialize remote discovery records during register without explicit remote ingress", async () => {
-    prisma.agentDevice.upsert.mockResolvedValue({
-      remoteHostId: null,
-      companyId: "company-1",
-    });
+    prisma.agentInstallation.findUnique.mockResolvedValue(
+      buildInstallationRow({
+        remoteCapability: {
+          remoteHostId: null,
+          remoteHost: null,
+        },
+      }),
+    );
 
     const response = await service.register("internal-key", {
       deviceId: "device-123",
@@ -93,13 +192,14 @@ describe("AgentsService", () => {
   });
 
   it("does not materialize remote discovery records during heartbeat without explicit remote ingress", async () => {
-    prisma.agentDevice.upsert.mockResolvedValue({
-      hostname: "SERVIDOR-01",
-      identitySource: "windows",
-      os: "Windows Server",
-      remoteHostId: null,
-      companyId: "company-1",
-    });
+    prisma.agentInstallation.findUnique.mockResolvedValue(
+      buildInstallationRow({
+        remoteCapability: {
+          remoteHostId: null,
+          remoteHost: null,
+        },
+      }),
+    );
 
     const response = await service.heartbeat("internal-key", {
       deviceId: "device-123",
@@ -120,37 +220,47 @@ describe("AgentsService", () => {
   });
 
   it("returns all linked Syspro installations for a host with multiple companies", async () => {
-    prisma.agentDevice.findUnique.mockResolvedValue({
-      remoteHost: {
-        id: "host-1",
-        sysproUpdates: [
-          {
-            companyId: "company-a",
-            companyLabel: "Empresa A",
-            path: "C:\\Syspro\\EmpresaA",
-            company: {
-              nomeFantasia: "Empresa A",
-              razaoSocial: "Empresa A LTDA",
-            },
-          },
-          {
-            companyId: "company-b",
-            companyLabel: "Empresa B",
-            path: "D:\\Syspro\\EmpresaB",
-            company: {
-              nomeFantasia: null,
-              razaoSocial: "Empresa B SA",
-            },
-          },
-        ],
+    prisma.agentInstallation.findFirst.mockResolvedValue({
+      deviceRecord: {
+        id: "device-row-1",
+        deviceId: "device-123",
       },
+      capabilities: [
+        {
+          remoteHost: {
+            id: "host-1",
+            sysproUpdates: [
+              {
+                companyId: "company-a",
+                companyLabel: "Empresa A",
+                path: "C:\\Syspro\\EmpresaA",
+                company: {
+                  nomeFantasia: "Empresa A",
+                  razaoSocial: "Empresa A LTDA",
+                },
+              },
+              {
+                companyId: "company-b",
+                companyLabel: "Empresa B",
+                path: "D:\\Syspro\\EmpresaB",
+                company: {
+                  nomeFantasia: null,
+                  razaoSocial: "Empresa B SA",
+                },
+              },
+            ],
+          },
+        },
+      ],
     });
 
     const response = await service.getDesiredState("internal-key", "device-123");
 
-    expect(prisma.agentDevice.findUnique).toHaveBeenCalledWith(
+    expect(prisma.agentInstallation.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { deviceId: "device-123" },
+        where: expect.objectContaining({
+          deviceRecord: { deviceId: "device-123" },
+        }),
       }),
     );
     expect(response.success).toBe(true);
@@ -172,30 +282,20 @@ describe("AgentsService", () => {
 
   it("treats linked device as online when remote host sync is recent", async () => {
     authorizationService.assertPermission.mockResolvedValue({ userId: "user-1" });
-    prisma.agentDevice.findUnique.mockResolvedValue({
-      id: "device-row-1",
-      deviceId: "device-123",
-      hostname: "SERVIDOR",
-      os: "Windows Server",
-      identitySource: "windows",
-      agentVersion: "go-agent-v1",
-      companyId: "company-1",
-      remoteHostId: "host-1",
-      firstSeenAt: new Date("2026-07-12T18:00:00.000Z"),
-      lastHeartbeatAt: new Date(Date.now() - 20 * 60 * 1000),
-      lastRegisteredAt: new Date("2026-07-12T18:00:00.000Z"),
-      company: {
-        id: "company-1",
-        nomeFantasia: "Empresa 1",
-        razaoSocial: "Empresa 1 LTDA",
-      },
-      remoteHost: {
-        id: "host-1",
-        name: "Servidor Principal",
-        lastHeartbeatAt: new Date(Date.now() - 2 * 60 * 1000),
-        lastHeartbeatSuccessAt: new Date(Date.now() - 2 * 60 * 1000),
-      },
-    });
+    prisma.agentInstallation.findFirst.mockResolvedValue(
+      buildInstallationRow({
+        lastHeartbeatAt: new Date(Date.now() - 20 * 60 * 1000),
+        remoteCapability: {
+          remoteHostId: "host-1",
+          remoteHost: {
+            id: "host-1",
+            name: "Servidor Principal",
+            lastHeartbeatAt: new Date(Date.now() - 2 * 60 * 1000),
+            lastHeartbeatSuccessAt: new Date(Date.now() - 2 * 60 * 1000),
+          },
+        },
+      }),
+    );
 
     const response = await service.getDevice({}, "device-123");
 
@@ -209,8 +309,8 @@ describe("AgentsService", () => {
 
   it("builds online device filters from the effective heartbeat sources", async () => {
     authorizationService.assertPermission.mockResolvedValue({ userId: "user-1" });
-    prisma.agentDevice.count.mockResolvedValue(1);
-    prisma.agentDevice.findMany.mockResolvedValue([]);
+    prisma.agentInstallation.count.mockResolvedValue(1);
+    prisma.agentInstallation.findMany.mockResolvedValue([]);
 
     await service.listDevices({}, {
       page: 1,
@@ -219,27 +319,28 @@ describe("AgentsService", () => {
       search: "SERVIDOR",
     });
 
-    const countArgs = prisma.agentDevice.count.mock.calls[0][0];
-    expect(countArgs.where.AND).toHaveLength(2);
-    expect(countArgs.where.AND[0]).toEqual({
+    const countArgs = prisma.agentInstallation.count.mock.calls[0][0];
+    expect(countArgs.where.AND).toHaveLength(3);
+    expect(countArgs.where.AND[0]).toEqual({ supersededAt: null });
+    expect(countArgs.where.AND[1]).toEqual({
       OR: [
-        { deviceId: { contains: "SERVIDOR", mode: "insensitive" } },
-        { hostname: { contains: "SERVIDOR", mode: "insensitive" } },
-        { os: { contains: "SERVIDOR", mode: "insensitive" } },
+        { deviceRecord: { deviceId: { contains: "SERVIDOR", mode: "insensitive" } } },
+        { deviceRecord: { hostname: { contains: "SERVIDOR", mode: "insensitive" } } },
+        { deviceRecord: { os: { contains: "SERVIDOR", mode: "insensitive" } } },
       ],
     });
-    expect(countArgs.where.AND[1]).toMatchObject({
+    expect(countArgs.where.AND[2]).toMatchObject({
       OR: [
         { lastHeartbeatAt: { gte: expect.any(Date) } },
-        { remoteHost: { is: { lastHeartbeatSuccessAt: { gte: expect.any(Date) } } } },
-        { remoteHost: { is: { lastHeartbeatAt: { gte: expect.any(Date) } } } },
+        { capabilities: { some: { kind: "REMOTE", remoteHost: { is: { lastHeartbeatSuccessAt: { gte: expect.any(Date) } } } } } },
+        { capabilities: { some: { kind: "REMOTE", remoteHost: { is: { lastHeartbeatAt: { gte: expect.any(Date) } } } } } },
       ],
     });
   });
 
   it("computes fleet stats online count from the effective heartbeat sources", async () => {
     authorizationService.assertPermission.mockResolvedValue({ userId: "user-1" });
-    prisma.agentDevice.count
+    prisma.agentInstallation.count
       .mockResolvedValueOnce(3)
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(0)
@@ -250,12 +351,17 @@ describe("AgentsService", () => {
     expect(response.success).toBe(true);
     expect(response.data.online).toBe(2);
     expect(response.data.offline).toBe(1);
-    expect(prisma.agentDevice.count.mock.calls[1][0]).toMatchObject({
+    expect(prisma.agentInstallation.count.mock.calls[1][0]).toMatchObject({
       where: {
-        OR: [
-          { lastHeartbeatAt: { gte: expect.any(Date) } },
-          { remoteHost: { is: { lastHeartbeatSuccessAt: { gte: expect.any(Date) } } } },
-          { remoteHost: { is: { lastHeartbeatAt: { gte: expect.any(Date) } } } },
+        AND: [
+          { supersededAt: null },
+          {
+            OR: [
+              { lastHeartbeatAt: { gte: expect.any(Date) } },
+              { capabilities: { some: { kind: "REMOTE", remoteHost: { is: { lastHeartbeatSuccessAt: { gte: expect.any(Date) } } } } } },
+              { capabilities: { some: { kind: "REMOTE", remoteHost: { is: { lastHeartbeatAt: { gte: expect.any(Date) } } } } } },
+            ],
+          },
         ],
       },
     });
@@ -263,21 +369,14 @@ describe("AgentsService", () => {
 
   it("treats unlinked device as online when matching discovery heartbeat is recent", async () => {
     authorizationService.assertPermission.mockResolvedValue({ userId: "user-1" });
-    prisma.agentDevice.findUnique.mockResolvedValue({
-      id: "device-row-1",
-      deviceId: "device-123",
-      hostname: "SERVIDOR",
-      os: "Windows Server",
-      identitySource: "machine-guid",
-      agentVersion: "go-agent-v1",
-      companyId: null,
-      remoteHostId: null,
-      firstSeenAt: new Date("2026-07-12T18:00:00.000Z"),
-      lastHeartbeatAt: new Date(Date.now() - 20 * 60 * 1000),
-      lastRegisteredAt: new Date("2026-07-12T18:00:00.000Z"),
-      company: null,
-      remoteHost: null,
-    });
+    prisma.agentInstallation.findFirst.mockResolvedValue(
+      buildInstallationRow({
+        companyId: null,
+        company: null,
+        lastHeartbeatAt: new Date(Date.now() - 20 * 60 * 1000),
+        remoteCapability: null,
+      }),
+    );
     prisma.remoteDiscoveredHost.findMany.mockResolvedValue([
       {
         machineName: "SERVIDOR",
@@ -296,30 +395,8 @@ describe("AgentsService", () => {
     authorizationService.assertPermission.mockResolvedValue({ userId: "user-1", role: "ADMIN", email: "ops@example.com" });
     authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: true, companyIds: [] });
     prisma.remoteHost.findUnique.mockResolvedValue({ id: "host-1", companyId: "company-1" });
-    prisma.agentDevice.update.mockResolvedValue({
-      id: "device-row-1",
-      deviceId: "device-123",
-      hostname: "SERVIDOR",
-      os: "Windows Server",
-      identitySource: "machine-guid",
-      agentVersion: "go-agent-v1",
-      companyId: "company-1",
-      remoteHostId: "host-1",
-      firstSeenAt: new Date("2026-07-12T18:00:00.000Z"),
-      lastHeartbeatAt: new Date("2026-07-12T18:05:00.000Z"),
-      lastRegisteredAt: new Date("2026-07-12T18:00:00.000Z"),
-      company: {
-        id: "company-1",
-        nomeFantasia: "Empresa 1",
-        razaoSocial: "Empresa 1 LTDA",
-      },
-      remoteHost: {
-        id: "host-1",
-        name: "Servidor Principal",
-        lastHeartbeatAt: new Date("2026-07-12T18:05:00.000Z"),
-        lastHeartbeatSuccessAt: new Date("2026-07-12T18:05:00.000Z"),
-      },
-    });
+    prisma.agentInstallation.findFirst.mockResolvedValue({ id: "inst-row-1" });
+    prisma.agentInstallation.findUnique.mockResolvedValue(buildInstallationRow());
 
     await service.linkDevice({}, "device-123", { remoteHostId: "host-1" });
 
@@ -339,10 +416,16 @@ describe("AgentsService", () => {
           nomeFantasia: "Empresa 1",
           razaoSocial: "Empresa 1 LTDA",
         },
-        agentDevice: {
-          deviceId: "device-123",
-          hostname: "SERVIDOR",
-        },
+        agentCapabilities: [
+          {
+            installation: {
+              deviceRecord: {
+                deviceId: "device-123",
+                hostname: "SERVIDOR",
+              },
+            },
+          },
+        ],
       },
     ]);
 
