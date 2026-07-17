@@ -15,22 +15,41 @@ export type ProtectedSession = {
   image: string | null
 }
 
+const PROTECTED_SESSION_RETRY_STATUSES = new Set([502, 503, 504])
+const PROTECTED_SESSION_MAX_ATTEMPTS = 2
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
 async function getProtectedSessionFromApi(): Promise<ProtectedSession | null> {
   const requestHeaders = await headers()
   const cookie = requestHeaders.get("cookie")
   const appOrigin = resolveServerOrigin(requestHeaders)
-
-  const response = await fetch(`${appOrigin}/api/auth/protected-session`, {
+  const url = `${appOrigin}/api/auth/protected-session`
+  const requestInit = {
     method: "GET",
     headers: {
       ...(cookie ? { cookie } : {}),
       accept: "application/json",
     },
-    cache: "no-store",
-  })
+    cache: "no-store" as const,
+  }
 
-  if (!response.ok) return null
-  return (await response.json()) as ProtectedSession | null
+  for (let attempt = 1; attempt <= PROTECTED_SESSION_MAX_ATTEMPTS; attempt++) {
+    const response = await fetch(url, requestInit)
+    if (response.ok) {
+      return (await response.json()) as ProtectedSession | null
+    }
+
+    if (!PROTECTED_SESSION_RETRY_STATUSES.has(response.status) || attempt === PROTECTED_SESSION_MAX_ATTEMPTS) {
+      return null
+    }
+
+    await delay(150)
+  }
+
+  return null
 }
 
 /**

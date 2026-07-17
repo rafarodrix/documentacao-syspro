@@ -39,6 +39,23 @@ function readMessage(value: unknown, record: UnknownRecord | null): string {
   if (value instanceof Error && value.message.trim()) {
     return value.message.trim();
   }
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return String(value);
+  }
+  if (typeof value === "symbol") {
+    return value.toString();
+  }
+  if (record) {
+    const serialized = trySerializeRecord(record);
+    if (serialized) return serialized;
+    const constructorName = value?.constructor?.name;
+    if (typeof constructorName === "string" && constructorName.trim()) {
+      return constructorName.trim();
+    }
+  }
   return "Unknown proxy error";
 }
 
@@ -52,4 +69,13 @@ function readString(value: unknown): string | null {
 
 function readNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function trySerializeRecord(record: UnknownRecord): string | null {
+  try {
+    const serialized = JSON.stringify(record);
+    return serialized && serialized !== "{}" ? serialized : null;
+  } catch {
+    return null;
+  }
 }
