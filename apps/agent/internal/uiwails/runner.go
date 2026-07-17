@@ -28,7 +28,7 @@ func RunApp(ctx context.Context, service serviceRunner, host *Host, assets fs.FS
 	})
 
 	hostErr := wails.Run(&options.App{
-		Title:             "Trilink Agent Setup",
+		Title:             "Trilink Agent",
 		Width:             430,
 		Height:            640,
 		MinWidth:          400,

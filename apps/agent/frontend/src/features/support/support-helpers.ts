@@ -9,6 +9,12 @@ export type SupportBannerState = {
   detail: string;
 };
 
+export type OperationalHealthSummary = {
+  tone: "ok" | "warn" | "muted";
+  summary: string;
+  issues: string[];
+};
+
 export function resolveSupportBannerState(
   setupView: AgentSetupViewModel,
   supportView: AgentSupportViewModel | null,
@@ -115,7 +121,6 @@ export function buildOperationalStatusRows(
   supportView: AgentSupportViewModel | null,
 ): Array<{ label: string; value: string; tone: "ok" | "warn" | "muted" }> {
   const remote = supportView?.capabilities.remote ?? null;
-  const channelConfigured = Boolean(supportView?.channel.configured);
 
   return [
     {
@@ -133,10 +138,47 @@ export function buildOperationalStatusRows(
       value: getRemoteOperationalLabel(remote),
       tone: remote?.status === "ready" ? "ok" : remote?.status === "pending" ? "warn" : "muted",
     },
-    {
-      label: "Canal de suporte",
-      value: channelConfigured ? "Disponivel" : "Nao configurado",
-      tone: channelConfigured ? "ok" : "muted",
-    },
   ];
+}
+
+export function summarizeOperationalHealth(
+  setupView: AgentSetupViewModel,
+  supportView: AgentSupportViewModel | null,
+): OperationalHealthSummary {
+  const remote = supportView?.capabilities.remote ?? null;
+  const issues: string[] = [];
+
+  if (!setupView.complete) {
+    issues.push("Provisionamento incompleto.");
+  }
+
+  if (!remote?.lastSyncAt) {
+    issues.push("Sem confirmacao recente de comunicacao com o portal.");
+  }
+
+  if (!remote?.ready) {
+    issues.push(getRemoteOperationalHint(remote));
+  }
+
+  if (issues.length === 0) {
+    return {
+      tone: "ok",
+      summary: "Todos os servicos operacionais",
+      issues: [],
+    };
+  }
+
+  if (issues.length === 1) {
+    return {
+      tone: "warn",
+      summary: issues[0],
+      issues,
+    };
+  }
+
+  return {
+    tone: "warn",
+    summary: `${issues.length} itens requerem atencao`,
+    issues,
+  };
 }

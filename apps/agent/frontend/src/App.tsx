@@ -16,7 +16,7 @@ function App() {
             draggable={false}
           />
           <span className="navbar-divider" />
-          <span className="navbar-product">Enterprise Agent</span>
+          <span className="navbar-product">Trilink Agent</span>
         </div>
         <div className={`navbar-badge state-${shell.overallState}`}>
           <span className={`navbar-badge-dot state-${shell.overallState}`} />

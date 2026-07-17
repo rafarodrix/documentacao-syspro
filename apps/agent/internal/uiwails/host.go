@@ -192,9 +192,9 @@ func normalizeTarget(target string) string {
 func targetWindow(target string) (int, int, string) {
 	switch normalizeTarget(target) {
 	case uistate.TargetSupportConversation:
-		return 420, 620, "Trilink Support"
+		return 420, 620, "Trilink Agent"
 	default:
-		return 430, 640, "Trilink Agent Setup"
+		return 430, 640, "Trilink Agent"
 	}
 }
 

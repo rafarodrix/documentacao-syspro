@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CopyButton } from "../../components/CopyButton";
-import { ChatBubbleIcon, MonitorIcon, ShieldIcon } from "../../components/icons";
+import { ShieldIcon } from "../../components/icons";
 import type { AgentSetupViewModel, SetupStepView, AgentSupportViewModel } from "../../types/agent-ui";
 import { formatSetupCopy, getSetupDetail, getSetupHeadline, getSetupHint } from "../setup/setup-helpers";
 import {
@@ -9,13 +9,13 @@ import {
   formatRemoteId,
   getRemoteActionLabel,
   getRemoteOperationalHint,
-  getRemoteOperationalLabel,
-  resolveSupportBannerState,
+  summarizeOperationalHealth,
   truncateIdentifier,
 } from "./support-helpers";
 import { mountChatwootEmbed, openChatwootInline } from "./chatwoot";
 
 type SetupOverallState = "complete" | "error" | "running" | "idle";
+type SupportPanel = "diagnostics" | "details" | "about" | null;
 
 type SupportScreenProps = {
   supportView: AgentSupportViewModel | null;
@@ -46,9 +46,9 @@ export function SupportScreen(props: SupportScreenProps) {
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [chatDrawerExpanded, setChatDrawerExpanded] = useState(false);
+  const [activePanel, setActivePanel] = useState<SupportPanel>(null);
   const remote = supportView?.capabilities.remote ?? null;
   const chatConfigured = Boolean(supportView?.channel.configured);
-  const banner = resolveSupportBannerState(setupView, supportView);
   const setupHeadline = getSetupHeadline(setupView, activeStep, setupOverallState);
   const setupDetail = getSetupDetail(setupView, activeStep, setupOverallState);
   const setupHint = getSetupHint(setupView, activeStep);
@@ -56,12 +56,13 @@ export function SupportScreen(props: SupportScreenProps) {
   const remoteReady = Boolean(remote?.ready && remote?.externalId);
   const companyName = supportView?.installation.companyName ?? "Cliente Trilink";
   const machineName = supportView?.device.machineName || supportView?.device.hostname || "Dispositivo em preparacao";
-  const operatorName = supportView?.device.localUsername || "Operador local";
+  const agentVersion = supportView?.device.agentVersion || "-";
   const lastCommunication = formatRelativeTime(remote?.lastSyncAt);
+  const connectivityLine = buildConnectivityLine(setupView.complete, lastCommunication);
   const remoteActionLabel = getRemoteActionLabel(remote, remoteOpening);
-  const remoteOperationalLabel = getRemoteOperationalLabel(remote);
   const remoteOperationalHint = getRemoteOperationalHint(remote);
-  const remoteStateLabel = remoteOperationalLabel === "Operacional" ? "Acesso remoto disponivel" : remoteOperationalLabel;
+  const healthSummary = summarizeOperationalHealth(setupView, supportView);
+  const statusRows = useMemo(() => buildOperationalStatusRows(setupView, supportView), [setupView, supportView]);
   const chatStateLabel = !chatConfigured
     ? "Canal nao configurado"
     : chatwootLoading
@@ -69,7 +70,6 @@ export function SupportScreen(props: SupportScreenProps) {
       : chatwootReady
         ? "Canal pronto"
         : "Canal sob demanda";
-  const statusRows = buildOperationalStatusRows(setupView, supportView);
 
   useEffect(() => {
     if (!chatwootReady || !chatDrawerOpen) return;
@@ -77,37 +77,27 @@ export function SupportScreen(props: SupportScreenProps) {
     openChatwootInline();
   }, [chatDrawerOpen, chatwootReady, supportView?.channel.websiteToken]);
 
-  const toggleSupportDrawer = () => {
-    if (chatDrawerOpen) {
-      setChatDrawerOpen(false);
-      setChatDrawerExpanded(false);
-      return;
-    }
-
+  const openSupportDrawer = () => {
     setChatDrawerOpen(true);
     setChatDrawerExpanded(false);
     onOpenSupport();
   };
 
+  const togglePanel = (panel: SupportPanel) => {
+    setActivePanel((current) => (current === panel ? null : panel));
+  };
+
   return (
     <main className={`panel support-panel operational ${chatDrawerOpen ? "chat-open" : ""}`}>
-      <section className="support-hero operational">
-        <div className="support-hero-copy operational">
-          <span className="support-hero-eyebrow operational">Painel operacional</span>
-          <h1 className="support-hero-title operational">{machineName}</h1>
-          <p className="support-hero-subtitle operational">{companyName}</p>
-          <p className="support-hero-meta operational">
-            {lastCommunication ? `Ultima comunicacao ${lastCommunication}` : "Sem confirmacao recente de comunicacao com o portal."}
-          </p>
-        </div>
-
-        <div className={`support-operational-badge state-${banner.tone}`}>
-          <span className="support-operational-badge-dot" />
-          <span>{banner.label}</span>
+      <section className="support-hero operational compact">
+        <div className="support-hero-copy operational compact">
+          <h1 className="support-hero-title operational compact">{machineName}</h1>
+          <p className="support-hero-subtitle operational compact">{companyName}</p>
+          <p className="support-hero-meta operational compact">{connectivityLine}</p>
         </div>
       </section>
 
-      <section className="support-body operational">
+      <section className="support-body operational compact">
         {!setupView.complete ? (
           <div className={`support-diagnostic-card state-${setupOverallState}`}>
             <div className="support-diagnostic-header">
@@ -131,120 +121,172 @@ export function SupportScreen(props: SupportScreenProps) {
           </div>
         ) : null}
 
-        <section className="support-operational-grid">
-          <article className="support-operational-card support-operational-card-primary">
-            <div className="support-card-kicker">Dispositivo</div>
-            <div className="support-card-title">{machineName}</div>
-            <div className="support-card-detail">{banner.detail}</div>
+        <section className="support-remote-card compact">
+          <div className="support-card-kicker">Acesso remoto</div>
+          <div className="support-remote-state-row">
+            <div className={`support-health-bullet tone-${healthSummary.tone}`} />
+            <div className="support-remote-state-text">
+              {remoteReady ? "RustDesk disponivel" : remote?.status === "pending" ? "RustDesk em configuracao" : "RustDesk indisponivel"}
+            </div>
+          </div>
 
-            <div className="support-inline-facts">
-              <div className="support-inline-fact">
-                <span className="support-inline-fact-label">Empresa</span>
-                <span className="support-inline-fact-value">{companyName}</span>
+          <div className="support-remote-id-row compact">
+            <div className="support-remote-id-value mono">{formatRemoteId(remote?.externalId)}</div>
+            {remote?.externalId ? <CopyButton value={remote.externalId} label="Copiar ID remoto" /> : null}
+          </div>
+
+          <div className="support-remote-actions compact">
+            <button
+              type="button"
+              className={`btn-primary btn-primary-inline ${remoteOpening ? "btn-loading" : ""}`}
+              onClick={onOpenRemote}
+              disabled={remoteOpening || !remoteReady}
+            >
+              {remoteOpening ? <span className="btn-spinner" /> : null}
+              <span>{remoteActionLabel}</span>
+            </button>
+          </div>
+        </section>
+
+        <section className="support-health-card compact">
+          <button
+            type="button"
+            className="support-health-summary"
+            onClick={() => togglePanel("diagnostics")}
+          >
+            <span className={`support-health-bullet tone-${healthSummary.tone}`} />
+            <span className="support-health-summary-text">{healthSummary.summary}</span>
+          </button>
+        </section>
+
+        <section className="support-support-card compact">
+          <button
+            type="button"
+            className={`btn-secondary-inline support-support-button ${chatwootLoading ? "btn-loading" : ""}`}
+            onClick={openSupportDrawer}
+            disabled={chatwootLoading || !chatConfigured}
+          >
+            {chatwootLoading ? <span className="btn-spinner btn-spinner-dark" /> : null}
+            <span>Solicitar suporte</span>
+          </button>
+        </section>
+
+        <div className="support-footer-actions">
+          <button type="button" className="support-footer-link" onClick={() => togglePanel("diagnostics")}>
+            Diagnostico
+          </button>
+          <span className="support-footer-separator">·</span>
+          <button type="button" className="support-footer-link" onClick={() => togglePanel("details")}>
+            Detalhes
+          </button>
+          <span className="support-footer-separator">·</span>
+          <button type="button" className="support-footer-link" onClick={() => togglePanel("about")}>
+            Sobre
+          </button>
+        </div>
+
+        {activePanel === "diagnostics" ? (
+          <section className="support-detail-panel">
+            <div className="support-card-kicker">Diagnostico</div>
+            <div className="support-panel-title">{healthSummary.summary}</div>
+            {healthSummary.issues.length > 0 ? (
+              <div className="support-issue-list">
+                {healthSummary.issues.map((issue) => (
+                  <div key={issue} className="support-issue-row">
+                    <span className="support-health-bullet tone-warn" />
+                    <span>{issue}</span>
+                  </div>
+                ))}
               </div>
-              <div className="support-inline-fact">
-                <span className="support-inline-fact-label">Operador local</span>
-                <span className="support-inline-fact-value">{operatorName}</span>
+            ) : (
+              <div className="support-panel-copy">Nenhuma excecao operacional relevante no momento.</div>
+            )}
+
+            <div className="support-component-list compact">
+              {statusRows.map((row) => (
+                <div key={row.label} className="support-component-row compact">
+                  <span className="support-component-label">{row.label}</span>
+                  <span className={`support-component-value tone-${row.tone}`}>{row.value}</span>
+                </div>
+              ))}
+            </div>
+
+            {!remoteReady ? <div className="support-panel-copy">{remoteOperationalHint}</div> : null}
+          </section>
+        ) : null}
+
+        {activePanel === "details" ? (
+          <section className="support-detail-panel">
+            <div className="support-card-kicker">Detalhes</div>
+            <div className="support-panel-title">Detalhes do agent</div>
+            <div className="support-technical-grid compact">
+              <div className="support-technical-row compact">
+                <span className="support-technical-label">Dispositivo</span>
+                <span className="support-technical-value">{machineName}</span>
               </div>
-              <div className="support-inline-fact">
-                <span className="support-inline-fact-label">Versao do agent</span>
-                <span className="support-inline-fact-value">{supportView?.device.agentVersion || "-"}</span>
+              <div className="support-technical-row compact">
+                <span className="support-technical-label">Empresa</span>
+                <span className="support-technical-value">{companyName}</span>
               </div>
-              <div className="support-inline-fact">
-                <span className="support-inline-fact-label">Canal</span>
-                <span className="support-inline-fact-value">{chatConfigured ? "Suporte Trilink pronto" : "Sem suporte configurado"}</span>
+              <div className="support-technical-row compact">
+                <span className="support-technical-label">Operador local</span>
+                <span className="support-technical-value">{supportView?.device.localUsername || "-"}</span>
+              </div>
+              <div className="support-technical-row compact">
+                <span className="support-technical-label">Versao do agent</span>
+                <span className="support-technical-value">{agentVersion}</span>
+              </div>
+              <div className="support-technical-row compact">
+                <span className="support-technical-label">Sistema operacional</span>
+                <span className="support-technical-value">{supportView?.device.os || "-"}</span>
+              </div>
+              <div className="support-technical-row compact">
+                <span className="support-technical-label">Host alias</span>
+                <span className="support-technical-value">{supportView?.installation.hostAlias || "-"}</span>
+              </div>
+              <div className="support-technical-row compact">
+                <span className="support-technical-label">Device ID</span>
+                <span className="support-technical-value mono">{truncateIdentifier(supportView?.device.deviceId)}</span>
+                {supportView?.device.deviceId ? <CopyButton value={supportView.device.deviceId} label="Copiar device ID" /> : null}
+              </div>
+              <div className="support-technical-row compact">
+                <span className="support-technical-label">Host ID</span>
+                <span className="support-technical-value mono">{truncateIdentifier(supportView?.installation.hostId)}</span>
+                {supportView?.installation.hostId ? <CopyButton value={supportView.installation.hostId} label="Copiar host ID" /> : null}
               </div>
             </div>
 
-            <div className="support-primary-actions">
-              <button
-                type="button"
-                className={`btn-primary btn-primary-inline ${chatwootLoading ? "btn-loading" : ""}`}
-                onClick={onOpenSupport}
-                disabled={chatwootLoading || !chatConfigured}
-              >
-                {chatwootLoading ? <span className="btn-spinner" /> : null}
-                <span>Solicitar suporte</span>
-              </button>
-              <button type="button" className="btn-secondary-inline" onClick={onOpenSetup}>
+            <div className="support-inline-buttons">
+              <button type="button" className="support-footer-link emphasized" onClick={onOpenSetup}>
                 Historico do provisionamento
               </button>
             </div>
-          </article>
+          </section>
+        ) : null}
 
-          <article className="support-operational-card support-operational-card-remote">
-            <div className="support-card-kicker">Acesso remoto</div>
-            <div className="support-card-title-row">
-              <div className="support-card-title">{remoteStateLabel}</div>
-              <span className={`support-state-pill state-${remote?.status ?? "offline"}`}>
-                <span className="support-state-pill-dot" />
-                {remoteOperationalLabel}
-              </span>
-            </div>
-            <div className="support-card-detail">{remoteOperationalHint}</div>
-
-            <div className="support-remote-id-card">
-              <div className="support-remote-id-head">
-                <span className="support-summary-label">ID RustDesk</span>
-                {remote?.externalId ? <CopyButton value={remote.externalId} label="Copiar ID remoto" /> : null}
+        {activePanel === "about" ? (
+          <section className="support-detail-panel">
+            <div className="support-card-kicker">Sobre</div>
+            <div className="support-panel-title">Trilink Agent</div>
+            <div className="support-issue-list">
+              <div className="support-issue-row">
+                <span className="support-technical-label">Versao do servico</span>
+                <span className="support-technical-value">{agentVersion}</span>
               </div>
-              <div className="support-remote-id-value mono">{formatRemoteId(remote?.externalId)}</div>
-            </div>
-
-            <div className="support-remote-assist">
-              <ShieldIcon />
-              <span>Uma solicitacao de suporte pode exigir sua confirmacao no RustDesk.</span>
-            </div>
-
-            <div className="support-remote-actions">
-              <button
-                type="button"
-                className={`btn-secondary-inline support-remote-open-button ${remoteOpening ? "btn-loading" : ""}`}
-                onClick={onOpenRemote}
-                disabled={remoteOpening || !remoteReady}
-              >
-                {remoteOpening ? <span className="btn-spinner btn-spinner-dark" /> : <MonitorIcon />}
-                <span>{remoteActionLabel}</span>
-              </button>
-            </div>
-          </article>
-        </section>
-
-        <section className="support-component-card">
-          <div className="support-card-kicker">Status dos componentes</div>
-          <div className="support-component-list">
-            {statusRows.map((row) => (
-              <div key={row.label} className="support-component-row">
-                <span className="support-component-label">{row.label}</span>
-                <span className={`support-component-value tone-${row.tone}`}>{row.value}</span>
+              <div className="support-issue-row">
+                <span className="support-technical-label">Canal de suporte</span>
+                <span className="support-technical-value">{chatConfigured ? "Disponivel sob demanda" : "Nao configurado"}</span>
               </div>
-            ))}
-          </div>
-        </section>
-
-        <details className="support-technical-details">
-          <summary>Detalhes tecnicos</summary>
-          <div className="support-technical-grid">
-            <div className="support-technical-row">
-              <span className="support-technical-label">Device ID</span>
-              <span className="support-technical-value mono">{truncateIdentifier(supportView?.device.deviceId)}</span>
-              {supportView?.device.deviceId ? <CopyButton value={supportView.device.deviceId} label="Copiar device ID" /> : null}
+              <div className="support-issue-row">
+                <span className="support-technical-label">Acesso remoto</span>
+                <span className="support-technical-value">{remoteReady ? "RustDesk disponivel" : "Dependente de configuracao"}</span>
+              </div>
             </div>
-            <div className="support-technical-row">
-              <span className="support-technical-label">Host ID</span>
-              <span className="support-technical-value mono">{truncateIdentifier(supportView?.installation.hostId)}</span>
-              {supportView?.installation.hostId ? <CopyButton value={supportView.installation.hostId} label="Copiar host ID" /> : null}
+            <div className="support-panel-copy">
+              Uma solicitacao de suporte pode exigir sua confirmacao no RustDesk.
             </div>
-            <div className="support-technical-row">
-              <span className="support-technical-label">Host alias</span>
-              <span className="support-technical-value">{supportView?.installation.hostAlias || "-"}</span>
-            </div>
-            <div className="support-technical-row">
-              <span className="support-technical-label">Sistema operacional</span>
-              <span className="support-technical-value">{supportView?.device.os || "-"}</span>
-            </div>
-          </div>
-        </details>
+          </section>
+        ) : null}
       </section>
 
       <div
@@ -263,7 +305,7 @@ export function SupportScreen(props: SupportScreenProps) {
           </div>
           <div className="support-chat-shell-actions">
             <span className={`support-chat-state-pill ${chatwootReady ? "ready" : chatwootLoading ? "loading" : "idle"}`}>
-              {remoteStateLabel}
+              {remoteReady ? "RustDesk disponivel" : "Suporte sob demanda"}
             </span>
             <button
               type="button"
@@ -303,20 +345,16 @@ export function SupportScreen(props: SupportScreenProps) {
           ) : null}
         </div>
       </div>
-
-      <div className={`support-chat-launcher-wrap ${chatDrawerOpen ? "hidden" : ""}`}>
-        <button
-          type="button"
-          className={`support-chat-launcher ${chatDrawerOpen ? "open" : ""} ${chatwootLoading ? "loading" : ""}`}
-          onClick={toggleSupportDrawer}
-          disabled={chatwootLoading || !chatConfigured}
-        >
-          <span className="support-chat-launcher-icon">
-            <ChatBubbleIcon />
-          </span>
-          <span className="support-chat-launcher-copy">{chatDrawerOpen ? "Ocultar atendimento" : "Atendimento"}</span>
-        </button>
-      </div>
     </main>
   );
+}
+
+function buildConnectivityLine(ready: boolean, lastCommunication: string): string {
+  if (!ready) {
+    return lastCommunication ? `Provisionando · atualizado ${lastCommunication}` : "Provisionando";
+  }
+  if (!lastCommunication) {
+    return "Online";
+  }
+  return `Online · atualizado ${lastCommunication}`;
 }

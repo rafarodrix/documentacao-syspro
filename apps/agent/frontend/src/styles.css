@@ -2146,6 +2146,218 @@ body {
   color: var(--ink-950);
 }
 
+.support-hero.operational.compact {
+  padding: 18px 20px 10px;
+}
+
+.support-hero-copy.operational.compact {
+  gap: 4px;
+}
+
+.support-hero-title.operational.compact {
+  font-size: 24px;
+}
+
+.support-hero-subtitle.operational.compact,
+.support-hero-meta.operational.compact {
+  font-size: 12px;
+}
+
+.support-body.operational.compact {
+  gap: 10px;
+  padding: 0 16px 16px;
+}
+
+.support-remote-card.compact,
+.support-health-card.compact,
+.support-support-card.compact,
+.support-detail-panel {
+  border-radius: 14px;
+  border: 1px solid rgba(17, 59, 99, 0.08);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 8px 20px rgba(8, 33, 58, 0.06);
+}
+
+.support-remote-card.compact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.support-remote-state-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.support-health-bullet {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.support-health-bullet.tone-ok {
+  background: var(--mint-500);
+  box-shadow: 0 0 0 3px rgba(24, 182, 122, 0.12);
+}
+
+.support-health-bullet.tone-warn {
+  background: var(--amber-500);
+  box-shadow: 0 0 0 3px rgba(196, 138, 28, 0.12);
+}
+
+.support-health-bullet.tone-muted {
+  background: var(--ink-400);
+  box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.14);
+}
+
+.support-remote-state-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy-950);
+}
+
+.support-remote-id-row.compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0a2644 0%, #133b60 100%);
+}
+
+.support-remote-id-row.compact .support-remote-id-value {
+  font-size: 22px;
+  color: #fff;
+}
+
+.support-remote-actions.compact {
+  display: flex;
+}
+
+.support-remote-actions.compact .btn-primary-inline {
+  width: 100%;
+}
+
+.support-health-card.compact,
+.support-support-card.compact {
+  padding: 0;
+  overflow: hidden;
+}
+
+.support-health-summary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--navy-950);
+  cursor: pointer;
+  text-align: left;
+}
+
+.support-health-summary-text {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.support-support-button {
+  width: 100%;
+}
+
+.support-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 0 0;
+}
+
+.support-footer-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-500);
+  cursor: pointer;
+}
+
+.support-footer-link:hover {
+  color: var(--navy-900);
+}
+
+.support-footer-link.emphasized {
+  color: var(--cyan-500);
+}
+
+.support-footer-separator {
+  color: var(--ink-400);
+}
+
+.support-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.support-panel-title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--navy-950);
+}
+
+.support-panel-copy {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-500);
+}
+
+.support-issue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.support-issue-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-700);
+}
+
+.support-component-list.compact {
+  grid-template-columns: 1fr;
+  margin-top: 0;
+}
+
+.support-component-row.compact,
+.support-technical-row.compact {
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.support-technical-grid.compact {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 0;
+}
+
+.support-inline-buttons {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .setup-content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.95fr);
@@ -2373,5 +2585,15 @@ body {
 
   .support-remote-id-value {
     font-size: 20px;
+  }
+
+  .support-remote-id-row.compact,
+  .support-footer-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .support-footer-separator {
+    display: none;
   }
 }
