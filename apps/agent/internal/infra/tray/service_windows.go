@@ -10,7 +10,7 @@ import (
 	"fyne.io/systray"
 
 	agentassets "trilink/agent/assets"
-	uistate "trilink/agent/internal/core/ui_state"
+	"trilink/agent/internal/contracts/agentui"
 )
 
 type Logger interface {
@@ -32,8 +32,8 @@ type Service struct {
 	actions  chan Action
 
 	mu                   sync.Mutex
-	currentSummary       uistate.Summary
-	currentNotifications []uistate.Notification
+	currentSummary       agentui.Summary
+	currentNotifications []agentui.Notification
 	ready                bool
 }
 
@@ -113,7 +113,7 @@ func (s *Service) Trigger(action Action) {
 	}
 }
 
-func (s *Service) UpdateSummary(summary uistate.Summary) {
+func (s *Service) UpdateSummary(summary agentui.Summary) {
 	s.mu.Lock()
 	s.currentSummary = summary
 	ready := s.ready
@@ -125,7 +125,7 @@ func (s *Service) UpdateSummary(summary uistate.Summary) {
 	s.logger.Debug("tray summary updated", "service_status", summary.ServiceStatus, "user_visible", summary.UserVisible)
 }
 
-func (s *Service) ShowNotifications(notifications []uistate.Notification) {
+func (s *Service) ShowNotifications(notifications []agentui.Notification) {
 	s.mu.Lock()
 	s.currentNotifications = notifications
 	ready := s.ready
@@ -137,7 +137,7 @@ func (s *Service) ShowNotifications(notifications []uistate.Notification) {
 	s.logger.Debug("tray notifications updated", "count", len(notifications))
 }
 
-func (s *Service) SupportActionReady(result uistate.ActionResult) {
+func (s *Service) SupportActionReady(result agentui.ActionResult) {
 	s.logger.Info("tray support action ready", "accepted", result.Accepted, "target", result.Target)
 }
 

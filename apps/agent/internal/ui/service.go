@@ -6,6 +6,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"trilink/agent/internal/contracts/agentui"
 	uistate "trilink/agent/internal/core/ui_state"
 	"trilink/agent/internal/infra/tray"
 )
@@ -24,21 +25,21 @@ type TrayActions interface {
 }
 
 type SummaryClient interface {
-	GetSummary(ctx context.Context) (uistate.Summary, error)
+	GetSummary(ctx context.Context) (agentui.Summary, error)
 }
 
 type NotificationsClient interface {
-	ListNotifications(ctx context.Context) ([]uistate.Notification, error)
+	ListNotifications(ctx context.Context) ([]agentui.Notification, error)
 }
 
 type ActionsClient interface {
-	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
-	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
-	OpenRemoteClient(ctx context.Context) (uistate.ActionResult, error)
+	OpenSupportConversation(ctx context.Context) (agentui.ActionResult, error)
+	OpenSetupExperience(ctx context.Context) (agentui.ActionResult, error)
+	OpenRemoteClient(ctx context.Context) (agentui.ActionResult, error)
 }
 
 type SetupClient interface {
-	GetAgentSetupView(ctx context.Context) (uistate.AgentSetupView, error)
+	GetAgentSetupView(ctx context.Context) (agentui.AgentSetupView, error)
 }
 
 type TargetOpener interface {
@@ -46,9 +47,9 @@ type TargetOpener interface {
 }
 
 type TrayStateUpdater interface {
-	UpdateSummary(summary uistate.Summary)
-	ShowNotifications(notifications []uistate.Notification)
-	SupportActionReady(result uistate.ActionResult)
+	UpdateSummary(summary agentui.Summary)
+	ShowNotifications(notifications []agentui.Notification)
+	SupportActionReady(result agentui.ActionResult)
 }
 
 type Service struct {

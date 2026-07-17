@@ -1,6 +1,6 @@
 ---
 title: Banco de Dados Schema Overview
-description: PostgreSQL via Prisma ORM agrupamento por domi­nio de todos os modelos, enums principais e convenÃ§Ãµes do schema do Trilink Portal.
+description: PostgreSQL via Prisma ORM agrupamento por domínio de todos os modelos, enums principais e convenções do schema do Trilink Portal.
 lastUpdated: 2026-05-18
 owner: Engenharia de Plataforma
 status: published
@@ -16,16 +16,16 @@ tags:
 
 ---
 
-## Agrupamento por domÃ­nio
+## Agrupamento por domínio
 
 ### Empresas e Contratos
 
 ```
 Company
- ├── CompanyContactCompanyLink[] (vÃ­nculos de contatos com ordem/prioridade)
- ├── Membership[]           (usuÃ¡rios vinculados)
- ├── UserContactLink[]      (espelho do contato principal do usuÃ¡rio por empresa)
- ├── Contract[]             (contratos de serviÃ§o)
+ ├── CompanyContactCompanyLink[] (vínculos de contatos com ordem/prioridade)
+ ├── Membership[]           (usuários vinculados)
+ ├── UserContactLink[]      (espelho do contato principal do usuário por empresa)
+ ├── Contract[]             (contratos de serviço)
  ├── RemoteHost[]           (hosts remotos)
  ├── Conversation[]         (conversas/atendimentos)
  ├── CrmLead[]              (leads CRM)
@@ -33,7 +33,7 @@ Company
   ├── AgentCapability[]      (capabilities gerenciadas pelo agent)
 ```
 
-**Company â€” campos principais:**
+**Company — campos principais:**
 - `cnpj`, `razaoSocial`, `nomeFantasia`, `inscricaoEstadual`
 - `status`: ACTIVE | INACTIVE | SUSPENDED | PENDING_DOCS
 - `segment`: tipo de negocio (enum)
@@ -48,7 +48,7 @@ Company
 
 ```
 User
-  ├── Membership[]           (vÃ­nculos com empresas)
+  ├── Membership[]           (vínculos com empresas)
   ├── CompanyContact?        (contato associado)
   ├── UserContactLink[]      (contato efetivo por empresa)
 
@@ -67,14 +67,14 @@ AccessProfile
   ├── UserAccessProfile[]
 
 Permission
- â””â”€â”€ AccessProfilePermission[]
+ └── AccessProfilePermission[]
 ```
 
-**Fluxo real de escopo entre mÃ³dulos:**
+**Fluxo real de escopo entre módulos:**
 1. `User.contactId` aponta para um `CompanyContact`
-2. `CompanyContact.companyLinks` define as empresas vÃ¡lidas para esse contato
+2. `CompanyContact.companyLinks` define as empresas válidas para esse contato
 3. `UserContactAccessService` replica isso em `Membership` e `UserContactLink`
-4. `AuthorizationService` resolve permissÃµes globais e por empresa a partir desses vÃ­nculos
+4. `AuthorizationService` resolve permissÃµes globais e por empresa a partir desses vínculos
 
 ---
 
@@ -84,15 +84,15 @@ Permission
 RemoteHost
   ├── Company
   ├── RemoteAgentCommand[]   (fila de comandos)
-  ├── RemoteSession[]        (histÃ³rico de sessÃµes)
+  ├── RemoteSession[]        (histórico de sessÃµes)
   ├── RemoteHostSysproUpdate[] (versÃµes detectadas)
 
-RemoteDiscoveredHost        (hosts ainda nÃ£o vinculados)
+RemoteDiscoveredHost        (hosts ainda não vinculados)
   ├── Company?
 
 RemoteSession
   ├── RemoteHost
-  ├── User                   (tÃ©cnico)
+  ├── User                   (técnico)
   ├── Ticket?                (ticket vinculado, opcional)
 
 RemoteAddressBookCredential
@@ -100,68 +100,68 @@ RemoteAddressBookCredential
   ├── Company?               (escopo COMPANY, opcional)
 ```
 
-**RemoteHost â€” campos principais:**
-- `rustdeskId`: ID no RustDesk (sem espaÃ§os, Ãºnico)
-- `hostname`: nome Windows da mÃ¡quina
+**RemoteHost — campos principais:**
+- `rustdeskId`: ID no RustDesk (sem espaços, único)
+- `hostname`: nome Windows da máquina
 - `agentToken`: token do agente (persistido com hash)
-- `agentTokenExpiresAt`: expiraÃ§Ã£o do token
-- `lastHeartbeatAt`: Ãºltimo contato do agente
+- `agentTokenExpiresAt`: expiração do token
+- `lastHeartbeatAt`: último contato do agente
 - `status`: ACTIVE | INACTIVE | MAINTENANCE
 
-**RemoteAgentCommand â€” campos principais:**
+**RemoteAgentCommand — campos principais:**
 - `type`: REAPPLY_ALIAS | REAPPLY_CONFIG | UPGRADE_CLIENT | ROTATE_TOKEN_REQUIRED
 - `status`: PENDING | DELIVERED | ACKNOWLEDGED | CANCELLED | FAILED
-- `result`: resultado apÃ³s ACK do agente
+- `result`: resultado após ACK do agente
 
 ---
 
 ### Mensageria, Atendimento e Tickets
 
-> **ConvenÃ§Ã£o importante:** O modelo `Conversation` Ã© usado tanto para mensageria (WhatsApp, Email) quanto para tickets internos. A distinÃ§Ã£o Ã© feita pelo campo `channel`:
-> - `channel: PORTAL` â†’ **ticket interno** (chamado tÃ©cnico)
-> - `channel: WHATSAPP | EMAIL | PHONE` â†’ conversa de atendimento/mensageria
+> **Convenção importante:** O modelo `Conversation` é usado tanto para mensageria (WhatsApp, Email) quanto para tickets internos. A distinção é feita pelo campo `channel`:
+> - `channel: PORTAL` → **ticket interno** (chamado técnico)
+> - `channel: WHATSAPP | EMAIL | PHONE` → conversa de atendimento/mensageria
 
 ```
 Conversation
- â”œâ”€â”€ Company
- â”œâ”€â”€ CompanyContact               (cliente que abriu o chamado)
- â”œâ”€â”€ ConversationMessage[]        (mensagens e respostas)
- â”œâ”€â”€ ConversationAssignment[]     (atribuiÃ§Ãµes de responsÃ¡vel)
- â””â”€â”€ ChatwootCsatRating?          (pesquisa de satisfaÃ§Ã£o pÃ³s-fechamento)
+ ├── Company
+ ├── CompanyContact               (cliente que abriu o chamado)
+ ├── ConversationMessage[]        (mensagens e respostas)
+ ├── ConversationAssignment[]     (atribuições de responsável)
+ └── ChatwootCsatRating?          (pesquisa de satisfação pós-fechamento)
 
 ConversationMessage
- â”œâ”€â”€ Conversation
- â”œâ”€â”€ type: TEXT | IMAGE | DOCUMENT | AUDIO | VIDEO
- â””â”€â”€ direction: INBOUND | OUTBOUND
+ ├── Conversation
+ ├── type: TEXT | IMAGE | DOCUMENT | AUDIO | VIDEO
+ └── direction: INBOUND | OUTBOUND
 
-TicketCategory                   (categorias configurÃ¡veis, independente)
+TicketCategory                   (categorias configuráveis, independente)
 
 ChatwootCsatRating
- â””â”€â”€ Conversation
+ └── Conversation
 ```
 
-**Conversation â€” campos principais:**
+**Conversation — campos principais:**
 
-| Campo | Tipo | DescriÃ§Ã£o |
+| Campo | Tipo | Descrição |
 |-------|------|-----------|
 | `channel` | enum | `WHATSAPP \| EMAIL \| PORTAL \| PHONE` |
 | `status` | enum | Estado atual no workflow (ver abaixo) |
 | `priority` | string | `LOW \| NORMAL \| HIGH \| CRITICAL` |
-| `team` | string | Equipe responsÃ¡vel (`SUPORTE \| DESENVOLVIMENTO`) |
-| `assignedUserId` | string? | UsuÃ¡rio responsÃ¡vel pelo ticket |
-| `externalId` | string? | ID no Chatwoot (sincronizaÃ§Ã£o bidirecional) |
+| `team` | string | Equipe responsável (`SUPORTE \| DESENVOLVIMENTO`) |
+| `assignedUserId` | string? | Usuário responsável pelo ticket |
+| `externalId` | string? | ID no Chatwoot (sincronização bidirecional) |
 | `slaResponseDueAt` | DateTime? | Prazo de primeira resposta |
-| `slaResolutionDueAt` | DateTime? | Prazo de resoluÃ§Ã£o |
+| `slaResolutionDueAt` | DateTime? | Prazo de resolução |
 | `slaResponseHitAt` | DateTime? | Quando a primeira resposta ocorreu |
 | `slaResolutionHitAt` | DateTime? | Quando o ticket foi resolvido |
 | `metadata` | JSON | Dados extras: `source`, `chatwootConversationId`, etc. |
-| `resolvedAt` | DateTime? | Timestamp de resoluÃ§Ã£o |
+| `resolvedAt` | DateTime? | Timestamp de resolução |
 
-**ConversationStatus â€” workflow de tickets:**
+**ConversationStatus — workflow de tickets:**
 
 ```
-NEW â†’ UNASSIGNED â†’ TRIAGE â†’ IN_PROGRESS â†’ TESTING â†’ RESOLVED â†’ ARCHIVED
-                                â”‚                        â”‚
+NEW → UNASSIGNED → TRIAGE → IN_PROGRESS → TESTING → RESOLVED → ARCHIVED
+                                │                        │
                      WAITING_CUSTOMER          WAITING_INTERNAL
 ```
 
@@ -171,47 +171,47 @@ NEW â†’ UNASSIGNED â†’ TRIAGE â†’ IN_PROGRESS â†’ TESTING â
 
 ```
 CrmLead
- â”œâ”€â”€ Company                (empresa do lead)
- â”œâ”€â”€ CrmActivity[]          (atividades relacionadas)
- â””â”€â”€ CrmTask[]              (tarefas)
+ ├── Company                (empresa do lead)
+ ├── CrmActivity[]          (atividades relacionadas)
+ └── CrmTask[]              (tarefas)
 
 CrmActivity
- â””â”€â”€ CrmLead
+ └── CrmLead
 
 CrmTask
- â””â”€â”€ CrmLead
+ └── CrmLead
 ```
 
-**CrmLead â€” stage pipeline:**
+**CrmLead — stage pipeline:**
 ```
-LEAD â†’ MQL â†’ SQL â†’ PROPOSAL â†’ WON
-                            â””â†’ LOST
+LEAD → MQL → SQL → PROPOSAL → WON
+                            â””→ LOST
 ```
 
 ---
 
-### Fiscal e TributaÃ§Ã£o
+### Fiscal e Tributação
 
 ```
 TaxNcm                      (tabela NCM completa)
-TaxCST                      (CÃ³digo de SituaÃ§Ã£o TributÃ¡ria)
-TaxClassification           (classificaÃ§Ãµes fiscais)
+TaxCST                      (Código de Situação Tributária)
+TaxClassification           (classificações fiscais)
 SefazStatus                 (status dos webservices por UF)
-TaxSyncJob                  (jobs de sincronizaÃ§Ã£o)
+TaxSyncJob                  (jobs de sincronização)
 ```
 
 ---
 
-### ConfiguraÃ§Ã£o
+### Configuração
 
 ```
 DocumentoConfig             (tipos de documentos por empresa)
-SystemSetting               (configuraÃ§Ãµes key-value globais)
+SystemSetting               (configurações key-value globais)
 ```
 
 ---
 
-## Enums de referÃªncia rÃ¡pida
+## Enums de referência rápida
 
 ```prisma
 enum Role               { ADMIN SUPORTE CLIENTE_ADMIN CLIENTE_USER DEVELOPER }
@@ -236,10 +236,10 @@ enum RemoteAddressBookCredentialScope { GLOBAL COMPANY }
 
 ---
 
-## ConvenÃ§Ãµes do schema
+## Convenções do schema
 
-- Todos os IDs sÃ£o `String` gerados com `@default(cuid())`
+- Todos os IDs são `String` gerados com `@default(cuid())`
 - `createdAt` e `updatedAt` em todos os modelos
-- `deletedAt` (soft delete) em modelos onde histÃ³rico Ã© necessÃ¡rio
+- `deletedAt` (soft delete) em modelos onde histórico é necessário
 - Ãndices em campos de busca frequente: `cnpj`, `rustdeskId`, `agentToken`, `externalId`
 - Foreign keys com `onDelete: Cascade` onde semanticamente correto (ex: mensagens deletadas com conversa)

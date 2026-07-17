@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"trilink/agent/internal/contracts/agentui"
 	uistate "trilink/agent/internal/core/ui_state"
 )
 
@@ -119,11 +120,20 @@ func serveHTTP(server *http.Server, listener net.Listener, errCh chan<- error) {
 
 func (s *Server) newMux() *http.ServeMux {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/meta/protocol", func(w http.ResponseWriter, r *http.Request) {
+		if !allowMethod(w, r, http.MethodGet) {
+			return
+		}
+		writeJSON(w, http.StatusOK, agentui.ProtocolInfo{Version: agentui.ProtocolVersion})
+	})
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodGet) {
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		writeJSON(w, http.StatusOK, map[string]string{
+			"status":  "ok",
+			"version": agentui.ProtocolVersion,
+		})
 	})
 	mux.HandleFunc("/summary", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodGet) {
@@ -135,7 +145,7 @@ func (s *Server) newMux() *http.ServeMux {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, summary)
+		writeJSON(w, http.StatusOK, agentui.FromUISummary(summary))
 	})
 	mux.HandleFunc("/notifications", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodGet) {
@@ -147,7 +157,7 @@ func (s *Server) newMux() *http.ServeMux {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, notifications)
+		writeJSON(w, http.StatusOK, agentui.FromUINotifications(notifications))
 	})
 	mux.HandleFunc("/agent/setup-view", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodGet) {
@@ -159,7 +169,7 @@ func (s *Server) newMux() *http.ServeMux {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, view)
+		writeJSON(w, http.StatusOK, agentui.FromUIAgentSetupView(view))
 	})
 	mux.HandleFunc("/agent/support-view", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodGet) {
@@ -171,7 +181,7 @@ func (s *Server) newMux() *http.ServeMux {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, view)
+		writeJSON(w, http.StatusOK, agentui.FromUIAgentSupportView(view))
 	})
 	mux.HandleFunc("/actions/support/open", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodPost) {
@@ -182,7 +192,7 @@ func (s *Server) newMux() *http.ServeMux {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, result)
+		writeJSON(w, http.StatusOK, agentui.FromUIActionResult(result))
 	})
 	mux.HandleFunc("/actions/setup/open", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodPost) {
@@ -193,7 +203,7 @@ func (s *Server) newMux() *http.ServeMux {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, result)
+		writeJSON(w, http.StatusOK, agentui.FromUIActionResult(result))
 	})
 	mux.HandleFunc("/actions/remote/open", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodPost) {
@@ -204,16 +214,14 @@ func (s *Server) newMux() *http.ServeMux {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, result)
+		writeJSON(w, http.StatusOK, agentui.FromUIActionResult(result))
 	})
 	mux.HandleFunc("/actions/support/sync-context", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodPost) {
 			return
 		}
 
-		var payload struct {
-			ConversationID string `json:"conversationId"`
-		}
+		var payload agentui.SupportContextSyncRequest
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json payload"})
 			return
@@ -224,7 +232,7 @@ func (s *Server) newMux() *http.ServeMux {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, result)
+		writeJSON(w, http.StatusOK, agentui.FromUISupportContextSyncResult(result))
 	})
 	return mux
 }
@@ -244,6 +252,7 @@ func allowMethod(w http.ResponseWriter, r *http.Request, method string) bool {
 
 func writeJSON(w http.ResponseWriter, statusCode int, value any) {
 	setCORSHeaders(w)
+	w.Header().Set(agentui.ProtocolVersionHeader, agentui.ProtocolVersion)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	_ = json.NewEncoder(w).Encode(value)
@@ -252,14 +261,22 @@ func writeJSON(w http.ResponseWriter, statusCode int, value any) {
 func setCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-IPC-Token")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-IPC-Token, "+agentui.ProtocolVersionHeader)
 }
 
 func (s *Server) withAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setCORSHeaders(w)
+		w.Header().Set(agentui.ProtocolVersionHeader, agentui.ProtocolVersion)
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if requestedVersion := r.Header.Get(agentui.ProtocolVersionHeader); requestedVersion != "" && requestedVersion != agentui.ProtocolVersion {
+			writeJSON(w, http.StatusPreconditionFailed, agentui.ErrorResponse{
+				Error:   "IPC_PROTOCOL_VERSION_MISMATCH",
+				Message: "Versao do protocolo IPC incompativel com o agent-service local.",
+			})
 			return
 		}
 		if s.token != "" && subtle.ConstantTimeCompare([]byte(r.Header.Get("X-IPC-Token")), []byte(s.token)) != 1 {

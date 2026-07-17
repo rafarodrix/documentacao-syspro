@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"trilink/agent/internal/contracts/agentui"
 	uistate "trilink/agent/internal/core/ui_state"
 )
 
@@ -14,11 +15,11 @@ func (testLogger) Debug(string, ...any) {}
 func (testLogger) Info(string, ...any)  {}
 
 type fakeSupportViewClient struct {
-	view uistate.AgentSupportView
+	view agentui.AgentSupportView
 	err  error
 }
 
-func (f fakeSupportViewClient) GetAgentSupportView(context.Context) (uistate.AgentSupportView, error) {
+func (f fakeSupportViewClient) GetAgentSupportView(context.Context) (agentui.AgentSupportView, error) {
 	return f.view, f.err
 }
 
@@ -63,9 +64,9 @@ func (f fakeLocalState) AgentSupportView(ctx context.Context) (uistate.AgentSupp
 }
 
 func TestGetAgentSupportViewPrefersIPC(t *testing.T) {
-	expected := uistate.AgentSupportView{
-		Capabilities: uistate.AgentCapabilitiesView{
-			Remote: &uistate.AgentCapabilityView{ExternalID: "123456789"},
+	expected := agentui.AgentSupportView{
+		Capabilities: agentui.AgentCapabilitiesView{
+			Remote: &agentui.AgentCapabilityView{ExternalID: "123456789"},
 		},
 	}
 	fallback := uistate.AgentSupportView{

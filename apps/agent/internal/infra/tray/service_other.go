@@ -5,7 +5,7 @@ package tray
 import (
 	"context"
 
-	uistate "trilink/agent/internal/core/ui_state"
+	"trilink/agent/internal/contracts/agentui"
 )
 
 type Logger interface {
@@ -45,8 +45,8 @@ func (s *Service) Trigger(action Action) {
 	}
 }
 
-func (s *Service) UpdateSummary(summary uistate.Summary) {}
+func (s *Service) UpdateSummary(summary agentui.Summary) {}
 
-func (s *Service) ShowNotifications(notifications []uistate.Notification) {}
+func (s *Service) ShowNotifications(notifications []agentui.Notification) {}
 
-func (s *Service) SupportActionReady(result uistate.ActionResult) {}
+func (s *Service) SupportActionReady(result agentui.ActionResult) {}

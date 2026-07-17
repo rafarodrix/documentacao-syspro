@@ -249,6 +249,24 @@ A interface não deverá importar diretamente implementações internas do servi
 
 Ela deverá conhecer apenas os contratos públicos de IPC.
 
+Status atual do refactor em 17 de julho de 2026:
+
+```text
+apps/agent/internal/contracts/agentui/
+├── protocol.go
+├── types.go
+└── mappers.go
+```
+
+O protocolo local agora publica a versão via header:
+
+```text
+X-Trilink-Agent-IPC-Version: agent-ui.v1
+```
+
+O `ipc.Client` valida esse header em todas as respostas, e o `ipc.Server`
+rejeita chamadas com versão incompatível.
+
 ---
 
 # Operações permitidas

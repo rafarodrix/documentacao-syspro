@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"trilink/agent/internal/contracts/agentui"
 	uistate "trilink/agent/internal/core/ui_state"
 	"trilink/agent/internal/infra/ipc"
 
@@ -28,22 +29,33 @@ type Logger interface {
 }
 
 type summaryClient interface {
-	GetSummary(ctx context.Context) (uistate.Summary, error)
+	GetSummary(ctx context.Context) (agentui.Summary, error)
 }
 
 type notificationsClient interface {
-	ListNotifications(ctx context.Context) ([]uistate.Notification, error)
+	ListNotifications(ctx context.Context) ([]agentui.Notification, error)
 }
 
 type agentSetupViewClient interface {
-	GetAgentSetupView(ctx context.Context) (uistate.AgentSetupView, error)
+	GetAgentSetupView(ctx context.Context) (agentui.AgentSetupView, error)
 }
 
 type agentSupportViewClient interface {
-	GetAgentSupportView(ctx context.Context) (uistate.AgentSupportView, error)
+	GetAgentSupportView(ctx context.Context) (agentui.AgentSupportView, error)
 }
 
 type actionsClient interface {
+	OpenSupportConversation(ctx context.Context) (agentui.ActionResult, error)
+	OpenSetupExperience(ctx context.Context) (agentui.ActionResult, error)
+	OpenRemoteClient(ctx context.Context) (agentui.ActionResult, error)
+	SyncSupportConversationContext(ctx context.Context, conversationID string) (agentui.SupportContextSyncResult, error)
+}
+
+type localNotificationsProvider interface {
+	ListNotifications(ctx context.Context) ([]uistate.Notification, error)
+}
+
+type localActionsProvider interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
 	OpenRemoteClient(ctx context.Context) (uistate.ActionResult, error)
@@ -64,8 +76,8 @@ type localSummaryProvider interface {
 
 type localStateProvider interface {
 	localSummaryProvider
-	notificationsClient
-	actionsClient
+	localNotificationsProvider
+	localActionsProvider
 	localAgentSetupViewProvider
 	localAgentSupportViewProvider
 }
@@ -215,7 +227,7 @@ func NewAPI(logger Logger, host *Host, ipcClient *ipc.Client, localState localSt
 func (a *API) GetAgentSetupView() (uistate.AgentSetupView, error) {
 	view, err := a.setup.GetAgentSetupView(context.Background())
 	if err == nil {
-		return view, nil
+		return agentui.ToUIAgentSetupView(view), nil
 	}
 
 	a.logger.Info("wails setup view fallback to local state", "error", err)
@@ -240,7 +252,7 @@ func (a *API) GetAgentSetupView() (uistate.AgentSetupView, error) {
 func (a *API) GetAgentSupportView() (uistate.AgentSupportView, error) {
 	view, err := a.support.GetAgentSupportView(context.Background())
 	if err == nil {
-		return view, nil
+		return agentui.ToUIAgentSupportView(view), nil
 	}
 
 	a.logger.Info("wails support view fallback to local state", "error", err)
@@ -259,7 +271,7 @@ func (a *API) GetAgentSupportView() (uistate.AgentSupportView, error) {
 func (a *API) GetSummary() (uistate.Summary, error) {
 	summary, err := a.summary.GetSummary(context.Background())
 	if err == nil {
-		return summary, nil
+		return agentui.ToUISummary(summary), nil
 	}
 
 	a.logger.Info("wails summary fallback to local state", "error", err)
@@ -278,7 +290,7 @@ func (a *API) GetSummary() (uistate.Summary, error) {
 func (a *API) ListNotifications() ([]uistate.Notification, error) {
 	notifications, err := a.notifications.ListNotifications(context.Background())
 	if err == nil {
-		return notifications, nil
+		return agentui.ToUINotifications(notifications), nil
 	}
 
 	a.logger.Info("wails notifications fallback to local state", "error", err)
@@ -308,60 +320,62 @@ func (a *API) GetCurrentTarget() string {
 
 func (a *API) OpenSupportConversation() (uistate.ActionResult, error) {
 	result, err := a.actions.OpenSupportConversation(context.Background())
+	uiResult := agentui.ToUIActionResult(result)
 	if err != nil {
 		a.logger.Info("wails support action fallback to local state", "error", err)
 		if a.localState == nil {
-			return result, err
+			return uiResult, err
 		}
-		result, fallbackErr := a.localState.OpenSupportConversation(context.Background())
+		fallback, fallbackErr := a.localState.OpenSupportConversation(context.Background())
 		if fallbackErr != nil {
-			return result, err
+			return uiResult, err
 		}
-		err = nil
+		uiResult = fallback
 	}
-	if result.Target != "" {
-		if navErr := a.host.Open(context.Background(), result.Target); navErr != nil {
-			a.logger.Info("navigate to support conversation failed", "target", result.Target, "error", navErr)
+	if uiResult.Target != "" {
+		if navErr := a.host.Open(context.Background(), uiResult.Target); navErr != nil {
+			a.logger.Info("navigate to support conversation failed", "target", uiResult.Target, "error", navErr)
 		}
 	}
-	return result, nil
+	return uiResult, nil
 }
 
 func (a *API) OpenSetupExperience() (uistate.ActionResult, error) {
 	result, err := a.actions.OpenSetupExperience(context.Background())
+	uiResult := agentui.ToUIActionResult(result)
 	if err != nil {
 		a.logger.Info("wails setup action fallback to local state", "error", err)
 		if a.localState == nil {
-			return result, err
+			return uiResult, err
 		}
-		result, fallbackErr := a.localState.OpenSetupExperience(context.Background())
+		fallback, fallbackErr := a.localState.OpenSetupExperience(context.Background())
 		if fallbackErr != nil {
-			return result, err
+			return uiResult, err
 		}
-		err = nil
+		uiResult = fallback
 	}
-	if result.Target != "" {
-		if navErr := a.host.Open(context.Background(), result.Target); navErr != nil {
-			a.logger.Info("navigate to setup experience failed", "target", result.Target, "error", navErr)
+	if uiResult.Target != "" {
+		if navErr := a.host.Open(context.Background(), uiResult.Target); navErr != nil {
+			a.logger.Info("navigate to setup experience failed", "target", uiResult.Target, "error", navErr)
 		}
 	}
-	return result, nil
+	return uiResult, nil
 }
 
 func (a *API) OpenRemoteClient() (uistate.ActionResult, error) {
 	result, err := a.actions.OpenRemoteClient(context.Background())
 	if err == nil {
-		return result, nil
+		return agentui.ToUIActionResult(result), nil
 	}
 
 	a.logger.Info("wails remote open fallback to local state", "error", err)
 	if a.localState == nil {
-		return result, err
+		return agentui.ToUIActionResult(result), err
 	}
 
 	fallback, fallbackErr := a.localState.OpenRemoteClient(context.Background())
 	if fallbackErr != nil {
-		return result, err
+		return agentui.ToUIActionResult(result), err
 	}
 
 	return fallback, nil
@@ -370,17 +384,17 @@ func (a *API) OpenRemoteClient() (uistate.ActionResult, error) {
 func (a *API) SyncSupportConversationContext(conversationID string) (uistate.SupportContextSyncResult, error) {
 	result, err := a.actions.SyncSupportConversationContext(context.Background(), conversationID)
 	if err == nil {
-		return result, nil
+		return agentui.ToUISupportContextSyncResult(result), nil
 	}
 
 	a.logger.Info("wails support context sync fallback to local state", "error", err)
 	if a.localState == nil {
-		return result, err
+		return agentui.ToUISupportContextSyncResult(result), err
 	}
 
 	fallback, fallbackErr := a.localState.SyncSupportConversationContext(context.Background(), conversationID)
 	if fallbackErr != nil {
-		return result, err
+		return agentui.ToUISupportContextSyncResult(result), err
 	}
 
 	return fallback, nil
@@ -420,7 +434,7 @@ func (a *API) emitSummaryLoop(runtimeCtx context.Context) {
 	defer ticker.Stop()
 
 	for {
-		summary, err := a.summary.GetSummary(runtimeCtx)
+		summary, err := a.GetSummary()
 		if err != nil {
 			a.logger.Info("wails summary push failed", "error", err)
 		} else {
@@ -440,7 +454,7 @@ func (a *API) emitNotificationsLoop(runtimeCtx context.Context) {
 	defer ticker.Stop()
 
 	for {
-		notifications, err := a.notifications.ListNotifications(runtimeCtx)
+		notifications, err := a.ListNotifications()
 		if err != nil {
 			a.logger.Info("wails notifications push failed", "error", err)
 		} else {
