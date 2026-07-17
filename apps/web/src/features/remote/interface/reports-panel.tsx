@@ -82,7 +82,7 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
       cell: ({ row }) =>
         row.original.hostId ? (
           <Link
-            href={`/portal/infraestrutura/hosts/${row.original.hostId}`}
+            href={`/portal/infraestrutura/dispositivos/${row.original.hostId}`}
             className="inline-flex translate-x-2 items-center gap-1 text-xs font-semibold text-primary/80 opacity-0 transition-all group-hover/row:translate-x-0 group-hover/row:opacity-100 hover:text-primary"
             onClick={(event) => event.stopPropagation()}
           >
@@ -127,7 +127,7 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
         <div className="flex items-center justify-between gap-3">
           <span className="truncate text-xs text-muted-foreground">{session.requestedByName}</span>
           {session.hostId ? (
-            <Link href={`/portal/infraestrutura/hosts/${session.hostId}`} className="text-xs font-semibold text-primary">
+            <Link href={`/portal/infraestrutura/dispositivos/${session.hostId}`} className="text-xs font-semibold text-primary">
               Ver host
             </Link>
           ) : null}

@@ -9,7 +9,7 @@ import { currentUserHasPermission } from "@/features/user-access/application/cur
 export default async function InfrastructureHostDetailsPage({
   params,
 }: {
-  params: Promise<{ hostId: string }>;
+  params: Promise<{ deviceId: string }>;
 }) {
   await requireSession();
   const canAccess =
@@ -20,12 +20,12 @@ export default async function InfrastructureHostDetailsPage({
     redirect("/portal");
   }
 
-  const { hostId } = await params;
+  const { deviceId } = await params;
   const tenantScope = await getRemoteTenantScope();
 
   const [details, linkedDevice] = await Promise.all([
-    getRemoteHostDetails(tenantScope, hostId),
-    fetchLinkedAgentInstallation(hostId).catch(() => null),
+    getRemoteHostDetails(tenantScope, deviceId),
+    fetchLinkedAgentInstallation(deviceId).catch(() => null),
   ]);
 
   if (!details) {

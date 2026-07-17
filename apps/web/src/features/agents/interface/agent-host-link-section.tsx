@@ -178,7 +178,7 @@ export function AgentHostLinkSection({
         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Host remoto</p>
         {currentHostId && currentHostName ? (
           <Link
-            href={`/portal/infraestrutura/hosts/${currentHostId}`}
+            href={`/portal/infraestrutura/dispositivos/${currentHostId}`}
             className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
           >
             <ExternalLink className="h-3 w-3 shrink-0" />

@@ -323,7 +323,7 @@ function SessionCard({
 
         <div className="flex gap-2 pt-2">
           <Button variant="outline" size="sm" className="h-8 w-full gap-1.5 text-xs" asChild>
-            <Link href={`/portal/infraestrutura/hosts/${session.hostId}`}>Ver máquina</Link>
+            <Link href={`/portal/infraestrutura/dispositivos/${session.hostId}`}>Ver máquina</Link>
           </Button>
           {isActive && (
             <Button

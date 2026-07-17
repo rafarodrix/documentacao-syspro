@@ -133,7 +133,7 @@ export function RemoteDiscoveredHostDetailsPanel({
         });
 
         toast.success(result.data.created ? "Host criado e vinculado." : "Host existente vinculado com sucesso.");
-        router.push(`/portal/infraestrutura/hosts/${result.data.hostId}`);
+        router.push(`/portal/infraestrutura/dispositivos/${result.data.hostId}`);
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));

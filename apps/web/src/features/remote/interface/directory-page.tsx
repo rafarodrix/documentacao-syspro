@@ -120,7 +120,7 @@ export function RemotePlatformDirectoryPanel({
   const [companyFilter, setCompanyFilter] = useState(initialCompanyId ?? "all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
   const [agentFilter, setAgentFilter] = useState<"all" | "awaiting_link" | "provisioning" | "ready" | "attention" | "in_service">("all");
-  const [scopeFilter, setScopeFilter] = useState<"all" | "online" | "offline" | "discovered">("all");
+  const [scopeFilter, setScopeFilter] = useState<"all" | "managed" | "pending" | "discovered">("all");
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickHostName, setQuickHostName] = useState("");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
@@ -435,7 +435,8 @@ export function RemotePlatformDirectoryPanel({
     const stale = filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "stale").length;
     const offline = filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "missing").length;
     const rebootPending = filteredItems.filter((item) => item.inventorySignals.rebootPending === true).length;
-    return { online, stale, offline, rebootPending };
+    const attention = filteredItems.filter((item) => item.productStatus === "ATTENTION_REQUIRED" || item.productStatus === "AWAITING_LINK").length;
+    return { online, stale, offline, rebootPending, attention };
   }, [filteredItems, hasHydrated]);
 
   const displayedPendingItems = useMemo<PendingDirectoryItem[]>(() => {
@@ -450,12 +451,11 @@ export function RemotePlatformDirectoryPanel({
   );
 
   const displayedItems = useMemo(() => {
-    const referenceNow = hasHydrated ? Date.now() : null;
-    if (scopeFilter === "online") return filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "recent");
-    if (scopeFilter === "offline") return filteredItems.filter((item) => { const b = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket; return b === "stale" || b === "missing"; });
+    if (scopeFilter === "managed") return filteredItems;
+    if (scopeFilter === "pending") return filteredItems.filter((item) => item.productStatus === "ATTENTION_REQUIRED" || item.productStatus === "AWAITING_LINK");
     if (scopeFilter === "discovered") return [];
     return filteredItems;
-  }, [filteredItems, hasHydrated, scopeFilter]);
+  }, [filteredItems, scopeFilter]);
 
   const shouldShowPendingItems = displayedPendingItems.length > 0;
   const visibleItemsCount = displayedItems.length + displayedPendingItems.length;
@@ -465,10 +465,10 @@ export function RemotePlatformDirectoryPanel({
     <div className="space-y-3">
       <SearchToolbar
         searchValue={searchTerm}
-        searchPlaceholder="Buscar por host, empresa, IP, ID remoto ou ticket..."
+        searchPlaceholder="Buscar por dispositivo, empresa, hostname, IP ou ID remoto..."
         onSearchChange={setSearchTerm}
         onClearSearch={() => { setSearchTerm(""); }}
-        resultLabel={`${visibleItemsCount} host${visibleItemsCount === 1 ? "" : "s"}`}
+        resultLabel={`${visibleItemsCount} dispositivo${visibleItemsCount === 1 ? "" : "s"} encontrado${visibleItemsCount === 1 ? "" : "s"}`}
         filters={
           <>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
@@ -528,9 +528,9 @@ export function RemotePlatformDirectoryPanel({
           <div className="flex flex-wrap items-center gap-2">
             {[
               { value: "all", label: "Todos", count: totalFilteredItems },
-              { value: "online", label: "Online", count: filteredQuickIndicators.online },
-              { value: "offline", label: "Offline", count: filteredQuickIndicators.stale + filteredQuickIndicators.offline },
-              { value: "discovered", label: "Descobertas", count: filteredPendingItems.length, hidden: !canCreateHosts },
+              { value: "managed", label: "Gerenciados", count: filteredItems.length },
+              { value: "pending", label: "Pendentes", count: filteredQuickIndicators.attention },
+              { value: "discovered", label: "Descobertos", count: filteredPendingItems.length, hidden: !canCreateHosts },
             ]
               .filter((o) => !o.hidden)
               .map((option) => (
@@ -563,12 +563,6 @@ export function RemotePlatformDirectoryPanel({
               <Badge variant="outline" className="h-7 border-primary/20 bg-primary/10 text-[10px] text-primary">
                 <Building2 className="mr-1 h-3 w-3" />
                 {selectedCompanyLabel}
-              </Badge>
-            )}
-            {initialTicketNumber && (
-              <Badge variant="outline" className="h-7 border-primary/20 bg-primary/10 text-[10px] text-primary">
-                <Ticket className="mr-1 h-3 w-3" />
-                Ticket #{initialTicketNumber}
               </Badge>
             )}
           </div>
@@ -833,7 +827,7 @@ export function RemotePlatformDirectoryPanel({
 
                       <div className="flex flex-wrap justify-end gap-2">
                         <Button type="button" variant="outline" size="sm" asChild className="h-8">
-                          <Link href={`/portal/infraestrutura/hosts/descobertos/${item.id}`}>
+                          <Link href={`/portal/infraestrutura/dispositivos/descobertos/${item.id}`}>
                             Detalhes
                           </Link>
                         </Button>
@@ -892,8 +886,8 @@ export function RemotePlatformDirectoryPanel({
             isEmpty={false}
             emptyState={{
               icon: Monitor,
-              title: "Nenhum host encontrado",
-              description: searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum host remoto configurado no seu escopo.",
+              title: "Nenhum dispositivo encontrado",
+              description: searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum dispositivo configurado no seu escopo.",
             }}
             desktopColSpan={6}
             flexible={true}
@@ -913,7 +907,7 @@ export function RemotePlatformDirectoryPanel({
               const extraCompanies = getExtraCompanyCount(item);
               const identitySubtitle = buildHostIdentitySubtitle(item);
               const rustdeskDisplay = formatRustDeskDisplay(item.agent.rustdeskId);
-              const detailsHref = `/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`;
+              const detailsHref = `/portal/infraestrutura/dispositivos/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`;
 
               return (
                 <TableRow key={item.id} className="group/row transition-all duration-200 hover:bg-muted/20 hover:shadow-sm">
@@ -1014,7 +1008,7 @@ export function RemotePlatformDirectoryPanel({
               const extraCompanies = getExtraCompanyCount(item);
               const identitySubtitle = buildHostIdentitySubtitle(item);
               const rustdeskDisplay = formatRustDeskDisplay(item.agent.rustdeskId);
-              const detailsHref = `/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`;
+              const detailsHref = `/portal/infraestrutura/dispositivos/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`;
 
               return (
                 <div key={item.id} className="px-4 py-4 transition-colors hover:bg-muted/10">
@@ -1076,8 +1070,8 @@ export function RemotePlatformDirectoryPanel({
           <RegistryFooter
             filtered={visibleItemsCount}
             total={directory.items.length + (canCreateHosts ? directory.pendingItems.length : 0)}
-            singular="host"
-            plural="hosts"
+            singular="dispositivo"
+            plural="dispositivos"
             searchTerm={searchTerm}
             onClearSearch={() => setSearchTerm("")}
           />
@@ -1085,8 +1079,8 @@ export function RemotePlatformDirectoryPanel({
       ) : !shouldShowPendingItems ? (
         <EmptyState
           icon={Monitor}
-          title="Nenhum host encontrado"
-          description={searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum host remoto configurado no seu escopo."}
+          title="Nenhum dispositivo encontrado"
+          description={searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum dispositivo configurado no seu escopo."}
           action={hasActiveFilters ? { label: "Limpar filtros", onClick: () => { setSearchTerm(""); setScopeFilter("all"); setCompanyFilter("all"); setHeartbeatFilter("all"); setAgentFilter("all"); } } : undefined}
           dashed
           className="rounded-2xl border-border/50 bg-card/50 py-10"

@@ -310,7 +310,7 @@ function DevicesTable({ items }: { items: AgentInstallationSummary[] }) {
       cell: ({ row }) =>
         row.original.remoteHostId && row.original.remoteHostName ? (
           <Link
-            href={`/portal/infraestrutura/hosts/${row.original.remoteHostId}`}
+            href={`/portal/infraestrutura/dispositivos/${row.original.remoteHostId}`}
             className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
             onClick={(event) => event.stopPropagation()}
           >

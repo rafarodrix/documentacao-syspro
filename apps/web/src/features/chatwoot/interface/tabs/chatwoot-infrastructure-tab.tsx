@@ -92,7 +92,7 @@ export function ChatwootInfrastructureTab() {
                 </Button>
                 <Button asChild variant="outline" size="sm" className="h-8 px-3 text-xs border-border/30 bg-background/40 hover:bg-background/60">
                   <Link
-                    href={`/portal/infraestrutura/hosts/${recommendedHost.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`}
+                    href={`/portal/infraestrutura/dispositivos/${recommendedHost.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`}
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -156,7 +156,7 @@ export function ChatwootInfrastructureTab() {
                     </Button>
                     <Button asChild variant="ghost" size="sm" className="h-8 px-2.5 text-xs hover:bg-background/40">
                       <Link
-                        href={`/portal/infraestrutura/hosts/${host.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`}
+                        href={`/portal/infraestrutura/dispositivos/${host.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`}
                         target="_blank"
                         rel="noreferrer"
                       >

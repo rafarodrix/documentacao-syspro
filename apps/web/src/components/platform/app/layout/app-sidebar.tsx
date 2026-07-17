@@ -318,7 +318,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
     if (href === "/portal/infraestrutura") {
       return (
         pathname.startsWith("/portal/infraestrutura") ||
-        pathname.startsWith("/portal/infraestrutura/hosts")
+        pathname.startsWith("/portal/infraestrutura/dispositivos")
       )
     }
     return pathname.startsWith(href)

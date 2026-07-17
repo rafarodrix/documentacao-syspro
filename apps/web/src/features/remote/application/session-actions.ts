@@ -87,7 +87,7 @@ export async function requestRemoteSessionAction(input: {
     const started = await ensureStartedSession(created.data.id);
 
     revalidatePath("/portal/infraestrutura?tab=operacao&view=ativas");
-    revalidatePath(`/portal/infraestrutura/hosts/${input.hostId}`);
+    revalidatePath(`/portal/infraestrutura/dispositivos/${input.hostId}`);
 
     return {
       success: true,
@@ -106,7 +106,7 @@ export async function requestRemoteSessionAction(input: {
               : existingSession;
 
           revalidatePath("/portal/infraestrutura?tab=operacao&view=ativas");
-          revalidatePath(`/portal/infraestrutura/hosts/${input.hostId}`);
+          revalidatePath(`/portal/infraestrutura/dispositivos/${input.hostId}`);
 
           return {
             success: true,

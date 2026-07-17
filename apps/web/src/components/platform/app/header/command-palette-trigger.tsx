@@ -192,7 +192,7 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
                     const isActive =
                       item.href === "/portal/infraestrutura"
                         ? pathname.startsWith("/portal/infraestrutura") ||
-                          pathname.startsWith("/portal/infraestrutura/hosts")
+                          pathname.startsWith("/portal/infraestrutura/dispositivos")
                         : pathname === item.href || (item.href !== "/portal" && pathname.startsWith(item.href));
 
                     return (

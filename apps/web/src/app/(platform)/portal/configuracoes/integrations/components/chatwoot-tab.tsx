@@ -70,7 +70,7 @@ export function ChatwootDiagnosticsTab() {
 
   const remoteHostAppUrl = useMemo(() => {
     const baseOrigin = portalOrigin || "https://SEU_PORTAL";
-    return `${baseOrigin}/portal/infraestrutura/hosts/{{conversation.custom_attributes.host_id}}?ticketNumber={{conversation.custom_attributes.ticket_number}}`;
+    return `${baseOrigin}/portal/infraestrutura/dispositivos/{{conversation.custom_attributes.host_id}}?ticketNumber={{conversation.custom_attributes.ticket_number}}`;
   }, [portalOrigin]);
 
   useEffect(() => {

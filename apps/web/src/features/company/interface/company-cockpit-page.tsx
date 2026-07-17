@@ -868,7 +868,7 @@ export function CompanyCockpitPage({
                   {view.hosts.length ? view.hosts.map((host) => (
                     <CompanyListRow
                       key={host.id}
-                      href={`/portal/infraestrutura/hosts/${host.id}`}
+                      href={`/portal/infraestrutura/dispositivos/${host.id}`}
                       title={host.name}
                       meta={joinMeta([
                         host.status,
