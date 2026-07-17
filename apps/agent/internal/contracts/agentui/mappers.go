@@ -76,6 +76,22 @@ func ToUIActionResult(value ActionResult) uistate.ActionResult {
 	}
 }
 
+func FromUIOpenRemoteAccessResult(value uistate.OpenRemoteAccessResult) OpenRemoteAccessResult {
+	return OpenRemoteAccessResult{
+		Opened:  value.Opened,
+		Running: value.Running,
+		Message: value.Message,
+	}
+}
+
+func ToUIOpenRemoteAccessResult(value OpenRemoteAccessResult) uistate.OpenRemoteAccessResult {
+	return uistate.OpenRemoteAccessResult{
+		Opened:  value.Opened,
+		Running: value.Running,
+		Message: value.Message,
+	}
+}
+
 func FromUISetupStep(value uistate.SetupStep) SetupStep {
 	return SetupStep{
 		Key:    value.Key,

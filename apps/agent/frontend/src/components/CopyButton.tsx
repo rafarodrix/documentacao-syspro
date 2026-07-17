@@ -7,9 +7,11 @@ type CopyButtonProps = {
   value: string;
   label?: string;
   tone?: CopyButtonTone;
+  text?: string;
+  copiedText?: string;
 };
 
-export function CopyButton({ value, label, tone = "default" }: CopyButtonProps) {
+export function CopyButton({ value, label, tone = "default", text, copiedText = "Copiado" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -29,12 +31,14 @@ export function CopyButton({ value, label, tone = "default" }: CopyButtonProps) 
   return (
     <button
       type="button"
-      className={`${className} ${copied ? "copied" : ""}`}
+      className={`${className} ${copied ? "copied" : ""} ${text ? "with-text" : ""}`}
       onClick={() => void handleCopy()}
       title={label ?? "Copiar"}
+      aria-label={label ?? "Copiar"}
       disabled={!value}
     >
       {copied ? <CopiedIcon /> : <CopyIcon />}
+      {text ? <span className="btn-copy-text">{copied ? copiedText : text}</span> : null}
     </button>
   );
 }

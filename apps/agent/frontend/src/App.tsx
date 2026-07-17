@@ -33,6 +33,7 @@ function App() {
           chatwootReady={shell.chatwootReady}
           chatwootLoading={shell.chatwootLoading}
           remoteOpening={shell.remoteOpening}
+          remoteActionResult={shell.remoteActionResult}
           onOpenRemote={shell.openRemote}
           onOpenSetup={shell.openSetup}
           onOpenSupport={shell.openSupport}

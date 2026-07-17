@@ -5,7 +5,7 @@ import {
   SyncSupportConversationContext,
 } from "../bindings";
 import { uistate } from "../../wailsjs/go/models";
-import type { AgentSupportViewModel } from "../types/agent-ui";
+import type { AgentSupportViewModel, OpenRemoteAccessResultView } from "../types/agent-ui";
 
 export async function fetchAgentSupportView(): Promise<AgentSupportViewModel> {
   const view = await GetAgentSupportView();
@@ -16,8 +16,9 @@ export async function openSupportConversation(): Promise<void> {
   await OpenSupportConversation();
 }
 
-export async function openRemoteClient(): Promise<void> {
-  await OpenRemoteClient();
+export async function openRemoteClient(): Promise<OpenRemoteAccessResultView> {
+  const result = await OpenRemoteClient();
+  return normalizeOpenRemoteAccessResult(result);
 }
 
 export async function syncSupportConversationContext(conversationId: string): Promise<void> {
@@ -66,4 +67,16 @@ export function normalizeAgentSupportView(view: uistate.AgentSupportView): Agent
 function normalizeRemoteStatus(status?: string): "ready" | "pending" | "offline" {
   if (status === "ready" || status === "pending") return status;
   return "offline";
+}
+
+function normalizeOpenRemoteAccessResult(result: uistate.OpenRemoteAccessResult): OpenRemoteAccessResultView {
+  const message = result.message?.trim() || "Nao foi possivel concluir a acao.";
+  const lowered = message.toLowerCase();
+
+  return {
+    opened: Boolean(result.opened),
+    running: Boolean(result.running),
+    message,
+    needsRepair: lowered.includes("repare") || lowered.includes("reinstale") || lowered.includes("invalido"),
+  };
 }

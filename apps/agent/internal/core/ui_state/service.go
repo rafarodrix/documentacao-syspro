@@ -35,6 +35,12 @@ type ActionResult struct {
 	Target   string `json:"target,omitempty"`
 }
 
+type OpenRemoteAccessResult struct {
+	Opened  bool   `json:"opened"`
+	Running bool   `json:"running"`
+	Message string `json:"message"`
+}
+
 const (
 	TargetSupportConversation = "agent://support"
 	TargetSetupExperience     = "agent://setup"
@@ -235,27 +241,46 @@ func (s *Service) OpenSupportConversation(ctx context.Context) (ActionResult, er
 	}, nil
 }
 
-func (s *Service) OpenRemoteClient(ctx context.Context) (ActionResult, error) {
+func (s *Service) OpenRemoteClient(ctx context.Context) (OpenRemoteAccessResult, error) {
 	exePath := s.resolveRustDeskExecutable()
 	if exePath == "" {
-		return ActionResult{
-			Accepted: false,
-			Message:  "remote client request rejected",
-		}, fmt.Errorf("rustdesk executable was not found")
+		return OpenRemoteAccessResult{
+			Opened:  false,
+			Running: false,
+			Message: "Executavel do RustDesk nao encontrado. Reinstale ou repare o acesso remoto.",
+		}, nil
+	}
+
+	if !isTrustedRustDeskExecutable(exePath) {
+		return OpenRemoteAccessResult{
+			Opened:  false,
+			Running: false,
+			Message: "Caminho do RustDesk invalido. Reinstale ou repare o acesso remoto.",
+		}, nil
+	}
+
+	if isRustDeskProcessRunning() {
+		return OpenRemoteAccessResult{
+			Opened:  true,
+			Running: true,
+			Message: "RustDesk aberto.",
+		}, nil
 	}
 
 	cmd := exec.CommandContext(ctx, exePath)
 	cmd.Dir = filepath.Dir(exePath)
 	if err := cmd.Start(); err != nil {
-		return ActionResult{
-			Accepted: false,
-			Message:  "remote client request rejected",
-		}, fmt.Errorf("start rustdesk: %w", err)
+		return OpenRemoteAccessResult{
+			Opened:  false,
+			Running: false,
+			Message: "Nao foi possivel abrir o RustDesk. Tente novamente ou repare o acesso remoto.",
+		}, nil
 	}
 
-	return ActionResult{
-		Accepted: true,
-		Message:  "remote client request accepted",
+	return OpenRemoteAccessResult{
+		Opened:  true,
+		Running: true,
+		Message: "Abrindo RustDesk...",
 	}, nil
 }
 
@@ -478,6 +503,31 @@ func (s *Service) resolveRustDeskExecutable() string {
 	}
 
 	return ""
+}
+
+func isTrustedRustDeskExecutable(path string) bool {
+	base := strings.ToLower(strings.TrimSpace(filepath.Base(path)))
+	switch base {
+	case "rustdesk", "rustdesk.exe":
+		return true
+	default:
+		return false
+	}
+}
+
+func isRustDeskProcessRunning() bool {
+	switch runtime.GOOS {
+	case "windows":
+		output, err := exec.Command("tasklist", "/FI", "IMAGENAME eq rustdesk.exe").CombinedOutput()
+		if err != nil {
+			return false
+		}
+		return strings.Contains(strings.ToLower(string(output)), "rustdesk.exe")
+	case "darwin", "linux":
+		return exec.Command("pgrep", "-f", "rustdesk").Run() == nil
+	default:
+		return false
+	}
 }
 
 func loadJSON[T any](path string) (T, error) {

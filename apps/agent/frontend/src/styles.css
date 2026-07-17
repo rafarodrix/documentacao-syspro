@@ -1331,6 +1331,20 @@ body {
   pointer-events: none;
 }
 
+.btn-copy.with-text,
+.btn-copy-dark.with-text {
+  width: auto;
+  min-width: 38px;
+  gap: 6px;
+  padding: 0 10px;
+}
+
+.btn-copy-text {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .support-chat-panel {
   position: relative;
   z-index: 1;
@@ -2236,10 +2250,25 @@ body {
 
 .support-remote-actions.compact {
   display: flex;
+  flex-direction: column;
 }
 
 .support-remote-actions.compact .btn-primary-inline {
   width: 100%;
+}
+
+.support-action-feedback {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.support-action-feedback.success {
+  color: #0f8c5d;
+}
+
+.support-action-feedback.warn {
+  color: #a26f10;
 }
 
 .support-health-card.compact,
@@ -2262,9 +2291,16 @@ body {
 }
 
 .support-health-summary-text {
+  flex: 1;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.4;
+}
+
+.support-health-summary-arrow {
+  font-size: 18px;
+  line-height: 1;
+  color: var(--ink-400);
 }
 
 .support-support-button {
@@ -2282,7 +2318,8 @@ body {
 .support-footer-link {
   border: 0;
   background: transparent;
-  padding: 0;
+  min-height: 40px;
+  padding: 0 12px;
   font-size: 12px;
   font-weight: 700;
   color: var(--ink-500);
@@ -2297,6 +2334,12 @@ body {
   color: var(--cyan-500);
 }
 
+.support-footer-link.chip {
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(17, 59, 99, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+}
+
 .support-footer-separator {
   color: var(--ink-400);
 }
@@ -2306,6 +2349,10 @@ body {
   flex-direction: column;
   gap: 10px;
   padding: 14px 16px;
+}
+
+.support-detail-panel.secondary {
+  min-height: 100%;
 }
 
 .support-panel-title {
@@ -2356,6 +2403,28 @@ body {
 .support-inline-buttons {
   display: flex;
   justify-content: flex-start;
+}
+
+.support-secondary-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.support-back-button {
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(17, 59, 99, 0.08);
+  background: rgba(244, 248, 252, 0.92);
+  color: var(--ink-700);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.support-back-button:hover {
+  background: rgba(232, 247, 255, 0.92);
 }
 
 .setup-content-grid {

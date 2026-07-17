@@ -10,7 +10,7 @@ import { isRemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reaso
 
 type StatusIconMeta = { Icon: LucideIcon; tone: string; label: string };
 
-export interface HostAgentTabProps {
+export type SettingsAgentViewProps = {
   host: RemoteConfiguredHostItem;
   orchestrationStrategy: string;
   productStatusMeta: { label: string; description: string; className: string };
@@ -60,7 +60,7 @@ export interface HostAgentTabProps {
   }>;
 }
 
-export function HostAgentTab({
+export function SettingsAgentView({
   host,
   orchestrationStrategy,
   productStatusMeta,
@@ -77,7 +77,7 @@ export function HostAgentTab({
   hiddenAcknowledgedCount,
   hasPendingInstallGuide,
   desiredSysproInstalls,
-}: HostAgentTabProps) {
+}: SettingsAgentViewProps) {
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
   const agent = host.agent;

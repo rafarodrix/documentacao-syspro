@@ -47,7 +47,7 @@ type agentSupportViewClient interface {
 type actionsClient interface {
 	OpenSupportConversation(ctx context.Context) (agentui.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (agentui.ActionResult, error)
-	OpenRemoteClient(ctx context.Context) (agentui.ActionResult, error)
+	OpenRemoteClient(ctx context.Context) (agentui.OpenRemoteAccessResult, error)
 	SyncSupportConversationContext(ctx context.Context, conversationID string) (agentui.SupportContextSyncResult, error)
 }
 
@@ -58,7 +58,7 @@ type localNotificationsProvider interface {
 type localActionsProvider interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
-	OpenRemoteClient(ctx context.Context) (uistate.ActionResult, error)
+	OpenRemoteClient(ctx context.Context) (uistate.OpenRemoteAccessResult, error)
 	SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error)
 }
 
@@ -362,20 +362,20 @@ func (a *API) OpenSetupExperience() (uistate.ActionResult, error) {
 	return uiResult, nil
 }
 
-func (a *API) OpenRemoteClient() (uistate.ActionResult, error) {
+func (a *API) OpenRemoteClient() (uistate.OpenRemoteAccessResult, error) {
 	result, err := a.actions.OpenRemoteClient(context.Background())
 	if err == nil {
-		return agentui.ToUIActionResult(result), nil
+		return agentui.ToUIOpenRemoteAccessResult(result), nil
 	}
 
 	a.logger.Info("wails remote open fallback to local state", "error", err)
 	if a.localState == nil {
-		return agentui.ToUIActionResult(result), err
+		return agentui.ToUIOpenRemoteAccessResult(result), err
 	}
 
 	fallback, fallbackErr := a.localState.OpenRemoteClient(context.Background())
 	if fallbackErr != nil {
-		return agentui.ToUIActionResult(result), err
+		return agentui.ToUIOpenRemoteAccessResult(result), err
 	}
 
 	return fallback, nil

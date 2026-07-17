@@ -65,6 +65,13 @@ export type AgentSupportViewModel = {
   conversationTags: string[];
 };
 
+export type OpenRemoteAccessResultView = {
+  opened: boolean;
+  running: boolean;
+  message: string;
+  needsRepair: boolean;
+};
+
 export type NotificationView = {
   id: string;
   title: string;

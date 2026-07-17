@@ -21,6 +21,12 @@ type ActionResult struct {
 	Target   string `json:"target,omitempty"`
 }
 
+type OpenRemoteAccessResult struct {
+	Opened  bool   `json:"opened"`
+	Running bool   `json:"running"`
+	Message string `json:"message"`
+}
+
 type SetupStep struct {
 	Key    string `json:"key"`
 	Label  string `json:"label"`

@@ -2,6 +2,8 @@ package uistate
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -135,6 +137,75 @@ func TestDeriveStructuredRemoteErrorUsesPhase(t *testing.T) {
 	}, "discover")
 	if detail == "" {
 		t.Fatalf("expected structured discover error detail")
+	}
+}
+
+func TestResolveRustDeskExecutablePrefersConfiguredPath(t *testing.T) {
+	t.Parallel()
+
+	store, _, stateDir := newTestStateStore(t)
+	exeDir := t.TempDir()
+	exePath := filepath.Join(exeDir, "rustdesk.exe")
+	if err := os.WriteFile(exePath, []byte("stub"), 0o644); err != nil {
+		t.Fatalf("write executable stub: %v", err)
+	}
+
+	if err := store.SaveJSON(context.Background(), "remote_state.json", domain.PersistedRemoteState{
+		RustDeskExecutable: exePath,
+	}); err != nil {
+		t.Fatalf("save remote state: %v", err)
+	}
+
+	service := NewService(stateDir, ChatwootConfig{}, "1.0.71", nil)
+
+	got := service.resolveRustDeskExecutable()
+	if got != exePath {
+		t.Fatalf("expected configured executable %q, got %q", exePath, got)
+	}
+}
+
+func TestOpenRemoteClientReturnsFriendlyMessageWhenExecutableMissing(t *testing.T) {
+	t.Parallel()
+
+	service := NewService(t.TempDir(), ChatwootConfig{}, "1.0.71", nil)
+
+	result, err := service.OpenRemoteClient(context.Background())
+	if err != nil {
+		t.Fatalf("OpenRemoteClient returned unexpected error: %v", err)
+	}
+	if result.Opened || result.Running {
+		t.Fatalf("expected remote client not to open, got %+v", result)
+	}
+	if !strings.Contains(strings.ToLower(result.Message), "repare") {
+		t.Fatalf("expected friendly repair guidance, got %q", result.Message)
+	}
+}
+
+func TestOpenRemoteClientRejectsUntrustedExecutablePath(t *testing.T) {
+	t.Parallel()
+
+	store, _, stateDir := newTestStateStore(t)
+	exePath := filepath.Join(t.TempDir(), "cmd.exe")
+	if err := os.WriteFile(exePath, []byte("stub"), 0o644); err != nil {
+		t.Fatalf("write executable stub: %v", err)
+	}
+	if err := store.SaveJSON(context.Background(), "remote_state.json", domain.PersistedRemoteState{
+		RustDeskExecutable: exePath,
+	}); err != nil {
+		t.Fatalf("save remote state: %v", err)
+	}
+
+	service := NewService(stateDir, ChatwootConfig{}, "1.0.71", nil)
+
+	result, err := service.OpenRemoteClient(context.Background())
+	if err != nil {
+		t.Fatalf("OpenRemoteClient returned unexpected error: %v", err)
+	}
+	if result.Opened || result.Running {
+		t.Fatalf("expected untrusted path to be rejected, got %+v", result)
+	}
+	if !strings.Contains(strings.ToLower(result.Message), "invalido") {
+		t.Fatalf("expected invalid path guidance, got %q", result.Message)
 	}
 }
 

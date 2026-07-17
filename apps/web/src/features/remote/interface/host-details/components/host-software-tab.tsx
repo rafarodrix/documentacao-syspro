@@ -9,9 +9,10 @@ import { formatDateTime } from "../host-details.helpers";
 type Props = {
   softwareSnapshot: Array<Record<string, unknown>>;
   softwareSnapshotAt: string | null;
+  sysproVersionSnapshot: Array<Record<string, unknown>>;
 };
 
-export function HostSoftwareTab({ softwareSnapshot, softwareSnapshotAt }: Props) {
+export function HostSoftwareTab({ softwareSnapshot, softwareSnapshotAt, sysproVersionSnapshot }: Props) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
@@ -226,6 +227,68 @@ export function HostSoftwareTab({ softwareSnapshot, softwareSnapshotAt }: Props)
                   Próxima
                 </Button>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardHeader className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pb-4">
+          <div>
+            <CardTitle className="text-lg">Pastas Físicas do Syspro</CardTitle>
+            <CardDescription>
+              Lista de instalações detectadas fisicamente no disco deste dispositivo.
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
+            Monitoramento Automático
+          </Badge>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(!sysproVersionSnapshot || sysproVersionSnapshot.length === 0) ? (
+            <div className="rounded-xl border border-dashed border-border/40 p-8 text-center bg-muted/10">
+              <Folder className="mx-auto h-8 w-8 text-muted-foreground" />
+              <p className="mt-2 text-sm font-medium text-foreground">Nenhuma pasta física localizada</p>
+              <p className="mt-1 text-xs text-muted-foreground">O agente não identificou diretórios correspondentes ao padrão do Syspro.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {sysproVersionSnapshot.map((folder, idx) => {
+                const path = typeof folder["path"] === "string" ? folder["path"] : "Desconhecido";
+                const exeVersion = typeof folder["exeVersion"] === "string" ? folder["exeVersion"] : null;
+                const exeExists = folder["exeExists"] === true;
+                const exeSizeMB = typeof folder["exeSizeMB"] === "number" ? folder["exeSizeMB"] : null;
+
+                return (
+                  <div key={`${path}-${idx}`} className="rounded-xl border border-border/50 bg-background/50 shadow-sm p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Folder className="h-5 w-5 text-amber-500 shrink-0" />
+                      <span className="font-mono text-sm break-all text-foreground font-medium" title={path}>
+                        {path}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
+                      {exeExists ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-mono text-[11px] border-emerald-500/20 py-0.5">
+                            v{exeVersion ?? "Não lida"}
+                          </Badge>
+                          {exeSizeMB !== null && (
+                            <span className="text-xs text-muted-foreground">
+                              {exeSizeMB.toFixed(1)} MB
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="bg-muted text-muted-foreground text-[11px] py-0.5 border-border">
+                          Sem executável
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>

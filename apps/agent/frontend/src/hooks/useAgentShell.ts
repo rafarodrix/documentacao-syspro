@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { EventsOn } from "../runtime";
 import { uistate } from "../../wailsjs/go/models";
 import { Route, normalizeRoute } from "../types/route";
-import type { NotificationView, AgentSetupViewModel, SetupStepView, AgentSupportViewModel } from "../types/agent-ui";
+import type {
+  NotificationView,
+  AgentSetupViewModel,
+  SetupStepView,
+  AgentSupportViewModel,
+  OpenRemoteAccessResultView,
+} from "../types/agent-ui";
 import { resolveStartupRoute } from "../features/setup/setup-helpers";
 import {
   hasChatwootClient,
@@ -32,6 +38,7 @@ export function useAgentShell() {
   const [chatwootReady, setChatwootReady] = useState(false);
   const [chatwootLoading, setChatwootLoading] = useState(false);
   const [remoteOpening, setRemoteOpening] = useState(false);
+  const [remoteActionResult, setRemoteActionResult] = useState<OpenRemoteAccessResultView | null>(null);
   const [chatwootBootNonce, setChatwootBootNonce] = useState(0);
   const [pendingChatOpen, setPendingChatOpen] = useState(false);
   const syncedConversationIds = useRef<Record<string, boolean>>({});
@@ -267,9 +274,19 @@ export function useAgentShell() {
 
   const openRemote = () => {
     setRemoteOpening(true);
+    setRemoteActionResult(null);
     void openRemoteClient()
+      .then((result) => {
+        setRemoteActionResult(result);
+      })
       .catch((err) => {
         console.error("OpenRemoteClient failed:", err);
+        setRemoteActionResult({
+          opened: false,
+          running: false,
+          message: "Nao foi possivel concluir a acao. Tente novamente ou consulte o diagnostico.",
+          needsRepair: false,
+        });
       })
       .finally(() => {
         setRemoteOpening(false);
@@ -324,6 +341,7 @@ export function useAgentShell() {
     chatwootReady,
     chatwootLoading,
     remoteOpening,
+    remoteActionResult,
     openSupport,
     openRemote,
     openSetup,

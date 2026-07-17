@@ -16,10 +16,9 @@ import {
   HostHeroHeader,
   HostOverviewTab,
   HostBackupTab,
+  HostComponentsTab,
   HostSettingsTab,
   HostTechnicalTab,
-  HostInstallationsTab,
-  HostAgentTab,
   HostSoftwareTab,
 } from "./host-details/components";
 
@@ -504,53 +503,14 @@ export function RemoteHostDetailsPanel({
         </TabsContent>
 
         <TabsContent value="instalacoes">
-          <HostInstallationsTab
-            details={details}
-            installationFilter={installationFilter}
-            setInstallationFilter={setInstallationFilter}
-            canManageInstallations={canManageInstallations}
-            bulkInstallationCompanyId={bulkInstallationCompanyId}
-            setBulkInstallationCompanyId={setBulkInstallationCompanyId}
-            isBulkRelinkingInstallations={isBulkRelinkingInstallations}
-            handleBulkRelinkInstallations={handleBulkRelinkInstallations}
-            dedupedInstallationContexts={dedupedInstallationContexts}
-            unlinkedInstallationsCount={unlinkedInstallationsCount}
-            installationContextsForDisplay={installationContextsForDisplay}
-            selectedCompanyByUpdateId={selectedCompanyByUpdateId}
-            setSelectedCompanyByUpdateId={setSelectedCompanyByUpdateId}
-            isRelinkingInstallation={isRelinkingInstallation}
-            handleRelinkInstallation={handleRelinkInstallation}
-            handleAddCompanyToInstallation={handleAddCompanyToInstallation}
-            sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
-            manualInstallationCompanyId={manualInstallationCompanyId}
-            setManualInstallationCompanyId={setManualInstallationCompanyId}
-            manualInstallationPath={manualInstallationPath}
-            setManualInstallationPath={setManualInstallationPath}
-            isCreatingManualInstallation={isCreatingManualInstallation}
-            handleCreateManualInstallation={handleCreateManualInstallation}
-            companyContextDraftByCompanyId={companyContextDraftByCompanyId}
-            updateCompanyContextDraft={updateCompanyContextDraft}
-            isSavingCompanyContext={isSavingCompanyContext}
-            savingCompanyContextId={savingCompanyContextId}
-            handleSaveCompanyContext={handleSaveCompanyContext}
-          />
-          <HostAgentTab
+          <HostComponentsTab
             host={host}
-            orchestrationStrategy={orchestrationStrategy}
-            productStatusMeta={productStatusMeta}
-            contractValidationError={contractValidationError}
-            agentHealthCard={agentHealthCard}
-            serviceStatusIcon={serviceStatusIcon}
-            autoHealStatusIcon={autoHealStatusIcon}
+            agent={agent}
             details={details}
-            bootstrapRateMetrics={bootstrapRateMetrics}
-            contractSchemaVersions={contractSchemaVersions}
-            handleCopy={handleCopy}
-            rustDeskCompliance={rustDeskCompliance}
-            visibleAgentCommands={visibleAgentCommands}
-            hiddenAcknowledgedCount={hiddenAcknowledgedCount}
-            hasPendingInstallGuide={hasPendingInstallGuide}
-            desiredSysproInstalls={desiredSysproInstalls}
+            firebirdData={firebirdData}
+            sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
+            onCopyRustDeskId={(val) => handleCopy(val, "ID do RustDesk")}
+            onConnectRustDesk={handleStartOrchestratedSession}
           />
         </TabsContent>
 
@@ -558,6 +518,7 @@ export function RemoteHostDetailsPanel({
           <HostSoftwareTab
             softwareSnapshot={details.agentTelemetry.softwareSnapshot}
             softwareSnapshotAt={details.agentTelemetry.softwareSnapshotAt}
+            sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
           />
         </TabsContent>
 
@@ -574,6 +535,7 @@ export function RemoteHostDetailsPanel({
 
         <TabsContent value="configuracoes" className="space-y-6">
           <HostSettingsTab
+            host={host}
             details={details}
             linkedDevice={linkedDevice}
             projectedMachineProfile={projectedMachineProfile}
@@ -590,6 +552,51 @@ export function RemoteHostDetailsPanel({
             isDeletingHost={isDeletingHost}
             isRequestingUpgrade={isRequestingUpgrade}
             onRevokeAgentToken={() => setShowRevokeConfirm(true)}
+            
+            // From installations tab
+            installationFilter={installationFilter}
+            setInstallationFilter={setInstallationFilter}
+            canManageInstallations={canManageInstallations}
+            bulkInstallationCompanyId={bulkInstallationCompanyId}
+            setBulkInstallationCompanyId={setBulkInstallationCompanyId}
+            isBulkRelinkingInstallations={isBulkRelinkingInstallations}
+            handleBulkRelinkInstallations={handleBulkRelinkInstallations}
+            dedupedInstallationContexts={dedupedInstallationContexts}
+            unlinkedInstallationsCount={unlinkedInstallationsCount}
+            installationContextsForDisplay={installationContextsForDisplay}
+            selectedCompanyByUpdateId={selectedCompanyByUpdateId}
+            setSelectedCompanyByUpdateId={setSelectedCompanyByUpdateId}
+            isRelinkingInstallation={isRelinkingInstallation}
+            handleRelinkInstallation={handleRelinkInstallation}
+            handleAddCompanyToInstallation={handleAddCompanyToInstallation}
+            manualInstallationCompanyId={manualInstallationCompanyId}
+            setManualInstallationCompanyId={setManualInstallationCompanyId}
+            manualInstallationPath={manualInstallationPath}
+            setManualInstallationPath={setManualInstallationPath}
+            isCreatingManualInstallation={isCreatingManualInstallation}
+            handleCreateManualInstallation={handleCreateManualInstallation}
+            companyContextDraftByCompanyId={companyContextDraftByCompanyId}
+            updateCompanyContextDraft={updateCompanyContextDraft}
+            isSavingCompanyContext={isSavingCompanyContext}
+            savingCompanyContextId={savingCompanyContextId}
+            handleSaveCompanyContext={handleSaveCompanyContext}
+            sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
+
+            // From agent tab
+            orchestrationStrategy={orchestrationStrategy}
+            productStatusMeta={productStatusMeta}
+            contractValidationError={contractValidationError}
+            agentHealthCard={agentHealthCard}
+            serviceStatusIcon={serviceStatusIcon}
+            autoHealStatusIcon={autoHealStatusIcon}
+            bootstrapRateMetrics={bootstrapRateMetrics}
+            contractSchemaVersions={contractSchemaVersions}
+            handleCopy={handleCopy}
+            rustDeskCompliance={rustDeskCompliance}
+            visibleAgentCommands={visibleAgentCommands}
+            hiddenAcknowledgedCount={hiddenAcknowledgedCount}
+            hasPendingInstallGuide={hasPendingInstallGuide}
+            desiredSysproInstalls={desiredSysproInstalls}
           />
         </TabsContent>
       </Tabs>

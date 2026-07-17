@@ -35,7 +35,7 @@ type NotificationsClient interface {
 type ActionsClient interface {
 	OpenSupportConversation(ctx context.Context) (agentui.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (agentui.ActionResult, error)
-	OpenRemoteClient(ctx context.Context) (agentui.ActionResult, error)
+	OpenRemoteClient(ctx context.Context) (agentui.OpenRemoteAccessResult, error)
 }
 
 type SetupClient interface {

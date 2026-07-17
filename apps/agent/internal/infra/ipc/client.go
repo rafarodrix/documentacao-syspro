@@ -158,8 +158,33 @@ func (c *Client) OpenSetupExperience(ctx context.Context) (agentui.ActionResult,
 	return c.postAction(ctx, "/actions/setup/open")
 }
 
-func (c *Client) OpenRemoteClient(ctx context.Context) (agentui.ActionResult, error) {
-	return c.postAction(ctx, "/actions/remote/open")
+func (c *Client) OpenRemoteClient(ctx context.Context) (agentui.OpenRemoteAccessResult, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/actions/remote/open", nil)
+	if err != nil {
+		return agentui.OpenRemoteAccessResult{}, fmt.Errorf("build ipc remote action request: %w", err)
+	}
+	c.applyHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return agentui.OpenRemoteAccessResult{}, fmt.Errorf("execute ipc remote action: %w", err)
+	}
+	defer resp.Body.Close()
+	if err := c.ensureCompatibleProtocol(resp); err != nil {
+		return agentui.OpenRemoteAccessResult{}, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return agentui.OpenRemoteAccessResult{}, fmt.Errorf("ipc remote action returned status %d", resp.StatusCode)
+	}
+
+	var result agentui.OpenRemoteAccessResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return agentui.OpenRemoteAccessResult{}, fmt.Errorf("decode ipc remote action response: %w", err)
+	}
+
+	c.logger.Info("ipc client executed remote action", "opened", result.Opened, "running", result.Running)
+	return result, nil
 }
 
 func (c *Client) SyncSupportConversationContext(ctx context.Context, conversationID string) (agentui.SupportContextSyncResult, error) {

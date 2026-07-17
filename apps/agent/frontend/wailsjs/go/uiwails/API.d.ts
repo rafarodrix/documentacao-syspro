@@ -12,7 +12,7 @@ export function GetSummary():Promise<uistate.Summary>;
 
 export function ListNotifications():Promise<Array<uistate.Notification>>;
 
-export function OpenRemoteClient():Promise<uistate.ActionResult>;
+export function OpenRemoteClient():Promise<uistate.OpenRemoteAccessResult>;
 
 export function OpenSetupExperience():Promise<uistate.ActionResult>;
 

@@ -45,8 +45,8 @@ func (f fakeLocalState) OpenSetupExperience(context.Context) (uistate.ActionResu
 	return uistate.ActionResult{}, nil
 }
 
-func (f fakeLocalState) OpenRemoteClient(context.Context) (uistate.ActionResult, error) {
-	return uistate.ActionResult{}, nil
+func (f fakeLocalState) OpenRemoteClient(context.Context) (uistate.OpenRemoteAccessResult, error) {
+	return uistate.OpenRemoteAccessResult{}, nil
 }
 
 func (f fakeLocalState) SyncSupportConversationContext(context.Context, string) (uistate.SupportContextSyncResult, error) {

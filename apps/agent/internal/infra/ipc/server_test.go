@@ -57,8 +57,8 @@ func (stubActionProvider) OpenSetupExperience(context.Context) (uistate.ActionRe
 	return uistate.ActionResult{Accepted: true, Target: uistate.TargetSetupExperience}, nil
 }
 
-func (stubActionProvider) OpenRemoteClient(context.Context) (uistate.ActionResult, error) {
-	return uistate.ActionResult{Accepted: true}, nil
+func (stubActionProvider) OpenRemoteClient(context.Context) (uistate.OpenRemoteAccessResult, error) {
+	return uistate.OpenRemoteAccessResult{Opened: true, Running: true, Message: "RustDesk aberto."}, nil
 }
 
 func (stubActionProvider) SyncSupportConversationContext(context.Context, string) (uistate.SupportContextSyncResult, error) {

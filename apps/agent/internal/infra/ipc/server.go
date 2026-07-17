@@ -37,7 +37,7 @@ type AgentSupportViewProvider interface {
 type ActionProvider interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
-	OpenRemoteClient(ctx context.Context) (uistate.ActionResult, error)
+	OpenRemoteClient(ctx context.Context) (uistate.OpenRemoteAccessResult, error)
 	SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error)
 }
 
@@ -214,7 +214,7 @@ func (s *Server) newMux() *http.ServeMux {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, agentui.FromUIActionResult(result))
+		writeJSON(w, http.StatusOK, agentui.FromUIOpenRemoteAccessResult(result))
 	})
 	mux.HandleFunc("/actions/support/sync-context", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodPost) {

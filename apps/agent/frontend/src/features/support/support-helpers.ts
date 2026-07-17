@@ -1,4 +1,9 @@
-import type { AgentSetupViewModel, AgentSupportViewModel, RemoteCapabilityView } from "../../types/agent-ui";
+import type {
+  AgentSetupViewModel,
+  AgentSupportViewModel,
+  OpenRemoteAccessResultView,
+  RemoteCapabilityView,
+} from "../../types/agent-ui";
 import { formatRustDeskId, formatSetupCopy } from "../setup/setup-helpers";
 
 export type SupportBannerTone = "complete" | "running" | "idle" | "error";
@@ -97,8 +102,14 @@ export function getRemoteOperationalHint(remote: RemoteCapabilityView | null): s
   return formatSetupCopy(remote.statusText) || "Aguardando sincronizacao do acesso remoto.";
 }
 
-export function getRemoteActionLabel(remote: RemoteCapabilityView | null, remoteOpening: boolean): string {
+export function getRemoteActionLabel(
+  remote: RemoteCapabilityView | null,
+  remoteOpening: boolean,
+  remoteResult?: OpenRemoteAccessResultView | null,
+): string {
   if (remoteOpening) return "Abrindo RustDesk...";
+  if (remoteResult?.opened && remoteResult.running) return "RustDesk aberto";
+  if (remoteResult?.needsRepair) return "Reparar acesso remoto";
   if (remote?.ready) return "Abrir RustDesk";
   if (remote?.status === "pending") return "Acesso remoto em configuracao";
   return "Acesso remoto indisponivel";
