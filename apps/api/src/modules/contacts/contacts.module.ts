@@ -12,6 +12,8 @@ import { TrpcCoreModule } from '../trpc/trpc-core.module';
 
 import { ContactsOrchestrationService } from '@dosc-syspro/contacts-infra';
 
+import { IntegrationContextService } from '../settings/integration-context.service';
+
 @Module({
   imports: [PrismaModule, EvolutionModule, ChatwootModule, SettingsModule, TrpcCoreModule],
   providers: [
@@ -19,10 +21,15 @@ import { ContactsOrchestrationService } from '@dosc-syspro/contacts-infra';
     ContactsRouter,
     {
       provide: ContactsOrchestrationService,
-      useFactory: (prisma: PrismaService, chatwoot: ChatwootClient, evolution: EvolutionClient) => {
-        return new ContactsOrchestrationService(prisma, chatwoot, evolution);
+      useFactory: (
+        prisma: PrismaService, 
+        chatwoot: ChatwootClient, 
+        evolution: EvolutionClient,
+        integrationContext: IntegrationContextService
+      ) => {
+        return new ContactsOrchestrationService(prisma, chatwoot, evolution, integrationContext);
       },
-      inject: [PrismaService, ChatwootClient, EvolutionClient],
+      inject: [PrismaService, ChatwootClient, EvolutionClient, IntegrationContextService],
     }
   ],
   exports: [ContactsService, ContactsRouter],

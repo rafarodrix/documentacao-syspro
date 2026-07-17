@@ -138,7 +138,7 @@ func (b installerBuilder) stage() error {
 		{filepath.Join(b.runtimeRoot, "open-config.cmd"), filepath.Join(b.stageRoot, "scripts", "open-config.cmd")},
 		{filepath.Join(b.runtimeRoot, "open-logs.cmd"), filepath.Join(b.stageRoot, "scripts", "open-logs.cmd")},
 		{filepath.Join(b.runtimeRoot, "configure-agent-helper.cmd"), filepath.Join(b.stageRoot, "scripts", "configure-agent-helper.cmd")},
-		{filepath.Join(b.agentRoot, "configure_agent_helper.ps1"), filepath.Join(b.stageRoot, "scripts", "configure_agent_helper.ps1")},
+		{filepath.Join(b.agentRoot, "scripts", "configure_agent_helper.ps1"), filepath.Join(b.stageRoot, "scripts", "configure_agent_helper.ps1")},
 	}
 
 	for _, pair := range copyPairs {

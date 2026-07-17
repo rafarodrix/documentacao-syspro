@@ -4,5 +4,10 @@ export interface ChatwootClientPort {
 }
 
 export interface EvolutionClientPort {
-  // metodos a serem adicionados conforme a necessidade das extracoes
+  fetchContacts(context: any): Promise<any[]>;
+}
+
+export interface IntegrationContextPort {
+  resolveByConnectionKey(connectionKey: string): Promise<any>;
+  getDefaultContext(): Promise<any>;
 }

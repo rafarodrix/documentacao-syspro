@@ -1,13 +1,14 @@
-import { ChatwootClientPort, EvolutionClientPort, IntegrationContextPort } from '../ports/integration-clients.port';
+const fs = require('fs');
+const path = require('path');
+
+const orchestratorPath = path.join(__dirname, '../packages/features/contacts/infra/src/services/contacts-orchestration.service.ts');
+const apiServicePath = path.join(__dirname, '../apps/api/src/modules/contacts/contacts.service.ts');
+
+const orchestratorContent = `import { ChatwootClientPort, EvolutionClientPort, IntegrationContextPort } from '../ports/integration-clients.port';
 import { PrismaClient } from '@prisma/client';
 import { CreateContactInput, UpdateContactInput, ContactListQuery } from '@dosc-syspro/contracts/contact';
 import { normalizePhone, normalizeCpf } from '@dosc-syspro/shared';
-import { normalizeCompanyIds, serializeContact, extractCompanyIds, shouldPermanentlyDeleteInvalidContact, serializeContactListResponse, parsePage, parsePageSize, parseLegacyLimit, resolveChatwootContactCompanies, normalizeChatwootCompanySummary, formatCompanyDisplayName, formatChatwootPhoneNumber, formatDateAttribute, ChatwootCompanySummary } from '@dosc-syspro/contacts-domain';
-import { CompanyContactSource, CompanyContactStatus } from '@prisma/client';
-
-// Mocked search index builders for infra to decouple from API
-function buildContactSearchWhere(q: string) { return { name: { contains: q, mode: 'insensitive' } }; }
-function buildContactSearchText(data: any) { return Object.values(data).filter(Boolean).join(' ').toLowerCase(); }
+import { normalizeCompanyIds, serializeContact, extractCompanyIds, buildContactSearchWhere, buildContactSearchText, shouldPermanentlyDeleteInvalidContact, serializeContactListResponse, parsePage, parsePageSize, parseLegacyLimit, resolveChatwootContactCompanies, normalizeChatwootCompanySummary, formatCompanyDisplayName, formatChatwootPhoneNumber, formatDateAttribute, ChatwootCompanySummary, CompanyContactSource, CompanyContactStatus } from '@dosc-syspro/contacts-domain';
 
 export class ContactsOrchestrationService {
   constructor(
@@ -352,10 +353,10 @@ export class ContactsOrchestrationService {
         );
         const primaryCompany = companies[0] ?? null;
         const primaryCompanyName = formatCompanyDisplayName(primaryCompany);
-        const chatwootDisplayName = updatedContact.name + (primaryCompanyName ? ` - ${primaryCompanyName}` : '');
+        const chatwootDisplayName = updatedContact.name + (primaryCompanyName ? \` - \${primaryCompanyName}\` : '');
         const primaryCompanyAddress = primaryCompany?.addresses?.[0] ?? null;
         const companyNames = companies.map(c => formatCompanyDisplayName(c)).filter(Boolean);
-        const chatwootLastName = primaryCompanyName ? `| ${primaryCompanyName}` : null;
+        const chatwootLastName = primaryCompanyName ? \`| \${primaryCompanyName}\` : null;
         const contactStatus = updatedContact.status ?? null;
         const isArchived = contactStatus === CompanyContactStatus.ARCHIVED;
 
@@ -396,60 +397,162 @@ export class ContactsOrchestrationService {
       console.error('Erro ao sincronizar no chatwoot', error);
     }
   }
+}
+`;
 
-  async syncFromIntegration(instanceName?: string, requesterContext?: any) {
-    const context = await this.integrationContext.resolveByConnectionKey(instanceName || 'default');
-    if (!context) {
-      return { success: false, syncedCount: 0, mode: 'unavailable', message: 'Nenhuma conexao ativa encontrada.' };
-    }
+fs.writeFileSync(orchestratorPath, orchestratorContent);
 
-    let contacts: any[];
-    try {
-      contacts = await this.evolution.fetchContacts(context.evolution);
-    } catch (error: any) {
-      return { success: false, syncedCount: 0, createdCount: 0, updatedCount: 0, mode: 'unavailable', message: 'Falha na integracao.' };
-    }
+// Thin down contacts.service.ts
+const apiServiceContent = `import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ContactsOrchestrationService } from '@dosc-syspro/contacts-infra';
+import type { ContactAdminView, ContactListQuery, CreateContactInput, UpdateContactInput } from '@dosc-syspro/contracts/contact';
+import { Role } from '@prisma/client';
+import type { IncomingHttpHeaders } from 'node:http';
+import { AuthorizationService } from '../authorization/authorization.service';
+import { extractCompanyIds } from '@dosc-syspro/contacts-domain';
 
-    let syncedCount = 0;
-    let createdCount = 0;
-    let skippedExistingCount = 0;
+@Injectable()
+export class ContactsService {
+  constructor(
+    private readonly authorizationService: AuthorizationService,
+    private readonly contactsOrchestrator: ContactsOrchestrationService,
+  ) {}
 
-    for (const contact of contacts) {
-      if (!contact.whatsapp) continue;
-      const existing = await this.prisma.companyContact.findFirst({ where: { whatsapp: contact.whatsapp } });
-      if (existing) {
-        skippedExistingCount += 1;
-        syncedCount += 1;
-        continue;
-      }
-      await this.prisma.companyContact.create({
-        data: { name: contact.name, whatsapp: contact.whatsapp, source: CompanyContactSource.IMPORT, status: CompanyContactStatus.PENDING_LINK }
-      });
-      createdCount += 1;
-      syncedCount += 1;
-    }
-
-    return { success: true, syncedCount, createdCount, updatedCount: 0, skippedExistingCount, mode: 'evolution_pull', message: 'Concluido.' };
+  async getAdminView(rawHeaders?: IncomingHttpHeaders): Promise<ContactAdminView> {
+    const requester = await this.assertCanViewContacts(rawHeaders);
+    const scope = await this.resolveContactCompanyScope(requester);
+    return { isGlobalView: scope.isGlobal };
   }
 
-  async syncChatwootContactsForCompany(companyId: string) {
-    const [company, contacts] = await Promise.all([
-      this.prisma.company.findUnique({
-        where: { id: companyId },
-        select: {
-          id: true, razaoSocial: true, nomeFantasia: true, cnpj: true,
-          addresses: { select: { cidade: true, pais: true }, take: 1 },
-        },
-      }),
-      this.prisma.companyContact.findMany({
-        where: { status: { not: CompanyContactStatus.ARCHIVED }, whatsapp: { not: null }, companyLinks: { some: { companyId } } },
-        include: this.getContactInclude(),
-      }),
-    ]);
+  async getContacts(input: ContactListQuery, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanViewContacts(rawHeaders);
+    const scope = await this.resolveContactCompanyScope(requester);
+    return this.contactsOrchestrator.getContacts(input, scope);
+  }
 
-    for (const contact of contacts) {
-      await this.syncChatwootContactPresentation(serializeContact(contact), company);
-    }
-    return contacts.length;
+  async getUnlinkedContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanViewContacts(rawHeaders);
+    const scope = await this.resolveContactCompanyScope(requester);
+    return this.contactsOrchestrator.getUnlinkedContacts(scope);
+  }
+
+  async getContactStats(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanViewContacts(rawHeaders);
+    const scope = await this.resolveContactCompanyScope(requester);
+    return this.contactsOrchestrator.getContactStats(scope);
+  }
+
+  async getContactById(contactId: string, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanViewContacts(rawHeaders);
+    const requesterContext = {
+      assertContactVisible: async (contact: any) => await this.assertContactVisibleToRequester(requester, contact)
+    };
+    return this.contactsOrchestrator.getContactById(contactId, requesterContext);
+  }
+
+  async createContact(input: CreateContactInput, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanCreateContacts(rawHeaders);
+    const requesterContext = {
+      role: requester.role,
+      assertCompanyIdsAllowed: async (companyIds: string[]) => await this.assertCompanyIdsAllowedForRequester(requester, companyIds),
+      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact)
+    };
+    return this.contactsOrchestrator.createContact(input, requesterContext);
+  }
+
+  async updateContact(contactId: string, input: UpdateContactInput, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanEditContacts(rawHeaders);
+    const requesterContext = {
+      role: requester.role,
+      assertCompanyIdsAllowed: async (companyIds: string[]) => await this.assertCompanyIdsAllowedForRequester(requester, companyIds),
+      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact)
+    };
+    return this.contactsOrchestrator.updateContact(contactId, input, requesterContext);
+  }
+
+  async linkContactToCompany(contactId: string, companyId: string, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanEditContacts(rawHeaders);
+    const requesterContext = {
+      role: requester.role,
+      assertCompanyIdsAllowed: async (companyIds: string[]) => await this.assertCompanyIdsAllowedForRequester(requester, companyIds),
+      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact)
+    };
+    // Re-use updateContact flow since it naturally handles link behavior
+    return this.contactsOrchestrator.updateContact(contactId, { companyIds: [companyId] }, requesterContext);
+  }
+
+  async deleteContact(contactId: string, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanDeleteContacts(rawHeaders);
+    const requesterContext = {
+      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact)
+    };
+    return this.contactsOrchestrator.deleteContact(contactId, requesterContext);
+  }
+
+  // Auth Helpers
+  private async assertCanViewContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canView = await this.authorizationService.userHasPermission(requester, 'contacts:view', { acceptCompanyScope: true }) ||
+                    await this.authorizationService.userHasPermission(requester, 'contacts:view_team', { acceptCompanyScope: true }) ||
+                    await this.authorizationService.userHasPermission(requester, 'contacts:view_all');
+    if (!canView) throw new ForbiddenException('Sem permissao para consultar contatos.');
+    return requester;
+  }
+
+  private async assertCanCreateContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canCreate = await this.authorizationService.userHasPermission(requester, 'contacts:create', { acceptCompanyScope: true });
+    if (!canCreate) throw new ForbiddenException('Sem permissao para cadastrar contatos.');
+    return requester;
+  }
+
+  private async assertCanEditContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canEdit = await this.authorizationService.userHasPermission(requester, 'contacts:edit', { acceptCompanyScope: true });
+    if (!canEdit) throw new ForbiddenException('Sem permissao para alterar contatos.');
+    return requester;
+  }
+
+  private async assertCanDeleteContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canDelete = await this.authorizationService.userHasPermission(requester, 'contacts:delete', { acceptCompanyScope: true });
+    if (!canDelete) throw new ForbiddenException('Sem permissao para excluir contatos.');
+    return requester;
+  }
+
+  private async resolveContactCompanyScope(requester: { userId: string; role: Role; email: string }) {
+    const primaryScope = await this.authorizationService.resolveCompanyAccessScope(requester, 'contacts:view_team', 'contacts:view_all');
+    if (primaryScope.isGlobal || primaryScope.companyIds.length > 0) return primaryScope;
+    const canViewScoped = await this.authorizationService.userHasPermission(requester, 'contacts:view', { acceptCompanyScope: true });
+    if (!canViewScoped) return primaryScope;
+    return this.authorizationService.resolveCompanyAccessScope(requester, 'contacts:view', 'contacts:view_all');
+  }
+
+  private async assertCompanyIdsAllowedForRequester(requester: { userId: string; role: Role; email: string }, companyIds: string[]) {
+    if (this.authorizationService.isSystemRole(requester.role)) return;
+    if (requester.role !== Role.CLIENTE_ADMIN) throw new ForbiddenException('Sem permissao para vincular contatos a empresas.');
+    if (!companyIds.length) throw new BadRequestException('Contato precisa estar vinculado a uma empresa permitida.');
+    const allowedCompanyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
+    if (companyIds.some((id) => !allowedCompanyIds.includes(id))) throw new ForbiddenException('Contato informado nao pertence a uma empresa permitida.');
+  }
+
+  private async assertContactVisibleToRequester(requester: { userId: string; role: Role; email: string }, contact: any) {
+    if (this.authorizationService.isSystemRole(requester.role)) return;
+    const scope = await this.resolveContactCompanyScope(requester);
+    const contactCompanyIds = extractCompanyIds(contact);
+    if (contactCompanyIds.some((companyId) => scope.companyIds.includes(companyId))) return;
+    throw new NotFoundException('Contato nao encontrado');
+  }
+
+  private async assertContactManageableByRequester(requester: { userId: string; role: Role; email: string }, contact: any) {
+    if (this.authorizationService.isSystemRole(requester.role)) return;
+    const scope = await this.resolveContactCompanyScope(requester);
+    const contactCompanyIds = extractCompanyIds(contact);
+    if (contactCompanyIds.length && contactCompanyIds.every((companyId) => scope.companyIds.includes(companyId))) return;
+    throw new ForbiddenException('Contato informado nao pertence integralmente ao seu escopo.');
   }
 }
+`;
+
+fs.writeFileSync(apiServicePath, apiServiceContent);
+console.log('Arquivos refatorados com sucesso!');
