@@ -17,7 +17,8 @@ import {
   ChatwootCompanySummary,
   ChatwootRemoteConnection
 } from '@dosc-syspro/contacts-domain';
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
+import { ContactsOrchestrationService } from '@dosc-syspro/contacts-infra';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import type {
   ContactAdminView,
@@ -51,6 +52,7 @@ export class ContactsService {
     private readonly chatwootClient: ChatwootClient,
     private readonly integrationContext: IntegrationContextService,
     private readonly authorizationService: AuthorizationService,
+    private readonly contactsOrchestrator: ContactsOrchestrationService,
   ) {}
 
   async getAdminView(rawHeaders?: IncomingHttpHeaders): Promise<ContactAdminView> {
@@ -204,105 +206,19 @@ export class ContactsService {
 
   async createContact(input: CreateContactInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.assertCanCreateContacts(rawHeaders);
-    const name = String(input.name ?? '').trim();
-    if (!name) {
-      throw new BadRequestException('Nome do contato obrigatorio');
-    }
-
-    const whatsapp = normalizePhone(input.whatsapp) || null;
-    const phone = normalizePhone(input.phone) || null;
-    const cpf = normalizeCpf(input.cpf) || null;
-    if (cpf && cpf.length !== 11) {
-      throw new BadRequestException('CPF deve conter 11 digitos.');
-    }
-    const jobTitle = input.jobTitle?.trim() || null;
-    const companyIds = normalizeCompanyIds(input.companyIds);
-    await this.assertCompanyIdsAllowedForRequester(requester, companyIds);
-    const existing = whatsapp
-      ? await (this.prisma.companyContact as any).findFirst({
-          where: { whatsapp },
-          include: this.contactInclude(),
-        })
-      : null;
-
-    if (existing) {
-      await this.assertContactManageableByRequester(requester, existing);
-
-      const updated = await this.prisma.$transaction(
-        async (tx) => {
-          const updatedContact = await (tx.companyContact as any).update({
-            where: { id: existing.id },
-            data: {
-              name,
-              email: input.email?.trim() || null,
-              phone,
-              cpf,
-              jobTitle,
-              whatsapp,
-              notes: input.notes?.trim() || null,
-              searchText: buildContactSearchText({
-                name,
-                email: input.email?.trim() || null,
-                phone,
-                cpf,
-                jobTitle,
-                whatsapp,
-              }),
-              source: existing.source,
-              status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
-            },
-            include: this.contactInclude(),
-          });
-
-          await this.syncContactCompanies(tx, existing.id, companyIds);
-          return (tx.companyContact as any).findUnique({
-            where: { id: existing.id },
-            include: this.contactInclude(),
-          });
-        },
-        { timeout: CONTACTS_TRANSACTION_TIMEOUT_MS }
-      );
-
-      const serialized = serializeContact(updated);
-      await this.syncChatwootContactPresentation(serialized);
-      return serialized;
-    }
-
-    const created = await this.prisma.$transaction(
-      async (tx) => {
-        const createdContact = await (tx.companyContact as any).create({
-          data: {
-            name,
-            email: input.email?.trim() || null,
-            phone,
-            cpf,
-            jobTitle,
-            whatsapp,
-            notes: input.notes?.trim() || null,
-            searchText: buildContactSearchText({
-              name,
-              email: input.email?.trim() || null,
-              phone,
-              cpf,
-              jobTitle,
-              whatsapp,
-            }),
-            source: CompanyContactSource.MANUAL,
-            status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
-          },
-          include: this.contactInclude(),
-        });
-
-        await this.syncContactCompanies(tx, createdContact.id, companyIds);
-        return (tx.companyContact as any).findUnique({
-          where: { id: createdContact.id },
-          include: this.contactInclude(),
-        });
+    
+    // Configura os checks de segurança que a API deve executar, delegando via callback para o infra
+    const requesterContext = {
+      role: requester.role,
+      assertCompanyIdsAllowed: async (companyIds: string[]) => {
+        await this.assertCompanyIdsAllowedForRequester(requester, companyIds);
       },
-      { timeout: CONTACTS_TRANSACTION_TIMEOUT_MS }
-    );
+      assertContactManageable: async (contact: any) => {
+        await this.assertContactManageableByRequester(requester, contact);
+      }
+    };
 
-    const serialized = serializeContact(created);
+    const serialized = await this.contactsOrchestrator.createContact(input, requesterContext);
     await this.syncChatwootContactPresentation(serialized);
     return serialized;
   }

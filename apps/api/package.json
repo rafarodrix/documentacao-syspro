@@ -23,6 +23,7 @@
     "@dosc-syspro/config": "file:../../packages/config",
     "@dosc-syspro/contracts": "file:../../packages/contracts",
     "@dosc-syspro/contacts-domain": "file:../../packages/features/contacts/domain",
+    "@dosc-syspro/contacts-infra": "file:../../packages/features/contacts/infra",
     "@dosc-syspro/core": "file:../../packages/core",
     "@dosc-syspro/database": "file:../../packages/database",
     "@dosc-syspro/remote-domain": "file:../../packages/features/remote/domain",
