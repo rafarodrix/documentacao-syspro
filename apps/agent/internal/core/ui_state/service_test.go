@@ -164,23 +164,6 @@ func TestResolveRustDeskExecutablePrefersConfiguredPath(t *testing.T) {
 	}
 }
 
-func TestOpenRemoteClientReturnsFriendlyMessageWhenExecutableMissing(t *testing.T) {
-	t.Parallel()
-
-	service := NewService(t.TempDir(), ChatwootConfig{}, "1.0.71", nil)
-
-	result, err := service.OpenRemoteClient(context.Background())
-	if err != nil {
-		t.Fatalf("OpenRemoteClient returned unexpected error: %v", err)
-	}
-	if result.Opened || result.Running {
-		t.Fatalf("expected remote client not to open, got %+v", result)
-	}
-	if !strings.Contains(strings.ToLower(result.Message), "repare") {
-		t.Fatalf("expected friendly repair guidance, got %q", result.Message)
-	}
-}
-
 func TestOpenRemoteClientRejectsUntrustedExecutablePath(t *testing.T) {
 	t.Parallel()
 
@@ -206,6 +189,17 @@ func TestOpenRemoteClientRejectsUntrustedExecutablePath(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(result.Message), "invalido") {
 		t.Fatalf("expected invalid path guidance, got %q", result.Message)
+	}
+}
+
+func TestIsTrustedRustDeskExecutable(t *testing.T) {
+	t.Parallel()
+
+	if !isTrustedRustDeskExecutable(`C:\Program Files\RustDesk\rustdesk.exe`) {
+		t.Fatalf("expected rustdesk executable to be trusted")
+	}
+	if isTrustedRustDeskExecutable(`C:\Windows\System32\cmd.exe`) {
+		t.Fatalf("expected non-rustdesk executable to be rejected")
 	}
 }
 

@@ -16,6 +16,22 @@ export namespace uistate {
 	        this.target = source["target"];
 	    }
 	}
+	export class OpenRemoteAccessResult {
+	    opened: boolean;
+	    running: boolean;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new OpenRemoteAccessResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.opened = source["opened"];
+	        this.running = source["running"];
+	        this.message = source["message"];
+	    }
+	}
 	export class AgentCapabilityView {
 	    kind: string;
 	    externalId?: string;
@@ -305,4 +321,3 @@ export namespace uistate {
 	}
 
 }
-
