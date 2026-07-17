@@ -456,9 +456,9 @@ export function RemoteHostDetailsPanel({
             <TabsTrigger value="geral">Visão geral</TabsTrigger>
             <TabsTrigger value="monitoramento">Monitoramento</TabsTrigger>
             <TabsTrigger value="instalacoes">Componentes</TabsTrigger>
-            <TabsTrigger value="agente">Agente</TabsTrigger>
             <TabsTrigger value="softwares">Inventário</TabsTrigger>
             <TabsTrigger value="bkp">Backup</TabsTrigger>
+            <TabsTrigger value="eventos">Eventos</TabsTrigger>
             <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
           </TabsList>
         </div>
@@ -534,9 +534,6 @@ export function RemoteHostDetailsPanel({
             savingCompanyContextId={savingCompanyContextId}
             handleSaveCompanyContext={handleSaveCompanyContext}
           />
-        </TabsContent>
-
-        <TabsContent value="agente">
           <HostAgentTab
             host={host}
             orchestrationStrategy={orchestrationStrategy}
@@ -557,7 +554,7 @@ export function RemoteHostDetailsPanel({
           />
         </TabsContent>
 
-        <TabsContent value="softwares">
+        <TabsContent value="softwares" className="space-y-6">
           <HostSoftwareTab
             softwareSnapshot={details.agentTelemetry.softwareSnapshot}
             softwareSnapshotAt={details.agentTelemetry.softwareSnapshotAt}
@@ -566,6 +563,13 @@ export function RemoteHostDetailsPanel({
 
         <TabsContent value="bkp" className="space-y-6">
           <HostBackupTab firebirdData={firebirdData} />
+        </TabsContent>
+
+        <TabsContent value="eventos" className="space-y-6">
+          <div className="rounded-xl border border-border/60 bg-card p-12 text-center shadow-sm">
+            <h3 className="text-lg font-medium text-foreground">Eventos e Auditoria</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Esta aba exibirá o histórico de ações e logs de auditoria do dispositivo. Funcionalidade em desenvolvimento.</p>
+          </div>
         </TabsContent>
 
         <TabsContent value="configuracoes" className="space-y-6">

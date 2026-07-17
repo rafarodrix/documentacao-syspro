@@ -64,7 +64,7 @@ export function HostHeroHeader({
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1 font-mono text-primary/85 font-medium">
                 <Fingerprint className="h-3 w-3" />
-                {normalizedRustdeskId ?? "---"}
+                RustDesk {normalizedRustdeskId ?? "---"}
               </span>
               <span className="flex items-center gap-1">
                 <Building2 className="h-3 w-3 text-muted-foreground/80" />
@@ -81,26 +81,7 @@ export function HostHeroHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="hidden items-center gap-1.5 border-x border-border/40 px-4 md:flex text-muted-foreground">
-            {host.lastAgentMetrics?.cpuLoad != null && (
-              <div
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/40 text-[11px] font-semibold transition-colors hover:bg-muted/60"
-                title="CPU Load"
-              >
-                <Cpu className="h-3.5 w-3.5 text-primary/80" />
-                {host.lastAgentMetrics.cpuLoad}%
-              </div>
-            )}
-            {host.lastAgentMetrics?.ramUsedPc != null && (
-              <div
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/40 text-[11px] font-semibold transition-colors hover:bg-muted/60"
-                title="RAM usage"
-              >
-                <Activity className="h-3.5 w-3.5 text-sky-500/80" />
-                {host.lastAgentMetrics.ramUsedPc}%
-              </div>
-            )}
-          </div>
+
 
           <Button
             onClick={onStartSession}
@@ -117,7 +98,7 @@ export function HostHeroHeader({
             ) : (
               <PlayCircle className="h-4 w-4" />
             )}
-            {isStartingSession ? "Iniciando..." : isMobileClient ? "App" : "Sessão auditada"}
+            {isStartingSession ? "Iniciando..." : isMobileClient ? "App" : "Conectar"}
           </Button>
         </div>
       </div>

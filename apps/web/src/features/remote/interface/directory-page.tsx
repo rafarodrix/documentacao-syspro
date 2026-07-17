@@ -2,26 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import {
-  Copy,
-  Plus,
-  X,
-  Building2,
-  Ticket,
-  Loader2,
-  Monitor,
-  RotateCcw,
-  Info,
-  AlertCircle,
-  Fingerprint,
-  FileText,
-} from "lucide-react";
+import { Activity, Plus, Shield, ShieldAlert, ShieldCheck, Terminal, MonitorSmartphone, X, RefreshCw, Smartphone, Laptop, Settings, Search, Monitor, Copy, Eye, RotateCcw, Building2, CheckCircle2, AlertCircle, Fingerprint, FileText, Loader2, Info, Ticket } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { normalizeSearchText } from "@dosc-syspro/shared";
 import { Badge, Input, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, TableCell, TableRow, TableHead } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
-import { EmptyState, SearchToolbar } from "@/components/patterns";
+import { EmptyState } from "@/components/patterns";
 import { RegistryDataTable, RegistryFooter } from "@/components/platform/shared/registry-list-scaffold";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
@@ -121,7 +108,7 @@ export function RemotePlatformDirectoryPanel({
   const [companyFilter, setCompanyFilter] = useState(initialCompanyId ?? "all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
   const [agentFilter, setAgentFilter] = useState<"all" | "awaiting_link" | "provisioning" | "ready" | "attention" | "in_service">("all");
-  const [scopeFilter, setScopeFilter] = useState<"all" | "managed" | "pending" | "discovered">("all");
+  const [scopeFilter, setScopeFilter] = useState<"managed" | "pending" | "discovered">("managed");
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickHostName, setQuickHostName] = useState("");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
@@ -178,7 +165,7 @@ export function RemotePlatformDirectoryPanel({
     [companyFilter, directory.companyOptions],
   );
 
-  const hasActiveFilters = searchTerm || scopeFilter !== "all" || companyFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all";
+  const hasActiveFilters = searchTerm || scopeFilter !== "managed" || companyFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all";
 
   async function handleCopyRustDeskId(value: string | null) {
     if (!value) {
@@ -464,71 +451,84 @@ export function RemotePlatformDirectoryPanel({
 
   return (
     <div className="space-y-3">
-      <SearchToolbar
-        searchValue={searchTerm}
-        searchPlaceholder="Buscar por dispositivo, empresa, hostname, IP ou ID remoto..."
-        onSearchChange={setSearchTerm}
-        onClearSearch={() => { setSearchTerm(""); }}
-        resultLabel={`${visibleItemsCount} dispositivo${visibleItemsCount === 1 ? "" : "s"} encontrado${visibleItemsCount === 1 ? "" : "s"}`}
-        filters={
-          <>
-            <Select value={companyFilter} onValueChange={setCompanyFilter}>
-              <SelectTrigger className="h-9 w-42.5 bg-background text-sm">
-                <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <SelectValue placeholder="Empresa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as empresas</SelectItem>
-                {directory.companyOptions.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>{company.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <div className="rounded-lg border border-border/60 bg-card p-3 shadow-sm flex flex-col gap-3">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors peer-focus:text-primary" />
+          <Input
+            className="peer h-10 w-full rounded-md border-border/60 bg-background pl-10 pr-9 text-sm focus-visible:ring-primary/20"
+            placeholder="Buscar por dispositivo, empresa, hostname, IP ou ID remoto..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded text-muted-foreground hover:text-foreground"
+              onClick={() => setSearchTerm("")}
+              aria-label="Limpar busca"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={companyFilter} onValueChange={setCompanyFilter}>
+            <SelectTrigger className="h-9 w-45 bg-background text-sm">
+              <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <SelectValue placeholder="Empresa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as empresas</SelectItem>
+              {directory.companyOptions.map((company) => (
+                <SelectItem key={company.id} value={company.id}>{company.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v as typeof agentFilter)}>
-              <SelectTrigger className="h-9 w-40 bg-background text-sm">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Qualquer estado</SelectItem>
-                <SelectItem value="ready">Remoto pronto</SelectItem>
-                <SelectItem value="in_service">Em atendimento</SelectItem>
-                <SelectItem value="provisioning">Provisionando</SelectItem>
-                <SelectItem value="awaiting_link">Aguardando vínculo</SelectItem>
-                <SelectItem value="attention">Atenção técnica</SelectItem>
-              </SelectContent>
-            </Select>
+          <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v as typeof agentFilter)}>
+            <SelectTrigger className="h-9 w-40 bg-background text-sm">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Qualquer estado</SelectItem>
+              <SelectItem value="ready">Remoto pronto</SelectItem>
+              <SelectItem value="in_service">Em atendimento</SelectItem>
+              <SelectItem value="provisioning">Provisionando</SelectItem>
+              <SelectItem value="awaiting_link">Aguardando vínculo</SelectItem>
+              <SelectItem value="attention">Atenção técnica</SelectItem>
+            </SelectContent>
+          </Select>
 
-            <Select value={heartbeatFilter} onValueChange={(v) => setHeartbeatFilter(v as typeof heartbeatFilter)}>
-              <SelectTrigger className="h-9 w-35 bg-background text-sm">
-                <SelectValue placeholder="Conectividade" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Conectividade</SelectItem>
-                <SelectItem value="recent">Online agora</SelectItem>
-                <SelectItem value="stale">Instável</SelectItem>
-                <SelectItem value="missing">Offline</SelectItem>
-              </SelectContent>
-            </Select>
+          <Select value={heartbeatFilter} onValueChange={(v) => setHeartbeatFilter(v as typeof heartbeatFilter)}>
+            <SelectTrigger className="h-9 w-35 bg-background text-sm">
+              <SelectValue placeholder="Conectividade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Conectividade</SelectItem>
+              <SelectItem value="recent">Online agora</SelectItem>
+              <SelectItem value="stale">Instável</SelectItem>
+              <SelectItem value="missing">Offline</SelectItem>
+            </SelectContent>
+          </Select>
 
-            {hasActiveFilters && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-9 px-3 text-muted-foreground hover:text-foreground"
-                onClick={() => { setSearchTerm(""); setScopeFilter("all"); setCompanyFilter("all"); setHeartbeatFilter("all"); setAgentFilter("all"); }}
-              >
-                <X className="mr-1.5 h-3.5 w-3.5" />
-                Limpar
-              </Button>
-            )}
-          </>
-        }
-        actions={
+          {hasActiveFilters && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 px-3 text-muted-foreground hover:text-foreground"
+              onClick={() => { setSearchTerm(""); setScopeFilter("managed"); setCompanyFilter("all"); setHeartbeatFilter("all"); setAgentFilter("all"); }}
+            >
+              <X className="mr-1.5 h-3.5 w-3.5" />
+              Limpar
+            </Button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40">
           <div className="flex flex-wrap items-center gap-2">
             {[
-              { value: "all", label: "Todos", count: totalFilteredItems },
               { value: "managed", label: "Gerenciados", count: filteredItems.length },
               { value: "pending", label: "Pendentes", count: filteredQuickIndicators.attention },
               { value: "discovered", label: "Descobertos", count: filteredPendingItems.length, hidden: !canCreateHosts },
@@ -542,7 +542,7 @@ export function RemotePlatformDirectoryPanel({
                   className={cn(
                     "inline-flex h-7.5 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition-all duration-300 hover:scale-[1.02]",
                     scopeFilter === option.value
-                      ? "bg-gradient-to-r from-primary to-primary/95 text-primary-foreground border-transparent shadow-sm shadow-primary/15"
+                      ? "bg-linear-to-r from-primary to-primary/95 text-primary-foreground border-transparent shadow-sm shadow-primary/15"
                       : "border-border/50 bg-background text-muted-foreground hover:border-border hover:text-foreground",
                   )}
                 >
@@ -559,16 +559,22 @@ export function RemotePlatformDirectoryPanel({
                 {filteredQuickIndicators.rebootPending} reboot pendente
               </Badge>
             )}
-
+          </div>
+          
+          <div className="flex items-center gap-2">
             {selectedCompanyLabel && (
               <Badge variant="outline" className="h-7 border-primary/20 bg-primary/10 text-[10px] text-primary">
                 <Building2 className="mr-1 h-3 w-3" />
                 {selectedCompanyLabel}
               </Badge>
             )}
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Search className="h-3.5 w-3.5" />
+              {visibleItemsCount} dispositivo{visibleItemsCount === 1 ? "" : "s"}
+            </span>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {canCreateHosts && (
         <Dialog open={showQuickCreate} onOpenChange={handleOpenChange}>
@@ -937,6 +943,9 @@ export function RemotePlatformDirectoryPanel({
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
                         <p className="truncate text-[11px] text-muted-foreground">{identitySubtitle}</p>
+                        <p className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground">
+                          {item.productStatus === "PROVISIONING_REMOTE" ? "Provisionando" : item.productStatus === "AWAITING_LINK" ? "Sem vínculo" : "Gerenciado"}
+                        </p>
                       </div>
                     </div>
                   </TableCell>
@@ -1023,7 +1032,10 @@ export function RemotePlatformDirectoryPanel({
                         </div>
                         <p className="font-semibold text-foreground">{item.name}</p>
                         <p className="text-xs text-muted-foreground">{identitySubtitle}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
+                        <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                          {item.productStatus === "PROVISIONING_REMOTE" ? "Provisionando" : item.productStatus === "AWAITING_LINK" ? "Sem vínculo" : "Gerenciado"}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {companyLabel}
                           {extraCompanies > 0 ? ` · +${extraCompanies} empresa(s)` : ""}
                         </p>
@@ -1071,7 +1083,7 @@ export function RemotePlatformDirectoryPanel({
           icon={Monitor}
           title="Nenhum dispositivo encontrado"
           description={searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum dispositivo configurado no seu escopo."}
-          action={hasActiveFilters ? { label: "Limpar filtros", onClick: () => { setSearchTerm(""); setScopeFilter("all"); setCompanyFilter("all"); setHeartbeatFilter("all"); setAgentFilter("all"); } } : undefined}
+          action={hasActiveFilters ? { label: "Limpar filtros", onClick: () => { setSearchTerm(""); setScopeFilter("managed"); setCompanyFilter("all"); setHeartbeatFilter("all"); setAgentFilter("all"); } } : undefined}
           dashed
           className="rounded-2xl border-border/50 bg-card/50 py-10"
         />

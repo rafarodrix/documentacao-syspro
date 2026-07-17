@@ -166,44 +166,61 @@ export function HostOverviewTab({
         )}
 
         {hasCriticalAlert && (
-          <Card className="border-rose-500/20 bg-rose-500/5 shadow-sm">
-            <CardHeader className="px-4 pt-4 pb-2">
-              <CardTitle className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-rose-500">
+          <Card className="border-border/40 bg-card/65 shadow-sm backdrop-blur-md">
+            <CardHeader className="px-4 pt-4 pb-2 border-b border-border/40">
+              <CardTitle className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 <AlertCircle className="h-3.5 w-3.5" />
-                Alertas críticos
+                Alertas do Sistema
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2 p-4">
-              {!!rebootPending && (
-                <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                  <RefreshCw className="mr-1.5 h-3 w-3 animate-spin-slow" />
-                  Reinicialização necessária
-                </Badge>
-              )}
-              {diskLow && (
-                <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                  <Database className="mr-1.5 h-3 w-3" />
-                  Espaço em disco crítico
-                </Badge>
-              )}
-              {sysproProcessDown && (
-                <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                  <AlertCircle className="mr-1.5 h-3 w-3 animate-pulse text-rose-500" />
-                  Serviço Syspro inativo
-                </Badge>
-              )}
-              {pendingUpdatesCount > 0 && (
-                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold">
-                  <Shield className="mr-1.5 h-3 w-3" />
-                  {pendingUpdatesCount} atualizações pendentes
-                </Badge>
-              )}
-              {contractValidationError && (
-                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 font-mono text-amber-600 dark:text-amber-400">
-                  <Shield className="mr-1.5 h-3 w-3" />
-                  ERRO CONTRATO: {contractValidationError}
-                </Badge>
-              )}
+            <CardContent className="p-0">
+              <div className="flex flex-col divide-y divide-border/40">
+                {!!rebootPending && (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-rose-500/5 hover:bg-rose-500/10 transition-colors">
+                    <RefreshCw className="h-4 w-4 text-rose-500 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">Reinicialização pendente</p>
+                      <p className="text-xs text-rose-600/70 dark:text-rose-400/70">O sistema aguarda um reboot para aplicar atualizações críticas.</p>
+                    </div>
+                  </div>
+                )}
+                {diskLow && (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-rose-500/5 hover:bg-rose-500/10 transition-colors">
+                    <Database className="h-4 w-4 text-rose-500 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">Espaço em disco crítico</p>
+                      <p className="text-xs text-rose-600/70 dark:text-rose-400/70">O armazenamento do host está quase cheio.</p>
+                    </div>
+                  </div>
+                )}
+                {sysproProcessDown && (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-rose-500/5 hover:bg-rose-500/10 transition-colors">
+                    <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 animate-pulse" />
+                    <div>
+                      <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">Serviço Syspro inativo</p>
+                      <p className="text-xs text-rose-600/70 dark:text-rose-400/70">O processo fbserver/syspro não está rodando no host.</p>
+                    </div>
+                  </div>
+                )}
+                {pendingUpdatesCount > 0 && (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
+                    <Shield className="h-4 w-4 text-amber-500 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{pendingUpdatesCount} atualizações pendentes</p>
+                      <p className="text-xs text-amber-600/70 dark:text-amber-400/70">Há pacotes do Windows Update aguardando instalação.</p>
+                    </div>
+                  </div>
+                )}
+                {contractValidationError && (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
+                    <Shield className="h-4 w-4 text-amber-500 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">Erro de contrato</p>
+                      <p className="text-xs font-mono text-amber-600/70 dark:text-amber-400/70">{contractValidationError}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}

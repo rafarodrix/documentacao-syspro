@@ -197,73 +197,7 @@ export function HostInstallationsTab({
             </div>
           </div>
 
-          {/* Filtering and Bulk Actions */}
-          <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
-            <div className="space-y-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold font-mono">Filtros e Ações em Lote</p>
-              <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
-                <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Filtro de visualização</p>
-                  <Select value={installationFilter} onValueChange={(value: "all" | "unlinked") => setInstallationFilter(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as instalações</SelectItem>
-                      <SelectItem value="unlinked">Somente sem vínculo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                {canManageInstallations ? (
-                  <div className="space-y-1">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                      Empresa para aplicar em lote nas pastas exibidas
-                    </p>
-                    <SearchableCompanyPicker
-                      value={bulkInstallationCompanyId || UNLINKED_COMPANY_VALUE}
-                      options={details.companyOptions}
-                      onChange={(next) => setBulkInstallationCompanyId(next === UNLINKED_COMPANY_VALUE ? "" : next)}
-                      disabled={isBulkRelinkingInstallations || !details.companyOptions.length}
-                    />
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground lg:pb-2">
-                    Seu perfil tem acesso somente leitura para vinculação de instalações.
-                  </p>
-                )}
-
-                {canManageInstallations ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={isBulkRelinkingInstallations || !bulkInstallationCompanyId || !installationContextsForDisplay.length}
-                    onClick={() => handleBulkRelinkInstallations(bulkInstallationCompanyId)}
-                  >
-                    Aplicar associação
-                  </Button>
-                ) : null}
-
-                {canManageInstallations ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={isBulkRelinkingInstallations || !installationContextsForDisplay.length}
-                    onClick={() => handleBulkRelinkInstallations(null)}
-                  >
-                    Limpar vínculos
-                  </Button>
-                ) : null}
-              </div>
-
-              <p className="text-xs text-muted-foreground font-medium">
-                {installationFilter === "unlinked"
-                  ? `${installationContextsForDisplay.length} pasta(s) sem vínculo exibida(s).`
-                  : `${dedupedInstallationContexts.length} associação(ões) no total, correspondendo a ${groupedInstallations.length} pasta(s) física(s) no servidor (${unlinkedInstallationsCount} sem vínculo).`}
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

@@ -4,7 +4,8 @@ import { formatDateTime } from "../host-details.helpers";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/formatters";
 import { useAckStream } from "@/features/remote/interface/hooks";
-import { Activity, HardDrive, Cpu, Laptop, Network, Globe, ShieldAlert } from "lucide-react";
+import { useState } from "react";
+import { Activity, HardDrive, Cpu, Laptop, Network, Globe, ShieldAlert, ChevronDown, ChevronUp } from "lucide-react";
 
 type HostTechnicalTabProps = {
   details: RemoteHostDetails;
@@ -70,6 +71,7 @@ export function HostTechnicalTab({
   windowsUpdateStatusAt,
 }: HostTechnicalTabProps) {
   const { lastTelemetry, isConnected } = useAckStream(host.id);
+  const [showInactiveNetwork, setShowInactiveNetwork] = useState(false);
   const agent = host.agent;
   const versionInstallations = toVersionInstallations(sysproVersionSnapshot);
 
@@ -98,19 +100,26 @@ export function HostTechnicalTab({
 
   return (
     <Card className="border-border/50">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-border/40">
         <div>
           <CardTitle className="text-lg">Monitoramento</CardTitle>
-          <CardDescription>Leitura operacional baseada na coleta real do modulo device.</CardDescription>
+          <CardDescription>
+            Leitura operacional baseada na coleta real do modulo device.
+          </CardDescription>
         </div>
-        <div className="flex items-center gap-2">
-          <div className={cn("h-2 w-2 rounded-full", isConnected ? "animate-pulse bg-green-500" : "bg-muted")} />
-          <span className="text-[10px] font-medium uppercase text-muted-foreground">
-            {isConnected ? "Telemetria ao vivo" : "Telemetria offline"}
-          </span>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2">
+            <div className={cn("h-2 w-2 rounded-full", isConnected ? "animate-pulse bg-emerald-500" : "bg-muted")} />
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              {isConnected ? "Telemetria ao vivo" : "Telemetria offline"}
+            </span>
+          </div>
+          {agent.lastHeartbeatAt && !isConnected && (
+            <span className="text-[10px] text-muted-foreground">Último contato {formatRelativeHeartbeat(agent.lastHeartbeatAt)}</span>
+          )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-6">
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="overflow-hidden border-border/40 bg-muted/10">
             <CardContent className="p-4">
@@ -121,7 +130,12 @@ export function HostTechnicalTab({
                 </div>
                 <span className="font-mono text-lg font-bold">{cpuLoad !== null ? `${cpuLoad}%` : "--"}</span>
               </div>
-              <Progress value={cpuLoad ?? 0} className="mt-3 h-1.5" />
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted shadow-inner">
+                <div 
+                  className={cn("h-full transition-all", cpuLoad !== null && cpuLoad > 85 ? "bg-rose-500" : cpuLoad !== null && cpuLoad > 60 ? "bg-amber-500" : "bg-primary")} 
+                  style={{ width: `${cpuLoad ?? 0}%` }} 
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -134,7 +148,12 @@ export function HostTechnicalTab({
                 </div>
                 <span className="font-mono text-lg font-bold">{ramUsedPc !== null ? `${ramUsedPc}%` : "--"}</span>
               </div>
-              <Progress value={ramUsedPc ?? 0} className="mt-3 h-1.5" />
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted shadow-inner">
+                <div 
+                  className={cn("h-full transition-all", ramUsedPc !== null && ramUsedPc > 85 ? "bg-rose-500" : ramUsedPc !== null && ramUsedPc > 75 ? "bg-amber-500" : "bg-primary")} 
+                  style={{ width: `${ramUsedPc ?? 0}%` }} 
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -143,9 +162,15 @@ export function HostTechnicalTab({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <HardDrive className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Disco livre</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Disco livre (C:)</span>
                 </div>
                 <span className="font-mono text-lg font-bold">{diskFreeGb !== null ? `${diskFreeGb}GB` : "--"}</span>
+              </div>
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted shadow-inner">
+                <div 
+                  className={cn("h-full transition-all", diskUsedPc !== null && diskUsedPc > 90 ? "bg-rose-500" : diskUsedPc !== null && diskUsedPc > 80 ? "bg-amber-500" : "bg-primary")} 
+                  style={{ width: `${diskUsedPc ?? 0}%` }} 
+                />
               </div>
               <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>{diskTotalGb ? `Total: ${diskTotalGb}GB` : ""}</span>
@@ -398,14 +423,30 @@ export function HostTechnicalTab({
         {/* Adaptadores de Rede */}
         {networkSnapshot && Array.isArray(networkSnapshot["adapters"]) && networkSnapshot["adapters"].length > 0 && (
           <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-            <div className="flex items-center gap-2">
-              <Network className="h-4 w-4 text-primary" />
-              <p className="text-sm font-medium text-foreground">Adaptadores de rede ativos</p>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Network className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium text-foreground">Adaptadores de rede ativos</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <p>Interfaces de rede físicas e virtuais detectadas no último sync do host.</p>
+                  {details.agentTelemetry.networkSnapshotAt && (
+                    <span className="flex items-center gap-1 font-medium text-muted-foreground/80 before:content-['•'] before:mr-1">
+                      {formatRelativeHeartbeat(details.agentTelemetry.networkSnapshotAt)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowInactiveNetwork(!showInactiveNetwork)}
+                className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              >
+                {showInactiveNetwork ? <><ChevronUp className="h-3 w-3" /> Ocultar Inativos</> : <><ChevronDown className="h-3 w-3" /> Mostrar Inativos</>}
+              </button>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Interfaces de rede físicas e virtuais detectadas no último sync do host.
-            </p>
-            <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            
+            <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {(networkSnapshot["adapters"] as Array<{
                 name: string;
                 friendlyName?: string;
@@ -413,7 +454,9 @@ export function HostTechnicalTab({
                 up: boolean;
                 mtu?: number;
                 addresses?: string[];
-              }>).map((adapter, index) => {
+              }>)
+                .filter(adapter => showInactiveNetwork || adapter.up)
+                .map((adapter, index) => {
                 const addresses = Array.isArray(adapter.addresses) ? adapter.addresses : [];
                 return (
                   <div

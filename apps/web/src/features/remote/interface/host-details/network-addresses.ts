@@ -15,8 +15,14 @@ function isPrivateIpv4(value: string) {
     /^10\./.test(value) ||
     /^192\.168\./.test(value) ||
     /^172\.(1[6-9]|2\d|3[0-1])\./.test(value) ||
-    /^127\./.test(value)
+    /^127\./.test(value) ||
+    /^169\.254\./.test(value) ||
+    value === "0.0.0.0"
   );
+}
+
+function isValidPrimaryIpv4(value: string) {
+  return isPrivateIpv4(value) && !/^127\./.test(value) && !/^169\.254\./.test(value) && value !== "0.0.0.0";
 }
 
 function walkValues(input: unknown, visit: (value: string, keyPath: string[]) => void, keyPath: string[] = []) {
@@ -103,7 +109,7 @@ export function resolveRemoteNetworkFields(input: {
       "lanIp",
       "localAddress",
     ]),
-    isPrivateIpv4,
+    isValidPrimaryIpv4,
   );
 
   const explicitPublic = pickFirstIpv4(
@@ -128,6 +134,7 @@ export function resolveRemoteNetworkFields(input: {
       "routerGateway",
       "localGateway",
     ]),
+    isValidPrimaryIpv4,
   );
 
   const allCandidates = [
@@ -135,14 +142,14 @@ export function resolveRemoteNetworkFields(input: {
     ...extractIpv4Candidates(systemSnapshot),
   ];
 
-  const privateCandidates = allCandidates.filter(isPrivateIpv4);
+  const validLocalCandidates = allCandidates.filter(isValidPrimaryIpv4);
   const publicCandidates = allCandidates.filter((ip) => !isPrivateIpv4(ip));
   const normalizedLastKnownIp = normalizeString(lastKnownIp);
 
   const localIpv4 =
     explicitLocal ??
-    privateCandidates[0] ??
-    (isPrivateIpv4(normalizedLastKnownIp) ? normalizedLastKnownIp : null);
+    validLocalCandidates[0] ??
+    (normalizedLastKnownIp && isValidPrimaryIpv4(normalizedLastKnownIp) ? normalizedLastKnownIp : null);
 
   const publicIpv4 =
     explicitPublic ??
@@ -151,7 +158,7 @@ export function resolveRemoteNetworkFields(input: {
 
   const localGateway =
     explicitGateway ??
-    privateCandidates.find((ip) => ip !== localIpv4) ??
+    validLocalCandidates.find((ip) => ip !== localIpv4) ??
     null;
 
   return {
