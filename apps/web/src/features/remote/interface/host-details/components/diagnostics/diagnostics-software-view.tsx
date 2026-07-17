@@ -31,7 +31,7 @@ function standardizeArch(raw: string | null): string | null {
   return raw;
 }
 
-export function InventorySoftwareView({ softwareSnapshot, softwareSnapshotAt }: Props) {
+export function DiagnosticsSoftwareView({ softwareSnapshot, softwareSnapshotAt }: Props) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [copiedPath, setCopiedPath] = useState<string | null>(null);

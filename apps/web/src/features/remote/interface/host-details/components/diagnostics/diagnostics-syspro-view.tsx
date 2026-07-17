@@ -9,7 +9,7 @@ type Props = {
   sysproVersionSnapshotAt: string | null;
 };
 
-export function InventorySysproView({ sysproVersionSnapshot, sysproVersionSnapshotAt }: Props) {
+export function DiagnosticsSysproView({ sysproVersionSnapshot, sysproVersionSnapshotAt }: Props) {
   const displaySnapshotDate = sysproVersionSnapshotAt ? formatDateTime(sysproVersionSnapshotAt) : "Nunca";
 
   return (

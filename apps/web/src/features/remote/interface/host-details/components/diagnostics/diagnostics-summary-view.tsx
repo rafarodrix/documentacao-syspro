@@ -8,7 +8,7 @@ type Props = {
   details: RemoteHostDetails;
 };
 
-export function InventorySummaryView({ details }: Props) {
+export function DiagnosticsSummaryView({ details }: Props) {
   const telemetry = details.agentTelemetry;
 
   const getSystemInfo = () => {

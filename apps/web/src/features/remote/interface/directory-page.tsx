@@ -473,19 +473,6 @@ export function RemotePlatformDirectoryPanel({
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={companyFilter} onValueChange={setCompanyFilter}>
-            <SelectTrigger className="h-9 w-45 bg-background text-sm">
-              <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <SelectValue placeholder="Empresa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as empresas</SelectItem>
-              {directory.companyOptions.map((company) => (
-                <SelectItem key={company.id} value={company.id}>{company.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v as typeof agentFilter)}>
             <SelectTrigger className="h-9 w-40 bg-background text-sm">
               <SelectValue placeholder="Estado" />
@@ -570,7 +557,7 @@ export function RemotePlatformDirectoryPanel({
             )}
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <Search className="h-3.5 w-3.5" />
-              {visibleItemsCount} dispositivo{visibleItemsCount === 1 ? "" : "s"}
+              {visibleItemsCount} dispositivo{visibleItemsCount === 1 ? "" : "s"} {scopeFilter === "managed" ? (visibleItemsCount === 1 ? "gerenciado" : "gerenciados") : scopeFilter === "pending" ? (visibleItemsCount === 1 ? "pendente" : "pendentes") : scopeFilter === "discovered" ? (visibleItemsCount === 1 ? "descoberto" : "descobertos") : ""}
             </span>
           </div>
         </div>
@@ -921,24 +908,18 @@ export function RemotePlatformDirectoryPanel({
                   <TableCell className="min-w-0 py-2.5">
                     <div className="flex items-start gap-2.5">
                       <div className="relative mt-1.5 flex h-2 w-2 shrink-0 items-center justify-center">
-                        {health.label === "Pronto" || health.label === "Contato recente" || health.label === "Em atendimento" ? (
-                          <>
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
-                          </>
-                        ) : health.label === "Atenção" ? (
-                          <>
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-60" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)]" />
-                          </>
-                        ) : health.label === "Provisionando" ? (
-                          <>
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-500 opacity-60" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500 shadow-[0_0_6px_rgba(14,165,233,0.7)]" />
-                          </>
-                        ) : (
-                          <div className={cn("h-2 w-2 shrink-0 rounded-full", health.dotClass)} />
-                        )}
+                        {(() => {
+                          const hb = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow);
+                          if (hb.bucket === "recent") {
+                            return (
+                              <>
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+                              </>
+                            );
+                          }
+                          return <div className={cn("h-2 w-2 shrink-0 rounded-full", hb.dotClass)} />;
+                        })()}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
@@ -1019,7 +1000,20 @@ export function RemotePlatformDirectoryPanel({
                 <div key={item.id} className="px-4 py-4 transition-colors hover:bg-muted/10">
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
-                      <div className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", health.dotClass)} />
+                      <div className="shrink-0">
+                        {(() => {
+                          const hb = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow);
+                          if (hb.bucket === "recent") {
+                            return (
+                              <div className="relative mt-1.5 flex h-2.5 w-2.5 items-center justify-center">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+                              </div>
+                            );
+                          }
+                          return <div className={cn("mt-1.5 h-2.5 w-2.5 rounded-full", hb.dotClass)} />;
+                        })()}
+                      </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
                           <Badge variant="outline" className={cn("h-5 text-[10px]", health.className)}>

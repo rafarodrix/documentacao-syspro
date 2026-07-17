@@ -2248,11 +2248,14 @@ body {
   padding: 8px 10px;
   border-radius: 12px;
   background: linear-gradient(135deg, #0a2644 0%, #133b60 100%);
+  flex-wrap: nowrap;
 }
 
 .support-remote-id-row.compact .support-remote-id-value {
   font-size: 20px;
   color: #fff;
+  min-width: 0;
+  flex: 1;
 }
 
 .support-remote-actions.compact {
@@ -2347,9 +2350,15 @@ body {
 }
 
 .support-footer-actions.compact {
-  justify-content: flex-start;
+  justify-content: center;
   gap: 6px;
   padding-top: 0;
+  margin-top: auto;
+}
+
+.support-footer-actions.compact.single-line {
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .support-footer-link {

@@ -16,10 +16,9 @@ import {
   HostHeroHeader,
   HostOverviewTab,
   HostBackupTab,
-  HostComponentsTab,
+  HostServicesTab,
   HostSettingsTab,
-  HostTechnicalTab,
-  HostInventoryTab,
+  HostDiagnosticsTab,
 } from "./host-details/components";
 
 export function RemoteHostDetailsPanel({
@@ -451,11 +450,10 @@ export function RemoteHostDetailsPanel({
 
       <Tabs defaultValue="geral" className="space-y-6">
         <div className="flex w-full">
-          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:grid-cols-7">
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:grid-cols-6">
             <TabsTrigger value="geral">Visão geral</TabsTrigger>
-            <TabsTrigger value="monitoramento">Monitoramento</TabsTrigger>
-            <TabsTrigger value="instalacoes">Componentes</TabsTrigger>
-            <TabsTrigger value="softwares">Inventário</TabsTrigger>
+            <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
+            <TabsTrigger value="servicos">Serviços</TabsTrigger>
             <TabsTrigger value="bkp">Backup</TabsTrigger>
             <TabsTrigger value="eventos">Eventos</TabsTrigger>
             <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
@@ -481,41 +479,26 @@ export function RemoteHostDetailsPanel({
             windowsUpdateStatus={details.agentTelemetry.windowsUpdateStatus}
             sysproProcessSnapshot={sysproProcessSnapshot}
             diskSnapshot={diskSnapshot}
-          />
-        </TabsContent>
-
-        <TabsContent value="monitoramento">
-          <HostTechnicalTab
-            details={details}
-            host={host}
-            machineIpv4={machineIpv4}
-            internetIpv4={internetIpv4}
-            localGateway={localGateway}
-            windowsComputerName={windowsComputerName}
             firebirdData={firebirdData}
-            sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
-            diskSnapshot={diskSnapshot}
-            sysproProcessSnapshot={sysproProcessSnapshot}
-            rebootPending={rebootPending}
-            windowsUpdateStatus={details.agentTelemetry.windowsUpdateStatus}
-            windowsUpdateStatusAt={details.agentTelemetry.windowsUpdateStatusAt}
           />
         </TabsContent>
 
-        <TabsContent value="instalacoes">
-          <HostComponentsTab
+        <TabsContent value="diagnostico" className="space-y-6">
+          <HostDiagnosticsTab details={details} />
+        </TabsContent>
+
+        <TabsContent value="servicos">
+          <HostServicesTab
             host={host}
             agent={agent}
             details={details}
             firebirdData={firebirdData}
             sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
-            onCopyRustDeskId={(val) => handleCopy(val, "ID do RustDesk")}
+            rustDeskCompliance={rustDeskCompliance}
+            onRequestRemoteAction={handleRequestRemoteAction}
+            onCopyRustDeskId={(val: string | null) => handleCopy(val, "ID do RustDesk")}
             onConnectRustDesk={handleStartOrchestratedSession}
           />
-        </TabsContent>
-
-        <TabsContent value="softwares" className="space-y-6">
-          <HostInventoryTab details={details} />
         </TabsContent>
 
         <TabsContent value="bkp" className="space-y-6">

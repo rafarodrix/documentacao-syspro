@@ -21,7 +21,7 @@ function formatBytes(bytes: number | null | undefined): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
-export function InventoryStorageView({ diskSnapshot, diskSnapshotAt }: Props) {
+export function DiagnosticsStorageView({ diskSnapshot, diskSnapshotAt }: Props) {
   const displayDate = diskSnapshotAt ? formatDateTime(diskSnapshotAt) : "Nunca";
 
   const volumes = useMemo(() => {

@@ -4,7 +4,7 @@ import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-ho
 
 export type DirectoryItem = RemotePlatformDirectory["items"][number];
 
-export type HeartbeatBucket = "recent" | "stale" | "missing";
+export type HeartbeatBucket = "recent" | "stale" | "missing" | "never";
 
 export type UnifiedHealthMeta = {
   label: string;
@@ -16,11 +16,11 @@ export type UnifiedHealthMeta = {
 export function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow: number | null) {
   if (!lastHeartbeatAt) {
     return {
-      label: "Sem contato",
-      shortLabel: "Offline",
-      className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      dotClass: "bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]",
-      bucket: "missing" as const satisfies HeartbeatBucket,
+      label: "Nunca conectado",
+      shortLabel: "Sem dados",
+      className: "border-border/60 bg-muted/30 text-muted-foreground",
+      dotClass: "bg-muted shadow-[0_0_0_4px_rgba(156,163,175,0.12)]",
+      bucket: "never" as const satisfies HeartbeatBucket,
     };
   }
 
@@ -45,12 +45,22 @@ export function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow:
     };
   }
 
+  if (diffMinutes <= 30) {
+    return {
+      label: "Comunicação atrasada",
+      shortLabel: "Atrasado",
+      className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      dotClass: "bg-amber-500 shadow-[0_0_0_4px_rgba(245,158,11,0.12)]",
+      bucket: "stale" as const satisfies HeartbeatBucket,
+    };
+  }
+
   return {
-    label: "Contato antigo",
-    shortLabel: "Instável",
-    className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    dotClass: "bg-amber-500 shadow-[0_0_0_4px_rgba(245,158,11,0.12)]",
-    bucket: "stale" as const satisfies HeartbeatBucket,
+    label: "Offline",
+    shortLabel: "Offline",
+    className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+    dotClass: "bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.12)]",
+    bucket: "missing" as const satisfies HeartbeatBucket,
   };
 }
 

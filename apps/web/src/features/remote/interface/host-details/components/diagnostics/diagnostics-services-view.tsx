@@ -11,7 +11,7 @@ type Props = {
   sysproProcessSnapshotAt: string | null;
 };
 
-export function InventoryServicesView({ systemSnapshot, sysproProcessSnapshot, sysproProcessSnapshotAt }: Props) {
+export function DiagnosticsServicesView({ systemSnapshot, sysproProcessSnapshot, sysproProcessSnapshotAt }: Props) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 15;

@@ -115,7 +115,7 @@ export function SupportScreen(props: SupportScreenProps) {
             ) : (
               <>
                 {!setupView.complete ? (
-                  <div className={`support-diagnostic-card compact state-${setupOverallState}`}>
+                  <section className={`support-diagnostic-card compact state-${setupOverallState}`}>
                     <div className="support-diagnostic-header">
                       <div className="support-diagnostic-copy">
                         <span className="support-summary-label">Provisionamento em andamento</span>
@@ -134,7 +134,7 @@ export function SupportScreen(props: SupportScreenProps) {
                     {setupView.lastError ? (
                       <div className="support-diagnostic-error">Ultimo erro: {formatSetupCopy(setupView.lastError)}</div>
                     ) : null}
-                  </div>
+                  </section>
                 ) : null}
 
                 <section className="support-remote-card compact">
@@ -148,14 +148,7 @@ export function SupportScreen(props: SupportScreenProps) {
 
                   <div className="support-remote-id-row compact">
                     <div className="support-remote-id-value mono">{formatRemoteId(remote?.externalId)}</div>
-                    {remote?.externalId ? (
-                      <CopyButton
-                        value={remote.externalId}
-                        label="Copiar ID do RustDesk"
-                        copiedText="ID copiado"
-                        showCopiedText
-                      />
-                    ) : null}
+                    {remote?.externalId ? <CopyButton value={remote.externalId} label="Copiar ID do RustDesk" /> : null}
                   </div>
 
                   <div className="support-remote-actions compact">
@@ -201,15 +194,15 @@ export function SupportScreen(props: SupportScreenProps) {
                   <span>{healthSummary.summary}</span>
                 </button>
 
-                <nav className="support-footer-actions compact" aria-label="Navegacao do agente">
+                <nav className="support-footer-actions compact single-line" aria-label="Navegacao do agente">
                   <button type="button" className="support-footer-link inline emphasized" onClick={() => setActiveView("diagnostics")}>
                     Diagnostico
                   </button>
-                  <span className="support-footer-separator">.</span>
+                  <span className="support-footer-separator">|</span>
                   <button type="button" className="support-footer-link inline" onClick={() => setActiveView("details")}>
                     Detalhes
                   </button>
-                  <span className="support-footer-separator">.</span>
+                  <span className="support-footer-separator">|</span>
                   <button type="button" className="support-footer-link inline" onClick={() => setActiveView("about")}>
                     Sobre
                   </button>

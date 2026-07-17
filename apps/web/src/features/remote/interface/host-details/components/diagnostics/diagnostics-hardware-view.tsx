@@ -8,7 +8,7 @@ type Props = {
   hardwareIdentityAt: string | null;
 };
 
-export function InventoryHardwareView({ hardwareIdentity, hardwareIdentityAt }: Props) {
+export function DiagnosticsHardwareView({ hardwareIdentity, hardwareIdentityAt }: Props) {
   const displayDate = hardwareIdentityAt ? formatDateTime(hardwareIdentityAt) : "Nunca";
 
   if (!hardwareIdentity) {

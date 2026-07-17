@@ -30,6 +30,7 @@ type Props = {
   windowsUpdateStatus?: RemoteHostDetails["agentTelemetry"]["windowsUpdateStatus"];
   sysproProcessSnapshot?: RemoteHostDetails["agentTelemetry"]["sysproProcessSnapshot"];
   diskSnapshot?: RemoteHostDetails["agentTelemetry"]["diskSnapshot"];
+  firebirdData: { name: string | null; version: string | null; processRunning: boolean | null };
 };
 
 function HeartbeatIndicator({ label }: { label: string }) {
@@ -99,6 +100,23 @@ export function HostOverviewTab({
 
   const cpuLoad = host.lastAgentMetrics?.cpuLoad ?? null;
   const ramUsedPc = host.lastAgentMetrics?.ramUsedPc ?? null;
+  
+  const primaryDisk = Array.isArray(diskSnapshot) 
+    ? [...diskSnapshot].sort((a, b) => {
+        const aLetter = typeof a["letter"] === "string" ? a["letter"].toUpperCase() : "";
+        const bLetter = typeof b["letter"] === "string" ? b["letter"].toUpperCase() : "";
+        if (aLetter === "C" && bLetter !== "C") return -1;
+        if (bLetter === "C" && aLetter !== "C") return 1;
+        const aTotal = typeof a["totalMb"] === "number" ? a["totalMb"] : 0;
+        const bTotal = typeof b["totalMb"] === "number" ? b["totalMb"] : 0;
+        return bTotal - aTotal;
+      })[0] ?? null
+    : null;
+  const diskFreeFromMetrics = host.lastAgentMetrics?.diskFree;
+  const diskTotalFromMetrics = host.lastAgentMetrics?.diskTotal;
+  const diskFree = diskFreeFromMetrics ?? (primaryDisk && typeof primaryDisk["freeMb"] === "number" ? primaryDisk["freeMb"] * 1024 * 1024 : null);
+  const diskTotal = diskTotalFromMetrics ?? (primaryDisk && typeof primaryDisk["totalMb"] === "number" ? primaryDisk["totalMb"] * 1024 * 1024 : null);
+  const diskUsedPc = diskFree !== null && diskTotal !== null && diskTotal > 0 ? Math.round((1 - diskFree / diskTotal) * 100) : null;
 
   return (
     <div className="space-y-6">
@@ -280,6 +298,19 @@ export function HostOverviewTab({
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-sky-400 to-blue-600 shadow-[0_0_8px_rgba(56,189,248,0.4)] transition-all duration-500"
                     style={{ width: `${ramUsedPc ?? 0}%` }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-muted-foreground">Uso de Disco (C:)</span>
+                  <span className="font-mono font-bold text-foreground">{diskUsedPc !== null ? `${diskUsedPc}%` : "--"}</span>
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/65 shadow-inner">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-600 shadow-[0_0_8px_rgba(52,211,153,0.4)] transition-all duration-500"
+                    style={{ width: `${diskUsedPc ?? 0}%` }}
                   />
                 </div>
               </div>

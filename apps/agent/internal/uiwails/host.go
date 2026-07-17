@@ -129,6 +129,34 @@ func (h *Host) Open(ctx context.Context, target string) error {
 	return nil
 }
 
+func (h *Host) RevealCurrent() {
+	h.mu.Lock()
+	runtimeCtx := h.runtimeCtx
+	started := h.started
+	target := h.currentTarget
+	h.showOnStartup = true
+	h.mu.Unlock()
+
+	if started && runtimeCtx != nil {
+		h.showTarget(runtimeCtx, target)
+	}
+}
+
+func (h *Host) HandleSecondInstanceLaunch(args []string, workingDirectory string) {
+	backgroundLaunch := hasBackgroundLaunchArg(args)
+	h.logger.Info(
+		"agent ui second instance intercepted",
+		"args", args,
+		"working_directory", workingDirectory,
+		"background", backgroundLaunch,
+	)
+	if backgroundLaunch {
+		return
+	}
+
+	h.RevealCurrent()
+}
+
 func (h *Host) Quit() {
 	h.mu.Lock()
 	runtimeCtx := h.runtimeCtx
@@ -187,6 +215,16 @@ func normalizeTarget(target string) string {
 		}
 		return uistate.TargetSetupExperience
 	}
+}
+
+func hasBackgroundLaunchArg(args []string) bool {
+	for _, arg := range args {
+		switch strings.TrimSpace(strings.ToLower(arg)) {
+		case "--background", "/background", "background":
+			return true
+		}
+	}
+	return false
 }
 
 func targetWindow(target string) (int, int, string) {

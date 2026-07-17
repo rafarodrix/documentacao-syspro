@@ -8,7 +8,7 @@ type Props = {
   systemSnapshotAt: string | null;
 };
 
-export function InventorySystemView({ systemSnapshot, systemSnapshotAt }: Props) {
+export function DiagnosticsSystemView({ systemSnapshot, systemSnapshotAt }: Props) {
   const displayDate = systemSnapshotAt ? formatDateTime(systemSnapshotAt) : "Nunca";
 
   if (!systemSnapshot) {

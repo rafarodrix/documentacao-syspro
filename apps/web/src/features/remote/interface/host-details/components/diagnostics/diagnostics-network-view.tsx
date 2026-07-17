@@ -11,7 +11,7 @@ type Props = {
   networkSnapshotAt: string | null;
 };
 
-export function InventoryNetworkView({ networkSnapshot, networkSnapshotAt }: Props) {
+export function DiagnosticsNetworkView({ networkSnapshot, networkSnapshotAt }: Props) {
   const displayDate = networkSnapshotAt ? formatDateTime(networkSnapshotAt) : "Nunca";
 
   const interfaces = useMemo(() => {
