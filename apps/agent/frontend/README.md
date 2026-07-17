@@ -1,30 +1,54 @@
 # Trilink Agent Frontend (Wails + React)
 
-Este diretório contém a interface gráfica oficial do Trilink Agent, desenvolvida utilizando [Wails](https://wails.io/), React e TypeScript.
+Este diretorio contem a interface grafica oficial do Trilink Agent, desenvolvida com Wails, React e TypeScript.
 
-A interface deverá servir apenas como a camada de experiência do usuário, não possuindo regras de negócio operacionais, que são delegadas ao serviço principal do agente.
+A interface deve permanecer como camada de experiencia do usuario. Regras operacionais, credenciais sensiveis e controle de componentes continuam fora do frontend e pertencem ao agent service.
 
-## Nova Arquitetura e Refatoração
+## Arquitetura
 
-A arquitetura do Trilink Agent está passando por uma refatoração para separar as responsabilidades da interface gráfica das responsabilidades do serviço (backend).
+O desenho alvo da refatoracao esta em [ARCHITECTURE_REFACTOR.md](../ARCHITECTURE_REFACTOR.md).
 
-Consulte o documento completo de arquitetura e refatoração em:
-👉 [ARCHITECTURE_REFACTOR.md](../ARCHITECTURE_REFACTOR.md)
+Principios obrigatorios para qualquer ajuste no frontend:
 
-### Princípios para o Frontend
+1. A UI nao executa rotinas principais do agente.
+2. A UI nao armazena credenciais sensiveis.
+3. A UI fala com o backend apenas via bindings Wails e contratos tipados.
+4. A UI nao dispara comandos arbitrarios, scripts ou shell.
+5. A UI precisa degradar bem quando o service estiver offline.
+6. Preferencias locais da UI devem ficar restritas a comportamento visual e de janela.
 
-Ao desenvolver ou ajustar funcionalidades no frontend do agente, os seguintes princípios **obrigatórios** devem ser seguidos:
+## Estrutura atual
 
-1. **Apenas Camada de Interface**: O frontend Wails será somente a camada de interface gráfica.
-2. **Sem Execução de Rotinas**: A interface não deverá executar as rotinas principais do agente.
-3. **Sem Credenciais Sensíveis**: A interface não deverá armazenar credenciais sensíveis (ex: senhas do RustDesk, tokens, credenciais do banco).
-4. **Comunicação Segura**: A comunicação entre a interface (frontend) e o serviço principal será feita unicamente via **IPC** (local, autenticada e tipada), intermediada pelos bindings do Wails.
-5. **Sem Comandos Arbitrários**: Não poderá existir execução arbitrária de comandos ou scripts (ex: chamadas diretas ao `powershell.exe`) iniciadas pela interface.
-6. **Desacoplamento do Serviço**: A interface deverá estar preparada para lidar com o cenário em que o serviço principal está offline, apresentando mensagens de erro amigáveis ou estado de "desconectado".
-7. **Opções de Preferência (UI)**: O armazenamento local da interface (ex: `%LOCALAPPDATA%\Trilink\AgentUI\`) servirá apenas para preferências de interface, como inicialização minimizada, tamanho da janela, tema, etc.
+O frontend foi reorganizado para deixar `App.tsx` apenas como composicao do shell e separar estado, telas e integracoes por responsabilidade:
 
-## Estrutura Atual e Bindings
+```text
+src/
+├── App.tsx
+├── bindings.ts
+├── components/
+│   ├── CopyButton.tsx
+│   ├── RemoteAccessCard.tsx
+│   └── icons.tsx
+├── features/
+│   ├── setup/
+│   │   ├── SetupScreen.tsx
+│   │   └── setup-helpers.ts
+│   └── support/
+│       ├── SupportScreen.tsx
+│       └── chatwoot.ts
+├── hooks/
+│   └── useAgentShell.ts
+└── types/
+    └── route.ts
+```
 
-Atualmente, o frontend pode possuir acoplamentos legados. Como parte da refatoração descrita no documento `ARCHITECTURE_REFACTOR.md`, as invocações diretas aos módulos do serviço devem ser progressivamente substituídas por chamadas IPC via contratos tipados.
+### Fronteiras
 
-Consulte a documentação principal para guiar a migração.
+1. `App.tsx`: shell principal, navbar e selecao da tela ativa.
+2. `hooks/useAgentShell.ts`: bootstrap inicial, assinaturas Wails, polling e orquestracao de estado.
+3. `features/setup/*`: onboarding, timeline e copy do provisionamento.
+4. `features/support/*`: painel de suporte, drawer do Chatwoot e integracao visual do atendimento.
+5. `components/*`: elementos reutilizaveis puramente visuais.
+6. `bindings.ts`: unica porta de entrada do frontend para chamadas Wails.
+
+Novas capacidades devem seguir esse padrao: contrato vindo de `bindings`, estado/orquestracao em hook ou service de frontend, e renderizacao encapsulada por feature.
