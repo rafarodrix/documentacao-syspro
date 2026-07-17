@@ -1,8 +1,8 @@
 export {
+  GetAgentSetupView,
+  GetAgentSupportView,
   GetCurrentTarget,
-  GetSetupStatus,
   GetSummary,
-  GetSupportSession,
   ListNotifications,
   OpenRemoteClient,
   OpenSetupExperience,

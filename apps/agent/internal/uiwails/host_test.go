@@ -59,6 +59,26 @@ func (f fakeLocalState) SupportSession(context.Context) (uistate.SupportSession,
 	return f.session, f.err
 }
 
+func (f fakeLocalState) AgentSetupView(ctx context.Context) (uistate.AgentSetupView, error) {
+	setup, err := f.SetupStatus(ctx)
+	if err != nil {
+		return uistate.AgentSetupView{}, err
+	}
+	session, err := f.SupportSession(ctx)
+	if err != nil {
+		return uistate.AgentSetupView{}, err
+	}
+	return uistate.BuildAgentSetupView(setup, session), nil
+}
+
+func (f fakeLocalState) AgentSupportView(ctx context.Context) (uistate.AgentSupportView, error) {
+	session, err := f.SupportSession(ctx)
+	if err != nil {
+		return uistate.AgentSupportView{}, err
+	}
+	return uistate.BuildAgentSupportView(session), nil
+}
+
 func TestGetSupportSessionPrefersIPC(t *testing.T) {
 	expected := uistate.SupportSession{
 		Context: uistate.SupportContext{

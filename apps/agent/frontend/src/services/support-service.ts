@@ -1,15 +1,15 @@
 import {
-  GetSupportSession,
+  GetAgentSupportView,
   OpenRemoteClient,
   OpenSupportConversation,
   SyncSupportConversationContext,
 } from "../bindings";
-import { domain, uistate } from "../../wailsjs/go/models";
+import { uistate } from "../../wailsjs/go/models";
 import type { SupportSessionView } from "../types/agent-ui";
 
 export async function fetchSupportSession(): Promise<SupportSessionView> {
-  const session = await GetSupportSession();
-  return mapSupportSession(session);
+  const view = await GetAgentSupportView();
+  return normalizeSupportView(view);
 }
 
 export async function openSupportConversation(): Promise<void> {
@@ -24,50 +24,42 @@ export async function syncSupportConversationContext(conversationId: string): Pr
   await SyncSupportConversationContext(conversationId);
 }
 
-export function mapSupportSession(session: uistate.SupportSession): SupportSessionView {
+export function normalizeSupportView(view: uistate.AgentSupportView): SupportSessionView {
   return {
     channel: {
-      baseUrl: session.base_url?.trim() || "",
-      websiteToken: session.website_token?.trim() || "",
-      configured: Boolean(session.base_url?.trim() && session.website_token?.trim()),
+      baseUrl: view.channel?.baseUrl?.trim() || "",
+      websiteToken: view.channel?.websiteToken?.trim() || "",
+      configured: Boolean(view.channel?.configured),
     },
     device: {
-      deviceId: session.context?.deviceId?.trim() || null,
-      hostname: session.context?.hostname?.trim() || null,
-      os: session.context?.os?.trim() || null,
-      localUsername: session.context?.localUsername?.trim() || null,
-      machineName: session.context?.machineName?.trim() || null,
-      agentVersion: session.context?.agentVersion?.trim() || null,
+      deviceId: view.device?.deviceId?.trim() || null,
+      hostname: view.device?.hostname?.trim() || null,
+      os: view.device?.os?.trim() || null,
+      localUsername: view.device?.localUsername?.trim() || null,
+      machineName: view.device?.machineName?.trim() || null,
+      agentVersion: view.device?.agentVersion?.trim() || null,
     },
     installation: {
-      companyId: session.context?.companyId?.trim() || null,
-      companyName: session.context?.companyDisplayName?.trim() || null,
-      hostId: session.context?.hostId?.trim() || null,
-      hostAlias: session.context?.hostAlias?.trim() || null,
-      contactName: session.context?.contactName?.trim() || null,
-      description: session.context?.description?.trim() || null,
+      companyId: view.installation?.companyId?.trim() || null,
+      companyName: view.installation?.companyName?.trim() || null,
+      hostId: view.installation?.hostId?.trim() || null,
+      hostAlias: view.installation?.hostAlias?.trim() || null,
+      contactName: view.installation?.contactName?.trim() || null,
+      description: view.installation?.description?.trim() || null,
     },
     capabilities: {
-      remote: mapRemoteCapability(session.context),
+      remote: view.capabilities?.remote
+        ? {
+            kind: "remote",
+            externalId: view.capabilities.remote.externalId?.trim() || null,
+            accessPassword: view.capabilities.remote.accessPassword?.trim() || null,
+            status: normalizeRemoteStatus(view.capabilities.remote.status),
+            statusText: view.capabilities.remote.statusText?.trim() || null,
+            ready: Boolean(view.capabilities.remote.ready),
+          }
+        : null,
     },
-    conversationTags: session.context?.conversationTags ?? [],
-  };
-}
-
-function mapRemoteCapability(context?: domain.SupportContext): SupportSessionView["capabilities"]["remote"] {
-  if (!context) return null;
-
-  const externalId = context.rustdeskId?.trim() || null;
-  const status = normalizeRemoteStatus(context.remoteStatus);
-  const statusText = context.remoteStatusText?.trim() || null;
-
-  return {
-    kind: "remote",
-    externalId,
-    accessPassword: context.remoteAccessPassword?.trim() || null,
-    status,
-    statusText,
-    ready: Boolean(externalId),
+    conversationTags: view.conversationTags ?? [],
   };
 }
 

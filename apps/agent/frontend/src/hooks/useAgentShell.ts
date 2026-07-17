@@ -11,10 +11,10 @@ import {
   openChatwootInline,
 } from "../features/support/chatwoot";
 import { fetchCurrentTarget, fetchNotifications, mapNotifications } from "../services/shell-service";
-import { defaultSetupStatusView, fetchSetupStatus, mapSetupStatus, openSetupExperience } from "../services/setup-service";
+import { defaultSetupStatusView, fetchSetupStatus, normalizeSetupView, openSetupExperience } from "../services/setup-service";
 import {
   fetchSupportSession,
-  mapSupportSession,
+  normalizeSupportView,
   openRemoteClient,
   openSupportConversation,
   syncSupportConversationContext,
@@ -85,11 +85,14 @@ export function useAgentShell() {
             .catch((err) => console.error("GetSupportSession failed:", err));
         }
       }),
-      EventsOn("agent:setup-status", (payload: uistate.SetupStatus) => {
-        setSetupStatus(mapSetupStatus(payload));
+      EventsOn("agent:setup-view", (payload: uistate.AgentSetupView) => {
+        setSetupStatus(normalizeSetupView(payload));
       }),
       EventsOn("agent:notifications", (payload: Array<uistate.Notification>) => {
-        setNotifications(mapNotifications(payload) as any);
+        setNotifications(mapNotifications(payload));
+      }),
+      EventsOn("agent:support-view", (payload: uistate.AgentSupportView) => {
+        setSupportSession(normalizeSupportView(payload));
       }),
     ];
 

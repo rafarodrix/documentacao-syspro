@@ -71,6 +71,29 @@ type SupportSession struct {
 	Context      SupportContext `json:"context"`
 }
 
+func (s *Service) AgentSetupView(ctx context.Context) (AgentSetupView, error) {
+	setup, err := s.SetupStatus(ctx)
+	if err != nil {
+		return AgentSetupView{}, err
+	}
+
+	support, err := s.SupportSession(ctx)
+	if err != nil {
+		return AgentSetupView{}, err
+	}
+
+	return BuildAgentSetupView(setup, support), nil
+}
+
+func (s *Service) AgentSupportView(ctx context.Context) (AgentSupportView, error) {
+	support, err := s.SupportSession(ctx)
+	if err != nil {
+		return AgentSupportView{}, err
+	}
+
+	return BuildAgentSupportView(support), nil
+}
+
 type SupportContextPublisher interface {
 	SyncSupportConversationContext(ctx context.Context, conversationID string, supportContext domain.SupportConversationContext) error
 }

@@ -38,7 +38,12 @@ src/
 │       └── chatwoot.ts
 ├── hooks/
 │   └── useAgentShell.ts
+├── services/
+│   ├── shell-service.ts
+│   ├── setup-service.ts
+│   └── support-service.ts
 └── types/
+    ├── agent-ui.ts
     └── route.ts
 ```
 
@@ -48,7 +53,25 @@ src/
 2. `hooks/useAgentShell.ts`: bootstrap inicial, assinaturas Wails, polling e orquestracao de estado.
 3. `features/setup/*`: onboarding, timeline e copy do provisionamento.
 4. `features/support/*`: painel de suporte, drawer do Chatwoot e integracao visual do atendimento.
-5. `components/*`: elementos reutilizaveis puramente visuais.
-6. `bindings.ts`: unica porta de entrada do frontend para chamadas Wails.
+5. `services/*`: adaptadores da UI sobre os bindings Wails e normalizacao dos contratos.
+6. `components/*`: elementos reutilizaveis puramente visuais.
+7. `bindings.ts`: unica porta de entrada do frontend para chamadas Wails.
 
 Novas capacidades devem seguir esse padrao: contrato vindo de `bindings`, estado/orquestracao em hook ou service de frontend, e renderizacao encapsulada por feature.
+
+## Contratos Wails atuais
+
+O frontend nao deve mais expandir a UI em cima dos contratos legados `GetSetupStatus` e `GetSupportSession`.
+
+Os contratos preferenciais agora sao:
+
+1. `GetAgentSetupView()`
+2. `GetAgentSupportView()`
+
+Esses metodos ja expõem o vocabulário novo da UI:
+
+1. `device`
+2. `installation`
+3. `capabilities`
+
+Os contratos antigos permanecem apenas como compatibilidade residual no backend Wails enquanto a limpeza completa nao e concluida.
