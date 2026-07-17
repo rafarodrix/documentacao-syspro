@@ -1,0 +1,12 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@dosc-syspro/contacts-domain": ["../domain/src/index.ts"],
+      "@dosc-syspro/contracts": ["../../../contracts/src/index.ts"],
+      "@dosc-syspro/shared": ["../../../shared/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

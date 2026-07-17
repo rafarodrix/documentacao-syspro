@@ -8,8 +8,8 @@ import { mountChatwootEmbed, openChatwootInline } from "./chatwoot";
 type SetupOverallState = "complete" | "error" | "running" | "idle";
 
 type SupportScreenProps = {
-  session: AgentSupportViewModel | null;
-  setupStatus: AgentSetupViewModel;
+  supportView: AgentSupportViewModel | null;
+  setupView: AgentSetupViewModel;
   activeStep?: SetupStepView | null;
   setupOverallState: SetupOverallState;
   chatwootReady: boolean;
@@ -22,8 +22,8 @@ type SupportScreenProps = {
 
 export function SupportScreen(props: SupportScreenProps) {
   const {
-    session,
-    setupStatus,
+    supportView,
+    setupView,
     activeStep,
     setupOverallState,
     chatwootReady,
@@ -36,18 +36,18 @@ export function SupportScreen(props: SupportScreenProps) {
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [chatDrawerExpanded, setChatDrawerExpanded] = useState(false);
-  const remote = session?.capabilities.remote ?? null;
-  const chatConfigured = Boolean(session?.channel.configured);
-  const setupHeadline = getSetupHeadline(setupStatus, activeStep, setupOverallState);
-  const setupDetail = getSetupDetail(setupStatus, activeStep, setupOverallState);
-  const setupHint = getSetupHint(setupStatus, activeStep);
+  const remote = supportView?.capabilities.remote ?? null;
+  const chatConfigured = Boolean(supportView?.channel.configured);
+  const setupHeadline = getSetupHeadline(setupView, activeStep, setupOverallState);
+  const setupDetail = getSetupDetail(setupView, activeStep, setupOverallState);
+  const setupHint = getSetupHint(setupView, activeStep);
 
   const remoteId = remote?.externalId ?? "";
   const remotePassword = remote?.accessPassword ?? "";
   const remoteReady = Boolean(remoteId);
-  const companyName = session?.installation.companyName ?? "Cliente Trilink";
-  const machineName = session?.device.machineName || session?.device.hostname || "Maquina em preparacao";
-  const operatorName = session?.device.localUsername || "Operador local";
+  const companyName = supportView?.installation.companyName ?? "Cliente Trilink";
+  const machineName = supportView?.device.machineName || supportView?.device.hostname || "Maquina em preparacao";
+  const operatorName = supportView?.device.localUsername || "Operador local";
   const remoteStateLabel = remoteReady
     ? "Remoto pronto"
     : formatSetupCopy(remote?.statusText) || setupHeadline;
@@ -70,7 +70,7 @@ export function SupportScreen(props: SupportScreenProps) {
     if (!chatwootReady || !chatDrawerOpen) return;
     mountChatwootEmbed(chatContainerRef.current);
     openChatwootInline();
-  }, [chatDrawerOpen, chatwootReady, session?.channel.websiteToken]);
+  }, [chatDrawerOpen, chatwootReady, supportView?.channel.websiteToken]);
 
   const toggleSupportDrawer = () => {
     if (chatDrawerOpen) {
@@ -103,7 +103,7 @@ export function SupportScreen(props: SupportScreenProps) {
       </section>
 
       <section className="support-body compact">
-        {!remoteReady || !setupStatus.complete ? (
+        {!remoteReady || !setupView.complete ? (
           <div className={`support-diagnostic-card state-${setupOverallState}`}>
             <div className="support-diagnostic-header">
               <div className="support-diagnostic-copy">
@@ -122,9 +122,9 @@ export function SupportScreen(props: SupportScreenProps) {
               </div>
             ) : null}
             {setupHint ? <div className="support-diagnostic-callout">{setupHint}</div> : null}
-            {setupStatus.lastError ? (
+            {setupView.lastError ? (
               <div className="support-diagnostic-error">
-                Ultimo erro: {formatSetupCopy(setupStatus.lastError)}
+                Ultimo erro: {formatSetupCopy(setupView.lastError)}
               </div>
             ) : null}
           </div>

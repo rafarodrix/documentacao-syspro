@@ -37,6 +37,7 @@ Agente:
   - `SUPPORT_CHATWOOT_WEBSITE_TOKEN`
   - `REMOTE_ENABLED=true`
   - `REMOTE_DISCOVERY_TOKEN`
+  - `AGENT_UPDATE_MANIFEST_URL` quando quiser validar update remoto por manifesto
 - configuracao global do remoto preenchida no portal, incluindo:
   - URL ou caminho do instalador
   - SHA256 do instalador para `http/https`
@@ -88,6 +89,18 @@ Observacao:
 - o token passa a ser obtido automaticamente depois que a maquina descoberta for vinculada no portal
 - o instalador do RustDesk passa a ser governado pelo portal, nao pelo `.env` do agente
 - o helper de configuracao remove automaticamente qualquer `REMOTE_INSTALL_TOKEN` legado ainda salvo na maquina
+
+## Atualizacao remota por manifesto
+
+Quando houver artefatos publicados para o agent, o updater dedicado pode validar e aplicar o bundle remoto usando:
+
+```powershell
+cd .\apps\agent
+go run .\cmd\agent-updater check-remote --manifest-url https://artifacts.trilinksoftware.com.br/agent/manifest.json
+go run .\cmd\agent-updater apply-remote --manifest-url https://artifacts.trilinksoftware.com.br/agent/manifest.json --dry-run
+```
+
+O manifesto deve seguir o vocabulario `service / ui / updater` e informar `version`, `url` e `sha256` por componente.
 
 ## Execucao
 

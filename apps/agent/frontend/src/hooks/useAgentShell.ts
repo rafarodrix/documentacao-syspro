@@ -24,8 +24,8 @@ type OverallState = "complete" | "error" | "running" | "idle";
 
 export function useAgentShell() {
   const [route, setRoute] = useState<Route>("agent://setup");
-  const [setupStatus, setSetupStatus] = useState<AgentSetupViewModel>(defaultAgentSetupViewModel);
-  const [supportSession, setSupportSession] = useState<AgentSupportViewModel | null>(null);
+  const [setupView, setSetupView] = useState<AgentSetupViewModel>(defaultAgentSetupViewModel);
+  const [supportView, setSupportView] = useState<AgentSupportViewModel | null>(null);
   const [, setNotifications] = useState<NotificationView[]>([]);
   const [chatwootReady, setChatwootReady] = useState(false);
   const [chatwootLoading, setChatwootLoading] = useState(false);
@@ -54,13 +54,13 @@ export function useAgentShell() {
 
         const nextRoute = resolveStartupRoute(target, status);
         setRoute(nextRoute);
-        setSetupStatus(status);
+        setSetupView(status);
         setNotifications(notifications);
 
         if (nextRoute === "agent://support") {
           try {
-            const session = await fetchAgentSupportView();
-            setSupportSession(session);
+            const view = await fetchAgentSupportView();
+            setSupportView(view);
           } catch (err) {
             console.error("GetAgentSupportView failed:", err);
           }
@@ -79,20 +79,20 @@ export function useAgentShell() {
           setChatwootReady(false);
 
           void fetchAgentSupportView()
-            .then((session) => {
-              setSupportSession(session);
+            .then((view) => {
+              setSupportView(view);
             })
             .catch((err) => console.error("GetAgentSupportView failed:", err));
         }
       }),
       EventsOn("agent:setup-view", (payload: uistate.AgentSetupView) => {
-        setSetupStatus(normalizeAgentSetupView(payload));
+        setSetupView(normalizeAgentSetupView(payload));
       }),
       EventsOn("agent:notifications", (payload: Array<uistate.Notification>) => {
         setNotifications(mapNotifications(payload));
       }),
       EventsOn("agent:support-view", (payload: uistate.AgentSupportView) => {
-        setSupportSession(normalizeAgentSupportView(payload));
+        setSupportView(normalizeAgentSupportView(payload));
       }),
     ];
 
@@ -106,7 +106,7 @@ export function useAgentShell() {
 
     const poll = () => {
       void fetchAgentSupportView()
-        .then((session) => setSupportSession(session))
+        .then((view) => setSupportView(view))
         .catch(() => {
           // silent
         });
@@ -118,8 +118,8 @@ export function useAgentShell() {
   }, [route]);
 
   useEffect(() => {
-    if (route !== "agent://support" || !supportSession) return;
-    if (!supportSession.channel.baseUrl.trim() || !supportSession.channel.websiteToken.trim()) {
+    if (route !== "agent://support" || !supportView) return;
+    if (!supportView.channel.baseUrl.trim() || !supportView.channel.websiteToken.trim()) {
       setChatwootReady(false);
       setChatwootLoading(false);
       return;
@@ -132,7 +132,7 @@ export function useAgentShell() {
     const onReady = () => {
       if (cancelled) return;
       hideChatwootBubble();
-      identifyChatwootContact(supportSession);
+      identifyChatwootContact(supportView);
       setChatwootReady(true);
       setChatwootLoading(false);
     };
@@ -182,8 +182,8 @@ export function useAgentShell() {
 
       setChatwootLoading(true);
       sdk.run({
-        websiteToken: supportSession.channel.websiteToken,
-        baseUrl: supportSession.channel.baseUrl,
+        websiteToken: supportView.channel.websiteToken,
+        baseUrl: supportView.channel.baseUrl,
       });
 
       if (hasChatwootClient()) {
@@ -201,7 +201,7 @@ export function useAgentShell() {
     } else {
       const script = document.createElement("script");
       script.id = scriptId;
-      script.src = `${supportSession.channel.baseUrl}/packs/js/sdk.js`;
+      script.src = `${supportView.channel.baseUrl}/packs/js/sdk.js`;
       script.async = true;
       script.onload = bootChatwoot;
       script.onerror = () => {
@@ -217,7 +217,7 @@ export function useAgentShell() {
       window.removeEventListener("chatwoot:ready", onReady);
       window.removeEventListener("chatwoot:on-message", onMessage);
     };
-  }, [route, supportSession, chatwootBootNonce]);
+  }, [route, supportView, chatwootBootNonce]);
 
   useEffect(() => {
     if (!pendingChatOpen || !chatwootReady) return;
@@ -240,7 +240,7 @@ export function useAgentShell() {
 
     if (chatwootReady && openChatwootInline()) return;
 
-    if (supportSession) {
+    if (supportView) {
       setChatwootReady(false);
       setChatwootLoading(true);
       setChatwootBootNonce((value) => value + 1);
@@ -271,21 +271,21 @@ export function useAgentShell() {
     });
   };
 
-  const pendingSteps = setupStatus.steps.filter((step: SetupStepView) => step.status !== "complete");
-  const completedSteps = setupStatus.steps.filter((step: SetupStepView) => step.status === "complete");
+  const pendingSteps = setupView.steps.filter((step: SetupStepView) => step.status !== "complete");
+  const completedSteps = setupView.steps.filter((step: SetupStepView) => step.status === "complete");
   const activeStep = pendingSteps[0] ?? null;
 
-  const setupOverallState: OverallState = setupStatus.complete
+  const setupOverallState: OverallState = setupView.complete
     ? "complete"
-    : setupStatus.lastError
+    : setupView.lastError
       ? "error"
-      : setupStatus.progressPct > 0
+      : setupView.progressPct > 0
         ? "running"
         : "idle";
 
-  const supportOverallState: OverallState = supportSession?.capabilities.remote?.externalId
+  const supportOverallState: OverallState = supportView?.capabilities.remote?.externalId
     ? "complete"
-    : supportSession?.capabilities.remote?.status === "pending"
+    : supportView?.capabilities.remote?.status === "pending"
       ? "running"
       : setupOverallState;
 
@@ -293,8 +293,8 @@ export function useAgentShell() {
 
   return {
     route,
-    setupStatus,
-    supportSession,
+    setupView,
+    supportView,
     pendingSteps,
     completedSteps,
     activeStep,

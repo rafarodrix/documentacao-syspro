@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Cpu, ExternalLink, WifiOff } from "lucide-react";
 import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { formatAgentHeartbeatLag, getAgentOfflineWarningMessage } from "@/features/agents/domain/agent-device-status";
+import { formatInstallationHeartbeatLag, getInstallationOfflineWarningMessage } from "@/features/agents/domain/agent-installation-status";
 
-export function LinkedDeviceCard({ device }: { device: AgentInstallationSummary }) {
+export function LinkedInstallationCard({ device }: { device: AgentInstallationSummary }) {
   return (
     <Card className="border-border/40 bg-card/65 backdrop-blur-md shadow-sm">
       <CardHeader className="pb-3">
@@ -52,7 +52,7 @@ export function LinkedDeviceCard({ device }: { device: AgentInstallationSummary 
               {device.isOnline ? "Online" : "Offline"}
             </p>
             <p className="text-xs text-muted-foreground">
-              Último heartbeat: {formatAgentHeartbeatLag(device.heartbeatLagSeconds)}
+              Último heartbeat: {formatInstallationHeartbeatLag(device.heartbeatLagSeconds)}
             </p>
           </div>
           <Badge
@@ -76,7 +76,7 @@ export function LinkedDeviceCard({ device }: { device: AgentInstallationSummary 
 
         {!device.isOnline && (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            {getAgentOfflineWarningMessage()}
+            {getInstallationOfflineWarningMessage()}
           </p>
         )}
       </CardContent>

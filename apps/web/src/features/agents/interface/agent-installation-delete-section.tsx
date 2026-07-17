@@ -8,7 +8,7 @@ import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } fro
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { deleteAgentInstallation } from "@/features/agents/application/agent-write.actions";
 
-export function AgentDeviceDeleteSection({
+export function AgentInstallationDeleteSection({
   deviceId,
   hostname,
 }: {

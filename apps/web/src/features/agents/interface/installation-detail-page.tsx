@@ -3,8 +3,8 @@ import { ArrowLeft, Building2, Clock, Monitor, WifiOff } from "lucide-react";
 import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { formatDateTime } from "@/lib/date";
-import { formatAgentHeartbeatLag, getAgentOfflineWarningMessage } from "@/features/agents/domain/agent-device-status";
-import { AgentDeviceDeleteSection } from "@/features/agents/interface/agent-device-delete-section";
+import { formatInstallationHeartbeatLag, getInstallationOfflineWarningMessage } from "@/features/agents/domain/agent-installation-status";
+import { AgentInstallationDeleteSection } from "@/features/agents/interface/agent-installation-delete-section";
 import { AgentHostLinkSection } from "@/features/agents/interface/agent-host-link-section";
 
 function formatDate(iso: string | null | undefined): string {
@@ -13,7 +13,7 @@ function formatDate(iso: string | null | undefined): string {
   return result === "-" ? "-" : result;
 }
 
-export function AgentDeviceDetailPanel({
+export function AgentInstallationDetailPanel({
   device,
   canManage = false,
   canManageRemote = false,
@@ -43,7 +43,7 @@ export function AgentDeviceDetailPanel({
               {device.hostname ?? device.deviceId}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Ultimo heartbeat: {formatAgentHeartbeatLag(device.heartbeatLagSeconds)}
+              Ultimo heartbeat: {formatInstallationHeartbeatLag(device.heartbeatLagSeconds)}
               {device.lastHeartbeatAt && ` - ${formatDate(device.lastHeartbeatAt)}`}
             </p>
           </div>
@@ -125,11 +125,11 @@ export function AgentDeviceDetailPanel({
 
       {!device.isOnline && (
         <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-          {getAgentOfflineWarningMessage()}
+          {getInstallationOfflineWarningMessage()}
         </p>
       )}
 
-      {canManage && <AgentDeviceDeleteSection deviceId={device.deviceId} hostname={device.hostname} />}
+      {canManage && <AgentInstallationDeleteSection deviceId={device.deviceId} hostname={device.hostname} />}
     </div>
   );
 }

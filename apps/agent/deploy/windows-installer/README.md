@@ -117,6 +117,7 @@ Fluxo atual:
 - o instalador usa `agent-service.exe install` e `agent-service.exe start`
 - a interface e os atalhos abrem `agent-ui.exe` diretamente
 - o `agent-updater.exe` ja pode aplicar bundles locais com `apply-local --source <diretorio>`
+- o `agent-updater.exe` tambem aceita manifesto remoto via `AGENT_UPDATE_MANIFEST_URL` ou `--manifest-url`, com os comandos `check-remote` e `apply-remote`
 - o `agent-ui.exe` empacotado deve vir do `wails build`; `go build` gera um binario invalido para Wails
 - o menu instalado tambem expone `Configurar agente`, que eleva um helper PowerShell para atualizar `PORTAL_BASE_URL` e o `REMOTE_DISCOVERY_TOKEN` sem editar o `.env` manualmente
 - o helper remove `REMOTE_INSTALL_TOKEN` legado para evitar bootstrap com token antigo apos reinstalacao

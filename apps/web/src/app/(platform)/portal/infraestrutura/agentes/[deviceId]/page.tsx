@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth-helpers";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { fetchAgentInstallation } from "@/features/agents/application/agent.queries";
-import { AgentDeviceDetailPanel } from "@/features/agents/interface/device-detail-page";
+import { AgentInstallationDetailPanel } from "@/features/agents/interface/installation-detail-page";
 import { getRemotePlatformDirectory } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 
@@ -10,7 +10,7 @@ function normalizeMachineName(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? "";
 }
 
-export default async function AgentDeviceDetailPage({
+export default async function AgentInstallationDetailPage({
   params,
 }: {
   params: Promise<{ deviceId: string }>;
@@ -54,7 +54,7 @@ export default async function AgentDeviceDetailPage({
       : null;
 
   return (
-    <AgentDeviceDetailPanel
+    <AgentInstallationDetailPanel
       device={device}
       canManage={canManage}
       canManageRemote={canManageRemote}

@@ -8,7 +8,7 @@ import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Input } from "@dosc-syspro/ui";
 import { fetchAgentInstallationListClient } from "@/features/agents/application/agent-client.queries";
 import { patchAgentInstallation } from "@/features/agents/application/agent-write.actions";
-import { LinkedDeviceCard } from "./linked-device-card";
+import { LinkedInstallationCard } from "./linked-installation-card";
 
 export function AgentLinkSection({
   hostId,
@@ -63,7 +63,7 @@ export function AgentLinkSection({
   if (linkedDevice) {
     return (
       <div className="space-y-2">
-        <LinkedDeviceCard device={linkedDevice} />
+        <LinkedInstallationCard device={linkedDevice} />
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button

@@ -38,7 +38,7 @@ import {
 } from "@dosc-syspro/ui";
 import { SearchToolbar } from "@/components/patterns";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
-import { formatAgentHeartbeatLag } from "@/features/agents/domain/agent-device-status";
+import { formatInstallationHeartbeatLag } from "@/features/agents/domain/agent-installation-status";
 import { deleteAgentInstallation, pruneInactiveDevices, getAgentRevocations, deleteAgentRevocation } from "@/features/agents/application/agent-write.actions";
 import { toast } from "sonner";
 
@@ -422,7 +422,7 @@ function StatusDot({ online }: { online: boolean }) {
 
 function formatRelativeTime(iso: string | null, lagSeconds: number | null): string {
   if (!iso || lagSeconds === null) return "nunca";
-  return formatAgentHeartbeatLag(lagSeconds);
+  return formatInstallationHeartbeatLag(lagSeconds);
 }
 
 function DeviceRowActions({ device }: { device: AgentInstallationSummary }) {

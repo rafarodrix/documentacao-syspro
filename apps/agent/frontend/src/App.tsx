@@ -31,8 +31,8 @@ function App() {
 
       {shell.route === "agent://support" ? (
         <SupportScreen
-          session={shell.supportSession}
-          setupStatus={shell.setupStatus}
+          supportView={shell.supportView}
+          setupView={shell.setupView}
           activeStep={shell.activeStep}
           setupOverallState={shell.setupOverallState}
           chatwootReady={shell.chatwootReady}
@@ -44,7 +44,7 @@ function App() {
         />
       ) : (
         <SetupScreen
-          status={shell.setupStatus}
+          status={shell.setupView}
           pendingSteps={shell.pendingSteps}
           completedSteps={shell.completedSteps}
           activeStep={shell.activeStep}

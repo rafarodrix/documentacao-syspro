@@ -24,6 +24,12 @@ Comandos:
   version
       Exibe a versao embutida do updater.
 
+  check-remote [--manifest-url <url>] [--service-version <v>] [--ui-version <v>] [--updater-version <v>]
+      Consulta um manifesto remoto versionado e compara com as versoes locais.
+
+  apply-remote [--manifest-url <url>] [--components service,ui,updater] [--install-dir <diretorio>] [--dry-run]
+      Baixa artefatos remotos validados por SHA256 e aplica o bundle resultante.
+
   inspect-bundle --source <diretorio>
       Lista os artefatos reconhecidos em um bundle local de update.
 
@@ -63,6 +69,59 @@ func run(args []string, stdout, stderr io.Writer) error {
 
 	case "version":
 		_, _ = fmt.Fprintf(stdout, "agent-updater %s\n", strings.TrimSpace(buildVersion))
+		return nil
+
+	case "check-remote":
+		loadUpdaterRuntimeEnv()
+
+		fs := flag.NewFlagSet("check-remote", flag.ContinueOnError)
+		fs.SetOutput(stderr)
+
+		manifestURL := fs.String("manifest-url", "", "URL do manifesto remoto")
+		serviceVersion := fs.String("service-version", "", "Versao atual do service")
+		uiVersion := fs.String("ui-version", "", "Versao atual da UI")
+		updaterVersion := fs.String("updater-version", "", "Versao atual do updater")
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+
+		ctx, cancel := newUpdaterHTTPContext()
+		defer cancel()
+
+		resolvedManifestURL := resolveManifestURL(*manifestURL)
+		manifest, err := fetchRemoteManifest(ctx, resolvedManifestURL)
+		if err != nil {
+			return err
+		}
+
+		current := resolveCurrentComponentVersions(*serviceVersion, *uiVersion, *updaterVersion)
+		statuses := buildRemoteComponentStatuses(manifest, current)
+
+		channel := strings.TrimSpace(manifest.Channel)
+		if channel == "" {
+			channel = "default"
+		}
+		_, _ = fmt.Fprintf(stdout, "Manifest: %s\n", resolvedManifestURL)
+		_, _ = fmt.Fprintf(stdout, "Canal: %s\n", channel)
+		for _, status := range statuses {
+			state := "missing"
+			switch {
+			case !status.Available:
+				state = "missing"
+			case status.NeedsUpdate:
+				state = "update_available"
+			default:
+				state = "current"
+			}
+			_, _ = fmt.Fprintf(
+				stdout,
+				"- %s: %s (current=%s target=%s)\n",
+				status.Name,
+				state,
+				firstNonEmpty(status.CurrentVersion, "-"),
+				firstNonEmpty(status.TargetVersion, "-"),
+			)
+		}
 		return nil
 
 	case "inspect-bundle":
@@ -106,6 +165,70 @@ func run(args []string, stdout, stderr io.Writer) error {
 			mode = "dry-run"
 		}
 		_, _ = fmt.Fprintf(stdout, "Bundle local processado (%s).\n", mode)
+		for _, rel := range result.Copied {
+			_, _ = fmt.Fprintf(stdout, "copied: %s\n", rel)
+		}
+		for _, rel := range result.Pending {
+			_, _ = fmt.Fprintf(stdout, "pending: %s\n", rel)
+		}
+		return nil
+
+	case "apply-remote":
+		loadUpdaterRuntimeEnv()
+
+		fs := flag.NewFlagSet("apply-remote", flag.ContinueOnError)
+		fs.SetOutput(stderr)
+
+		manifestURL := fs.String("manifest-url", "", "URL do manifesto remoto")
+		componentList := fs.String("components", "", "Lista opcional de componentes: service,ui,updater")
+		installDir := fs.String("install-dir", "", "Diretorio instalado do agente")
+		dryRun := fs.Bool("dry-run", false, "Nao copia arquivos; apenas valida o plano")
+		serviceVersion := fs.String("service-version", "", "Versao atual do service")
+		uiVersion := fs.String("ui-version", "", "Versao atual da UI")
+		updaterVersion := fs.String("updater-version", "", "Versao atual do updater")
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+
+		ctx, cancel := newUpdaterHTTPContext()
+		defer cancel()
+
+		resolvedManifestURL := resolveManifestURL(*manifestURL)
+		manifest, err := fetchRemoteManifest(ctx, resolvedManifestURL)
+		if err != nil {
+			return err
+		}
+
+		current := resolveCurrentComponentVersions(*serviceVersion, *uiVersion, *updaterVersion)
+		plan, err := selectRemoteUpdatePlan(manifest, current, parseRequestedComponents(*componentList))
+		if err != nil {
+			return err
+		}
+		if len(plan) == 0 {
+			_, _ = io.WriteString(stdout, "Nenhuma atualizacao remota pendente.\n")
+			return nil
+		}
+
+		bundleRoot, err := downloadRemoteBundle(ctx, manifest, plan)
+		if err != nil {
+			return err
+		}
+
+		result, err := applyLocalBundle(bundleRoot, strings.TrimSpace(*installDir), *dryRun)
+		if err != nil {
+			return err
+		}
+
+		mode := "apply"
+		if *dryRun {
+			mode = "dry-run"
+		}
+		_, _ = fmt.Fprintf(stdout, "Manifest: %s\n", resolvedManifestURL)
+		_, _ = fmt.Fprintf(stdout, "Bundle remoto: %s\n", bundleRoot)
+		_, _ = fmt.Fprintf(stdout, "Atualizacao remota processada (%s).\n", mode)
+		for _, status := range plan {
+			_, _ = fmt.Fprintf(stdout, "planned: %s %s -> %s\n", status.Name, firstNonEmpty(status.CurrentVersion, "-"), status.TargetVersion)
+		}
 		for _, rel := range result.Copied {
 			_, _ = fmt.Fprintf(stdout, "copied: %s\n", rel)
 		}
