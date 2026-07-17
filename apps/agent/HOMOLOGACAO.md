@@ -229,6 +229,7 @@ Considere homologado quando todos estes pontos passarem:
 - RustDesk converge para o servidor da Trilink
 - host fica em estado `Remoto pronto`
 - painel local mostra `ID` e `senha`
+- reinstalacao com o pacote novo remove residuos de bootstrap legado antes de subir o servico
 
 ## Se falhar
 
@@ -246,6 +247,7 @@ Verifique primeiro:
 Diagnostico rapido pelos logs:
 
 - se `POST /api/remote/rustdesk/bootstrap` aparecer com `user-agent = WindowsPowerShell/5.1`, esse bootstrap nao veio do runtime Go atual do agente
+- o instalador e o helper novo executam limpeza de residuos legados para remover `REMOTE_INSTALL_TOKEN`, `remote_state.json`, autoruns e tarefas agendadas antigas antes do proximo bootstrap
 - nesse caso, a maquina ainda esta executando algum helper/script legado e instalar por cima nao garante limpeza suficiente
 - a acao correta passa a ser parar/remover o servico anterior, limpar o estado local e reinstalar com o pacote novo
 - se o agente novo estiver comunicando corretamente, os requests de `discover`/`bootstrap`/`sync` aparecem com `user-agent = trilink-agent` ou `trilink-agent/<versao>`

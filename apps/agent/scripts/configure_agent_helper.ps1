@@ -104,8 +104,20 @@ function Restart-AgentService {
     Start-Service -Name $Name
 }
 
+function Invoke-LegacyCleanup {
+    $cleanupScript = Join-Path $PSScriptRoot "remove_legacy_bootstrap_residue.ps1"
+    if (-not (Test-Path -LiteralPath $cleanupScript)) {
+        return
+    }
+
+    Write-Host "Limpando residuos de bootstrap legado..." -ForegroundColor Yellow
+    & $cleanupScript -Silent
+}
+
 Write-Host "=== CONFIGURADOR DO AGENTE TRILINK ===" -ForegroundColor Cyan
 Write-Host "O install token do host agora e obtido automaticamente pelo fluxo discover -> bootstrap do portal." -ForegroundColor DarkGray
+
+Invoke-LegacyCleanup
 
 $portalUrl = Read-Host "Digite a URL do Portal (ex: https://backend.trilinksoftware.com.br)"
 $discoveryToken = Read-Host "Digite o Token de Descoberta (REMOTE_DISCOVERY_TOKEN)"

@@ -122,26 +122,10 @@ export function HostOverviewTab({
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Versão do Agente</p>
                 <p className="text-sm font-medium text-foreground">{agent.agentVersion ?? "Desconhecida"}</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Estratégia</p>
-                <p className="text-sm font-medium text-foreground">{orchestrationStrategy}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Estado Operacional</p>
-                <p className="text-sm font-medium capitalize text-foreground">{serviceStatus.label}</p>
-              </div>
             </div>
-
-            {host.description && (
-              <div className="space-y-1 border-t border-border/40 pt-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Descrição</p>
-                <p className="text-sm leading-relaxed text-foreground">{host.description}</p>
-              </div>
-            )}
           </CardContent>
         </Card>
 
-        <AgentLinkSection hostId={host.id} linkedDevice={linkedDevice} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

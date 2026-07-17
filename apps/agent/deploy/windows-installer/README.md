@@ -122,6 +122,7 @@ Fluxo atual:
 - o menu instalado tambem expone `Configurar agente`, que eleva um helper PowerShell para atualizar `PORTAL_BASE_URL` e o `REMOTE_DISCOVERY_TOKEN` sem editar o `.env` manualmente
 - o helper remove `REMOTE_INSTALL_TOKEN` legado para evitar bootstrap com token antigo apos reinstalacao
 - ao desinstalar mantendo a configuracao, o uninstall sanitiza `REMOTE_INSTALL_TOKEN` e limpa `remote_state.json`/filas locais para evitar rebootstrap legado na reinstalacao seguinte
+- o instalador executa `scripts/remove_legacy_bootstrap_residue.ps1` antes de subir o servico novo para remover autoruns, tarefas agendadas e processos PowerShell antigos que ainda tentem bootstrap legado
 - ao pedir remocao do RustDesk, o uninstall tenta todas as entradas registradas, valida se ainda restou instalacao e aplica limpeza adicional de diretorios conhecidos
 - `start-agent.ps1` nao faz mais parte do fluxo principal
 - `ensure-webview2-runtime.ps1` nao faz mais parte do pacote nem do instalador
@@ -130,6 +131,7 @@ Fluxo atual:
 Observacao operacional:
 
 - se os logs do backend mostrarem `user-agent = WindowsPowerShell/5.1` em `POST /api/remote/rustdesk/bootstrap`, a chamada nao veio do runtime Go atual
+- o pacote novo tenta limpar esse resquicio automaticamente durante install/uninstall, mas uma maquina com multiplos agentes legados pode ainda exigir remocao manual complementar
 - isso normalmente indica artefato legado ainda residente na maquina
 - nesse cenario, nao trate como reinstalacao simples por cima; faca remocao/limpeza antes de instalar novamente
 

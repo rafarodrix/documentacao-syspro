@@ -48,6 +48,7 @@ Source: "{#SourceDir}\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\stop-agent.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\configure-agent-helper.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\configure_agent_helper.ps1"; DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "{#SourceDir}\scripts\remove_legacy_bootstrap_residue.ps1"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\open-config.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\open-logs.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\config\.env.example"; DestDir: "{app}\config"; Flags: ignoreversion
@@ -68,6 +69,7 @@ Name: "{commonstartup}\Agente Trilink"; Filename: "{app}\agent-ui.exe"; Paramete
 
 
 [Run]
+Filename: "powershell.exe"; Parameters: "-NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\scripts\remove_legacy_bootstrap_residue.ps1"" -Silent"; Flags: runhidden waituntilterminated skipifdoesntexist; StatusMsg: "Limpando residuos de bootstrap legado..."
 ; 2. Registrar servico Windows como LocalSystem (idempotente — ignora erro se ja existe)
 Filename: "{app}\agent-service.exe"; Parameters: "install"; Flags: runhidden; StatusMsg: "Registrando servico Windows..."
 ; 3. Iniciar o servico
@@ -182,6 +184,25 @@ begin
   WaitForProcessExit('agent-ui.exe', 20);
   WaitForProcessExit('agent-service.exe', 20);
   Sleep(1000);
+end;
+
+procedure RunInstalledLegacyCleanupScript;
+var
+  RC: Integer;
+  CleanupScriptPath: string;
+begin
+  CleanupScriptPath := AddBackslash(ResolveInstalledAgentDir()) + 'scripts\remove_legacy_bootstrap_residue.ps1';
+  if not FileExists(CleanupScriptPath) then
+    Exit;
+
+  Exec(
+    'powershell.exe',
+    '-NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + CleanupScriptPath + '" -Silent',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    RC
+  );
 end;
 
 procedure PrepareInstalledBinaryForReplacement(FileName: string);
@@ -433,6 +454,7 @@ begin
   begin
     // 1. Encerra UI/processos do agente antes de desinstalar
     CloseRunningAgentProcesses;
+    RunInstalledLegacyCleanupScript;
 
     // 2. Pergunta se deve desinstalar programas instalados pelo agente (ex: RustDesk)
     Answer := MsgBox(

@@ -453,12 +453,12 @@ export function RemoteHostDetailsPanel({
       <Tabs defaultValue="geral" className="space-y-6">
         <div className="flex w-full">
           <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:grid-cols-7">
-            <TabsTrigger value="geral">Visão Geral</TabsTrigger>
+            <TabsTrigger value="geral">Visão geral</TabsTrigger>
             <TabsTrigger value="monitoramento">Monitoramento</TabsTrigger>
-            <TabsTrigger value="instalacoes">Instalações</TabsTrigger>
+            <TabsTrigger value="instalacoes">Componentes</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
-            <TabsTrigger value="softwares">Programas</TabsTrigger>
-            <TabsTrigger value="bkp">BKP</TabsTrigger>
+            <TabsTrigger value="softwares">Inventário</TabsTrigger>
+            <TabsTrigger value="bkp">Backup</TabsTrigger>
             <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
           </TabsList>
         </div>
@@ -571,6 +571,7 @@ export function RemoteHostDetailsPanel({
         <TabsContent value="configuracoes" className="space-y-6">
           <HostSettingsTab
             details={details}
+            linkedDevice={linkedDevice}
             projectedMachineProfile={projectedMachineProfile}
             setProjectedMachineProfile={setProjectedMachineProfile}
             isSavingMachineName={isSavingMachineName}

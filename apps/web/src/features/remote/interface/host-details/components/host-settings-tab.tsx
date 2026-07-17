@@ -7,8 +7,12 @@ import { MACHINE_PROFILE_LABEL } from "../host-details.constants";
 
 
 
+import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
+import { AgentLinkSection } from "./agent-link-section";
+
 type Props = {
   details: RemoteHostDetails;
+  linkedDevice?: AgentInstallationSummary | null;
   projectedMachineProfile: RemoteHostDetails["host"]["machineProfile"];
   setProjectedMachineProfile: (value: RemoteHostDetails["host"]["machineProfile"]) => void;
   isSavingMachineName: boolean;
@@ -27,6 +31,7 @@ type Props = {
 
 export function HostSettingsTab({
   details,
+  linkedDevice,
   projectedMachineProfile,
   setProjectedMachineProfile,
   isSavingMachineName,
@@ -231,6 +236,18 @@ export function HostSettingsTab({
           <p className="mt-3 text-xs text-muted-foreground">
             &ldquo;Forçar inicialização remota&rdquo; invalida a credencial atual e faz o agente executar novo bootstrap autenticado no próximo ciclo.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="text-lg">Dispositivo Físico Vinculado</CardTitle>
+          <CardDescription>
+            Máquina associada a este host remoto. O vínculo permite correlacionar telemetria com inventário de hardware.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AgentLinkSection hostId={details.host.id} linkedDevice={linkedDevice ?? null} />
         </CardContent>
       </Card>
 

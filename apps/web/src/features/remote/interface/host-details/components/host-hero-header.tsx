@@ -38,7 +38,7 @@ export function HostHeroHeader({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4 min-w-0">
           <Link
-            href="/portal/infraestrutura?tab=hosts"
+            href="/portal/infraestrutura"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/40 hover:bg-muted/80 hover:scale-105 transition-all text-muted-foreground hover:text-foreground"
             title="Voltar para a lista"
           >
