@@ -2,6 +2,7 @@ import "server-only";
 
 import type { NextRequest } from "next/server";
 import { getBackendApiBaseUrl } from "@/lib/backend-api";
+import { describeProxyError } from "@/lib/errors/proxy-error";
 
 /**
  * Proxy dedicado de auth.
@@ -67,9 +68,10 @@ export async function proxyAuthRequest(request: NextRequest, context: AuthProxyC
 
     return upstream;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown proxy error";
+    const errorDetails = describeProxyError(error);
+    const message = errorDetails.message;
     const isTimeout =
-      (error instanceof Error && error.name === "AbortError") ||
+      errorDetails.name === "AbortError" ||
       message.includes("AUTH_PROXY_TIMEOUT");
     const status = message.includes("APP_BACKEND_API_URL nao configurada em producao")
       ? 503
@@ -94,6 +96,15 @@ export async function proxyAuthRequest(request: NextRequest, context: AuthProxyC
         status,
         code,
         error: message,
+        errorName: errorDetails.name,
+        errorCode: errorDetails.code,
+        errorCause: errorDetails.causeMessage,
+        errorCauseName: errorDetails.causeName,
+        errorCauseCode: errorDetails.causeCode,
+        errorSyscall: errorDetails.syscall,
+        errorAddress: errorDetails.address,
+        errorPort: errorDetails.port,
+        stackTop: errorDetails.stackTop,
       }),
     );
 

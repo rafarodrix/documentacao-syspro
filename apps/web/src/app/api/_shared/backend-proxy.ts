@@ -10,6 +10,7 @@
  */
 import type { NextRequest } from "next/server";
 import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { describeProxyError } from "@/lib/errors/proxy-error";
 
 const BACKEND_PROXY_TIMEOUT_MS = 15_000;
 
@@ -185,9 +186,10 @@ export async function proxyToBackend(
       headers: upstreamResponse.headers,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown proxy error";
+    const errorDetails = describeProxyError(error);
+    const message = errorDetails.message;
     const isTimeout =
-      (error instanceof Error && error.name === "AbortError") ||
+      errorDetails.name === "AbortError" ||
       message.includes("BACKEND_PROXY_TIMEOUT");
     const status = message.includes("APP_BACKEND_API_URL nao configurada em producao")
       ? 503
@@ -212,6 +214,15 @@ export async function proxyToBackend(
         status,
         code,
         error: message,
+        errorName: errorDetails.name,
+        errorCode: errorDetails.code,
+        errorCause: errorDetails.causeMessage,
+        errorCauseName: errorDetails.causeName,
+        errorCauseCode: errorDetails.causeCode,
+        errorSyscall: errorDetails.syscall,
+        errorAddress: errorDetails.address,
+        errorPort: errorDetails.port,
+        stackTop: errorDetails.stackTop,
       }),
     );
 

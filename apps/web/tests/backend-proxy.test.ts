@@ -156,4 +156,36 @@ describe("backend proxy handler factories", () => {
     const [, options] = fetchMock.mock.calls[0]!;
     expect((options?.headers as Headers).get("x-internal-api-key")).toBe("test-internal-key");
   });
+
+  it("logs structured transport details when upstream fetch throws", async () => {
+    const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockRejectedValue(
+      new TypeError("fetch failed", {
+        cause: {
+          code: "ECONNRESET",
+          syscall: "read",
+          address: "5.78.205.234",
+          port: 443,
+          message: "socket hang up",
+        },
+      }),
+    );
+    const handler = createStaticProxyHandler("/settings/platform-notifications");
+
+    const response = await handler(
+      new Request("https://portal.example.com/api/platform/notifications"),
+    );
+
+    expect(response.status).toBe(502);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(consoleErrorMock).toHaveBeenCalledTimes(1);
+    const loggedPayload = JSON.parse(String(consoleErrorMock.mock.calls[0]?.[0] ?? "{}"));
+    expect(loggedPayload.event).toBe("backend.proxy.failed");
+    expect(loggedPayload.error).toBe("fetch failed");
+    expect(loggedPayload.errorCause).toBe("socket hang up");
+    expect(loggedPayload.errorCauseCode).toBe("ECONNRESET");
+    expect(loggedPayload.errorSyscall).toBe("read");
+    expect(loggedPayload.errorAddress).toBe("5.78.205.234");
+    expect(loggedPayload.errorPort).toBe(443);
+  });
 });
