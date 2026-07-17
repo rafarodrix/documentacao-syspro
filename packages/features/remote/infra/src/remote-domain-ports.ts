@@ -113,19 +113,37 @@ export function createRemoteDiscoverPort(params: {
       const identityWhere = buildDiscoverIdentityWhere(input);
       let discoveredHost = null;
 
+      // When the same machine accumulated legacy/pending discovery rows, the
+      // active linked record must win so bootstrap can continue instead of
+      // regressing back to pending_link.
+      const linkedHost = await prisma.remoteDiscoveredHost.findFirst({
+        where: {
+          linkedHostId: { not: null },
+          status: { not: "IGNORED" },
+          ...identityWhere,
+        },
+        orderBy: [{ linkedAt: "desc" }, { updatedAt: "desc" }],
+      });
+
+      if (linkedHost) {
+        discoveredHost = linkedHost;
+      }
+
       // If a host was explicitly removed/ignored in the portal, keep that
       // tombstone authoritative until a new active host is intentionally
       // created for the same RustDesk identity.
-      const ignoredHost = await prisma.remoteDiscoveredHost.findFirst({
-        where: {
-          status: "IGNORED",
-          ...identityWhere,
-        },
-        orderBy: [{ updatedAt: "desc" }],
-      });
+      if (!discoveredHost) {
+        const ignoredHost = await prisma.remoteDiscoveredHost.findFirst({
+          where: {
+            status: "IGNORED",
+            ...identityWhere,
+          },
+          orderBy: [{ updatedAt: "desc" }],
+        });
 
-      if (ignoredHost) {
-        discoveredHost = ignoredHost;
+        if (ignoredHost) {
+          discoveredHost = ignoredHost;
+        }
       }
 
       // Fallback to searching by rustdeskId or machineName
