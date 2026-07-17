@@ -56,16 +56,18 @@ func run() error {
 }
 
 type installerBuilder struct {
-	agentRoot       string
-	installerRoot   string
-	sourceDeployDir string
-	sourceUIBuilds  []string
-	stageRoot       string
-	outputRoot      string
-	runtimeRoot     string
-	sourceEnv       string
-	sourceEnvEx     string
-	issFile         string
+	agentRoot           string
+	installerRoot       string
+	sourceDeployDir     string
+	sourceServiceBuilds []string
+	sourceUIBuilds      []string
+	sourceUpdaterBuilds []string
+	stageRoot           string
+	outputRoot          string
+	runtimeRoot         string
+	sourceEnv           string
+	sourceEnvEx         string
+	issFile             string
 }
 
 func newInstallerBuilder(agentRoot string) installerBuilder {
@@ -74,10 +76,18 @@ func newInstallerBuilder(agentRoot string) installerBuilder {
 		agentRoot:       agentRoot,
 		installerRoot:   installerRoot,
 		sourceDeployDir: filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64"),
+		sourceServiceBuilds: []string{
+			filepath.Join(agentRoot, "build", "bin", "agent-service.exe"),
+			filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64", "agent-service.exe"),
+		},
 		sourceUIBuilds: []string{
 			filepath.Join(agentRoot, "build", "bin", "agent-ui.exe"),
 			filepath.Join(agentRoot, "build", "bin", "agent-ui"),
 			filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64", "agent-ui.exe"),
+		},
+		sourceUpdaterBuilds: []string{
+			filepath.Join(agentRoot, "build", "bin", "agent-updater.exe"),
+			filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64", "agent-updater.exe"),
 		},
 		stageRoot:   filepath.Join(agentRoot, "dist", "windows-installer", "staging"),
 		outputRoot:  filepath.Join(agentRoot, "dist", "windows-installer", "output"),
@@ -89,10 +99,15 @@ func newInstallerBuilder(agentRoot string) installerBuilder {
 }
 
 func (b installerBuilder) stage() error {
-	if _, err := os.Stat(b.sourceDeployDir); err != nil {
-		return fmt.Errorf("pacote base nao encontrado: %s", b.sourceDeployDir)
+	serviceBinary, err := b.resolveServiceBinary()
+	if err != nil {
+		return err
 	}
 	uiBinary, err := b.resolveUIBinary()
+	if err != nil {
+		return err
+	}
+	updaterBinary, err := b.resolveUpdaterBinary()
 	if err != nil {
 		return err
 	}
@@ -113,8 +128,9 @@ func (b installerBuilder) stage() error {
 	}
 
 	copyPairs := [][2]string{
-		{filepath.Join(b.sourceDeployDir, "agent-service.exe"), filepath.Join(b.stageRoot, "agent-service.exe")},
+		{serviceBinary, filepath.Join(b.stageRoot, "agent-service.exe")},
 		{uiBinary, filepath.Join(b.stageRoot, "agent-ui.exe")},
+		{updaterBinary, filepath.Join(b.stageRoot, "agent-updater.exe")},
 		{filepath.Join(b.agentRoot, "assets", "icon.ico"), filepath.Join(b.stageRoot, "icon.ico")},
 		{filepath.Join(b.agentRoot, "assets", "img", "logo-clara.png"), filepath.Join(b.stageRoot, "assets", "img", "logo-clara.png")},
 		{filepath.Join(b.agentRoot, "assets", "img", "logo-escura.png"), filepath.Join(b.stageRoot, "assets", "img", "logo-escura.png")},
@@ -186,14 +202,40 @@ func (b installerBuilder) resolveVersion() (string, error) {
 }
 
 func (b installerBuilder) resolveUIBinary() (string, error) {
-	for _, candidate := range b.sourceUIBuilds {
+	return resolveBinary(
+		b.sourceUIBuilds,
+		"agent-ui",
+		"gere a UI com Wails antes de montar o instalador (ex.: wails build -clean -platform windows/amd64 -nopackage -o agent-ui.exe)",
+	)
+}
+
+func (b installerBuilder) resolveServiceBinary() (string, error) {
+	return resolveBinary(
+		b.sourceServiceBuilds,
+		"agent-service",
+		"gere o servico antes de montar o instalador (ex.: go build -o .\\build\\bin\\agent-service.exe .\\cmd\\agent-service)",
+	)
+}
+
+func (b installerBuilder) resolveUpdaterBinary() (string, error) {
+	return resolveBinary(
+		b.sourceUpdaterBuilds,
+		"agent-updater",
+		"gere o updater antes de montar o instalador (ex.: go build -o .\\build\\bin\\agent-updater.exe .\\cmd\\agent-updater)",
+	)
+}
+
+func resolveBinary(candidates []string, artifactName, buildHint string) (string, error) {
+	for _, candidate := range candidates {
 		if fileExists(candidate) {
 			return candidate, nil
 		}
 	}
 
 	return "", fmt.Errorf(
-		"agent-ui build nao encontrado. Gere a UI com Wails antes de montar o instalador (ex.: wails build -clean -platform windows/amd64 -nopackage -o agent-ui.exe)",
+		"%s build nao encontrado. %s",
+		strings.TrimSpace(artifactName),
+		strings.TrimSpace(buildHint),
 	)
 }
 
@@ -408,6 +450,7 @@ func buildInstallerReadme() string {
 Arquivos instalados:
 - agent-service.exe
 - agent-ui.exe
+- agent-updater.exe
 - icon.ico
 - assets\img\logo-clara.png
 - assets\img\logo-escura.png
@@ -419,6 +462,7 @@ Configuracao:
 
 Operacao:
 - Iniciar: agent-ui.exe
+- Update local: agent-updater.exe apply-local --source <bundle>
 - Parar: scripts\stop-agent.cmd
 - Configuracao assistida: scripts\configure-agent-helper.cmd
 - Editar config: scripts\open-config.cmd

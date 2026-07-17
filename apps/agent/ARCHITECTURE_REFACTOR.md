@@ -256,6 +256,11 @@ apps/agent/internal/contracts/agentui/
 ├── protocol.go
 ├── types.go
 └── mappers.go
+
+apps/agent/cmd/
+├── agent-service/
+├── agent-updater/
+└── agent-installer/
 ```
 
 O protocolo local agora publica a versão via header:
@@ -266,6 +271,14 @@ X-Trilink-Agent-IPC-Version: agent-ui.v1
 
 O `ipc.Client` valida esse header em todas as respostas, e o `ipc.Server`
 rejeita chamadas com versão incompatível.
+
+O empacotamento Windows agora monta explicitamente o trio:
+
+```text
+agent-service.exe
+agent-ui.exe
+agent-updater.exe
+```
 
 ---
 

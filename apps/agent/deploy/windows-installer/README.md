@@ -35,14 +35,23 @@ C:\Users\rafael\go\bin\wails.exe build -clean -platform windows/amd64 -nopackage
 
 O binario da UI deve sair em `apps/agent/build/bin`.
 
-2. Gere ou atualize o servico Windows em `apps/agent/dist/test-deploy/windows-amd64`:
+2. Gere ou atualize o servico Windows:
 
 ```powershell
 cd .\apps\agent
-go build -o .\dist\test-deploy\windows-amd64\agent-service.exe .\cmd\agent-service
+go build -o .\build\bin\agent-service.exe .\cmd\agent-service
 ```
 
-3. Monte o pacote:
+3. Gere o updater dedicado:
+
+```powershell
+cd .\apps\agent
+go build -o .\build\bin\agent-updater.exe .\cmd\agent-updater
+```
+
+O builder do instalador ainda aceita fallback em `dist\test-deploy\windows-amd64`, mas o fluxo oficial agora parte de `build\bin` para `service + ui + updater`.
+
+4. Monte o pacote:
 
 ```powershell
 cd .\apps\agent
@@ -57,7 +66,7 @@ go build -o .\agent-installer.exe .\cmd\agent-installer
 .\agent-installer.exe stage
 ```
 
-4. Compile o instalador com Inno Setup:
+5. Compile o instalador com Inno Setup:
 
 ```powershell
 ISCC.exe .\apps\agent\deploy\windows-installer\AgenteTrilink.iss
@@ -104,8 +113,10 @@ O instalador compilado sai em:
 
 Fluxo atual:
 
+- o instalador empacota `agent-service.exe`, `agent-ui.exe` e `agent-updater.exe`
 - o instalador usa `agent-service.exe install` e `agent-service.exe start`
 - a interface e os atalhos abrem `agent-ui.exe` diretamente
+- o `agent-updater.exe` ja pode aplicar bundles locais com `apply-local --source <diretorio>`
 - o `agent-ui.exe` empacotado deve vir do `wails build`; `go build` gera um binario invalido para Wails
 - o menu instalado tambem expone `Configurar agente`, que eleva um helper PowerShell para atualizar `PORTAL_BASE_URL` e o `REMOTE_DISCOVERY_TOKEN` sem editar o `.env` manualmente
 - o helper remove `REMOTE_INSTALL_TOKEN` legado para evitar bootstrap com token antigo apos reinstalacao

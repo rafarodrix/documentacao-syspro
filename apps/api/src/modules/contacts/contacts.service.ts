@@ -1,3 +1,22 @@
+import {
+  serializeContact,
+  serializeContactListResponse,
+  parsePage,
+  parsePageSize,
+  parseLegacyLimit,
+  extractCompanyIds,
+  normalizeCompanyIds,
+  isInvalidIntegrationPhone,
+  formatChatwootPhoneNumber,
+  formatDateAttribute,
+  normalizeRemoteConnections,
+  normalizeChatwootCompanySummary,
+  formatCompanyDisplayName,
+  resolveChatwootContactCompanies,
+  shouldPermanentlyDeleteInvalidContact,
+  ChatwootCompanySummary,
+  ChatwootRemoteConnection
+} from '@dosc-syspro/contacts-domain';
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import type {
@@ -20,26 +39,7 @@ import { buildContactSearchText } from '../shared/search/search-index';
 
 const CONTACTS_TRANSACTION_TIMEOUT_MS = 15000;
 
-type ChatwootCompanySummary = {
-  id?: string | null;
-  nomeFantasia?: string | null;
-  razaoSocial?: string | null;
-  cnpj?: string | null;
-  observacoes?: string | null;
-  serverType?: 'SYSPRO_SERVER' | 'IIS' | null;
-  serverPort?: number | null;
-  serverHost?: string | null;
-  serverProtocol?: 'HTTP' | 'HTTPS' | null;
-  iisIsapiPath?: string | null;
-  installationDirectory?: string | null;
-  remoteConnections?: Array<{ type?: string | null; details?: string | null }> | null;
-  addresses?: Array<{ cidade?: string | null; pais?: string | null }> | null;
-};
-
-type ChatwootRemoteConnection = {
-  type?: string | null;
-  details?: string | null;
-};
+// Tipos de Chatwoot importados do dominio
 
 @Injectable()
 export class ContactsService {
@@ -68,7 +68,7 @@ export class ContactsService {
     const wantsPagination = input.page !== undefined || input.pageSize !== undefined;
     if (!scope.isGlobal && !scope.companyIds.length) {
       return wantsPagination
-        ? this.serializeContactListResponse([], 1, this.parsePageSize(input.pageSize ?? input.limit), 0)
+        ? serializeContactListResponse([], 1, parsePageSize(input.pageSize ?? input.limit), 0)
         : [];
     }
 
@@ -91,8 +91,8 @@ export class ContactsService {
       Object.assign(where, buildContactSearchWhere(q));
     }
 
-    const page = this.parsePage(input.page);
-    const take = wantsPagination ? this.parsePageSize(input.pageSize ?? input.limit) : this.parseLegacyLimit(input.limit);
+    const page = parsePage(input.page);
+    const take = wantsPagination ? parsePageSize(input.pageSize ?? input.limit) : parseLegacyLimit(input.limit);
     const skip = wantsPagination ? (page - 1) * take : 0;
 
     const [contacts, total] = await Promise.all([
@@ -106,8 +106,8 @@ export class ContactsService {
       wantsPagination ? (this.prisma.companyContact as any).count({ where }) : Promise.resolve(0),
     ]);
 
-    const items = contacts.map((contact: any) => this.serializeContact(contact));
-    return wantsPagination ? this.serializeContactListResponse(items, page, take, total) : items;
+    const items = contacts.map((contact: any) => serializeContact(contact));
+    return wantsPagination ? serializeContactListResponse(items, page, take, total) : items;
   }
 
   async getUnlinkedContacts(rawHeaders?: IncomingHttpHeaders) {
@@ -126,7 +126,7 @@ export class ContactsService {
       },
     });
 
-    return contacts.map((contact: any) => this.serializeContact(contact));
+    return contacts.map((contact: any) => serializeContact(contact));
   }
 
   async getContactStats(rawHeaders?: IncomingHttpHeaders) {
@@ -199,7 +199,7 @@ export class ContactsService {
     });
     if (!contact) throw new NotFoundException('Contato nao encontrado');
     await this.assertContactVisibleToRequester(requester, contact);
-    return this.serializeContact(contact);
+    return serializeContact(contact);
   }
 
   async createContact(input: CreateContactInput, rawHeaders?: IncomingHttpHeaders) {
@@ -216,7 +216,7 @@ export class ContactsService {
       throw new BadRequestException('CPF deve conter 11 digitos.');
     }
     const jobTitle = input.jobTitle?.trim() || null;
-    const companyIds = this.normalizeCompanyIds(input.companyIds);
+    const companyIds = normalizeCompanyIds(input.companyIds);
     await this.assertCompanyIdsAllowedForRequester(requester, companyIds);
     const existing = whatsapp
       ? await (this.prisma.companyContact as any).findFirst({
@@ -263,7 +263,7 @@ export class ContactsService {
         { timeout: CONTACTS_TRANSACTION_TIMEOUT_MS }
       );
 
-      const serialized = this.serializeContact(updated);
+      const serialized = serializeContact(updated);
       await this.syncChatwootContactPresentation(serialized);
       return serialized;
     }
@@ -302,7 +302,7 @@ export class ContactsService {
       { timeout: CONTACTS_TRANSACTION_TIMEOUT_MS }
     );
 
-    const serialized = this.serializeContact(created);
+    const serialized = serializeContact(created);
     await this.syncChatwootContactPresentation(serialized);
     return serialized;
   }
@@ -317,8 +317,8 @@ export class ContactsService {
     await this.assertContactManageableByRequester(requester, existing);
 
     const nextCompanyIds = input.companyIds !== undefined
-      ? this.normalizeCompanyIds(input.companyIds)
-      : this.extractCompanyIds(existing);
+      ? normalizeCompanyIds(input.companyIds)
+      : extractCompanyIds(existing);
     await this.assertCompanyIdsAllowedForRequester(requester, nextCompanyIds);
 
     const data: any = {};
@@ -366,7 +366,7 @@ export class ContactsService {
       { timeout: CONTACTS_TRANSACTION_TIMEOUT_MS }
     );
 
-    const serialized = this.serializeContact(updated);
+    const serialized = serializeContact(updated);
     await this.syncChatwootContactPresentation(serialized);
     return serialized;
   }
@@ -381,7 +381,7 @@ export class ContactsService {
     await this.assertContactManageableByRequester(requester, contact);
     await this.assertCompanyIdsAllowedForRequester(requester, [companyId]);
 
-    const nextCompanyIds = Array.from(new Set([companyId, ...this.extractCompanyIds(contact)]));
+    const nextCompanyIds = Array.from(new Set([companyId, ...extractCompanyIds(contact)]));
     return this.updateContact(contactId, { companyIds: nextCompanyIds }, rawHeaders);
   }
 
@@ -404,7 +404,7 @@ export class ContactsService {
     if (!existing) throw new NotFoundException('Contato nao encontrado');
     await this.assertContactManageableByRequester(requester, existing);
 
-    if (this.shouldPermanentlyDeleteInvalidContact(existing)) {
+    if (shouldPermanentlyDeleteInvalidContact(existing)) {
       await this.prisma.$transaction(async (tx) => {
         if (existing.whatsapp) {
           const links = await (tx as any).conversationLink.findMany({
@@ -432,7 +432,7 @@ export class ContactsService {
       });
 
       return {
-        ...this.serializeContact(existing),
+        ...serializeContact(existing),
         deleted: true,
         deleteMode: 'permanent_invalid_contact',
       };
@@ -444,7 +444,7 @@ export class ContactsService {
       include: this.contactInclude(),
     });
 
-    const serialized = this.serializeContact(archived);
+    const serialized = serializeContact(archived);
     await this.syncChatwootContactPresentation(serialized);
     return serialized;
   }
@@ -563,7 +563,7 @@ export class ContactsService {
 
   private serializeContact(contact: any) {
     const companies = (contact?.companyLinks ?? [])
-      .map((link: any) => this.normalizeChatwootCompanySummary(link.company))
+      .map((link: any) => normalizeChatwootCompanySummary(link.company))
       .filter(Boolean);
 
     const primaryCompany = companies[0] ?? null;
@@ -692,7 +692,7 @@ export class ContactsService {
     ]);
 
     for (const contact of contacts) {
-      await this.syncChatwootContactPresentation(this.serializeContact(contact), company);
+      await this.syncChatwootContactPresentation(serializeContact(contact), company);
     }
 
     return contacts.length;
@@ -760,19 +760,19 @@ export class ContactsService {
           continue;
         }
 
-        const companies = this.resolveChatwootContactCompanies(
+        const companies = resolveChatwootContactCompanies(
           updatedContact,
           companyOverride,
-          this.normalizeChatwootCompanySummary(link.company),
+          normalizeChatwootCompanySummary(link.company),
         );
         const primaryCompany = companies[0] ?? null;
-        const primaryCompanyName = this.formatCompanyDisplayName(primaryCompany);
+        const primaryCompanyName = formatCompanyDisplayName(primaryCompany);
         const chatwootDisplayName = buildChatwootContactDisplayName({
           contactName: updatedContact.name,
           companyName: primaryCompanyName,
         });
         const primaryCompanyAddress = primaryCompany?.addresses?.[0] ?? null;
-        const companyNames = companies.map((company) => this.formatCompanyDisplayName(company)).filter(Boolean);
+        const companyNames = companies.map((company) => formatCompanyDisplayName(company)).filter(Boolean);
         const chatwootLastName = primaryCompanyName ? `| ${primaryCompanyName}` : null;
         const contactStatus = updatedContact.status ?? null;
         const isArchived = contactStatus === CompanyContactStatus.ARCHIVED;
@@ -782,7 +782,7 @@ export class ContactsService {
           syspro_contact_status: contactStatus,
           syspro_contact_active: !isArchived,
           syspro_contact_archived_at: isArchived
-            ? this.formatDateAttribute(updatedContact.updatedAt)
+            ? formatDateAttribute(updatedContact.updatedAt)
             : null,
           syspro_company_id: primaryCompany?.id ?? updatedContact.companyId ?? null,
           syspro_company_name: primaryCompanyName || null,
@@ -796,7 +796,7 @@ export class ContactsService {
           syspro_company_names: companyNames.join(' | ') || null,
           syspro_companies: companies.map((company) => ({
             id: company.id ?? null,
-            name: this.formatCompanyDisplayName(company) || null,
+            name: formatCompanyDisplayName(company) || null,
             legalName: company.razaoSocial ?? null,
             tradeName: company.nomeFantasia ?? null,
             cnpj: company.cnpj ?? null,
@@ -829,7 +829,7 @@ export class ContactsService {
 
         await this.chatwootClient.updateContact(context.chatwoot, link.chatwootContactId, {
           name: chatwootDisplayName,
-          phone_number: this.formatChatwootPhoneNumber(updatedContact.whatsapp),
+          phone_number: formatChatwootPhoneNumber(updatedContact.whatsapp),
           ...(updatedContact.email ? { email: updatedContact.email } : {}),
           additional_attributes: {
             last_name: chatwootLastName,
@@ -904,7 +904,7 @@ export class ContactsService {
       Number(count.users ?? 0) > 0;
     if (hasPortalHistory) return false;
 
-    return this.isInvalidIntegrationPhone(contact?.whatsapp ?? contact?.phone);
+    return isInvalidIntegrationPhone(contact?.whatsapp ?? contact?.phone);
   }
 
   private isInvalidIntegrationPhone(value?: string | null): boolean {
@@ -942,15 +942,15 @@ export class ContactsService {
     linkCompany?: ChatwootCompanySummary | null,
   ) {
     const companies = [
-      this.normalizeChatwootCompanySummary(companyOverride),
+      normalizeChatwootCompanySummary(companyOverride),
       ...(updatedContact.companies ?? []),
-      this.normalizeChatwootCompanySummary(updatedContact.company),
-      this.normalizeChatwootCompanySummary(linkCompany),
+      normalizeChatwootCompanySummary(updatedContact.company),
+      normalizeChatwootCompanySummary(linkCompany),
     ].filter(Boolean) as ChatwootCompanySummary[];
 
     const seen = new Set<string>();
     return companies.filter((company) => {
-      const key = String(company.id ?? company.cnpj ?? this.formatCompanyDisplayName(company) ?? '').trim();
+      const key = String(company.id ?? company.cnpj ?? formatCompanyDisplayName(company) ?? '').trim();
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -1003,7 +1003,7 @@ export class ContactsService {
       serverProtocol: record.serverProtocol === 'HTTP' || record.serverProtocol === 'HTTPS' ? record.serverProtocol : null,
       iisIsapiPath: typeof record.iisIsapiPath === 'string' ? record.iisIsapiPath : null,
       installationDirectory: typeof record.installationDirectory === 'string' ? record.installationDirectory : null,
-      remoteConnections: this.normalizeRemoteConnections(record.remoteConnections),
+      remoteConnections: normalizeRemoteConnections(record.remoteConnections),
       addresses,
     };
   }
@@ -1123,7 +1123,7 @@ export class ContactsService {
     if (this.authorizationService.isSystemRole(requester.role)) return;
 
     const scope = await this.resolveContactCompanyScope(requester);
-    const contactCompanyIds = this.extractCompanyIds(contact);
+    const contactCompanyIds = extractCompanyIds(contact);
     if (contactCompanyIds.some((companyId) => scope.companyIds.includes(companyId))) return;
 
     throw new NotFoundException('Contato nao encontrado');
@@ -1136,7 +1136,7 @@ export class ContactsService {
     if (this.authorizationService.isSystemRole(requester.role)) return;
 
     const scope = await this.resolveContactCompanyScope(requester);
-    const contactCompanyIds = this.extractCompanyIds(contact);
+    const contactCompanyIds = extractCompanyIds(contact);
     if (
       contactCompanyIds.length &&
       contactCompanyIds.every((companyId) => scope.companyIds.includes(companyId))

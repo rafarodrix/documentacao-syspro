@@ -71,3 +71,23 @@ func TestSelectAutoVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveBinaryReturnsFirstExistingCandidate(t *testing.T) {
+	root := t.TempDir()
+	second := filepath.Join(root, "agent-service.exe")
+	if err := os.WriteFile(second, []byte("test"), 0o644); err != nil {
+		t.Fatalf("write candidate: %v", err)
+	}
+
+	got, err := resolveBinary(
+		[]string{filepath.Join(root, "missing.exe"), second},
+		"agent-service",
+		"build it first",
+	)
+	if err != nil {
+		t.Fatalf("resolveBinary returned error: %v", err)
+	}
+	if got != second {
+		t.Fatalf("expected %s, got %s", second, got)
+	}
+}

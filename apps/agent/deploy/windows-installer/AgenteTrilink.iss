@@ -43,6 +43,7 @@ Name: "{commonappdata}\Trilink\Agent\runtime-state\logs"
 [Files]
 Source: "{#SourceDir}\agent-service.exe"; DestDir: "{app}"; Flags: ignoreversion restartreplace
 Source: "{#SourceDir}\agent-ui.exe"; DestDir: "{app}"; Flags: ignoreversion restartreplace
+Source: "{#SourceDir}\agent-updater.exe"; DestDir: "{app}"; Flags: ignoreversion restartreplace
 Source: "{#SourceDir}\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\stop-agent.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\configure-agent-helper.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
@@ -173,9 +174,11 @@ var
   RC: Integer;
 begin
   StopInstalledAgentViaBinary;
+  Exec('taskkill.exe', '/IM agent-updater.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, RC);
   Exec('taskkill.exe', '/IM agent-ui.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, RC);
   Exec('taskkill.exe', '/IM agent-service.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, RC);
   StopServiceViaSCM('{#ServiceName}');
+  WaitForProcessExit('agent-updater.exe', 20);
   WaitForProcessExit('agent-ui.exe', 20);
   WaitForProcessExit('agent-service.exe', 20);
   Sleep(1000);
@@ -412,6 +415,7 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   CloseRunningAgentProcesses;
+  PrepareInstalledBinaryForReplacement('agent-updater.exe');
   PrepareInstalledBinaryForReplacement('agent-ui.exe');
   PrepareInstalledBinaryForReplacement('agent-service.exe');
 end;
