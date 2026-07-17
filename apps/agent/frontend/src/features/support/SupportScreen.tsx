@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { CopyButton } from "../../components/CopyButton";
 import { ChatBubbleIcon, ShieldIcon } from "../../components/icons";
-import type { SetupStatusView, SetupStepView, SupportSessionView } from "../../types/agent-ui";
+import type { AgentSetupViewModel, SetupStepView, AgentSupportViewModel } from "../../types/agent-ui";
 import { getSetupDetail, getSetupHeadline, getSetupHint, formatSetupCopy } from "../setup/setup-helpers";
 import { mountChatwootEmbed, openChatwootInline } from "./chatwoot";
 
 type SetupOverallState = "complete" | "error" | "running" | "idle";
 
 type SupportScreenProps = {
-  session: SupportSessionView | null;
-  setupStatus: SetupStatusView;
+  session: AgentSupportViewModel | null;
+  setupStatus: AgentSetupViewModel;
   activeStep?: SetupStepView | null;
   setupOverallState: SetupOverallState;
   chatwootReady: boolean;

@@ -1,4 +1,4 @@
-import type { SupportSessionView } from "../../types/agent-ui";
+import type { AgentSupportViewModel } from "../../types/agent-ui";
 
 export function openChatwootInline() {
   const chatwoot = (window as unknown as {
@@ -57,7 +57,7 @@ export function hasChatwootClient() {
   return Boolean(chatwoot?.toggle || chatwoot?.setUser);
 }
 
-export function identifyChatwootContact(session: SupportSessionView | null | undefined) {
+export function identifyChatwootContact(session: AgentSupportViewModel | null | undefined) {
   if (!session) return;
 
   const chatwoot = (window as unknown as {
@@ -97,7 +97,7 @@ export function identifyChatwootContact(session: SupportSessionView | null | und
   }
 }
 
-function buildChatwootContactIdentifier(session: SupportSessionView) {
+function buildChatwootContactIdentifier(session: AgentSupportViewModel) {
   if (session.installation.hostId?.trim()) return `remote-host:${session.installation.hostId.trim()}`;
   if (session.device.deviceId?.trim()) return `agent-device:${session.device.deviceId.trim()}`;
   if (session.device.hostname?.trim()) return `hostname:${session.device.hostname.trim().toLowerCase()}`;

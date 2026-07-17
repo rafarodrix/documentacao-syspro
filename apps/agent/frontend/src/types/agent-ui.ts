@@ -40,7 +40,7 @@ export type AgentCapabilitiesView = {
   remote: RemoteCapabilityView | null;
 };
 
-export type SetupStatusView = {
+export type AgentSetupViewModel = {
   complete: boolean;
   stage: string;
   title: string;
@@ -53,7 +53,7 @@ export type SetupStatusView = {
   capabilities: AgentCapabilitiesView;
 };
 
-export type SupportSessionView = {
+export type AgentSupportViewModel = {
   channel: {
     baseUrl: string;
     websiteToken: string;

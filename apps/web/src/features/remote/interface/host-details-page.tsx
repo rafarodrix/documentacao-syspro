@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
+import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
@@ -28,7 +28,7 @@ export function RemoteHostDetailsPanel({
   linkedDevice = null,
 }: {
   details: RemoteHostDetails;
-  linkedDevice?: AgentDeviceSummary | null;
+  linkedDevice?: AgentInstallationSummary | null;
 }) {
   const router = useRouter();
   const { host } = details;

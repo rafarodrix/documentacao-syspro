@@ -53,51 +53,53 @@ type SupportChannelView struct {
 }
 
 type AgentSupportView struct {
-	Channel          SupportChannelView     `json:"channel"`
-	Device           DeviceView             `json:"device"`
-	Installation     AgentInstallationView  `json:"installation"`
-	Capabilities     AgentCapabilitiesView  `json:"capabilities"`
-	ConversationTags []string               `json:"conversationTags"`
+	Channel          SupportChannelView    `json:"channel"`
+	Device           DeviceView            `json:"device"`
+	Installation     AgentInstallationView `json:"installation"`
+	Capabilities     AgentCapabilitiesView `json:"capabilities"`
+	ConversationTags []string              `json:"conversationTags"`
 }
 
-func BuildAgentSetupView(status SetupStatus, session SupportSession) AgentSetupView {
-	device, installation, capabilities := buildPresentationParts(session.Context)
+func BuildAgentSetupView(
+	context SupportContext,
+	complete bool,
+	stage string,
+	title string,
+	summary string,
+	progressPct int,
+	lastError string,
+	steps []SetupStep,
+) AgentSetupView {
+	device, installation, capabilities := buildPresentationParts(context)
 
-	if capabilities.Remote == nil && strings.TrimSpace(status.RustDeskID) != "" {
+	if capabilities.Remote == nil && strings.TrimSpace(context.RustDeskID) != "" {
 		capabilities.Remote = &AgentCapabilityView{
 			Kind:       "remote",
-			ExternalID: strings.TrimSpace(status.RustDeskID),
+			ExternalID: strings.TrimSpace(context.RustDeskID),
 			Status:     "ready",
 			StatusText: "identificacao remota pronta",
 			Ready:      true,
 		}
 	}
 
-	if installation.CompanyName == "" {
-		installation.CompanyName = strings.TrimSpace(status.CompanyName)
-	}
-	if installation.HostID == "" {
-		installation.HostID = strings.TrimSpace(status.HostID)
-	}
-
 	return AgentSetupView{
-		Complete:     status.Complete,
-		Stage:        status.Stage,
-		Title:        status.Title,
-		Summary:      status.Summary,
-		ProgressPct:  status.ProgressPct,
-		LastError:    status.LastError,
-		Steps:        append([]SetupStep(nil), status.Steps...),
+		Complete:     complete,
+		Stage:        stage,
+		Title:        title,
+		Summary:      summary,
+		ProgressPct:  progressPct,
+		LastError:    lastError,
+		Steps:        append([]SetupStep(nil), steps...),
 		Device:       device,
 		Installation: installation,
 		Capabilities: capabilities,
 	}
 }
 
-func BuildAgentSupportView(session SupportSession) AgentSupportView {
-	device, installation, capabilities := buildPresentationParts(session.Context)
-	baseURL := strings.TrimSpace(session.BaseURL)
-	websiteToken := strings.TrimSpace(session.WebsiteToken)
+func BuildAgentSupportView(context SupportContext, baseURL string, websiteToken string) AgentSupportView {
+	device, installation, capabilities := buildPresentationParts(context)
+	baseURL = strings.TrimSpace(baseURL)
+	websiteToken = strings.TrimSpace(websiteToken)
 
 	return AgentSupportView{
 		Channel: SupportChannelView{
@@ -108,7 +110,7 @@ func BuildAgentSupportView(session SupportSession) AgentSupportView {
 		Device:           device,
 		Installation:     installation,
 		Capabilities:     capabilities,
-		ConversationTags: append([]string(nil), session.Context.ConversationTags...),
+		ConversationTags: append([]string(nil), context.ConversationTags...),
 	}
 }
 

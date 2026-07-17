@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Building2, Clock, Monitor, WifiOff } from "lucide-react";
-import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
+import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { formatDateTime } from "@/lib/date";
 import { formatAgentHeartbeatLag, getAgentOfflineWarningMessage } from "@/features/agents/domain/agent-device-status";
@@ -20,7 +20,7 @@ export function AgentDeviceDetailPanel({
   companyOptions = [],
   matchedPendingHost = null,
 }: {
-  device: AgentDeviceSummary;
+  device: AgentInstallationSummary;
   canManage?: boolean;
   canManageRemote?: boolean;
   companyOptions?: Array<{ id: string; label: string; searchText?: string }>;

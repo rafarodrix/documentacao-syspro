@@ -17,8 +17,8 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import type {
-  AgentDeviceListResult,
-  AgentDeviceSummary,
+  AgentInstallationListResult,
+  AgentInstallationSummary,
   AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
 import { type ColumnDef } from "@tanstack/react-table";
@@ -39,14 +39,14 @@ import {
 import { SearchToolbar } from "@/components/patterns";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { formatAgentHeartbeatLag } from "@/features/agents/domain/agent-device-status";
-import { deleteAgentDevice, pruneInactiveDevices, getAgentRevocations, deleteAgentRevocation } from "@/features/agents/application/agent-write.actions";
+import { deleteAgentInstallation, pruneInactiveDevices, getAgentRevocations, deleteAgentRevocation } from "@/features/agents/application/agent-write.actions";
 import { toast } from "sonner";
 
 type StatusFilter = "all" | "online" | "offline";
 
 export function AgentDevicesPanel(props: {
   initialStats: AgentFleetStats;
-  initialList: AgentDeviceListResult;
+  initialList: AgentInstallationListResult;
   initialSearch: string;
 }) {
   const { initialStats, initialList, initialSearch } = props;
@@ -265,8 +265,8 @@ function FilterPill(props: {
   );
 }
 
-function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
-  const columns = useMemo<ColumnDef<AgentDeviceSummary>[]>(() => [
+function DevicesTable({ items }: { items: AgentInstallationSummary[] }) {
+  const columns = useMemo<ColumnDef<AgentInstallationSummary>[]>(() => [
     {
       id: "status",
       header: "Status",
@@ -349,7 +349,7 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
     },
   ], []);
 
-  const renderMobileItem = (item: AgentDeviceSummary) => (
+  const renderMobileItem = (item: AgentInstallationSummary) => (
     <Link
       href={`/portal/infraestrutura/agentes/${encodeURIComponent(item.deviceId)}`}
       className="block space-y-3 p-4 transition-colors hover:bg-muted/10"
@@ -425,7 +425,7 @@ function formatRelativeTime(iso: string | null, lagSeconds: number | null): stri
   return formatAgentHeartbeatLag(lagSeconds);
 }
 
-function DeviceRowActions({ device }: { device: AgentDeviceSummary }) {
+function DeviceRowActions({ device }: { device: AgentInstallationSummary }) {
   const router = useRouter();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, startDeleting] = useTransition();
@@ -471,7 +471,7 @@ function DeviceRowActions({ device }: { device: AgentDeviceSummary }) {
         onConfirm={() => {
           startDeleting(async () => {
             try {
-              await deleteAgentDevice(device.deviceId);
+              await deleteAgentInstallation(device.deviceId);
               toast.success("Agente excluído com sucesso.");
               setIsDeleteOpen(false);
               router.refresh();

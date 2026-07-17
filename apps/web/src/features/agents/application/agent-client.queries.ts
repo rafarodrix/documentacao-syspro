@@ -1,16 +1,16 @@
 import {
-  agentDeviceListResultSchema,
+  agentInstallationListResultSchema,
   agentHostOptionListSchema,
-  type AgentDeviceListResult,
+  type AgentInstallationListResult,
   type AgentHostOption,
 } from "@dosc-syspro/contracts/agent";
 
-export async function fetchAgentDeviceListClient(params?: {
+export async function fetchAgentInstallationListClient(params?: {
   page?: number;
   pageSize?: number;
   search?: string;
   status?: "all" | "online" | "offline";
-}): Promise<AgentDeviceListResult> {
+}): Promise<AgentInstallationListResult> {
   const search = new URLSearchParams();
   if (params?.page) search.set("page", String(params.page));
   if (params?.pageSize) search.set("pageSize", String(params.pageSize));
@@ -22,7 +22,7 @@ export async function fetchAgentDeviceListClient(params?: {
   if (!res.ok) throw new Error(`Falha ao consultar dispositivos: ${res.status}`);
   const json = (await res.json()) as { success: boolean; data: unknown };
   if (!json?.success) throw new Error("Resposta invalida");
-  return agentDeviceListResultSchema.parse(json.data);
+  return agentInstallationListResultSchema.parse(json.data);
 }
 
 export async function fetchAgentHostOptionsClient(search?: string): Promise<AgentHostOption[]> {

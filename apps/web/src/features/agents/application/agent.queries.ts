@@ -1,9 +1,9 @@
 import {
-  agentDeviceListResultSchema,
-  agentDeviceSummarySchema,
+  agentInstallationListResultSchema,
+  agentInstallationSummarySchema,
   agentFleetStatsSchema,
-  type AgentDeviceListResult,
-  type AgentDeviceSummary,
+  type AgentInstallationListResult,
+  type AgentInstallationSummary,
   type AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
 import { callWebApi } from "@/lib/web-api";
@@ -26,14 +26,14 @@ export async function fetchAgentFleetStats(): Promise<AgentFleetStats> {
   return fetchEnvelope("/api/agents/stats", agentFleetStatsSchema);
 }
 
-export async function fetchAgentDeviceList(params?: {
+export async function fetchAgentInstallationList(params?: {
   page?: number;
   pageSize?: number;
   search?: string;
   status?: "all" | "online" | "offline";
   companyId?: string;
   remoteHostId?: string;
-}): Promise<AgentDeviceListResult> {
+}): Promise<AgentInstallationListResult> {
   const search = new URLSearchParams();
   if (params?.page) search.set("page", String(params.page));
   if (params?.pageSize) search.set("pageSize", String(params.pageSize));
@@ -42,14 +42,14 @@ export async function fetchAgentDeviceList(params?: {
   if (params?.companyId) search.set("companyId", params.companyId);
   if (params?.remoteHostId) search.set("remoteHostId", params.remoteHostId);
   const query = search.toString();
-  return fetchEnvelope(`/api/agents${query ? `?${query}` : ""}`, agentDeviceListResultSchema);
+  return fetchEnvelope(`/api/agents${query ? `?${query}` : ""}`, agentInstallationListResultSchema);
 }
 
-export async function fetchLinkedAgentDevice(remoteHostId: string) {
-  const result = await fetchAgentDeviceList({ remoteHostId, pageSize: 1 });
+export async function fetchLinkedAgentInstallation(remoteHostId: string) {
+  const result = await fetchAgentInstallationList({ remoteHostId, pageSize: 1 });
   return result.items[0] ?? null;
 }
 
-export async function fetchAgentDevice(deviceId: string): Promise<AgentDeviceSummary> {
-  return fetchEnvelope(`/api/agents/${encodeURIComponent(deviceId)}`, agentDeviceSummarySchema);
+export async function fetchAgentInstallation(deviceId: string): Promise<AgentInstallationSummary> {
+  return fetchEnvelope(`/api/agents/${encodeURIComponent(deviceId)}`, agentInstallationSummarySchema);
 }

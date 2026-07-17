@@ -1,4 +1,4 @@
-import type { SetupStatusView, SetupStepView } from "../../types/agent-ui";
+import type { AgentSetupViewModel, SetupStepView } from "../../types/agent-ui";
 import { Route, normalizeRoute } from "../../types/route";
 
 const bootstrapFlowLabels: Record<string, string> = {
@@ -25,13 +25,13 @@ export function formatSetupCopy(value?: string | null): string {
   );
 }
 
-export function resolveStartupRoute(target: string | undefined, status: SetupStatusView): Route {
+export function resolveStartupRoute(target: string | undefined, status: AgentSetupViewModel): Route {
   if (!status.complete) return "agent://setup";
   return normalizeRoute(target);
 }
 
 export function getSetupHeadline(
-  status: SetupStatusView,
+  status: AgentSetupViewModel,
   activeStep: SetupStepView | null | undefined,
   overallState: "complete" | "error" | "running" | "idle",
 ): string {
@@ -40,7 +40,7 @@ export function getSetupHeadline(
 }
 
 export function getSetupDetail(
-  status: SetupStatusView,
+  status: AgentSetupViewModel,
   activeStep: SetupStepView | null | undefined,
   overallState: "complete" | "error" | "running" | "idle",
 ): string {
@@ -49,7 +49,7 @@ export function getSetupDetail(
 }
 
 export function getSetupHint(
-  status: SetupStatusView,
+  status: AgentSetupViewModel,
   activeStep: SetupStepView | null | undefined,
 ): string {
   const combined = [

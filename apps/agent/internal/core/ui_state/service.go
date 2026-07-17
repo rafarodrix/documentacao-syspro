@@ -47,51 +47,120 @@ type SetupStep struct {
 	Detail string `json:"detail,omitempty"`
 }
 
-type SetupStatus struct {
-	Complete    bool        `json:"complete"`
-	Stage       string      `json:"stage"`
-	Title       string      `json:"title"`
-	Summary     string      `json:"summary"`
-	ProgressPct int         `json:"progress_pct"`
-	LastError   string      `json:"last_error,omitempty"`
-	CompanyName string      `json:"company_name,omitempty"`
-	HostID      string      `json:"host_id,omitempty"`
-	RustDeskID  string      `json:"rustdesk_id,omitempty"`
-	Steps       []SetupStep `json:"steps"`
-}
-
 type SupportContextSyncResult struct {
 	Accepted bool   `json:"accepted"`
 	Message  string `json:"message"`
 }
 
-type SupportSession struct {
-	BaseURL      string         `json:"base_url"`
-	WebsiteToken string         `json:"website_token"`
-	Context      SupportContext `json:"context"`
-}
-
 func (s *Service) AgentSetupView(ctx context.Context) (AgentSetupView, error) {
-	setup, err := s.SetupStatus(ctx)
-	if err != nil {
-		return AgentSetupView{}, err
+	_ = ctx
+
+	context := s.buildSupportContext()
+	desired, _ := loadJSON[domain.DesiredState](filepath.Join(s.stateDir, "desired_state.json"))
+	current, _ := loadJSON[domain.CurrentState](filepath.Join(s.stateDir, "current_state.json"))
+	results, _ := loadJSON[[]domain.ApplyResult](filepath.Join(s.stateDir, "apply_results.json"))
+	remoteState, _ := s.loadPersistedRemoteState()
+
+	remoteResult := findModuleResult(results, "remote")
+	steps := []SetupStep{
+		buildStep(
+			"identity",
+			"Identidade do agente",
+			context.DeviceID != "",
+			"",
+			firstNonEmpty("Dispositivo registrado: "+context.DeviceID, "Gerando identidade local"),
+		),
+		buildStep(
+			"portal",
+			"Conexao com o portal",
+			desired.Version > 0,
+			derivePortalError(remoteResult),
+			fmt.Sprintf("Desired state atual: v%d", desired.Version),
+		),
+		buildStep(
+			"discover",
+			"Descoberta da maquina",
+			remoteState.LastBootstrapFlow != "" || remoteState.HostID != "",
+			deriveDiscoverError(remoteState, remoteResult),
+			deriveDiscoverDetail(remoteState, remoteResult),
+		),
+		buildStep(
+			"link",
+			"Vinculo com a empresa",
+			remoteState.HostID != "" && remoteState.CompanyID != "",
+			"",
+			deriveLinkDetail(remoteState),
+		),
+		buildStep(
+			"rustdesk",
+			"Instalacao do remoto",
+			remoteState.RustDeskID != "" || remoteState.CurrentVersion != "" || remoteState.RustDeskExecutable != "",
+			deriveRustDeskInstallError(remoteState, remoteResult),
+			deriveRustDeskDetail(remoteState),
+		),
+		buildStep(
+			"sync",
+			"Remoto operacional",
+			isRemoteOperational(remoteState, current),
+			deriveSyncError(remoteState, remoteResult),
+			deriveSyncDetail(remoteState, current),
+		),
 	}
 
-	support, err := s.SupportSession(ctx)
-	if err != nil {
-		return AgentSetupView{}, err
+	completed := 0
+	lastError := ""
+	stage := "Concluido"
+	summary := "Agente pronto para atendimento e remoto."
+	complete := true
+	for _, step := range steps {
+		if step.Status == "complete" {
+			completed++
+			continue
+		}
+		complete = false
+		stage = step.Label
+		summary = firstNonEmpty(step.Detail, "Aguardando proxima etapa do onboarding.")
+		if step.Status == "error" {
+			lastError = step.Detail
+		}
+		break
 	}
 
-	return BuildAgentSetupView(setup, support), nil
+	progress := 0
+	if len(steps) > 0 {
+		progress = int(float64(completed) / float64(len(steps)) * 100)
+	}
+
+	if !complete && lastError == "" {
+		for _, step := range steps {
+			if step.Status == "error" {
+				lastError = step.Detail
+				break
+			}
+		}
+	}
+
+	view := BuildAgentSetupView(
+		context,
+		complete,
+		stage,
+		"Instalacao do Agente Trilink",
+		summary,
+		progress,
+		lastError,
+		steps,
+	)
+	view.Complete = complete
+	return view, nil
 }
 
 func (s *Service) AgentSupportView(ctx context.Context) (AgentSupportView, error) {
-	support, err := s.SupportSession(ctx)
-	if err != nil {
-		return AgentSupportView{}, err
-	}
+	_ = ctx
 
-	return BuildAgentSupportView(support), nil
+	baseURL := strings.TrimSpace(s.chatwoot.BaseURL)
+	websiteToken := strings.TrimSpace(s.chatwoot.WebsiteToken)
+
+	return BuildAgentSupportView(s.buildSupportContext(), baseURL, websiteToken), nil
 }
 
 type SupportContextPublisher interface {
@@ -190,110 +259,8 @@ func (s *Service) OpenRemoteClient(ctx context.Context) (ActionResult, error) {
 	}, nil
 }
 
-func (s *Service) SetupStatus(ctx context.Context) (SetupStatus, error) {
-	_ = ctx
-
-	context := s.buildSupportContext()
-	desired, _ := loadJSON[domain.DesiredState](filepath.Join(s.stateDir, "desired_state.json"))
-	current, _ := loadJSON[domain.CurrentState](filepath.Join(s.stateDir, "current_state.json"))
-	results, _ := loadJSON[[]domain.ApplyResult](filepath.Join(s.stateDir, "apply_results.json"))
-	remoteState, _ := s.loadPersistedRemoteState()
-
-	remoteResult := findModuleResult(results, "remote")
-	steps := []SetupStep{
-		buildStep(
-			"identity",
-			"Identidade do agente",
-			context.DeviceID != "",
-			"",
-			firstNonEmpty("Dispositivo registrado: "+context.DeviceID, "Gerando identidade local"),
-		),
-		buildStep(
-			"portal",
-			"Conexao com o portal",
-			desired.Version > 0,
-			derivePortalError(remoteResult),
-			fmt.Sprintf("Desired state atual: v%d", desired.Version),
-		),
-		buildStep(
-			"discover",
-			"Descoberta da maquina",
-			remoteState.LastBootstrapFlow != "" || remoteState.HostID != "",
-			deriveDiscoverError(remoteState, remoteResult),
-			deriveDiscoverDetail(remoteState, remoteResult),
-		),
-		buildStep(
-			"link",
-			"Vinculo com a empresa",
-			remoteState.HostID != "" && remoteState.CompanyID != "",
-			"",
-			deriveLinkDetail(remoteState),
-		),
-		buildStep(
-			"rustdesk",
-			"Instalacao do remoto",
-			remoteState.RustDeskID != "" || remoteState.CurrentVersion != "" || remoteState.RustDeskExecutable != "",
-			deriveRustDeskInstallError(remoteState, remoteResult),
-			deriveRustDeskDetail(remoteState),
-		),
-		buildStep(
-			"sync",
-			"Remoto operacional",
-			isRemoteOperational(remoteState, current),
-			deriveSyncError(remoteState, remoteResult),
-			deriveSyncDetail(remoteState, current),
-		),
-	}
-
-	completed := 0
-	lastError := ""
-	stage := "Concluido"
-	summary := "Agente pronto para atendimento e remoto."
-	complete := true
-	for _, step := range steps {
-		if step.Status == "complete" {
-			completed++
-			continue
-		}
-		complete = false
-		stage = step.Label
-		summary = firstNonEmpty(step.Detail, "Aguardando proxima etapa do onboarding.")
-		if step.Status == "error" {
-			lastError = step.Detail
-		}
-		break
-	}
-
-	progress := 0
-	if len(steps) > 0 {
-		progress = int(float64(completed) / float64(len(steps)) * 100)
-	}
-
-	if !complete && lastError == "" {
-		for _, step := range steps {
-			if step.Status == "error" {
-				lastError = step.Detail
-				break
-			}
-		}
-	}
-
-	return SetupStatus{
-		Complete:    complete,
-		Stage:       stage,
-		Title:       "Instalacao do Agente Trilink",
-		Summary:     summary,
-		ProgressPct: progress,
-		LastError:   lastError,
-		CompanyName: context.CompanyDisplayName,
-		HostID:      context.HostID,
-		RustDeskID:  context.RustDeskID,
-		Steps:       steps,
-	}, nil
-}
-
 func (s *Service) OpenSetupExperience(ctx context.Context) (ActionResult, error) {
-	if _, err := s.SetupStatus(ctx); err != nil {
+	if _, err := s.AgentSetupView(ctx); err != nil {
 		return ActionResult{
 			Accepted: false,
 			Message:  "setup experience request rejected",
@@ -304,19 +271,6 @@ func (s *Service) OpenSetupExperience(ctx context.Context) (ActionResult, error)
 		Accepted: true,
 		Message:  "setup experience request accepted",
 		Target:   TargetSetupExperience,
-	}, nil
-}
-
-func (s *Service) SupportSession(ctx context.Context) (SupportSession, error) {
-	_ = ctx
-
-	baseURL := strings.TrimSpace(s.chatwoot.BaseURL)
-	websiteToken := strings.TrimSpace(s.chatwoot.WebsiteToken)
-
-	return SupportSession{
-		BaseURL:      baseURL,
-		WebsiteToken: websiteToken,
-		Context:      s.buildSupportContext(),
 	}, nil
 }
 

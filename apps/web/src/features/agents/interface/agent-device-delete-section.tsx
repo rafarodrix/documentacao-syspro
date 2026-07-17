@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
-import { deleteAgentDevice } from "@/features/agents/application/agent-write.actions";
+import { deleteAgentInstallation } from "@/features/agents/application/agent-write.actions";
 
 export function AgentDeviceDeleteSection({
   deviceId,
@@ -64,7 +64,7 @@ export function AgentDeviceDeleteSection({
         onConfirm={() => {
           startDeleting(async () => {
             try {
-              await deleteAgentDevice(deviceId);
+              await deleteAgentInstallation(deviceId);
               toast.success("Agente excluído. Reinstale o serviço na máquina para registrar novamente.");
               setOpen(false);
               router.push("/portal/infraestrutura?tab=agentes");

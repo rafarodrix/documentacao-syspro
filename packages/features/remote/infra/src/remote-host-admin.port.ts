@@ -163,10 +163,27 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         throw error;
       }
 
-      await prisma.agentDevice.updateMany({
-        where: { remoteHostId: input.hostId },
-        data: { companyId: input.companyId },
-      });
+      await prisma.$transaction([
+        prisma.agentCapability.updateMany({
+          where: {
+            kind: "REMOTE",
+            remoteHostId: input.hostId,
+          },
+          data: { companyId: input.companyId },
+        }),
+        prisma.agentInstallation.updateMany({
+          where: {
+            supersededAt: null,
+            capabilities: {
+              some: {
+                kind: "REMOTE",
+                remoteHostId: input.hostId,
+              },
+            },
+          },
+          data: { companyId: input.companyId },
+        }),
+      ]);
 
       return { host };
     },
@@ -201,14 +218,26 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
       }
 
       await prisma.$transaction(async (tx) => {
-        const linkedDevice = await tx.agentDevice.findFirst({
-          where: { remoteHostId: input.hostId },
+        const linkedInstallation = await tx.agentCapability.findFirst({
+          where: {
+            kind: "REMOTE",
+            remoteHostId: input.hostId,
+          },
           select: {
-            deviceId: true,
-            hostname: true,
+            installation: {
+              select: {
+                deviceRecord: {
+                  select: {
+                    deviceId: true,
+                    hostname: true,
+                  },
+                },
+              },
+            },
           },
         });
 
+        const linkedDevice = linkedInstallation?.installation.deviceRecord;
         if (linkedDevice) {
           await tx.agentDeviceRevocation.upsert({
             where: { deviceId: linkedDevice.deviceId },
@@ -231,9 +260,11 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
           linkedHostId: input.hostId,
         });
 
-        await tx.agentDevice.updateMany({
-          where: { remoteHostId: input.hostId },
-          data: { remoteHostId: null },
+        await tx.agentCapability.deleteMany({
+          where: {
+            kind: "REMOTE",
+            remoteHostId: input.hostId,
+          },
         });
 
         await tx.remoteDiscoveredHost.updateMany({
@@ -551,6 +582,5 @@ async function upsertIgnoredDiscoveredHost(
     data,
   });
 }
-
 
 

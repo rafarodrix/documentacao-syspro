@@ -1,14 +1,14 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
-  agentDevicePatchSchema,
+  agentInstallationPatchSchema,
   agentHeartbeatPayloadSchema,
   agentRegisterPayloadSchema,
   type AgentDesiredState,
-  type AgentDeviceListQuery,
-  type AgentDeviceListResult,
+  type AgentInstallationListQuery,
+  type AgentInstallationListResult,
   type AgentHostOption,
-  type AgentDeviceSummary,
+  type AgentInstallationSummary,
   type AgentFleetStats,
 } from '@dosc-syspro/contracts/agent';
 import { readChatwootRuntimeConfig } from '@dosc-syspro/config';
@@ -493,7 +493,7 @@ export class AgentsService {
     rawHeaders: Record<string, unknown> | undefined,
     deviceId: string,
     body: unknown,
-  ): Promise<{ success: true; data: AgentDeviceSummary }> {
+  ): Promise<{ success: true; data: AgentInstallationSummary }> {
     const requester = await this.authorizationService.assertPermission(rawHeaders as any, 'agents:manage');
     const scope = await this.authorizationService.resolveCompanyAccessScope(requester, 'agents:manage');
 
@@ -502,7 +502,7 @@ export class AgentsService {
       throw new BadRequestException({ success: false, error: 'INVALID_DEVICE_ID' });
     }
 
-    const parsed = agentDevicePatchSchema.safeParse(body);
+    const parsed = agentInstallationPatchSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException({
         success: false,
@@ -536,7 +536,7 @@ export class AgentsService {
         });
 
         if (!installation) {
-          throw new NotFoundException({ success: false, error: 'AGENT_DEVICE_NOT_FOUND' });
+          throw new NotFoundException({ success: false, error: 'AGENT_INSTALLATION_NOT_FOUND' });
         }
 
         if (parsed.data.remoteHostId === null) {
@@ -598,7 +598,7 @@ export class AgentsService {
           throw new ConflictException({ success: false, error: 'HOST_ALREADY_LINKED' });
         }
         if (err.code === 'P2025') {
-          throw new NotFoundException({ success: false, error: 'AGENT_DEVICE_NOT_FOUND' });
+          throw new NotFoundException({ success: false, error: 'AGENT_INSTALLATION_NOT_FOUND' });
         }
       }
       throw err;
@@ -822,8 +822,8 @@ export class AgentsService {
 
   async listDevices(
     rawHeaders: Record<string, unknown> | undefined,
-    query: Partial<AgentDeviceListQuery>,
-  ): Promise<{ success: true; data: AgentDeviceListResult }> {
+    query: Partial<AgentInstallationListQuery>,
+  ): Promise<{ success: true; data: AgentInstallationListResult }> {
     await this.authorizationService.assertPermission(rawHeaders as any, 'agents:view');
 
     const page = Math.max(1, Math.trunc(query.page ?? 1));
@@ -881,7 +881,7 @@ export class AgentsService {
         .map((row) => row.deviceRecord.hostname),
     );
 
-    const items: AgentDeviceSummary[] = (rows as unknown as InstallationRow[]).map((row) =>
+    const items: AgentInstallationSummary[] = (rows as unknown as InstallationRow[]).map((row) =>
       this.toSummary(row, onlineSince, discoveredHeartbeatMap.get(this.normalizeMachineNameKey(row.deviceRecord.hostname))),
     );
 
@@ -902,7 +902,7 @@ export class AgentsService {
   async getDevice(
     rawHeaders: Record<string, unknown> | undefined,
     deviceId: string,
-  ): Promise<{ success: true; data: AgentDeviceSummary }> {
+  ): Promise<{ success: true; data: AgentInstallationSummary }> {
     await this.authorizationService.assertPermission(rawHeaders as any, 'agents:view');
 
     const normalizedDeviceId = deviceId?.trim();
@@ -920,7 +920,7 @@ export class AgentsService {
     });
 
     if (!row) {
-      throw new NotFoundException({ success: false, error: 'AGENT_DEVICE_NOT_FOUND' });
+      throw new NotFoundException({ success: false, error: 'AGENT_INSTALLATION_NOT_FOUND' });
     }
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
@@ -970,7 +970,7 @@ export class AgentsService {
     };
   }
 
-  private toSummary(row: InstallationRow, onlineSince: Date, discoveredHeartbeatAt?: Date | null): AgentDeviceSummary {
+  private toSummary(row: InstallationRow, onlineSince: Date, discoveredHeartbeatAt?: Date | null): AgentInstallationSummary {
     const remoteCapability = this.getRemoteCapability(row);
     const lastHeartbeat = this.resolveEffectiveHeartbeatAt(row, discoveredHeartbeatAt);
     const isOnline = !!lastHeartbeat && lastHeartbeat >= onlineSince;
@@ -1000,7 +1000,7 @@ export class AgentsService {
       lastRegisteredAt: row.lastRegisteredAt ? row.lastRegisteredAt.toISOString() : null,
       isOnline,
       heartbeatLagSeconds,
-    } as unknown as AgentDeviceSummary;
+    } as unknown as AgentInstallationSummary;
 
     return summary;
   }
@@ -1160,7 +1160,7 @@ export class AgentsService {
     });
 
     if (!device) {
-      throw new NotFoundException({ success: false, error: 'AGENT_DEVICE_NOT_FOUND' });
+      throw new NotFoundException({ success: false, error: 'AGENT_INSTALLATION_NOT_FOUND' });
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -1243,7 +1243,7 @@ export class AgentsService {
     if (revoked) {
       throw new ForbiddenException({
         success: false,
-        error: 'AGENT_DEVICE_REVOKED',
+        error: 'AGENT_INSTALLATION_REVOKED',
         message: 'Este dispositivo foi removido do portal. Reinstale o agente para registrar novamente.',
       });
     }

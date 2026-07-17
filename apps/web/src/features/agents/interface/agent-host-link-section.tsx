@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Building2, ExternalLink, Link2, Loader2, Search, Unlink } from "lucide-react";
 import type { AgentHostOption } from "@dosc-syspro/contracts/agent";
 import { fetchAgentHostOptionsClient } from "@/features/agents/application/agent-client.queries";
-import { patchAgentDevice } from "@/features/agents/application/agent-write.actions";
+import { patchAgentInstallation } from "@/features/agents/application/agent-write.actions";
 import { SearchableCompanyPicker } from "@/features/remote/interface/host-details/components/searchable-company-picker";
 import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 
@@ -85,7 +85,7 @@ export function AgentHostLinkSection({
   function handleLink(hostId: string) {
     startLinking(async () => {
       try {
-        await patchAgentDevice(deviceId, { remoteHostId: hostId });
+        await patchAgentInstallation(deviceId, { remoteHostId: hostId });
         toast.success("Host vinculado com sucesso.");
         setPickerOpen(false);
         router.refresh();
@@ -98,7 +98,7 @@ export function AgentHostLinkSection({
   function handleUnlink() {
     startUnlinking(async () => {
       try {
-        await patchAgentDevice(deviceId, { remoteHostId: null });
+        await patchAgentInstallation(deviceId, { remoteHostId: null });
         toast.success("Host desvinculado.");
         router.refresh();
       } catch (error) {
@@ -129,7 +129,7 @@ export function AgentHostLinkSection({
         });
 
         try {
-          await patchAgentDevice(deviceId, { remoteHostId: result.data.hostId });
+          await patchAgentInstallation(deviceId, { remoteHostId: result.data.hostId });
         } catch (error) {
           toast.error(
             error instanceof Error

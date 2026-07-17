@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RemoteAccessCard } from "../../components/RemoteAccessCard";
 import { CheckIcon } from "../../components/icons";
-import type { SetupStatusView, SetupStepView } from "../../types/agent-ui";
+import type { AgentSetupViewModel, SetupStepView } from "../../types/agent-ui";
 import {
   getSetupDetail,
   getSetupHeadline,
@@ -12,7 +12,7 @@ import {
 type SetupOverallState = "complete" | "error" | "running" | "idle";
 
 type SetupScreenProps = {
-  status: SetupStatusView;
+  status: AgentSetupViewModel;
   pendingSteps: SetupStepView[];
   completedSteps: SetupStepView[];
   activeStep?: SetupStepView | null;

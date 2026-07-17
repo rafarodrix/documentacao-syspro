@@ -87,7 +87,7 @@ Capability
 - O runtime local agora também persiste `installation.json` com `agent_instance_id` e `credential_id`.
 - O backend agora persiste a presença base em `Device` e `AgentInstallation`.
 - A capability remota agora passa a ser materializada em `AgentCapability`, ligada ao `RemoteHost`.
-- `AgentDevice` permanece apenas como legado residual no schema até a limpeza final do banco.
+- O banco passa a tratar a presença base do agent por `Device` e `AgentInstallation`, sem manter tabela paralela de legado.
 
 ---
 

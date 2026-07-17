@@ -2,7 +2,7 @@
 
 import { Activity, AlertCircle, Clock, Database, Monitor, RefreshCw, Shield, Ticket } from "lucide-react";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
+import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { formatDateTime, formatRelativeHeartbeat } from "../host-details.helpers";
 import { AgentLinkSection } from "./agent-link-section";
@@ -16,7 +16,7 @@ type Props = {
     label: string;
     description: string;
   };
-  linkedDevice: AgentDeviceSummary | null;
+  linkedDevice: AgentInstallationSummary | null;
   windowsComputerName: string | null;
   machineIpv4: string | null;
   normalizedRustdeskId: string | null;

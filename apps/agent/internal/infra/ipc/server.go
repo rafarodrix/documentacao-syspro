@@ -25,12 +25,12 @@ type NotificationProvider interface {
 	ListNotifications(ctx context.Context) ([]uistate.Notification, error)
 }
 
-type SetupProvider interface {
-	SetupStatus(ctx context.Context) (uistate.SetupStatus, error)
+type AgentSetupViewProvider interface {
+	AgentSetupView(ctx context.Context) (uistate.AgentSetupView, error)
 }
 
-type SupportSessionProvider interface {
-	SupportSession(ctx context.Context) (uistate.SupportSession, error)
+type AgentSupportViewProvider interface {
+	AgentSupportView(ctx context.Context) (uistate.AgentSupportView, error)
 }
 
 type ActionProvider interface {
@@ -46,8 +46,8 @@ type Server struct {
 	logger        Logger
 	summary       SummaryProvider
 	notifications NotificationProvider
-	setup         SetupProvider
-	support       SupportSessionProvider
+	setup         AgentSetupViewProvider
+	support       AgentSupportViewProvider
 	actions       ActionProvider
 }
 
@@ -57,8 +57,8 @@ func NewServer(
 	logger Logger,
 	summary SummaryProvider,
 	notifications NotificationProvider,
-	setup SetupProvider,
-	support SupportSessionProvider,
+	setup AgentSetupViewProvider,
+	support AgentSupportViewProvider,
 	actions ActionProvider,
 ) *Server {
 	return &Server{
@@ -149,29 +149,29 @@ func (s *Server) newMux() *http.ServeMux {
 		}
 		writeJSON(w, http.StatusOK, notifications)
 	})
-	mux.HandleFunc("/setup", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/agent/setup-view", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodGet) {
 			return
 		}
 
-		status, err := s.setup.SetupStatus(r.Context())
+		view, err := s.setup.AgentSetupView(r.Context())
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, status)
+		writeJSON(w, http.StatusOK, view)
 	})
-	mux.HandleFunc("/support/session", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/agent/support-view", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodGet) {
 			return
 		}
 
-		session, err := s.support.SupportSession(r.Context())
+		view, err := s.support.AgentSupportView(r.Context())
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, session)
+		writeJSON(w, http.StatusOK, view)
 	})
 	mux.HandleFunc("/actions/support/open", func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r, http.MethodPost) {

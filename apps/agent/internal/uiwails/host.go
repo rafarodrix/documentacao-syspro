@@ -16,7 +16,6 @@ import (
 
 const (
 	eventNavigate      = "agent:navigate"
-	eventSetupStatus   = "agent:setup-status"
 	eventSetupView     = "agent:setup-view"
 	eventSummary       = "agent:summary"
 	eventNotifications = "agent:notifications"
@@ -28,20 +27,12 @@ type Logger interface {
 	Info(msg string, kv ...any)
 }
 
-type setupStatusClient interface {
-	GetSetupStatus(ctx context.Context) (uistate.SetupStatus, error)
-}
-
 type summaryClient interface {
 	GetSummary(ctx context.Context) (uistate.Summary, error)
 }
 
 type notificationsClient interface {
 	ListNotifications(ctx context.Context) ([]uistate.Notification, error)
-}
-
-type supportSessionClient interface {
-	GetSupportSession(ctx context.Context) (uistate.SupportSession, error)
 }
 
 type agentSetupViewClient interface {
@@ -59,10 +50,6 @@ type actionsClient interface {
 	SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error)
 }
 
-type supportSessionProvider interface {
-	SupportSession(ctx context.Context) (uistate.SupportSession, error)
-}
-
 type localAgentSetupViewProvider interface {
 	AgentSetupView(ctx context.Context) (uistate.AgentSetupView, error)
 }
@@ -71,20 +58,14 @@ type localAgentSupportViewProvider interface {
 	AgentSupportView(ctx context.Context) (uistate.AgentSupportView, error)
 }
 
-type localSetupStatusProvider interface {
-	SetupStatus(ctx context.Context) (uistate.SetupStatus, error)
-}
-
 type localSummaryProvider interface {
 	Snapshot(ctx context.Context) (uistate.Summary, error)
 }
 
 type localStateProvider interface {
-	localSetupStatusProvider
 	localSummaryProvider
 	notificationsClient
 	actionsClient
-	supportSessionProvider
 	localAgentSetupViewProvider
 	localAgentSupportViewProvider
 }
@@ -208,10 +189,10 @@ func targetWindow(target string) (int, int, string) {
 type API struct {
 	logger        Logger
 	host          *Host
-	setup         setupStatusClient
+	setup         agentSetupViewClient
 	summary       summaryClient
 	notifications notificationsClient
-	support       supportSessionClient
+	support       agentSupportViewClient
 	actions       actionsClient
 	localState    localStateProvider
 
@@ -231,20 +212,20 @@ func NewAPI(logger Logger, host *Host, ipcClient *ipc.Client, localState localSt
 	}
 }
 
-func (a *API) getSetupStatus() (uistate.SetupStatus, error) {
-	status, err := a.setup.GetSetupStatus(context.Background())
+func (a *API) GetAgentSetupView() (uistate.AgentSetupView, error) {
+	view, err := a.setup.GetAgentSetupView(context.Background())
 	if err == nil {
-		return status, nil
+		return view, nil
 	}
 
-	a.logger.Info("wails setup status fallback to local state", "error", err)
+	a.logger.Info("wails setup view fallback to local state", "error", err)
 	if a.localState == nil {
-		return uistate.SetupStatus{}, err
+		return uistate.AgentSetupView{}, err
 	}
 
-	fallback, fallbackErr := a.localState.SetupStatus(context.Background())
+	fallback, fallbackErr := a.localState.AgentSetupView(context.Background())
 	if fallbackErr != nil {
-		return uistate.SetupStatus{}, err
+		return uistate.AgentSetupView{}, err
 	}
 
 	if !fallback.Complete && fallback.ProgressPct == 0 && strings.TrimSpace(fallback.LastError) == "" {
@@ -256,50 +237,23 @@ func (a *API) getSetupStatus() (uistate.SetupStatus, error) {
 	return fallback, nil
 }
 
-func (a *API) GetSetupStatus() (uistate.SetupStatus, error) {
-	return a.getSetupStatus()
-}
-
-func (a *API) getSupportSession() (uistate.SupportSession, error) {
-	session, err := a.support.GetSupportSession(context.Background())
-	if err == nil {
-		return session, nil
-	}
-
-	a.logger.Info("wails support session fallback to local state", "error", err)
-	if a.localState == nil {
-		return uistate.SupportSession{}, err
-	}
-
-	fallback, fallbackErr := a.localState.SupportSession(context.Background())
-	if fallbackErr != nil {
-		return uistate.SupportSession{}, err
-	}
-
-	return fallback, nil
-}
-
-func (a *API) GetAgentSetupView() (uistate.AgentSetupView, error) {
-	status, err := a.getSetupStatus()
-	if err != nil {
-		return uistate.AgentSetupView{}, err
-	}
-
-	session, sessionErr := a.getSupportSession()
-	if sessionErr != nil {
-		a.logger.Info("wails setup view continuing without support session", "error", sessionErr)
-	}
-
-	return uistate.BuildAgentSetupView(status, session), nil
-}
-
 func (a *API) GetAgentSupportView() (uistate.AgentSupportView, error) {
-	session, err := a.getSupportSession()
-	if err != nil {
+	view, err := a.support.GetAgentSupportView(context.Background())
+	if err == nil {
+		return view, nil
+	}
+
+	a.logger.Info("wails support view fallback to local state", "error", err)
+	if a.localState == nil {
 		return uistate.AgentSupportView{}, err
 	}
 
-	return uistate.BuildAgentSupportView(session), nil
+	fallback, fallbackErr := a.localState.AgentSupportView(context.Background())
+	if fallbackErr != nil {
+		return uistate.AgentSupportView{}, err
+	}
+
+	return fallback, nil
 }
 
 func (a *API) GetSummary() (uistate.Summary, error) {
@@ -344,10 +298,6 @@ func (a *API) ListNotifications() ([]uistate.Notification, error) {
 		Severity:   "warn",
 		OccurredAt: time.Now().UTC(),
 	}}, fallback...), nil
-}
-
-func (a *API) GetSupportSession() (uistate.SupportSession, error) {
-	return a.getSupportSession()
 }
 
 func (a *API) GetCurrentTarget() string {
@@ -438,32 +388,11 @@ func (a *API) SyncSupportConversationContext(conversationID string) (uistate.Sup
 
 func (a *API) startPushLoops(runtimeCtx context.Context) {
 	a.pushOnce.Do(func() {
-		go a.emitSetupLoop(runtimeCtx)
 		go a.emitSetupViewLoop(runtimeCtx)
 		go a.emitSummaryLoop(runtimeCtx)
 		go a.emitNotificationsLoop(runtimeCtx)
 		go a.emitSupportViewLoop(runtimeCtx)
 	})
-}
-
-func (a *API) emitSetupLoop(runtimeCtx context.Context) {
-	ticker := time.NewTicker(3 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		status, err := a.setup.GetSetupStatus(runtimeCtx)
-		if err != nil {
-			a.logger.Info("wails setup push failed", "error", err)
-		} else {
-			wruntime.EventsEmit(runtimeCtx, eventSetupStatus, status)
-		}
-
-		select {
-		case <-runtimeCtx.Done():
-			return
-		case <-ticker.C:
-		}
-	}
 }
 
 func (a *API) emitSetupViewLoop(runtimeCtx context.Context) {

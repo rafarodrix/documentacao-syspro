@@ -1,52 +1,3 @@
-export namespace domain {
-	
-	export class SupportContext {
-	    companyId?: string;
-	    companyDisplayName?: string;
-	    hostId?: string;
-	    hostAlias?: string;
-	    rustdeskId?: string;
-	    remoteAccessPassword?: string;
-	    remoteStatus?: string;
-	    remoteStatusText?: string;
-	    conversationTags?: string[];
-	    machineName?: string;
-	    deviceId?: string;
-	    hostname?: string;
-	    os?: string;
-	    localUsername?: string;
-	    agentVersion?: string;
-	    contactName?: string;
-	    description?: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new SupportContext(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.companyId = source["companyId"];
-	        this.companyDisplayName = source["companyDisplayName"];
-	        this.hostId = source["hostId"];
-	        this.hostAlias = source["hostAlias"];
-	        this.rustdeskId = source["rustdeskId"];
-	        this.remoteAccessPassword = source["remoteAccessPassword"];
-	        this.remoteStatus = source["remoteStatus"];
-	        this.remoteStatusText = source["remoteStatusText"];
-	        this.conversationTags = source["conversationTags"];
-	        this.machineName = source["machineName"];
-	        this.deviceId = source["deviceId"];
-	        this.hostname = source["hostname"];
-	        this.os = source["os"];
-	        this.localUsername = source["localUsername"];
-	        this.agentVersion = source["agentVersion"];
-	        this.contactName = source["contactName"];
-	        this.description = source["description"];
-	    }
-	}
-
-}
-
 export namespace uistate {
 	
 	export class ActionResult {
@@ -322,54 +273,6 @@ export namespace uistate {
 		    return a;
 		}
 	}
-	export class SetupStatus {
-	    complete: boolean;
-	    stage: string;
-	    title: string;
-	    summary: string;
-	    progress_pct: number;
-	    last_error?: string;
-	    company_name?: string;
-	    host_id?: string;
-	    rustdesk_id?: string;
-	    steps: SetupStep[];
-	
-	    static createFrom(source: any = {}) {
-	        return new SetupStatus(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.complete = source["complete"];
-	        this.stage = source["stage"];
-	        this.title = source["title"];
-	        this.summary = source["summary"];
-	        this.progress_pct = source["progress_pct"];
-	        this.last_error = source["last_error"];
-	        this.company_name = source["company_name"];
-	        this.host_id = source["host_id"];
-	        this.rustdesk_id = source["rustdesk_id"];
-	        this.steps = this.convertValues(source["steps"], SetupStep);
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
 	
 	export class Summary {
 	    service_status: string;
@@ -399,40 +302,6 @@ export namespace uistate {
 	        this.accepted = source["accepted"];
 	        this.message = source["message"];
 	    }
-	}
-	export class SupportSession {
-	    base_url: string;
-	    website_token: string;
-	    context: domain.SupportContext;
-	
-	    static createFrom(source: any = {}) {
-	        return new SupportSession(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.base_url = source["base_url"];
-	        this.website_token = source["website_token"];
-	        this.context = this.convertValues(source["context"], domain.SupportContext);
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 
 }

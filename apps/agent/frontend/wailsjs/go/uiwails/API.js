@@ -14,16 +14,8 @@ export function GetCurrentTarget() {
   return window['go']['uiwails']['API']['GetCurrentTarget']();
 }
 
-export function GetSetupStatus() {
-  return window['go']['uiwails']['API']['GetSetupStatus']();
-}
-
 export function GetSummary() {
   return window['go']['uiwails']['API']['GetSummary']();
-}
-
-export function GetSupportSession() {
-  return window['go']['uiwails']['API']['GetSupportSession']();
 }
 
 export function ListNotifications() {

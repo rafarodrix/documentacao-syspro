@@ -49,7 +49,7 @@ Este corte já está ativo no código:
 4. o backend já grava esses campos em `Device` e `AgentInstallation`
 5. o vínculo operacional remoto agora é materializado em `AgentCapability`
 
-`AgentDevice` ficou relegado a legado residual de banco e não é mais a fonte principal do fluxo base do agent.
+O fluxo base do agent passa a usar apenas `Device`, `AgentInstallation` e `AgentCapability`.
 
 ---
 
@@ -106,7 +106,7 @@ O heartbeat base representa a presença da instalação, não o estado do RustDe
 
 ### Efeito persistido hoje
 
-- Atualiza a presença da instalação em `AgentDevice`
+- Atualiza a presença da instalação em `AgentInstallation`
 - Mantém `lastHeartbeatAt` do cadastro base
 - Não publica snapshots operacionais do host remoto
 - Não substitui `sync` da capability remota
@@ -283,7 +283,7 @@ estruturado. O replay deixa de depender apenas do processo atual.
 
 | Sinal | Origem real |
 | --- | --- |
-| Ultimo contato da instalação | `AgentDevice.lastHeartbeatAt` |
+| Ultimo contato da instalação | `AgentInstallation.lastHeartbeatAt` |
 | Ultimo contato da maquina remota | `RemoteHost.lastHeartbeatAt` |
 | CPU e RAM do host remoto | `RemoteHost.lastAgentMetrics` |
 | Status de convergencia RustDesk | resposta e compliance do `sync` |

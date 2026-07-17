@@ -5,11 +5,11 @@ import {
   SyncSupportConversationContext,
 } from "../bindings";
 import { uistate } from "../../wailsjs/go/models";
-import type { SupportSessionView } from "../types/agent-ui";
+import type { AgentSupportViewModel } from "../types/agent-ui";
 
-export async function fetchSupportSession(): Promise<SupportSessionView> {
+export async function fetchAgentSupportView(): Promise<AgentSupportViewModel> {
   const view = await GetAgentSupportView();
-  return normalizeSupportView(view);
+  return normalizeAgentSupportView(view);
 }
 
 export async function openSupportConversation(): Promise<void> {
@@ -24,7 +24,7 @@ export async function syncSupportConversationContext(conversationId: string): Pr
   await SyncSupportConversationContext(conversationId);
 }
 
-export function normalizeSupportView(view: uistate.AgentSupportView): SupportSessionView {
+export function normalizeAgentSupportView(view: uistate.AgentSupportView): AgentSupportViewModel {
   return {
     channel: {
       baseUrl: view.channel?.baseUrl?.trim() || "",

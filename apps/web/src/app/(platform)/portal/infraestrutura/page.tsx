@@ -6,7 +6,7 @@ import { Button } from "@dosc-syspro/ui";
 import { requireSession } from "@/lib/auth-helpers";
 import { PageHeader, PageShell } from "@/components/patterns";
 import { cn } from "@/lib/utils";
-import { fetchAgentDeviceList, fetchAgentFleetStats } from "@/features/agents/application/agent.queries";
+import { fetchAgentInstallationList, fetchAgentFleetStats } from "@/features/agents/application/agent.queries";
 import { AgentDevicesPanel } from "@/features/agents/interface/devices-panel";
 import { getRemoteEfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { getRemotePlatformDirectory } from "@/features/remote/application/remote-platform.queries";
@@ -230,7 +230,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     const status = parseAgentStatus(tabParams.status);
     const [stats, list] = await Promise.all([
       fetchAgentFleetStats(),
-      fetchAgentDeviceList({ page: pageValue, search: search || undefined, status }),
+      fetchAgentInstallationList({ page: pageValue, search: search || undefined, status }),
     ]);
 
     content = (

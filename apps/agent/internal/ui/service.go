@@ -38,7 +38,7 @@ type ActionsClient interface {
 }
 
 type SetupClient interface {
-	GetSetupStatus(ctx context.Context) (uistate.SetupStatus, error)
+	GetAgentSetupView(ctx context.Context) (uistate.AgentSetupView, error)
 }
 
 type TargetOpener interface {
@@ -131,12 +131,12 @@ func (s *Service) autoOpenSetupIfNeeded(ctx context.Context) {
 }
 
 func (s *Service) maybeOpenSetupExperience(ctx context.Context) {
-	status, err := s.setup.GetSetupStatus(ctx)
+	view, err := s.setup.GetAgentSetupView(ctx)
 	if err != nil {
-		s.logger.Info("agent ui setup status fetch failed", "error", err)
+		s.logger.Info("agent ui setup view fetch failed", "error", err)
 		return
 	}
-	if status.Complete {
+	if view.Complete {
 		s.logger.Info("agent ui setup experience skipped because onboarding is complete")
 		return
 	}
@@ -153,7 +153,7 @@ func (s *Service) maybeOpenSetupExperience(ctx context.Context) {
 		s.logger.Info("agent ui setup experience open failed", "error", err, "target", result.Target)
 		return
 	}
-	s.logger.Info("agent ui setup experience opened", "target", result.Target, "stage", status.Stage)
+	s.logger.Info("agent ui setup experience opened", "target", result.Target, "stage", view.Stage)
 }
 
 func (s *Service) pollSummaryLoop(ctx context.Context) error {

@@ -1,4 +1,4 @@
-export async function patchAgentDevice(
+export async function patchAgentInstallation(
   deviceId: string,
   patch: { remoteHostId: string | null },
 ): Promise<void> {
@@ -13,19 +13,19 @@ export async function patchAgentDevice(
     if (code === "HOST_ALREADY_LINKED") throw new Error("Este host ja possui um dispositivo vinculado.");
     if (code === "REMOTE_HOST_NOT_FOUND") throw new Error("Host remoto nao encontrado.");
     if (code === "REMOTE_HOST_OUT_OF_SCOPE") throw new Error("Voce nao possui acesso a este host remoto.");
-    if (code === "AGENT_DEVICE_NOT_FOUND") throw new Error("Dispositivo nao encontrado.");
+    if (code === "AGENT_INSTALLATION_NOT_FOUND") throw new Error("Instalacao do agente nao encontrada.");
     throw new Error(`Falha ao atualizar dispositivo: ${res.status}`);
   }
 }
 
-export async function deleteAgentDevice(deviceId: string): Promise<void> {
+export async function deleteAgentInstallation(deviceId: string): Promise<void> {
   const res = await fetch(`/api/agents/${encodeURIComponent(deviceId)}`, {
     method: "DELETE",
   });
   if (!res.ok) {
     const json = await res.json().catch(() => null) as { error?: string; message?: string } | null;
     const code = json?.error;
-    if (code === "AGENT_DEVICE_NOT_FOUND") throw new Error("Dispositivo nao encontrado.");
+    if (code === "AGENT_INSTALLATION_NOT_FOUND") throw new Error("Instalacao do agente nao encontrada.");
     throw new Error(json?.message ?? `Falha ao excluir dispositivo: ${res.status}`);
   }
 }

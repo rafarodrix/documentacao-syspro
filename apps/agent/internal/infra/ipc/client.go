@@ -80,56 +80,62 @@ func (c *Client) ListNotifications(ctx context.Context) ([]uistate.Notification,
 	return notifications, nil
 }
 
-func (c *Client) GetSetupStatus(ctx context.Context) (uistate.SetupStatus, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/setup", nil)
+func (c *Client) GetAgentSetupView(ctx context.Context) (uistate.AgentSetupView, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/agent/setup-view", nil)
 	if err != nil {
-		return uistate.SetupStatus{}, fmt.Errorf("build ipc setup request: %w", err)
+		return uistate.AgentSetupView{}, fmt.Errorf("build ipc agent setup view request: %w", err)
 	}
 	c.applyAuth(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return uistate.SetupStatus{}, fmt.Errorf("fetch ipc setup: %w", err)
+		return uistate.AgentSetupView{}, fmt.Errorf("fetch ipc agent setup view: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return uistate.SetupStatus{}, fmt.Errorf("ipc setup returned status %d", resp.StatusCode)
+		return uistate.AgentSetupView{}, fmt.Errorf("ipc agent setup view returned status %d", resp.StatusCode)
 	}
 
-	var status uistate.SetupStatus
-	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
-		return uistate.SetupStatus{}, fmt.Errorf("decode ipc setup: %w", err)
+	var view uistate.AgentSetupView
+	if err := json.NewDecoder(resp.Body).Decode(&view); err != nil {
+		return uistate.AgentSetupView{}, fmt.Errorf("decode ipc agent setup view: %w", err)
 	}
 
-	c.logger.Debug("ipc client fetched setup", "stage", status.Stage, "progress_pct", status.ProgressPct, "complete", status.Complete)
-	return status, nil
+	c.logger.Debug("ipc client fetched agent setup view", "stage", view.Stage, "progress_pct", view.ProgressPct, "complete", view.Complete)
+	return view, nil
 }
 
-func (c *Client) GetSupportSession(ctx context.Context) (uistate.SupportSession, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/support/session", nil)
+func (c *Client) GetAgentSupportView(ctx context.Context) (uistate.AgentSupportView, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/agent/support-view", nil)
 	if err != nil {
-		return uistate.SupportSession{}, fmt.Errorf("build ipc support session request: %w", err)
+		return uistate.AgentSupportView{}, fmt.Errorf("build ipc agent support view request: %w", err)
 	}
 	c.applyAuth(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return uistate.SupportSession{}, fmt.Errorf("fetch ipc support session: %w", err)
+		return uistate.AgentSupportView{}, fmt.Errorf("fetch ipc agent support view: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return uistate.SupportSession{}, fmt.Errorf("ipc support session returned status %d", resp.StatusCode)
+		return uistate.AgentSupportView{}, fmt.Errorf("ipc agent support view returned status %d", resp.StatusCode)
 	}
 
-	var session uistate.SupportSession
-	if err := json.NewDecoder(resp.Body).Decode(&session); err != nil {
-		return uistate.SupportSession{}, fmt.Errorf("decode ipc support session: %w", err)
+	var view uistate.AgentSupportView
+	if err := json.NewDecoder(resp.Body).Decode(&view); err != nil {
+		return uistate.AgentSupportView{}, fmt.Errorf("decode ipc agent support view: %w", err)
 	}
 
-	c.logger.Debug("ipc client fetched support session", "remote_status", session.Context.RemoteStatus, "rustdesk_id", session.Context.RustDeskID)
-	return session, nil
+	remoteStatus := ""
+	remoteExternalID := ""
+	if view.Capabilities.Remote != nil {
+		remoteStatus = view.Capabilities.Remote.Status
+		remoteExternalID = view.Capabilities.Remote.ExternalID
+	}
+	c.logger.Debug("ipc client fetched agent support view", "remote_status", remoteStatus, "rustdesk_id", remoteExternalID)
+	return view, nil
 }
 
 func (c *Client) OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error) {

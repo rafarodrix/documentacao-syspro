@@ -8,11 +8,7 @@ export function GetAgentSupportView():Promise<uistate.AgentSupportView>;
 
 export function GetCurrentTarget():Promise<string>;
 
-export function GetSetupStatus():Promise<uistate.SetupStatus>;
-
 export function GetSummary():Promise<uistate.Summary>;
-
-export function GetSupportSession():Promise<uistate.SupportSession>;
 
 export function ListNotifications():Promise<Array<uistate.Notification>>;
 

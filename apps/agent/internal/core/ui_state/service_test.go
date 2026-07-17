@@ -14,7 +14,7 @@ type noopLogger struct{}
 
 func (noopLogger) Warn(string, ...any) {}
 
-func TestSetupStatusPrioritizesPortalLinkBeforeRustDesk(t *testing.T) {
+func TestAgentSetupViewPrioritizesPortalLinkBeforeRustDesk(t *testing.T) {
 	store, localStore, stateDir := newTestStateStore(t)
 
 	if err := localStore.SaveJSON(context.Background(), "identity.json", domain.DeviceIdentity{
@@ -45,29 +45,29 @@ func TestSetupStatusPrioritizesPortalLinkBeforeRustDesk(t *testing.T) {
 
 	service := NewService(stateDir, ChatwootConfig{}, "1.0.64", nil)
 
-	status, err := service.SetupStatus(context.Background())
+	view, err := service.AgentSetupView(context.Background())
 	if err != nil {
-		t.Fatalf("SetupStatus returned error: %v", err)
+		t.Fatalf("AgentSetupView returned error: %v", err)
 	}
 
-	if status.Stage != "Vinculo com a empresa" {
-		t.Fatalf("expected stage %q, got %q", "Vinculo com a empresa", status.Stage)
+	if view.Stage != "Vinculo com a empresa" {
+		t.Fatalf("expected stage %q, got %q", "Vinculo com a empresa", view.Stage)
 	}
 
-	if len(status.Steps) < 5 {
-		t.Fatalf("expected setup steps to be populated, got %d", len(status.Steps))
+	if len(view.Steps) < 5 {
+		t.Fatalf("expected setup steps to be populated, got %d", len(view.Steps))
 	}
 
-	if status.Steps[3].Key != "link" {
-		t.Fatalf("expected link step before rustdesk, got %q at index 3", status.Steps[3].Key)
+	if view.Steps[3].Key != "link" {
+		t.Fatalf("expected link step before rustdesk, got %q at index 3", view.Steps[3].Key)
 	}
 
-	if status.Steps[3].Status != "pending" {
-		t.Fatalf("expected link step pending, got %q", status.Steps[3].Status)
+	if view.Steps[3].Status != "pending" {
+		t.Fatalf("expected link step pending, got %q", view.Steps[3].Status)
 	}
 
-	if !strings.Contains(strings.ToLower(status.Summary), "vinculo") {
-		t.Fatalf("expected summary to mention portal link, got %q", status.Summary)
+	if !strings.Contains(strings.ToLower(view.Summary), "vinculo") {
+		t.Fatalf("expected summary to mention portal link, got %q", view.Summary)
 	}
 }
 

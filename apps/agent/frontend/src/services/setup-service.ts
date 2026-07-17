@@ -1,8 +1,8 @@
 import { GetAgentSetupView, OpenSetupExperience } from "../bindings";
 import { uistate } from "../../wailsjs/go/models";
-import type { SetupStatusView, SetupStepView } from "../types/agent-ui";
+import type { AgentSetupViewModel, SetupStepView } from "../types/agent-ui";
 
-export const defaultSetupStatusView: SetupStatusView = {
+export const defaultAgentSetupViewModel: AgentSetupViewModel = {
   complete: false,
   stage: "Inicializando",
   title: "Provisionamento do Agente",
@@ -22,16 +22,16 @@ export const defaultSetupStatusView: SetupStatusView = {
   },
 };
 
-export async function fetchSetupStatus(): Promise<SetupStatusView> {
+export async function fetchAgentSetupView(): Promise<AgentSetupViewModel> {
   const view = await GetAgentSetupView();
-  return normalizeSetupView(view);
+  return normalizeAgentSetupView(view);
 }
 
 export async function openSetupExperience(): Promise<void> {
   await OpenSetupExperience();
 }
 
-export function normalizeSetupView(view: uistate.AgentSetupView): SetupStatusView {
+export function normalizeAgentSetupView(view: uistate.AgentSetupView): AgentSetupViewModel {
   return {
     complete: Boolean(view.complete),
     stage: view.stage ?? "",

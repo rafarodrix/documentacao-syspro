@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const agentDeviceSummarySchema = z.object({
+export const agentInstallationSummarySchema = z.object({
   id: z.string().min(1),
   deviceId: z.string().min(1),
   agentInstanceId: z.string().nullable(),
@@ -20,7 +20,7 @@ export const agentDeviceSummarySchema = z.object({
   heartbeatLagSeconds: z.number().nullable(),
 });
 
-export const agentDeviceListQuerySchema = z.object({
+export const agentInstallationListQuerySchema = z.object({
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(200).default(50),
   search: z.string().trim().optional(),
@@ -29,8 +29,8 @@ export const agentDeviceListQuerySchema = z.object({
   remoteHostId: z.string().trim().optional(),
 });
 
-export const agentDeviceListResultSchema = z.object({
-  items: z.array(agentDeviceSummarySchema),
+export const agentInstallationListResultSchema = z.object({
+  items: z.array(agentInstallationSummarySchema),
   pagination: z.object({
     page: z.number().int().min(1),
     pageSize: z.number().int().min(1),
@@ -49,7 +49,7 @@ export const agentFleetStatsSchema = z.object({
   onlineThresholdSeconds: z.number().int().min(1),
 });
 
-export const agentDevicePatchSchema = z.object({
+export const agentInstallationPatchSchema = z.object({
   remoteHostId: z.string().nullable(),
 });
 
@@ -65,9 +65,9 @@ export const agentHostOptionSchema = z.object({
 
 export const agentHostOptionListSchema = z.array(agentHostOptionSchema);
 
-export type AgentDeviceSummary = z.infer<typeof agentDeviceSummarySchema>;
-export type AgentDeviceListQuery = z.infer<typeof agentDeviceListQuerySchema>;
-export type AgentDeviceListResult = z.infer<typeof agentDeviceListResultSchema>;
+export type AgentInstallationSummary = z.infer<typeof agentInstallationSummarySchema>;
+export type AgentInstallationListQuery = z.infer<typeof agentInstallationListQuerySchema>;
+export type AgentInstallationListResult = z.infer<typeof agentInstallationListResultSchema>;
 export type AgentFleetStats = z.infer<typeof agentFleetStatsSchema>;
-export type AgentDevicePatch = z.infer<typeof agentDevicePatchSchema>;
+export type AgentInstallationPatch = z.infer<typeof agentInstallationPatchSchema>;
 export type AgentHostOption = z.infer<typeof agentHostOptionSchema>;

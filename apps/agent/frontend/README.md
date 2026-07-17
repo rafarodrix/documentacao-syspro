@@ -61,7 +61,7 @@ Novas capacidades devem seguir esse padrao: contrato vindo de `bindings`, estado
 
 ## Contratos Wails atuais
 
-O frontend nao deve mais expandir a UI em cima dos contratos legados `GetSetupStatus` e `GetSupportSession`.
+O frontend nao deve mais expandir a UI em cima dos contratos legados `GetAgentSetupView` e `GetAgentSupportView`.
 
 Os contratos preferenciais agora sao:
 

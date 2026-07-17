@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { EventsOn } from "../runtime";
 import { uistate } from "../../wailsjs/go/models";
 import { Route, normalizeRoute } from "../types/route";
-import type { NotificationView, SetupStatusView, SetupStepView, SupportSessionView } from "../types/agent-ui";
+import type { NotificationView, AgentSetupViewModel, SetupStepView, AgentSupportViewModel } from "../types/agent-ui";
 import { resolveStartupRoute } from "../features/setup/setup-helpers";
 import {
   hasChatwootClient,
@@ -11,10 +11,10 @@ import {
   openChatwootInline,
 } from "../features/support/chatwoot";
 import { fetchCurrentTarget, fetchNotifications, mapNotifications } from "../services/shell-service";
-import { defaultSetupStatusView, fetchSetupStatus, normalizeSetupView, openSetupExperience } from "../services/setup-service";
+import { defaultAgentSetupViewModel, fetchAgentSetupView, normalizeAgentSetupView, openSetupExperience } from "../services/setup-service";
 import {
-  fetchSupportSession,
-  normalizeSupportView,
+  fetchAgentSupportView,
+  normalizeAgentSupportView,
   openRemoteClient,
   openSupportConversation,
   syncSupportConversationContext,
@@ -24,8 +24,8 @@ type OverallState = "complete" | "error" | "running" | "idle";
 
 export function useAgentShell() {
   const [route, setRoute] = useState<Route>("agent://setup");
-  const [setupStatus, setSetupStatus] = useState<SetupStatusView>(defaultSetupStatusView);
-  const [supportSession, setSupportSession] = useState<SupportSessionView | null>(null);
+  const [setupStatus, setSetupStatus] = useState<AgentSetupViewModel>(defaultAgentSetupViewModel);
+  const [supportSession, setSupportSession] = useState<AgentSupportViewModel | null>(null);
   const [, setNotifications] = useState<NotificationView[]>([]);
   const [chatwootReady, setChatwootReady] = useState(false);
   const [chatwootLoading, setChatwootLoading] = useState(false);
@@ -42,9 +42,9 @@ export function useAgentShell() {
             console.error("GetCurrentTarget failed:", err);
             return "agent://setup";
           }),
-          fetchSetupStatus().catch((err) => {
-            console.error("GetSetupStatus failed:", err);
-            return defaultSetupStatusView;
+          fetchAgentSetupView().catch((err) => {
+            console.error("GetAgentSetupView failed:", err);
+            return defaultAgentSetupViewModel;
           }),
           fetchNotifications().catch((err) => {
             console.error("ListNotifications failed:", err);
@@ -59,10 +59,10 @@ export function useAgentShell() {
 
         if (nextRoute === "agent://support") {
           try {
-            const session = await fetchSupportSession();
+            const session = await fetchAgentSupportView();
             setSupportSession(session);
           } catch (err) {
-            console.error("GetSupportSession failed:", err);
+            console.error("GetAgentSupportView failed:", err);
           }
         }
       } catch (err) {
@@ -78,21 +78,21 @@ export function useAgentShell() {
         if (nextRoute === "agent://support") {
           setChatwootReady(false);
 
-          void fetchSupportSession()
+          void fetchAgentSupportView()
             .then((session) => {
               setSupportSession(session);
             })
-            .catch((err) => console.error("GetSupportSession failed:", err));
+            .catch((err) => console.error("GetAgentSupportView failed:", err));
         }
       }),
       EventsOn("agent:setup-view", (payload: uistate.AgentSetupView) => {
-        setSetupStatus(normalizeSetupView(payload));
+        setSetupStatus(normalizeAgentSetupView(payload));
       }),
       EventsOn("agent:notifications", (payload: Array<uistate.Notification>) => {
         setNotifications(mapNotifications(payload));
       }),
       EventsOn("agent:support-view", (payload: uistate.AgentSupportView) => {
-        setSupportSession(normalizeSupportView(payload));
+        setSupportSession(normalizeAgentSupportView(payload));
       }),
     ];
 
@@ -105,7 +105,7 @@ export function useAgentShell() {
     if (route !== "agent://support") return;
 
     const poll = () => {
-      void fetchSupportSession()
+      void fetchAgentSupportView()
         .then((session) => setSupportSession(session))
         .catch(() => {
           // silent

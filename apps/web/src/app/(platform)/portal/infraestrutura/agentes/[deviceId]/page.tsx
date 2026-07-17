@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth-helpers";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
-import { fetchAgentDevice } from "@/features/agents/application/agent.queries";
+import { fetchAgentInstallation } from "@/features/agents/application/agent.queries";
 import { AgentDeviceDetailPanel } from "@/features/agents/interface/device-detail-page";
 import { getRemotePlatformDirectory } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
@@ -35,7 +35,7 @@ export default async function AgentDeviceDetailPage({
 
   let device;
   try {
-    device = await fetchAgentDevice(decodeURIComponent(deviceId));
+    device = await fetchAgentInstallation(decodeURIComponent(deviceId));
   } catch {
     notFound();
   }

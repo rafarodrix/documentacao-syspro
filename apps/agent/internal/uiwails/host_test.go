@@ -13,22 +13,19 @@ type testLogger struct{}
 func (testLogger) Debug(string, ...any) {}
 func (testLogger) Info(string, ...any)  {}
 
-type fakeSupportSessionClient struct {
-	session uistate.SupportSession
-	err     error
+type fakeSupportViewClient struct {
+	view uistate.AgentSupportView
+	err  error
 }
 
-func (f fakeSupportSessionClient) GetSupportSession(context.Context) (uistate.SupportSession, error) {
-	return f.session, f.err
+func (f fakeSupportViewClient) GetAgentSupportView(context.Context) (uistate.AgentSupportView, error) {
+	return f.view, f.err
 }
 
 type fakeLocalState struct {
-	session uistate.SupportSession
-	err     error
-}
-
-func (f fakeLocalState) SetupStatus(context.Context) (uistate.SetupStatus, error) {
-	return uistate.SetupStatus{}, nil
+	setupView   uistate.AgentSetupView
+	supportView uistate.AgentSupportView
+	err         error
 }
 
 func (f fakeLocalState) Snapshot(context.Context) (uistate.Summary, error) {
@@ -55,80 +52,69 @@ func (f fakeLocalState) SyncSupportConversationContext(context.Context, string) 
 	return uistate.SupportContextSyncResult{}, nil
 }
 
-func (f fakeLocalState) SupportSession(context.Context) (uistate.SupportSession, error) {
-	return f.session, f.err
-}
-
 func (f fakeLocalState) AgentSetupView(ctx context.Context) (uistate.AgentSetupView, error) {
-	setup, err := f.SetupStatus(ctx)
-	if err != nil {
-		return uistate.AgentSetupView{}, err
-	}
-	session, err := f.SupportSession(ctx)
-	if err != nil {
-		return uistate.AgentSetupView{}, err
-	}
-	return uistate.BuildAgentSetupView(setup, session), nil
+	_ = ctx
+	return f.setupView, f.err
 }
 
 func (f fakeLocalState) AgentSupportView(ctx context.Context) (uistate.AgentSupportView, error) {
-	session, err := f.SupportSession(ctx)
-	if err != nil {
-		return uistate.AgentSupportView{}, err
-	}
-	return uistate.BuildAgentSupportView(session), nil
+	_ = ctx
+	return f.supportView, f.err
 }
 
-func TestGetSupportSessionPrefersIPC(t *testing.T) {
-	expected := uistate.SupportSession{
-		Context: uistate.SupportContext{
-			RustDeskID: "123456789",
+func TestGetAgentSupportViewPrefersIPC(t *testing.T) {
+	expected := uistate.AgentSupportView{
+		Capabilities: uistate.AgentCapabilitiesView{
+			Remote: &uistate.AgentCapabilityView{ExternalID: "123456789"},
+		},
+	}
+	fallback := uistate.AgentSupportView{
+		Capabilities: uistate.AgentCapabilitiesView{
+			Remote: &uistate.AgentCapabilityView{ExternalID: "fallback"},
 		},
 	}
 
 	api := &API{
 		logger: testLogger{},
-		support: fakeSupportSessionClient{
-			session: expected,
+		support: fakeSupportViewClient{
+			view: expected,
 		},
 		localState: fakeLocalState{
-			session: uistate.SupportSession{
-				Context: uistate.SupportContext{RustDeskID: "fallback"},
-			},
+			supportView: fallback,
 		},
 	}
 
-	got, err := api.GetSupportSession()
+	got, err := api.GetAgentSupportView()
 	if err != nil {
-		t.Fatalf("GetSupportSession returned error: %v", err)
+		t.Fatalf("GetAgentSupportView returned error: %v", err)
 	}
-	if got.Context.RustDeskID != expected.Context.RustDeskID {
-		t.Fatalf("expected IPC rustdesk id %q, got %q", expected.Context.RustDeskID, got.Context.RustDeskID)
+	if got.Capabilities.Remote == nil || got.Capabilities.Remote.ExternalID != expected.Capabilities.Remote.ExternalID {
+		t.Fatalf("expected IPC rustdesk id %q, got %+v", expected.Capabilities.Remote.ExternalID, got.Capabilities.Remote)
 	}
 }
 
-func TestGetSupportSessionFallsBackToLocalState(t *testing.T) {
-	expected := uistate.SupportSession{
-		Context: uistate.SupportContext{
-			RustDeskID: "987654321",
+func TestGetAgentSupportViewFallsBackToLocalState(t *testing.T) {
+	expected := uistate.AgentSupportView{
+		Capabilities: uistate.AgentCapabilitiesView{
+			Remote: &uistate.AgentCapabilityView{ExternalID: "987654321"},
 		},
 	}
 
 	api := &API{
 		logger: testLogger{},
-		support: fakeSupportSessionClient{
+		support: fakeSupportViewClient{
 			err: errors.New("ipc unavailable"),
 		},
 		localState: fakeLocalState{
-			session: expected,
+			supportView: expected,
 		},
 	}
 
-	got, err := api.GetSupportSession()
+	got, err := api.GetAgentSupportView()
 	if err != nil {
-		t.Fatalf("GetSupportSession returned error: %v", err)
+		t.Fatalf("GetAgentSupportView returned error: %v", err)
 	}
-	if got.Context.RustDeskID != expected.Context.RustDeskID {
-		t.Fatalf("expected local fallback rustdesk id %q, got %q", expected.Context.RustDeskID, got.Context.RustDeskID)
+	if got.Capabilities.Remote == nil || got.Capabilities.Remote.ExternalID != expected.Capabilities.Remote.ExternalID {
+		t.Fatalf("expected local fallback rustdesk id %q, got %+v", expected.Capabilities.Remote.ExternalID, got.Capabilities.Remote)
 	}
 }

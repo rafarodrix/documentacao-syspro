@@ -4,10 +4,10 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Cpu, Link2, Loader2, Search, Unlink } from "lucide-react";
-import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
+import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Input } from "@dosc-syspro/ui";
-import { fetchAgentDeviceListClient } from "@/features/agents/application/agent-client.queries";
-import { patchAgentDevice } from "@/features/agents/application/agent-write.actions";
+import { fetchAgentInstallationListClient } from "@/features/agents/application/agent-client.queries";
+import { patchAgentInstallation } from "@/features/agents/application/agent-write.actions";
 import { LinkedDeviceCard } from "./linked-device-card";
 
 export function AgentLinkSection({
@@ -15,20 +15,20 @@ export function AgentLinkSection({
   linkedDevice,
 }: {
   hostId: string;
-  linkedDevice: AgentDeviceSummary | null;
+  linkedDevice: AgentInstallationSummary | null;
 }) {
   const router = useRouter();
   const [isLinking, startLinking] = useTransition();
   const [isUnlinking, startUnlinking] = useTransition();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [devices, setDevices] = useState<AgentDeviceSummary[]>([]);
+  const [devices, setDevices] = useState<AgentInstallationSummary[]>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
   useEffect(() => {
     if (!pickerOpen) return;
     setIsLoadingDevices(true);
-    fetchAgentDeviceListClient({ search: search.trim() || undefined, pageSize: 20 })
+    fetchAgentInstallationListClient({ search: search.trim() || undefined, pageSize: 20 })
       .then((r) => setDevices(r.items))
       .catch(() => setDevices([]))
       .finally(() => setIsLoadingDevices(false));
@@ -37,7 +37,7 @@ export function AgentLinkSection({
   function handleLink(deviceId: string) {
     startLinking(async () => {
       try {
-        await patchAgentDevice(deviceId, { remoteHostId: hostId });
+        await patchAgentInstallation(deviceId, { remoteHostId: hostId });
         toast.success("Dispositivo vinculado com sucesso.");
         setPickerOpen(false);
         router.refresh();
@@ -51,7 +51,7 @@ export function AgentLinkSection({
     if (!linkedDevice) return;
     startUnlinking(async () => {
       try {
-        await patchAgentDevice(linkedDevice.deviceId, { remoteHostId: null });
+        await patchAgentInstallation(linkedDevice.deviceId, { remoteHostId: null });
         toast.success("Dispositivo desvinculado.");
         router.refresh();
       } catch (err) {

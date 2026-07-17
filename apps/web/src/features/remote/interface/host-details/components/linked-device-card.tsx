@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Cpu, ExternalLink, WifiOff } from "lucide-react";
-import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
+import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { formatAgentHeartbeatLag, getAgentOfflineWarningMessage } from "@/features/agents/domain/agent-device-status";
 
-export function LinkedDeviceCard({ device }: { device: AgentDeviceSummary }) {
+export function LinkedDeviceCard({ device }: { device: AgentInstallationSummary }) {
   return (
     <Card className="border-border/40 bg-card/65 backdrop-blur-md shadow-sm">
       <CardHeader className="pb-3">
