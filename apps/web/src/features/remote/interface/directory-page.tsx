@@ -399,7 +399,7 @@ export function RemotePlatformDirectoryPanel({
     return directory.pendingItems
       .filter((item) => {
         const haystack = normalizeSearchValue([item.machineName, item.rustdeskId, item.agentVersion, item.provider, item.description, item.installationCompanies.join(" ")].filter(Boolean).join(" "));
-        const matchesCompany = matchesPendingCompanyFilter(item, companyFilter, selectedCompanyLabel);
+        const matchesCompany = matchesPendingCompanyFilter(item, companyFilter);
         return (!term || haystack.includes(term)) && matchesCompany;
       })
       .sort((a, b) => {

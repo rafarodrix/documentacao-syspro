@@ -322,6 +322,7 @@ export type RemoteDiscoveredAgentItem = {
   lastHeartbeatAt: string | null;
   status: RemoteDiscoveredHostStatus;
   linkedHostId: string | null;
+  suggestedCompanyId: string | null;
   installationCompanies: string[];
   lastAgentMetrics: {
     cpuLoad: number | null;
@@ -789,6 +790,7 @@ export const remoteDiscoveredAgentItemSchema = z.object({
   lastHeartbeatAt: remoteStringOrNullSchema,
   status: remoteDiscoveredHostStatusSchema,
   linkedHostId: remoteStringOrNullSchema,
+  suggestedCompanyId: remoteStringOrNullSchema,
   installationCompanies: z.array(z.string()),
   lastAgentMetrics: remoteLastAgentMetricsSchema.nullable(),
   lastAgentMetricsAt: remoteStringOrNullSchema,

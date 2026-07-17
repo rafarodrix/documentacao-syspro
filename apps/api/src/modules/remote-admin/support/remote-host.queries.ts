@@ -478,7 +478,13 @@ function resolveDiscoveredInstallationCompanies(snapshot: Prisma.JsonValue | nul
   return Array.from(new Set(labels));
 }
 
-function mapDiscoveredHostItem(host: DiscoveredHostRecord): RemoteDiscoveredAgentItem {
+function buildDiscoveredHostItem(
+  host: DiscoveredHostRecord,
+  companyOptions: ScopedCompanyOption[],
+): RemoteDiscoveredAgentItem {
+  const installationCompanies = resolveDiscoveredInstallationCompanies(host.installationsSnapshot);
+  const suggestedCompanyId = resolveSuggestedCompanyId(installationCompanies, companyOptions);
+
   return {
     id: host.id,
     machineName: host.machineName,
@@ -492,7 +498,8 @@ function mapDiscoveredHostItem(host: DiscoveredHostRecord): RemoteDiscoveredAgen
     lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
     status: host.status,
     linkedHostId: host.linkedHostId,
-    installationCompanies: resolveDiscoveredInstallationCompanies(host.installationsSnapshot),
+    suggestedCompanyId,
+    installationCompanies,
     lastAgentMetrics: resolveDiscoveredTelemetryMetrics(host.installationsSnapshot),
     lastAgentMetricsAt: host.lastHeartbeatAt?.toISOString() ?? null,
   };
@@ -521,14 +528,12 @@ function resolveSuggestedCompanyId(
 }
 
 function canAccessDiscoveredHostForScope(
-  host: Pick<RemoteDiscoveredAgentItem, "installationCompanies">,
-  companyOptions: ScopedCompanyOption[],
+  host: Pick<RemoteDiscoveredAgentItem, "suggestedCompanyId">,
   tenantScope: RemoteTenantScope,
 ) {
   if (tenantScope.isGlobalView) return true;
-
-  const suggestedCompanyId = resolveSuggestedCompanyId(host.installationCompanies, companyOptions);
-  return !!suggestedCompanyId && tenantScope.companyIds.includes(suggestedCompanyId);
+  if (!host.suggestedCompanyId) return true;
+  return tenantScope.companyIds.includes(host.suggestedCompanyId);
 }
 
 export function buildScopedPendingItems(
@@ -538,24 +543,27 @@ export function buildScopedPendingItems(
 ): RemoteDiscoveredAgentItem[] {
   return discoveredHosts
     .map((host) =>
-      mapDiscoveredHostItem({
-        id: host.id,
-        machineName: host.machineName,
-        agentExternalId: host.agentExternalId,
-        agentVersion: host.agentVersion,
+      buildDiscoveredHostItem(
+        {
+          id: host.id,
+          machineName: host.machineName,
+          agentExternalId: host.agentExternalId,
+          agentVersion: host.agentVersion,
         provider: host.provider,
         environment: host.environment,
         description: host.description,
         serviceStatus: host.serviceStatus,
         status: host.status as RemoteDiscoveredAgentItem["status"],
         linkedHostId: host.linkedHostId,
-        installationsSnapshot: host.installationsSnapshot,
-        firstSeenAt: host.firstSeenAt,
-        lastHeartbeatAt: host.lastHeartbeatAt,
-        updatedAt: host.updatedAt,
-      }),
+          installationsSnapshot: host.installationsSnapshot,
+          firstSeenAt: host.firstSeenAt,
+          lastHeartbeatAt: host.lastHeartbeatAt,
+          updatedAt: host.updatedAt,
+        },
+        companyOptions,
+      ),
     )
-    .filter((host) => canAccessDiscoveredHostForScope(host, companyOptions, tenantScope));
+    .filter((host) => canAccessDiscoveredHostForScope(host, tenantScope));
 }
 
 function toRecord(value: unknown): Record<string, unknown> | null {
@@ -1245,7 +1253,7 @@ export async function getRemoteDiscoveredHostDetails(
 
   if (!hostRecord) return null;
 
-  const host = mapDiscoveredHostItem({
+  const host = buildDiscoveredHostItem({
     id: hostRecord.id,
     machineName: hostRecord.machineName,
     agentExternalId: hostRecord.agentExternalId,
@@ -1260,9 +1268,9 @@ export async function getRemoteDiscoveredHostDetails(
     firstSeenAt: hostRecord.firstSeenAt,
     lastHeartbeatAt: hostRecord.lastHeartbeatAt,
     updatedAt: hostRecord.updatedAt,
-  });
+  }, companyOptions);
 
-  if (!canAccessDiscoveredHostForScope(host, companyOptions, tenantScope)) {
+  if (!canAccessDiscoveredHostForScope(host, tenantScope)) {
     return null;
   }
 
@@ -1270,7 +1278,7 @@ export async function getRemoteDiscoveredHostDetails(
     tenantScope,
     host,
     companyOptions,
-    suggestedCompanyId: resolveSuggestedCompanyId(host.installationCompanies, companyOptions),
+    suggestedCompanyId: host.suggestedCompanyId,
     firstSeenAt: hostRecord.firstSeenAt.toISOString(),
     updatedAt: hostRecord.updatedAt.toISOString(),
   };

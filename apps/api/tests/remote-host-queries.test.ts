@@ -31,7 +31,7 @@ describe("buildScopedPendingItems", () => {
     updatedAt: new Date("2026-07-15T10:05:00.000Z"),
   };
 
-  it("returns only discovered hosts that match the scoped company suggestion", () => {
+  it("keeps scoped discoveries that match the company suggestion or remain unclassified", () => {
     const items = buildScopedPendingItems(
       [
         {
@@ -49,6 +49,11 @@ describe("buildScopedPendingItems", () => {
           id: "pending-sem-sugestao",
           installationsSnapshot: [{ empresa: "Empresa sem match" }],
         },
+        {
+          ...baseHost,
+          id: "pending-sem-telemetria",
+          installationsSnapshot: [],
+        },
       ],
       companyOptions,
       {
@@ -60,7 +65,13 @@ describe("buildScopedPendingItems", () => {
       },
     );
 
-    expect(items.map((item) => item.id)).toEqual(["pending-trilink"]);
+    expect(items.map((item) => item.id)).toEqual([
+      "pending-trilink",
+      "pending-sem-sugestao",
+      "pending-sem-telemetria",
+    ]);
+    expect(items.find((item) => item.id === "pending-trilink")?.suggestedCompanyId).toBe("company-trilink");
+    expect(items.find((item) => item.id === "pending-sem-sugestao")?.suggestedCompanyId).toBeNull();
   });
 
   it("keeps all pending discovered hosts for global operators", () => {
@@ -88,5 +99,27 @@ describe("buildScopedPendingItems", () => {
     );
 
     expect(items.map((item) => item.id)).toEqual(["pending-trilink", "pending-sem-sugestao"]);
+  });
+
+  it("hides discoveries already classified for another scoped company", () => {
+    const items = buildScopedPendingItems(
+      [
+        {
+          ...baseHost,
+          id: "pending-outra",
+          installationsSnapshot: [{ empresa: "Outra Empresa" }],
+        },
+      ],
+      companyOptions,
+      {
+        role: "CLIENTE_ADMIN",
+        isGlobalView: false,
+        companyIds: ["company-trilink"],
+        companyCount: 1,
+        summary: "Escopo restrito.",
+      },
+    );
+
+    expect(items).toHaveLength(0);
   });
 });

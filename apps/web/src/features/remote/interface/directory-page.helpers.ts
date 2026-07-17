@@ -214,15 +214,7 @@ export function buildPendingTooltip(item: RemotePlatformDirectory["pendingItems"
 export function matchesPendingCompanyFilter(
   item: RemotePlatformDirectory["pendingItems"][number],
   companyFilter: string,
-  selectedCompanyLabel: string | null,
 ): boolean {
   if (companyFilter === "all") return true;
-  if (!item.installationCompanies.length) return true;
-
-  const normalizedSelectedCompany = normalizeSearchText(selectedCompanyLabel, { preserveSeparators: false });
-  if (!normalizedSelectedCompany.length) return false;
-
-  return item.installationCompanies.some((company) =>
-    normalizeSearchText(company, { preserveSeparators: false }).includes(normalizedSelectedCompany),
-  );
+  return item.suggestedCompanyId == null || item.suggestedCompanyId === companyFilter;
 }
