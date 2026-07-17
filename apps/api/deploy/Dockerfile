@@ -12,6 +12,8 @@ COPY packages/config/package.json ./packages/config/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/core/package.json ./packages/core/package.json
 COPY packages/database/package.json ./packages/database/package.json
+COPY packages/features/contacts/domain/package.json ./packages/features/contacts/domain/package.json
+COPY packages/features/contacts/infra/package.json ./packages/features/contacts/infra/package.json
 COPY packages/features/crm/domain/package.json ./packages/features/crm/domain/package.json
 COPY packages/features/remote/domain/package.json ./packages/features/remote/domain/package.json
 COPY packages/features/remote/infra/package.json ./packages/features/remote/infra/package.json
@@ -28,6 +30,8 @@ COPY packages/config ./packages/config
 COPY packages/contracts ./packages/contracts
 COPY packages/core ./packages/core
 COPY packages/database ./packages/database
+COPY packages/features/contacts/domain ./packages/features/contacts/domain
+COPY packages/features/contacts/infra ./packages/features/contacts/infra
 COPY packages/features/crm/domain ./packages/features/crm/domain
 COPY packages/features/remote/domain ./packages/features/remote/domain
 COPY packages/features/remote/infra ./packages/features/remote/infra
@@ -55,6 +59,8 @@ COPY --from=builder /app/packages/config ./packages/config
 COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/packages/core ./packages/core
 COPY --from=builder /app/packages/database ./packages/database
+COPY --from=builder /app/packages/features/contacts/domain ./packages/features/contacts/domain
+COPY --from=builder /app/packages/features/contacts/infra ./packages/features/contacts/infra
 COPY --from=builder /app/packages/features/crm/domain ./packages/features/crm/domain
 COPY --from=builder /app/packages/features/remote/domain ./packages/features/remote/domain
 COPY --from=builder /app/packages/features/remote/infra ./packages/features/remote/infra
