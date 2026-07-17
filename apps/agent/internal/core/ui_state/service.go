@@ -247,7 +247,7 @@ func (s *Service) OpenRemoteClient(ctx context.Context) (OpenRemoteAccessResult,
 		return OpenRemoteAccessResult{
 			Opened:  false,
 			Running: false,
-			Message: "Executavel do RustDesk nao encontrado. Reinstale ou repare o acesso remoto.",
+			Message: "Executavel do suporte remoto nao encontrado. Reinstale ou repare o acesso remoto.",
 		}, nil
 	}
 
@@ -255,15 +255,23 @@ func (s *Service) OpenRemoteClient(ctx context.Context) (OpenRemoteAccessResult,
 		return OpenRemoteAccessResult{
 			Opened:  false,
 			Running: false,
-			Message: "Caminho do RustDesk invalido. Reinstale ou repare o acesso remoto.",
+			Message: "Caminho do suporte remoto invalido. Reinstale ou repare o acesso remoto.",
 		}, nil
 	}
 
 	if isRustDeskProcessRunning() {
+		if focusRustDeskWindow() {
+			return OpenRemoteAccessResult{
+				Opened:  true,
+				Running: true,
+				Message: "Janela do suporte remoto exibida.",
+			}, nil
+		}
+
 		return OpenRemoteAccessResult{
 			Opened:  true,
 			Running: true,
-			Message: "RustDesk aberto.",
+			Message: "Suporte remoto aberto.",
 		}, nil
 	}
 
@@ -273,14 +281,14 @@ func (s *Service) OpenRemoteClient(ctx context.Context) (OpenRemoteAccessResult,
 		return OpenRemoteAccessResult{
 			Opened:  false,
 			Running: false,
-			Message: "Nao foi possivel abrir o RustDesk. Tente novamente ou repare o acesso remoto.",
+			Message: "Nao foi possivel abrir o suporte remoto. Tente novamente ou repare o acesso remoto.",
 		}, nil
 	}
 
 	return OpenRemoteAccessResult{
 		Opened:  true,
 		Running: true,
-		Message: "Abrindo RustDesk...",
+		Message: "Abrindo suporte remoto...",
 	}, nil
 }
 

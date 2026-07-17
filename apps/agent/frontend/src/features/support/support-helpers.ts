@@ -107,12 +107,11 @@ export function getRemoteActionLabel(
   remoteOpening: boolean,
   remoteResult?: OpenRemoteAccessResultView | null,
 ): string {
-  if (remoteOpening) return "Abrindo RustDesk...";
-  if (remoteResult?.opened && remoteResult.running) return "RustDesk aberto";
+  if (remoteOpening) return "Abrindo suporte remoto...";
   if (remoteResult?.needsRepair) return "Reparar acesso remoto";
-  if (remote?.ready) return "Abrir RustDesk";
-  if (remote?.status === "pending") return "Acesso remoto em configuracao";
-  return "Acesso remoto indisponivel";
+  if (remote?.ready) return "Suporte remoto";
+  if (remote?.status === "pending") return "Suporte remoto em configuracao";
+  return "Suporte remoto indisponivel";
 }
 
 export function formatRemoteId(remoteId: string | null | undefined): string {
@@ -125,6 +124,23 @@ export function truncateIdentifier(value?: string | null): string {
   if (!raw) return "-";
   if (raw.length <= 18) return raw;
   return `${raw.slice(0, 8)}...${raw.slice(-6)}`;
+}
+
+export function formatAgentVersion(value?: string | null): string {
+  const raw = value?.trim();
+  if (!raw) return "-";
+
+  const versionMatch = raw.match(/^v?(\d+\.\d+(?:\.\d+)?)$/i);
+  if (versionMatch) {
+    return versionMatch[1];
+  }
+
+  const legacyBuildMatch = raw.match(/go-agent-v(\d+)/i);
+  if (legacyBuildMatch) {
+    return `${legacyBuildMatch[1]}.0.0`;
+  }
+
+  return raw;
 }
 
 export function buildOperationalStatusRows(

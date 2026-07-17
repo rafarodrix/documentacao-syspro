@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CopyButton } from "../../components/CopyButton";
 import { ChatBubbleIcon, ShieldIcon } from "../../components/icons";
-import type { AgentSetupViewModel, SetupStepView, AgentSupportViewModel, OpenRemoteAccessResultView } from "../../types/agent-ui";
+import type {
+  AgentSetupViewModel,
+  AgentSupportViewModel,
+  OpenRemoteAccessResultView,
+  SetupStepView,
+} from "../../types/agent-ui";
 import { formatSetupCopy, getSetupDetail, getSetupHeadline, getSetupHint } from "../setup/setup-helpers";
 import {
   buildOperationalStatusRows,
+  formatAgentVersion,
   formatRelativeTime,
   formatRemoteId,
   getRemoteActionLabel,
-  getRemoteOperationalHint,
   summarizeOperationalHealth,
   truncateIdentifier,
 } from "./support-helpers";
@@ -45,10 +50,12 @@ export function SupportScreen(props: SupportScreenProps) {
     onOpenSetup,
     onOpenSupport,
   } = props;
+
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [chatDrawerExpanded, setChatDrawerExpanded] = useState(false);
   const [activeView, setActiveView] = useState<AgentView>("home");
+
   const remote = supportView?.capabilities.remote ?? null;
   const chatConfigured = Boolean(supportView?.channel.configured);
   const setupHeadline = getSetupHeadline(setupView, activeStep, setupOverallState);
@@ -58,7 +65,8 @@ export function SupportScreen(props: SupportScreenProps) {
   const remoteReady = Boolean(remote?.ready && remote?.externalId);
   const companyName = supportView?.installation.companyName ?? "Cliente Trilink";
   const machineName = supportView?.device.machineName || supportView?.device.hostname || "Dispositivo em preparacao";
-  const agentVersion = supportView?.device.agentVersion || "-";
+  const rawAgentVersion = supportView?.device.agentVersion || "-";
+  const agentVersion = formatAgentVersion(rawAgentVersion);
   const lastCommunication = formatRelativeTime(remote?.lastSyncAt);
   const healthSummary = summarizeOperationalHealth(setupView, supportView);
   const statusRows = useMemo(() => buildOperationalStatusRows(setupView, supportView), [setupView, supportView]);
@@ -95,7 +103,7 @@ export function SupportScreen(props: SupportScreenProps) {
         </div>
       </section>
 
-      <section className="support-body operational compact">
+      <section className={`support-body operational compact ${activeView === "home" ? "view-home" : "view-secondary"}`}>
         {activeView === "home" ? (
           <>
             {showInitializingState ? (
@@ -107,105 +115,104 @@ export function SupportScreen(props: SupportScreenProps) {
             ) : (
               <>
                 {!setupView.complete ? (
-              <div className={`support-diagnostic-card state-${setupOverallState}`}>
-                <div className="support-diagnostic-header">
-                  <div className="support-diagnostic-copy">
-                    <span className="support-summary-label">Provisionamento em andamento</span>
-                    <div className="support-diagnostic-title">{setupHeadline}</div>
+                  <div className={`support-diagnostic-card compact state-${setupOverallState}`}>
+                    <div className="support-diagnostic-header">
+                      <div className="support-diagnostic-copy">
+                        <span className="support-summary-label">Provisionamento em andamento</span>
+                        <div className="support-diagnostic-title">{setupHeadline}</div>
+                      </div>
+                      <button type="button" className="timeline-toggle" onClick={onOpenSetup}>
+                        <span className="timeline-toggle-icon">+</span>
+                        Ver setup
+                      </button>
+                    </div>
+                    <div className="support-diagnostic-detail">{setupDetail}</div>
+                    {remote?.statusText ? (
+                      <div className="support-diagnostic-meta">Estado reportado pelo agent: {formatSetupCopy(remote.statusText)}</div>
+                    ) : null}
+                    {setupHint ? <div className="support-diagnostic-callout">{setupHint}</div> : null}
+                    {setupView.lastError ? (
+                      <div className="support-diagnostic-error">Ultimo erro: {formatSetupCopy(setupView.lastError)}</div>
+                    ) : null}
                   </div>
-                  <button type="button" className="timeline-toggle" onClick={onOpenSetup}>
-                    <span className="timeline-toggle-icon">+</span>
-                    Ver setup
-                  </button>
-                </div>
-                <div className="support-diagnostic-detail">{setupDetail}</div>
-                {remote?.statusText ? (
-                  <div className="support-diagnostic-meta">Estado reportado pelo agent: {formatSetupCopy(remote.statusText)}</div>
-                ) : null}
-                {setupHint ? <div className="support-diagnostic-callout">{setupHint}</div> : null}
-                {setupView.lastError ? (
-                  <div className="support-diagnostic-error">Ultimo erro: {formatSetupCopy(setupView.lastError)}</div>
-                ) : null}
-              </div>
                 ) : null}
 
                 <section className="support-remote-card compact">
-              <div className="support-card-kicker">Acesso remoto</div>
-              <div className="support-remote-state-row">
-                <div className={`support-health-bullet tone-${healthSummary.tone}`} />
-                <div className="support-remote-state-text">
-                  {remoteReady ? "RustDesk disponivel" : remote?.status === "pending" ? "RustDesk em configuracao" : "Acesso remoto indisponivel"}
-                </div>
-              </div>
-
-              <div className="support-remote-id-row compact">
-                <div className="support-remote-id-value mono">{formatRemoteId(remote?.externalId)}</div>
-                {remote?.externalId ? (
-                  <CopyButton
-                    value={remote.externalId}
-                    label="Copiar ID do RustDesk"
-                    text="Copiar"
-                    copiedText="ID copiado"
-                  />
-                ) : null}
-              </div>
-
-              <div className="support-remote-actions compact">
-                <button
-                  type="button"
-                  className={`btn-primary btn-primary-inline ${remoteOpening ? "btn-loading" : ""}`}
-                  onClick={onOpenRemote}
-                  disabled={remoteOpening || !remoteReady}
-                >
-                  {remoteOpening ? <span className="btn-spinner" /> : null}
-                  <span>{getRemoteActionLabel(remote, remoteOpening, remoteActionResult)}</span>
-                </button>
-                {remoteActionResult?.message ? (
-                  <div
-                    className={`support-action-feedback ${remoteActionResult.opened ? "success" : "warn"}`}
-                    aria-live="polite"
-                  >
-                    {remoteActionResult.message}
+                  <div className="support-card-kicker">Acesso remoto</div>
+                  <div className="support-remote-state-row">
+                    <div className={`support-health-bullet tone-${healthSummary.tone}`} />
+                    <div className="support-remote-state-text">
+                      {remoteReady ? "RustDesk disponivel" : remote?.status === "pending" ? "RustDesk em configuracao" : "Acesso remoto indisponivel"}
+                    </div>
                   </div>
-                ) : null}
-              </div>
-                </section>
 
-                <section className="support-health-card compact">
-              <button
-                type="button"
-                className="support-health-summary"
-                onClick={() => setActiveView("diagnostics")}
-                aria-label="Abrir diagnostico dos servicos"
-              >
-                <span className={`support-health-bullet tone-${healthSummary.tone}`} />
-                <span className="support-health-summary-text">{healthSummary.summary}</span>
-                <span className="support-health-summary-arrow">›</span>
-              </button>
+                  <div className="support-remote-id-row compact">
+                    <div className="support-remote-id-value mono">{formatRemoteId(remote?.externalId)}</div>
+                    {remote?.externalId ? (
+                      <CopyButton
+                        value={remote.externalId}
+                        label="Copiar ID do RustDesk"
+                        copiedText="ID copiado"
+                        showCopiedText
+                      />
+                    ) : null}
+                  </div>
+
+                  <div className="support-remote-actions compact">
+                    <button
+                      type="button"
+                      className={`btn-primary btn-primary-inline compact ${remoteOpening ? "btn-loading" : ""}`}
+                      onClick={onOpenRemote}
+                      disabled={remoteOpening || !remoteReady}
+                    >
+                      {remoteOpening ? <span className="btn-spinner" /> : null}
+                      <span>{getRemoteActionLabel(remote, remoteOpening, remoteActionResult)}</span>
+                    </button>
+                    {remoteActionResult?.message ? (
+                      <div
+                        className={`support-action-feedback ${remoteActionResult.opened ? "success" : "warn"}`}
+                        aria-live="polite"
+                      >
+                        {remoteActionResult.message}
+                      </div>
+                    ) : null}
+                  </div>
                 </section>
 
                 <section className="support-support-card compact">
-              <button
-                type="button"
-                className={`btn-secondary-inline support-support-button ${chatwootLoading ? "btn-loading" : ""}`}
-                onClick={openSupportDrawer}
-                disabled={chatwootLoading || !chatConfigured}
-              >
-                {chatwootLoading ? <span className="btn-spinner btn-spinner-dark" /> : <ChatBubbleIcon />}
-                <span>{chatwootLoading ? "Abrindo atendimento..." : "Conversar com o suporte"}</span>
-              </button>
+                  <button
+                    type="button"
+                    className={`btn-secondary-inline support-support-button compact ${chatwootLoading ? "btn-loading" : ""}`}
+                    onClick={openSupportDrawer}
+                    disabled={chatwootLoading || !chatConfigured}
+                  >
+                    {chatwootLoading ? <span className="btn-spinner btn-spinner-dark" /> : <ChatBubbleIcon />}
+                    <span>{chatwootLoading ? "Abrindo atendimento..." : "Chat com o suporte"}</span>
+                  </button>
                 </section>
 
-                <nav className="support-footer-actions" aria-label="Navegacao do agente">
-              <button type="button" className="support-footer-link chip" onClick={() => setActiveView("diagnostics")}>
-                Diagnostico
-              </button>
-              <button type="button" className="support-footer-link chip" onClick={() => setActiveView("details")}>
-                Detalhes
-              </button>
-              <button type="button" className="support-footer-link chip" onClick={() => setActiveView("about")}>
-                Sobre
-              </button>
+                <button
+                  type="button"
+                  className="support-status-link"
+                  onClick={() => setActiveView("diagnostics")}
+                  aria-label="Abrir diagnostico do agente"
+                >
+                  <span className={`support-health-bullet tone-${healthSummary.tone}`} />
+                  <span>{healthSummary.summary}</span>
+                </button>
+
+                <nav className="support-footer-actions compact" aria-label="Navegacao do agente">
+                  <button type="button" className="support-footer-link inline emphasized" onClick={() => setActiveView("diagnostics")}>
+                    Diagnostico
+                  </button>
+                  <span className="support-footer-separator">.</span>
+                  <button type="button" className="support-footer-link inline" onClick={() => setActiveView("details")}>
+                    Detalhes
+                  </button>
+                  <span className="support-footer-separator">.</span>
+                  <button type="button" className="support-footer-link inline" onClick={() => setActiveView("about")}>
+                    Sobre
+                  </button>
                 </nav>
               </>
             )}
@@ -247,7 +254,7 @@ export function SupportScreen(props: SupportScreenProps) {
         {activeView === "details" ? (
           <section className="support-detail-panel secondary">
             <SecondaryHeader title="Detalhes" onBack={() => setActiveView("home")} />
-            <div className="support-technical-grid compact">
+            <div className="support-details-list">
               <TechnicalRow label="Dispositivo" value={machineName} />
               <TechnicalRow label="Empresa" value={companyName} />
               <TechnicalRow label="Operador local" value={supportView?.device.localUsername || "-"} />
@@ -267,6 +274,9 @@ export function SupportScreen(props: SupportScreenProps) {
                 copyLabel="Copiar host ID"
               />
             </div>
+            {rawAgentVersion !== agentVersion ? (
+              <div className="support-panel-copy">Build interno: {rawAgentVersion}</div>
+            ) : null}
           </section>
         ) : null}
 
@@ -282,6 +292,12 @@ export function SupportScreen(props: SupportScreenProps) {
                 <span className="support-technical-label">Versao do servico</span>
                 <span className="support-technical-value">{agentVersion}</span>
               </div>
+              {rawAgentVersion !== agentVersion ? (
+                <div className="support-issue-row">
+                  <span className="support-technical-label">Build interno</span>
+                  <span className="support-technical-value">{rawAgentVersion}</span>
+                </div>
+              ) : null}
               <div className="support-issue-row">
                 <span className="support-technical-label">Atendimento</span>
                 <span className="support-technical-value">{chatConfigured ? "Disponivel sob demanda" : "Nao configurado"}</span>
@@ -358,7 +374,7 @@ function SecondaryHeader({ title, onBack }: { title: string; onBack: () => void 
   return (
     <div className="support-secondary-header">
       <button type="button" className="support-back-button" onClick={onBack}>
-        ‹ Voltar
+        Voltar
       </button>
       <div className="support-panel-title">{title}</div>
     </div>

@@ -9,9 +9,17 @@ type CopyButtonProps = {
   tone?: CopyButtonTone;
   text?: string;
   copiedText?: string;
+  showCopiedText?: boolean;
 };
 
-export function CopyButton({ value, label, tone = "default", text, copiedText = "Copiado" }: CopyButtonProps) {
+export function CopyButton({
+  value,
+  label,
+  tone = "default",
+  text,
+  copiedText = "Copiado",
+  showCopiedText = false,
+}: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -27,18 +35,19 @@ export function CopyButton({ value, label, tone = "default", text, copiedText = 
   };
 
   const className = tone === "dark" ? "btn-copy-dark" : "btn-copy";
+  const showInlineText = Boolean(text || (copied && showCopiedText));
 
   return (
     <button
       type="button"
-      className={`${className} ${copied ? "copied" : ""} ${text ? "with-text" : ""}`}
+      className={`${className} ${copied ? "copied" : ""} ${showInlineText ? "with-text" : ""}`}
       onClick={() => void handleCopy()}
       title={label ?? "Copiar"}
       aria-label={label ?? "Copiar"}
       disabled={!value}
     >
       {copied ? <CopiedIcon /> : <CopyIcon />}
-      {text ? <span className="btn-copy-text">{copied ? copiedText : text}</span> : null}
+      {showInlineText ? <span className="btn-copy-text">{copied ? copiedText : text}</span> : null}
     </button>
   );
 }

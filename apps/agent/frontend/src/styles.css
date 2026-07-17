@@ -1796,6 +1796,8 @@ body {
 
 .support-panel.operational {
   background: transparent;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .support-hero.operational {
@@ -2161,25 +2163,30 @@ body {
 }
 
 .support-hero.operational.compact {
-  padding: 18px 20px 10px;
+  flex-shrink: 0;
+  padding: 14px 16px 8px;
 }
 
 .support-hero-copy.operational.compact {
-  gap: 4px;
+  gap: 3px;
 }
 
 .support-hero-title.operational.compact {
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .support-hero-subtitle.operational.compact,
 .support-hero-meta.operational.compact {
   font-size: 12px;
+  color: var(--ink-700);
 }
 
 .support-body.operational.compact {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   gap: 10px;
-  padding: 0 16px 16px;
+  padding: 0 14px 14px;
 }
 
 .support-remote-card.compact,
@@ -2195,8 +2202,8 @@ body {
 .support-remote-card.compact {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
+  gap: 8px;
+  padding: 12px 14px;
 }
 
 .support-remote-state-row {
@@ -2228,7 +2235,7 @@ body {
 }
 
 .support-remote-state-text {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--navy-950);
 }
@@ -2238,13 +2245,13 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 12px;
   background: linear-gradient(135deg, #0a2644 0%, #133b60 100%);
 }
 
 .support-remote-id-row.compact .support-remote-id-value {
-  font-size: 22px;
+  font-size: 20px;
   color: #fff;
 }
 
@@ -2257,8 +2264,13 @@ body {
   width: 100%;
 }
 
+.btn-primary-inline.compact,
+.support-support-button.compact {
+  min-height: 38px;
+}
+
 .support-action-feedback {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 11px;
   line-height: 1.45;
 }
@@ -2307,6 +2319,25 @@ body {
   width: 100%;
 }
 
+.support-status-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-700);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.support-status-link:hover {
+  color: var(--navy-900);
+}
+
 .support-footer-actions {
   display: flex;
   align-items: center;
@@ -2315,10 +2346,16 @@ body {
   padding: 2px 0 0;
 }
 
+.support-footer-actions.compact {
+  justify-content: flex-start;
+  gap: 6px;
+  padding-top: 0;
+}
+
 .support-footer-link {
   border: 0;
   background: transparent;
-  min-height: 40px;
+  min-height: 32px;
   padding: 0 12px;
   font-size: 12px;
   font-weight: 700;
@@ -2334,6 +2371,12 @@ body {
   color: var(--cyan-500);
 }
 
+.support-footer-link.inline {
+  min-height: auto;
+  padding: 0;
+  font-size: 12px;
+}
+
 .support-footer-link.chip {
   border-radius: var(--radius-full);
   border: 1px solid rgba(17, 59, 99, 0.08);
@@ -2342,6 +2385,7 @@ body {
 
 .support-footer-separator {
   color: var(--ink-400);
+  font-size: 12px;
 }
 
 .support-detail-panel {
@@ -2390,14 +2434,22 @@ body {
 
 .support-component-row.compact,
 .support-technical-row.compact {
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 9px 0;
+  border-radius: 0;
+  background: transparent;
+  border-bottom: 1px solid rgba(17, 59, 99, 0.08);
 }
 
 .support-technical-grid.compact {
   grid-template-columns: 1fr;
   gap: 8px;
   padding: 0;
+}
+
+.support-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .support-inline-buttons {
@@ -2409,6 +2461,11 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 6px;
+  background: rgba(255, 255, 255, 0.97);
 }
 
 .support-back-button {
@@ -2425,6 +2482,12 @@ body {
 
 .support-back-button:hover {
   background: rgba(232, 247, 255, 0.92);
+}
+
+.support-diagnostic-card.compact {
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
 }
 
 .setup-content-grid {
