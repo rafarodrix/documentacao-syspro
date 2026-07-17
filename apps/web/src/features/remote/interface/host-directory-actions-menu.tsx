@@ -39,7 +39,7 @@ export function HostDirectoryActionsMenu({
         disabled={!canOpenRemote || isOpeningRemote}
       >
         {isOpeningRemote ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-        Abrir
+        Conectar
       </Button>
 
       <DropdownMenu>

@@ -38,6 +38,7 @@ import {
   MessagesSquare,
   BriefcaseBusiness,
   Target,
+  Cpu,
 } from "lucide-react"
 import { DOCS_SCOPE_ROUTES } from "@/lib/docs-scope"
 
@@ -105,6 +106,10 @@ const NAV_DOCS: NavItemType[] = [
   { title: "Documentacao", href: DOCS_SCOPE_ROUTES.cliente, icon: BookOpen },
   { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
   { title: "Releases", href: "/portal/releases", icon: Rocket },
+]
+
+const NAV_ADMIN: NavItemType[] = [
+  { title: "Frota de agentes", href: "/portal/administracao/agentes", icon: Cpu },
 ]
 
 function filterByAccess(items: NavItemType[], accessByHref: Partial<Record<string, boolean>>): NavItemType[] {
@@ -304,6 +309,9 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
     "/portal/releases": navigationAccess?.releases,
     "/portal/tools": navigationAccess?.tools,
   })
+  const adminItems = filterByAccess(NAV_ADMIN, {
+    "/portal/administracao/agentes": navigationAccess?.agents,
+  })
 
   const isActive = (href: string) => {
     if (href === "/portal") return pathname === "/portal"
@@ -367,6 +375,14 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
         {docsItems.length > 0 && (
           <NavGroup title="Recursos" collapsed={isSidebarCollapsed}>
             {docsItems.map((item) => (
+              <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
+            ))}
+          </NavGroup>
+        )}
+
+        {adminItems.length > 0 && (
+          <NavGroup title="Administração" collapsed={isSidebarCollapsed}>
+            {adminItems.map((item) => (
               <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
             ))}
           </NavGroup>

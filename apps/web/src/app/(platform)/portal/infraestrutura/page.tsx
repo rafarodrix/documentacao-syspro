@@ -23,7 +23,7 @@ type PageProps = {
 
 type InfrastructureTab = "dispositivos" | "operacao" | "relatorios";
 type LegacyInfrastructureTab = InfrastructureTab | "sessoes" | "hosts" | "agentes";
-type OperationsView = "todas" | "ativas" | "historico" | "eficiencia";
+type OperationsView = "em_andamento" | "requer_acao" | "concluidas" | "falhas";
 
 function readParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return String(value[0] ?? "").trim();
@@ -47,12 +47,12 @@ function parseSessionStatus(value: string): RemoteSessionStatus | "ACTIVE" | und
 }
 
 function parseOperationsView(value: string): OperationsView {
-  return value === "todas" || value === "historico" || value === "eficiencia" ? value : "ativas";
+  return value === "requer_acao" || value === "concluidas" || value === "falhas" ? value as OperationsView : "em_andamento";
 }
 
 function normalizeInfrastructureTab(tab: string, view: string): { tab: InfrastructureTab; view: OperationsView } {
   if (tab === "sessoes") {
-    return { tab: "operacao", view: parseOperationsView(view || "ativas") };
+    return { tab: "operacao", view: parseOperationsView(view || "em_andamento") };
   }
   if (tab === "operacao") {
     return { tab: "operacao", view: parseOperationsView(view) };
@@ -65,7 +65,7 @@ function normalizeInfrastructureTab(tab: string, view: string): { tab: Infrastru
 
 function buildTabHref(tab: InfrastructureTab, params: Record<string, string>) {
   const next = new URLSearchParams({ tab });
-  if (tab === "hosts") {
+  if (tab === "dispositivos") {
     if (params.companyId) next.set("companyId", params.companyId);
     if (params.ticketNumber) next.set("ticketNumber", params.ticketNumber);
   }
@@ -76,26 +76,24 @@ function buildTabHref(tab: InfrastructureTab, params: Record<string, string>) {
     if (params.ticket) next.set("ticket", params.ticket);
     if (params.page) next.set("page", params.page);
   }
-  if (tab === "agentes") {
-    if (params.search) next.set("search", params.search);
-    if (params.status) next.set("status", params.status);
-    if (params.page) next.set("page", params.page);
+  if (tab === "relatorios") {
+    // TBD: parameters for reports
   }
   return `/portal/infraestrutura?${next.toString()}`;
 }
 
 const TAB_META: Record<InfrastructureTab, { label: string; icon: typeof Monitor }> = {
-  hosts: {
-    label: "Hosts",
+  dispositivos: {
+    label: "Dispositivos",
     icon: Monitor,
   },
   operacao: {
-    label: "Operação",
+    label: "Operações",
     icon: Activity,
   },
-  agentes: {
-    label: "Agentes",
-    icon: Cpu,
+  relatorios: {
+    label: "Relatórios e auditoria",
+    icon: Activity, // Replace with appropriate icon if available, using Activity as fallback
   },
 };
 
@@ -107,11 +105,9 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
   });
   const canHosts = canRemote;
   const canOperations = canRemote;
-  const canAgents = await currentUserHasAnyPermission(["agents:view", "agents:manage"], {
-    acceptCompanyScope: true,
-  });
+  const canReports = canRemote;
 
-  const availableTabs = ([canHosts && "hosts", canOperations && "operacao", canAgents && "agentes"].filter(
+  const availableTabs = ([canHosts && "dispositivos", canOperations && "operacao", canReports && "relatorios"].filter(
     Boolean,
   ) as InfrastructureTab[]);
 
@@ -121,6 +117,11 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
 
   const params = searchParams ? await searchParams : undefined;
   const requestedTab = readParam(params?.tab) as LegacyInfrastructureTab;
+
+  if (requestedTab === "agentes") {
+    redirect("/portal/administracao/agentes");
+  }
+
   const tabParams = {
     companyId: readParam(params?.companyId),
     ticketNumber: readParam(params?.ticketNumber),
@@ -151,7 +152,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
   let content: ReactNode = null;
   let actions: ReactNode = null;
 
-  if (activeTab === "hosts") {
+  if (activeTab === "dispositivos") {
     const tenantScope = await getRemoteTenantScope();
     const directory = await getRemotePlatformDirectory(tenantScope);
     const canManageRemote = await currentUserHasAnyPermission(["remote:manage", "tools:all"], {
@@ -160,9 +161,9 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     if (canManageRemote) {
       actions = (
         <Button asChild size="sm" className="h-9 gap-1.5 shrink-0 animate-in fade-in zoom-in-95 duration-200">
-          <Link href="?tab=hosts&newHost=true">
+          <Link href="?tab=dispositivos&newHost=true">
             <Plus className="h-4 w-4" />
-            Novo host
+            Adicionar dispositivo
           </Link>
         </Button>
       );
@@ -180,30 +181,24 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
   if (activeTab === "operacao") {
     const tenantScope = await getRemoteTenantScope();
     const pageValue = Math.max(1, Number(readParam(params?.page)) || 1);
-    const statusFilter = operationsView === "ativas" ? "ACTIVE" : parseSessionStatus(tabParams.status);
+    const statusFilter = 
+      operationsView === "em_andamento" ? "ACTIVE" : 
+      operationsView === "concluidas" ? "ENDED" : 
+      operationsView === "falhas" ? "FAILED" : 
+      operationsView === "requer_acao" ? "REQUESTED" : 
+      parseSessionStatus(tabParams.status);
+      
     const [sessionsResult, metrics] = await Promise.all([
-      operationsView === "eficiencia"
-        ? Promise.resolve({
-            sessions: [],
-            pagination: {
-              page: 1,
-              pageSize: 50,
-              total: 0,
-              totalPages: 0,
-              hasNextPage: false,
-              hasPreviousPage: false,
-            },
-            hostOptions: [] as Array<{ id: string; name: string }>,
-          })
-        : getRemoteSessions(tenantScope, {
-            status: statusFilter,
-            hostId: tabParams.host || undefined,
-            ticket: tabParams.ticket || undefined,
-            page: pageValue,
-            pageSize: 50,
-          }),
-      operationsView === "eficiencia" ? getRemoteEfficiencyMetrics(tenantScope) : Promise.resolve(null),
+      getRemoteSessions(tenantScope, {
+        status: statusFilter,
+        hostId: tabParams.host || undefined,
+        ticket: tabParams.ticket || undefined,
+        page: pageValue,
+        pageSize: 50,
+      }),
+      Promise.resolve(null),
     ]);
+
 
     content = (
       <RemoteSessionsPanel
@@ -221,21 +216,11 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     );
   }
 
-  if (activeTab === "agentes") {
-    const pageValue = Math.max(1, Number(readParam(params?.page)) || 1);
-    const search = tabParams.search;
-    const status = parseAgentStatus(tabParams.status);
-    const [stats, list] = await Promise.all([
-      fetchAgentFleetStats(),
-      fetchAgentInstallationList({ page: pageValue, search: search || undefined, status }),
-    ]);
-
+  if (activeTab === "relatorios") {
     content = (
-      <AgentDevicesPanel
-        initialStats={stats}
-        initialList={list}
-        initialSearch={search}
-      />
+      <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 text-sm text-muted-foreground">
+        Módulo de relatórios e auditoria em construção
+      </div>
     );
   }
 
@@ -243,7 +228,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     <PageShell>
       <PageHeader
         title="Infraestrutura"
-        description="Centralize hosts, operacao remota e agentes em uma unica visao."
+        description="Centralize dispositivos, operacoes remotas e auditoria em uma unica visao."
         actions={actions}
       />
 

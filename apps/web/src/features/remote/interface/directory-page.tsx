@@ -895,14 +895,15 @@ export function RemotePlatformDirectoryPanel({
               title: "Nenhum host encontrado",
               description: searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum host remoto configurado no seu escopo.",
             }}
-            desktopColSpan={5}
+            desktopColSpan={6}
             flexible={true}
             desktopHeader={
               <TableRow className="border-b border-border/40 hover:bg-transparent">
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Host</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Dispositivo</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Empresa</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-36">Remoto</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-36">Conectividade</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-44">Saúde</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-40">Capacidades</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-36 text-right">Ações</TableHead>
               </TableRow>
             }
@@ -983,6 +984,16 @@ export function RemotePlatformDirectoryPanel({
                     <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{health.detail}</p>
                   </TableCell>
 
+                  <TableCell className="w-40 py-2.5">
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline" className="h-5 px-1.5 text-[9px] border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">Agente</Badge>
+                      {item.agent.rustdeskId && (
+                        <Badge variant="outline" className="h-5 px-1.5 text-[9px] border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-400">Remoto</Badge>
+                      )}
+                      {/* Placeholders for Túnel and Backup as requested */}
+                    </div>
+                  </TableCell>
+
                   <TableCell className="w-36 py-2.5 text-right">
                     <HostDirectoryActionsMenu
                       hostId={item.id}
@@ -1015,6 +1026,10 @@ export function RemotePlatformDirectoryPanel({
                           <Badge variant="outline" className={cn("h-5 text-[10px]", health.className)}>
                             {health.label}
                           </Badge>
+                          <Badge variant="outline" className="h-5 px-1.5 text-[9px] border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">Agente</Badge>
+                          {item.agent.rustdeskId && (
+                            <Badge variant="outline" className="h-5 px-1.5 text-[9px] border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-400">Remoto</Badge>
+                          )}
                         </div>
                         <p className="font-semibold text-foreground">{item.name}</p>
                         <p className="text-xs text-muted-foreground">{identitySubtitle}</p>

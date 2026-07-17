@@ -35,7 +35,7 @@ interface RemoteSessionSummary {
 }
 
 type StatusFilter = "ALL" | "ACTIVE" | RemoteSessionStatus;
-type OperationsView = "todas" | "ativas" | "historico" | "eficiencia";
+type OperationsView = "em_andamento" | "requer_acao" | "concluidas" | "falhas";
 
 interface RemoteSessionsPanelProps {
   sessions: SessionItem[];
@@ -81,8 +81,7 @@ export function RemoteSessionsPanel({
   const [hostDraft, setHostDraft] = useState(filters.hostId);
   const [ticketDraft, setTicketDraft] = useState(filters.ticket);
 
-  const activeSessions = sessions.filter((session) => session.status === "REQUESTED" || session.status === "STARTED");
-  const pastSessions = sessions.filter((session) => session.status !== "REQUESTED" && session.status !== "STARTED");
+
 
   const updateParams = (mutate: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -170,125 +169,86 @@ export function RemoteSessionsPanel({
     <div className="space-y-6">
       <FilterTabs
         options={[
-          { value: "todas", label: "Todas" },
-          { value: "ativas", label: "Ativas" },
-          { value: "historico", label: "Histórico" },
-          { value: "eficiencia", label: "Eficiência" },
+          { value: "em_andamento", label: "Em andamento" },
+          { value: "requer_acao", label: "Requer ação" },
+          { value: "concluidas", label: "Concluídas" },
+          { value: "falhas", label: "Falhas" },
         ]}
         value={view}
         onChange={setView}
       />
 
-      {view !== "eficiencia" && (
-        <SearchToolbar
-          searchValue={ticketDraft}
-          onSearchChange={setTicketDraft}
-          onClearSearch={clearFilters}
-          searchPlaceholder="Buscar por número de ticket..."
-          resultLabel={`${sessions.length} sess${sessions.length === 1 ? "ão" : "ões"}`}
-          filters={
-            <Select value={hostDraft || "ALL"} onValueChange={(value) => setHostDraft(value === "ALL" ? "" : value)}>
-              <SelectTrigger className="h-9 w-55 bg-background text-sm">
-                <Monitor className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <SelectValue placeholder="Todos os hosts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Todos os hosts</SelectItem>
-                {hostOptions.map((host) => (
-                  <SelectItem key={host.id} value={host.id}>
-                    {host.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          }
-          actions={
-            <>
-              <Button type="button" size="sm" onClick={applyFilters} className="h-9 gap-1.5" disabled={isPending}>
-                <Filter className="h-4 w-4" />
-                Filtrar
+      <SearchToolbar
+        searchValue={ticketDraft}
+        onSearchChange={setTicketDraft}
+        onClearSearch={clearFilters}
+        searchPlaceholder="Buscar por número de ticket..."
+        resultLabel={`${sessions.length} operaç${sessions.length === 1 ? "ão" : "ões"}`}
+        filters={
+          <Select value={hostDraft || "ALL"} onValueChange={(value) => setHostDraft(value === "ALL" ? "" : value)}>
+            <SelectTrigger className="h-9 w-55 bg-background text-sm">
+              <Monitor className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <SelectValue placeholder="Todos os dispositivos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todos os dispositivos</SelectItem>
+              {hostOptions.map((host) => (
+                <SelectItem key={host.id} value={host.id}>
+                  {host.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+        actions={
+          <>
+            <Button type="button" size="sm" onClick={applyFilters} className="h-9 gap-1.5" disabled={isPending}>
+              <Filter className="h-4 w-4" />
+              Filtrar
+            </Button>
+            {(hostDraft || ticketDraft) && (
+              <Button type="button" size="sm" variant="ghost" onClick={clearFilters} className="h-9" disabled={isPending}>
+                Limpar
               </Button>
-              {(hostDraft || ticketDraft) && (
-                <Button type="button" size="sm" variant="ghost" onClick={clearFilters} className="h-9" disabled={isPending}>
-                  Limpar
-                </Button>
-              )}
-            </>
+            )}
+          </>
+        }
+      />
+
+      <section className="space-y-4">
+        <RegistryDataTable
+          isEmpty={sessions.length === 0}
+          emptyState={{
+            icon: Activity,
+            title: "Nenhuma operação encontrada.",
+            description: "Ajuste os filtros ou selecione outra visualização.",
+          }}
+          desktopColSpan={6}
+          flexible={true}
+          desktopHeader={
+            <tr className="border-b border-border/40 hover:bg-transparent">
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-32">Operação</th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Dispositivo</th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Empresa</th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-36">Estado</th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-40">Iniciada em</th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-40">Responsável</th>
+            </tr>
           }
+          desktopContent={sessions.map((session) => (
+            <SessionTableRow key={session.id} session={session} />
+          ))}
+          mobileContent={sessions.map((session) => (
+            <SessionListRow key={session.id} session={session} />
+          ))}
+          pagination={{
+            pagination,
+            itemLabel: { singular: "operação", plural: "operações" },
+            isLoading: isPending,
+            onPageChange: goToPage,
+          }}
         />
-      )}
-
-      {view === "eficiencia" ? (
-        metrics ? <RemoteEfficiencyReportsPanel metrics={metrics} /> : null
-      ) : (
-        <>
-          {(view === "todas" || view === "ativas") && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="flex items-center gap-2 text-xl font-semibold">
-                    <Activity className="h-5 w-5 text-emerald-500" />
-                    Sessões em andamento
-                  </h2>
-                  <p className="text-sm text-muted-foreground">Monitoramento de técnicos conectados em tempo real.</p>
-                </div>
-                <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600">
-                  {activeSessions.length} Ativas
-                </Badge>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {activeSessions.length > 0 ? (
-                  activeSessions.map((session) => (
-                    <SessionCard
-                      key={session.id}
-                      session={session}
-                      isActive
-                      isStopping={isPending && stoppingSessionId === session.id}
-                      onStopSession={handleStopSession}
-                    />
-                  ))
-                ) : (
-                  <EmptyState icon={Monitor} title="Nenhuma sessão ativa no momento." compact dashed className="col-span-full" />
-                )}
-              </div>
-            </section>
-          )}
-
-          {(view === "todas" || view === "historico") && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <History className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <h2 className="text-xl font-semibold">Histórico recente</h2>
-                  <p className="text-sm text-muted-foreground">Sessões mais recentes, ordenadas por atualização.</p>
-                </div>
-              </div>
-
-              <RegistryDataTable
-                isEmpty={pastSessions.length === 0}
-                emptyState={{
-                  icon: History,
-                  title: "Nenhum histórico de sessões encontrado.",
-                  description: "Ajuste os filtros para localizar sessões anteriores.",
-                }}
-                desktopColSpan={1}
-                content={
-                  <div className="divide-y divide-border/40">
-                    {pastSessions.map((session) => <SessionListRow key={session.id} session={session} />)}
-                  </div>
-                }
-                pagination={{
-                  pagination,
-                  itemLabel: { singular: "sessão", plural: "sessões" },
-                  isLoading: isPending,
-                  onPageChange: goToPage,
-                }}
-              />
-            </section>
-          )}
-        </>
-      )}
+      </section>
     </div>
   );
 }
@@ -379,6 +339,48 @@ function SessionCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function SessionTableRow({ session }: { session: SessionItem }) {
+  const startReference = session.startedAt ?? session.createdAt;
+  const startAbsolute = formatDateTime(startReference);
+
+  return (
+    <tr className="group/row transition-all duration-200 hover:bg-muted/20 hover:shadow-sm">
+      <td className="w-32 px-4 py-2.5 align-middle">
+        {session.ticketNumber ? (
+          <div className="inline-flex items-center gap-1.5 rounded-md border border-primary/10 bg-primary/5 px-2 py-1 text-xs font-medium text-primary">
+            <Ticket className="h-3.5 w-3.5" />
+            #{session.ticketNumber}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">Sem ticket</span>
+        )}
+      </td>
+      <td className="min-w-0 px-4 py-2.5 align-middle">
+        <div className="flex items-center gap-2">
+          <Monitor className="h-4 w-4 text-muted-foreground shrink-0" />
+          <p className="truncate text-sm font-semibold">{session.hostName}</p>
+        </div>
+      </td>
+      <td className="min-w-0 px-4 py-2.5 align-middle">
+        <p className="truncate text-sm">{session.companyName || "-"}</p>
+      </td>
+      <td className="w-36 px-4 py-2.5 align-middle">
+        <StatusBadge status={session.status} />
+      </td>
+      <td className="w-40 px-4 py-2.5 align-middle" title={startAbsolute}>
+        <p className="text-xs font-medium">{formatDateOnly(startReference)}</p>
+        <p className="text-[10px] uppercase text-muted-foreground">{formatRelativeStart(startReference)}</p>
+      </td>
+      <td className="w-40 px-4 py-2.5 align-middle">
+        <div className="flex items-center gap-1.5">
+          <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <span className="truncate text-xs">{session.requestedByName || "-"}</span>
+        </div>
+      </td>
+    </tr>
   );
 }
 
