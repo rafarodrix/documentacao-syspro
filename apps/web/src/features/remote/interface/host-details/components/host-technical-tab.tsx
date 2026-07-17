@@ -1,6 +1,6 @@
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Progress, Badge } from "@dosc-syspro/ui";
-import { formatDateTime } from "../host-details.helpers";
+import { formatDateTime, formatRelativeHeartbeat } from "../host-details.helpers";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/formatters";
 import { useAckStream } from "@/features/remote/interface/hooks";
@@ -43,7 +43,7 @@ function toVersionInstallations(snapshot: RemoteHostDetails["agentTelemetry"]["s
 }
 
 function selectPrimaryDisk(snapshot: RemoteHostDetails["agentTelemetry"]["diskSnapshot"]) {
-  if (!snapshot.length) return null;
+  if (!Array.isArray(snapshot) || !snapshot.length) return null;
   return [...snapshot].sort((a, b) => {
     const aLetter = typeof a["letter"] === "string" ? a["letter"].toUpperCase() : "";
     const bLetter = typeof b["letter"] === "string" ? b["letter"].toUpperCase() : "";
