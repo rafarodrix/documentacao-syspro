@@ -29,6 +29,7 @@
     "@dosc-syspro/app-api": "file:../../apps/api",
     "@dosc-syspro/config": "file:../../packages/config",
     "@dosc-syspro/contracts": "file:../../packages/contracts",
+    "@dosc-syspro/contacts-domain": "file:../../packages/features/contacts/domain",
     "@dosc-syspro/core": "file:../../packages/core",
     "@dosc-syspro/crm-domain": "file:../../packages/features/crm/domain",
     "@dosc-syspro/database": "file:../../packages/database",

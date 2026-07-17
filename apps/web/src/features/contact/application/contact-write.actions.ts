@@ -4,7 +4,7 @@ import type { CreateContactInput, UpdateContactInput } from "@dosc-syspro/contra
 import { handleActionError } from "@dosc-syspro/shared";
 import { trpc } from "@/lib/api/trpc-client";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
-import type { ContactActionResponse } from "@/features/contact/domain/contact.types";
+import type { ContactActionResponse } from "@dosc-syspro/contacts-domain";
 
 export async function createContactAction(data: CreateContactInput): Promise<ContactActionResponse> {
   try {
