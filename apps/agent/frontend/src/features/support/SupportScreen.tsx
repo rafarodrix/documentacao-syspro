@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { uistate } from "../../../wailsjs/go/models";
 import { CopyButton } from "../../components/CopyButton";
 import { ChatBubbleIcon, ShieldIcon } from "../../components/icons";
+import type { SetupStatusView, SetupStepView, SupportSessionView } from "../../types/agent-ui";
 import { getSetupDetail, getSetupHeadline, getSetupHint, formatSetupCopy } from "../setup/setup-helpers";
 import { mountChatwootEmbed, openChatwootInline } from "./chatwoot";
 
 type SetupOverallState = "complete" | "error" | "running" | "idle";
 
 type SupportScreenProps = {
-  session: uistate.SupportSession | null;
-  setupStatus: uistate.SetupStatus;
-  activeStep?: uistate.SetupStep | null;
+  session: SupportSessionView | null;
+  setupStatus: SetupStatusView;
+  activeStep?: SetupStepView | null;
   setupOverallState: SetupOverallState;
   chatwootReady: boolean;
   chatwootLoading: boolean;
@@ -36,21 +36,21 @@ export function SupportScreen(props: SupportScreenProps) {
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [chatDrawerExpanded, setChatDrawerExpanded] = useState(false);
-  const context = session?.context;
-  const chatConfigured = Boolean(session?.base_url?.trim() && session?.website_token?.trim());
+  const remote = session?.capabilities.remote ?? null;
+  const chatConfigured = Boolean(session?.channel.configured);
   const setupHeadline = getSetupHeadline(setupStatus, activeStep, setupOverallState);
   const setupDetail = getSetupDetail(setupStatus, activeStep, setupOverallState);
   const setupHint = getSetupHint(setupStatus, activeStep);
 
-  const remoteId = context?.rustdeskId ?? "";
-  const remotePassword = context?.remoteAccessPassword ?? "";
+  const remoteId = remote?.externalId ?? "";
+  const remotePassword = remote?.accessPassword ?? "";
   const remoteReady = Boolean(remoteId);
-  const companyName = context?.companyDisplayName ?? "Cliente Trilink";
-  const machineName = context?.machineName || context?.hostname || "Maquina em preparacao";
-  const operatorName = context?.localUsername || "Operador local";
+  const companyName = session?.installation.companyName ?? "Cliente Trilink";
+  const machineName = session?.device.machineName || session?.device.hostname || "Maquina em preparacao";
+  const operatorName = session?.device.localUsername || "Operador local";
   const remoteStateLabel = remoteReady
     ? "Remoto pronto"
-    : formatSetupCopy(context?.remoteStatusText) || setupHeadline;
+    : formatSetupCopy(remote?.statusText) || setupHeadline;
   const chatStateLabel = !chatConfigured
     ? "Canal nao configurado"
     : chatwootLoading
@@ -70,7 +70,7 @@ export function SupportScreen(props: SupportScreenProps) {
     if (!chatwootReady || !chatDrawerOpen) return;
     mountChatwootEmbed(chatContainerRef.current);
     openChatwootInline();
-  }, [chatDrawerOpen, chatwootReady, session?.website_token]);
+  }, [chatDrawerOpen, chatwootReady, session?.channel.websiteToken]);
 
   const toggleSupportDrawer = () => {
     if (chatDrawerOpen) {
@@ -116,15 +116,15 @@ export function SupportScreen(props: SupportScreenProps) {
               </button>
             </div>
             <div className="support-diagnostic-detail">{setupDetail}</div>
-            {context?.remoteStatusText ? (
+            {remote?.statusText ? (
               <div className="support-diagnostic-meta">
-                Estado reportado pelo agent: {formatSetupCopy(context.remoteStatusText)}
+                Estado reportado pelo agent: {formatSetupCopy(remote.statusText)}
               </div>
             ) : null}
             {setupHint ? <div className="support-diagnostic-callout">{setupHint}</div> : null}
-            {setupStatus.last_error ? (
+            {setupStatus.lastError ? (
               <div className="support-diagnostic-error">
-                Ultimo erro: {formatSetupCopy(setupStatus.last_error)}
+                Ultimo erro: {formatSetupCopy(setupStatus.lastError)}
               </div>
             ) : null}
           </div>
@@ -157,7 +157,7 @@ export function SupportScreen(props: SupportScreenProps) {
             <div className="support-summary-inline">
               <span className="support-summary-value mono">
                 {remotePassword ||
-                  (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
+                  (remote?.status === "ready" || remote?.status === "pending"
                     ? "Sincronizando"
                     : "Aguardando")}
               </span>

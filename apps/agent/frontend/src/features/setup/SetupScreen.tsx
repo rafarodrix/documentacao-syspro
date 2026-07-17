@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { uistate } from "../../../wailsjs/go/models";
 import { RemoteAccessCard } from "../../components/RemoteAccessCard";
 import { CheckIcon } from "../../components/icons";
+import type { SetupStatusView, SetupStepView } from "../../types/agent-ui";
 import {
   getSetupDetail,
   getSetupHeadline,
@@ -12,10 +12,10 @@ import {
 type SetupOverallState = "complete" | "error" | "running" | "idle";
 
 type SetupScreenProps = {
-  status: uistate.SetupStatus;
-  pendingSteps: uistate.SetupStep[];
-  completedSteps: uistate.SetupStep[];
-  activeStep?: uistate.SetupStep | null;
+  status: SetupStatusView;
+  pendingSteps: SetupStepView[];
+  completedSteps: SetupStepView[];
+  activeStep?: SetupStepView | null;
   overallState: SetupOverallState;
 };
 
@@ -44,13 +44,13 @@ export function SetupScreen(props: SetupScreenProps) {
               cy="28"
               r="24"
               strokeWidth="4"
-              strokeDasharray={`${(status.progress_pct / 100) * 150.8} 150.8`}
+              strokeDasharray={`${(status.progressPct / 100) * 150.8} 150.8`}
               strokeLinecap="round"
               transform="rotate(-90 28 28)"
             />
           </svg>
           <div className="ring-label">
-            {status.progress_pct}
+            {status.progressPct}
             <span>%</span>
           </div>
         </div>
@@ -64,26 +64,26 @@ export function SetupScreen(props: SetupScreenProps) {
 
           {setupHint ? <div className="setup-callout">{setupHint}</div> : null}
 
-          {status.last_error ? (
+          {status.lastError ? (
             <div className="setup-error-banner">
               <span className="setup-error-title">Ultimo erro</span>
-              <span>{status.last_error}</span>
+              <span>{status.lastError}</span>
             </div>
           ) : null}
 
           <div className="setup-facts-grid">
             <div className="setup-fact-card">
               <span className="setup-fact-label">Empresa</span>
-              <span className="setup-fact-value">{status.company_name || "Aguardando vinculo"}</span>
+              <span className="setup-fact-value">{status.installation.companyName || "Aguardando vinculo"}</span>
             </div>
             <div className="setup-fact-card">
               <span className="setup-fact-label">Host</span>
-              <span className="setup-fact-value mono">{status.host_id || "Nao vinculado"}</span>
+              <span className="setup-fact-value mono">{status.installation.hostId || "Nao vinculado"}</span>
             </div>
           </div>
         </div>
 
-        <RemoteAccessCard rustdeskId={status.rustdesk_id} />
+        <RemoteAccessCard rustdeskId={status.capabilities.remote?.externalId ?? undefined} />
       </section>
 
       <section className="setup-timeline-card">
@@ -122,7 +122,7 @@ export function SetupScreen(props: SetupScreenProps) {
   );
 }
 
-function TimelineItem({ step, isFirst }: { step: uistate.SetupStep; isFirst: boolean }) {
+function TimelineItem({ step, isFirst }: { step: SetupStepView; isFirst: boolean }) {
   return (
     <div className={`timeline-item ${step.status}${isFirst ? " active" : ""}`}>
       <div className="timeline-icon-wrap">

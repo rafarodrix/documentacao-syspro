@@ -1,14 +1,5 @@
-import { uistate } from "../../../wailsjs/go/models";
+import type { SetupStatusView, SetupStepView } from "../../types/agent-ui";
 import { Route, normalizeRoute } from "../../types/route";
-
-export const defaultSetupStatus = new uistate.SetupStatus({
-  complete: false,
-  stage: "Inicializando",
-  title: "Provisionamento do Agente",
-  summary: "Preparando contexto inicial do agente.",
-  progress_pct: 0,
-  steps: [],
-});
 
 const bootstrapFlowLabels: Record<string, string> = {
   pending_link: "aguardando vinculo no portal",
@@ -34,14 +25,14 @@ export function formatSetupCopy(value?: string | null): string {
   );
 }
 
-export function resolveStartupRoute(target: string | undefined, status: uistate.SetupStatus): Route {
+export function resolveStartupRoute(target: string | undefined, status: SetupStatusView): Route {
   if (!status.complete) return "agent://setup";
   return normalizeRoute(target);
 }
 
 export function getSetupHeadline(
-  status: uistate.SetupStatus,
-  activeStep: uistate.SetupStep | null | undefined,
+  status: SetupStatusView,
+  activeStep: SetupStepView | null | undefined,
   overallState: "complete" | "error" | "running" | "idle",
 ): string {
   if (overallState === "complete") return "Provisionamento concluido";
@@ -49,8 +40,8 @@ export function getSetupHeadline(
 }
 
 export function getSetupDetail(
-  status: uistate.SetupStatus,
-  activeStep: uistate.SetupStep | null | undefined,
+  status: SetupStatusView,
+  activeStep: SetupStepView | null | undefined,
   overallState: "complete" | "error" | "running" | "idle",
 ): string {
   if (overallState === "complete") return "Agente registrado e operacional.";
@@ -58,14 +49,14 @@ export function getSetupDetail(
 }
 
 export function getSetupHint(
-  status: uistate.SetupStatus,
-  activeStep: uistate.SetupStep | null | undefined,
+  status: SetupStatusView,
+  activeStep: SetupStepView | null | undefined,
 ): string {
   const combined = [
     status.stage,
     status.summary,
-    status.last_error,
-    ...status.steps.map((step: uistate.SetupStep) => step.detail),
+    status.lastError,
+    ...status.steps.map((step: SetupStepView) => step.detail),
   ]
     .join(" ")
     .toLowerCase();
@@ -85,7 +76,7 @@ export function getSetupHint(
   return "";
 }
 
-export function stepBadge(status: uistate.SetupStep["status"]) {
+export function stepBadge(status: SetupStepView["status"]) {
   if (status === "complete") return "Concluido";
   if (status === "error") return "Erro";
   return "Pendente";

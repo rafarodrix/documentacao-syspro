@@ -1,4 +1,4 @@
-import { domain } from "../../../wailsjs/go/models";
+import type { SupportSessionView } from "../../types/agent-ui";
 
 export function openChatwootInline() {
   const chatwoot = (window as unknown as {
@@ -57,8 +57,8 @@ export function hasChatwootClient() {
   return Boolean(chatwoot?.toggle || chatwoot?.setUser);
 }
 
-export function identifyChatwootContact(context: domain.SupportContext | undefined) {
-  if (!context) return;
+export function identifyChatwootContact(session: SupportSessionView | null | undefined) {
+  if (!session) return;
 
   const chatwoot = (window as unknown as {
     $chatwoot?: {
@@ -68,39 +68,39 @@ export function identifyChatwootContact(context: domain.SupportContext | undefin
 
   if (!chatwoot?.setUser) return;
 
-  const identifier = buildChatwootContactIdentifier(context);
+  const identifier = buildChatwootContactIdentifier(session);
   if (!identifier) return;
 
   const name =
-    context.hostId ||
-    context.machineName ||
-    context.hostname ||
-    context.contactName ||
+    session.installation.hostAlias ||
+    session.device.machineName ||
+    session.device.hostname ||
+    session.installation.contactName ||
     identifier;
 
   try {
     chatwoot.setUser(identifier, {
       name,
-      company_name: context.companyDisplayName || "",
-      company_id: context.companyId || "",
-      host_id: context.hostId || "",
-      host_alias: context.hostAlias || "",
-      rustdesk_id: context.rustdeskId || "",
-      machine_name: context.machineName || context.hostname || "",
-      local_username: context.localUsername || "",
-      os: context.os || "",
-      agent_version: context.agentVersion || "",
-      description: context.description || "",
+      company_name: session.installation.companyName || "",
+      company_id: session.installation.companyId || "",
+      host_id: session.installation.hostId || "",
+      host_alias: session.installation.hostAlias || "",
+      rustdesk_id: session.capabilities.remote?.externalId || "",
+      machine_name: session.device.machineName || session.device.hostname || "",
+      local_username: session.device.localUsername || "",
+      os: session.device.os || "",
+      agent_version: session.device.agentVersion || "",
+      description: session.installation.description || "",
     });
   } catch {
     // ignore
   }
 }
 
-function buildChatwootContactIdentifier(context: domain.SupportContext) {
-  if (context.hostId?.trim()) return `remote-host:${context.hostId.trim()}`;
-  if (context.deviceId?.trim()) return `agent-device:${context.deviceId.trim()}`;
-  if (context.hostname?.trim()) return `hostname:${context.hostname.trim().toLowerCase()}`;
-  if (context.machineName?.trim()) return `machine:${context.machineName.trim().toLowerCase()}`;
+function buildChatwootContactIdentifier(session: SupportSessionView) {
+  if (session.installation.hostId?.trim()) return `remote-host:${session.installation.hostId.trim()}`;
+  if (session.device.deviceId?.trim()) return `agent-device:${session.device.deviceId.trim()}`;
+  if (session.device.hostname?.trim()) return `hostname:${session.device.hostname.trim().toLowerCase()}`;
+  if (session.device.machineName?.trim()) return `machine:${session.device.machineName.trim().toLowerCase()}`;
   return "";
 }

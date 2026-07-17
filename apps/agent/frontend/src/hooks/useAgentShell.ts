@@ -1,32 +1,32 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  GetCurrentTarget,
-  GetSetupStatus,
-  GetSupportSession,
-  ListNotifications,
-  OpenRemoteClient,
-  OpenSetupExperience,
-  OpenSupportConversation,
-  SyncSupportConversationContext,
-} from "../bindings";
 import { EventsOn } from "../runtime";
 import { uistate } from "../../wailsjs/go/models";
 import { Route, normalizeRoute } from "../types/route";
-import { defaultSetupStatus, resolveStartupRoute } from "../features/setup/setup-helpers";
+import type { NotificationView, SetupStatusView, SetupStepView, SupportSessionView } from "../types/agent-ui";
+import { resolveStartupRoute } from "../features/setup/setup-helpers";
 import {
   hasChatwootClient,
   hideChatwootBubble,
   identifyChatwootContact,
   openChatwootInline,
 } from "../features/support/chatwoot";
+import { fetchCurrentTarget, fetchNotifications, mapNotifications } from "../services/shell-service";
+import { defaultSetupStatusView, fetchSetupStatus, mapSetupStatus, openSetupExperience } from "../services/setup-service";
+import {
+  fetchSupportSession,
+  mapSupportSession,
+  openRemoteClient,
+  openSupportConversation,
+  syncSupportConversationContext,
+} from "../services/support-service";
 
 type OverallState = "complete" | "error" | "running" | "idle";
 
 export function useAgentShell() {
   const [route, setRoute] = useState<Route>("agent://setup");
-  const [setupStatus, setSetupStatus] = useState<uistate.SetupStatus>(defaultSetupStatus);
-  const [supportSession, setSupportSession] = useState<uistate.SupportSession | null>(null);
-  const [, setNotifications] = useState<Array<uistate.Notification>>([]);
+  const [setupStatus, setSetupStatus] = useState<SetupStatusView>(defaultSetupStatusView);
+  const [supportSession, setSupportSession] = useState<SupportSessionView | null>(null);
+  const [, setNotifications] = useState<NotificationView[]>([]);
   const [chatwootReady, setChatwootReady] = useState(false);
   const [chatwootLoading, setChatwootLoading] = useState(false);
   const [remoteOpening, setRemoteOpening] = useState(false);
@@ -38,15 +38,15 @@ export function useAgentShell() {
     void (async () => {
       try {
         const [target, status, notifications] = await Promise.all([
-          GetCurrentTarget().catch((err) => {
+          fetchCurrentTarget().catch((err) => {
             console.error("GetCurrentTarget failed:", err);
             return "agent://setup";
           }),
-          GetSetupStatus().catch((err) => {
+          fetchSetupStatus().catch((err) => {
             console.error("GetSetupStatus failed:", err);
-            return defaultSetupStatus;
+            return defaultSetupStatusView;
           }),
-          ListNotifications().catch((err) => {
+          fetchNotifications().catch((err) => {
             console.error("ListNotifications failed:", err);
             return [];
           }),
@@ -59,7 +59,7 @@ export function useAgentShell() {
 
         if (nextRoute === "agent://support") {
           try {
-            const session = await GetSupportSession();
+            const session = await fetchSupportSession();
             setSupportSession(session);
           } catch (err) {
             console.error("GetSupportSession failed:", err);
@@ -78,7 +78,7 @@ export function useAgentShell() {
         if (nextRoute === "agent://support") {
           setChatwootReady(false);
 
-          void GetSupportSession()
+          void fetchSupportSession()
             .then((session) => {
               setSupportSession(session);
             })
@@ -86,10 +86,10 @@ export function useAgentShell() {
         }
       }),
       EventsOn("agent:setup-status", (payload: uistate.SetupStatus) => {
-        setSetupStatus(payload);
+        setSetupStatus(mapSetupStatus(payload));
       }),
       EventsOn("agent:notifications", (payload: Array<uistate.Notification>) => {
-        setNotifications(payload ?? []);
+        setNotifications(mapNotifications(payload) as any);
       }),
     ];
 
@@ -102,7 +102,7 @@ export function useAgentShell() {
     if (route !== "agent://support") return;
 
     const poll = () => {
-      void GetSupportSession()
+      void fetchSupportSession()
         .then((session) => setSupportSession(session))
         .catch(() => {
           // silent
@@ -116,7 +116,7 @@ export function useAgentShell() {
 
   useEffect(() => {
     if (route !== "agent://support" || !supportSession) return;
-    if (!supportSession.base_url?.trim() || !supportSession.website_token?.trim()) {
+    if (!supportSession.channel.baseUrl.trim() || !supportSession.channel.websiteToken.trim()) {
       setChatwootReady(false);
       setChatwootLoading(false);
       return;
@@ -129,7 +129,7 @@ export function useAgentShell() {
     const onReady = () => {
       if (cancelled) return;
       hideChatwootBubble();
-      identifyChatwootContact(supportSession.context);
+      identifyChatwootContact(supportSession);
       setChatwootReady(true);
       setChatwootLoading(false);
     };
@@ -148,7 +148,7 @@ export function useAgentShell() {
       if (!conversationId || syncedConversationIds.current[conversationId]) return;
 
       syncedConversationIds.current[conversationId] = true;
-      void SyncSupportConversationContext(conversationId).catch(() => {
+      void syncSupportConversationContext(conversationId).catch(() => {
         syncedConversationIds.current[conversationId] = false;
       });
     };
@@ -179,8 +179,8 @@ export function useAgentShell() {
 
       setChatwootLoading(true);
       sdk.run({
-        websiteToken: supportSession.website_token,
-        baseUrl: supportSession.base_url,
+        websiteToken: supportSession.channel.websiteToken,
+        baseUrl: supportSession.channel.baseUrl,
       });
 
       if (hasChatwootClient()) {
@@ -198,7 +198,7 @@ export function useAgentShell() {
     } else {
       const script = document.createElement("script");
       script.id = scriptId;
-      script.src = `${supportSession.base_url}/packs/js/sdk.js`;
+      script.src = `${supportSession.channel.baseUrl}/packs/js/sdk.js`;
       script.async = true;
       script.onload = bootChatwoot;
       script.onerror = () => {
@@ -244,7 +244,7 @@ export function useAgentShell() {
       return;
     }
 
-    void OpenSupportConversation().catch((err) => {
+    void openSupportConversation().catch((err) => {
       console.error("OpenSupportConversation failed:", err);
       setChatwootLoading(false);
     });
@@ -252,7 +252,7 @@ export function useAgentShell() {
 
   const openRemote = () => {
     setRemoteOpening(true);
-    void OpenRemoteClient()
+    void openRemoteClient()
       .catch((err) => {
         console.error("OpenRemoteClient failed:", err);
       })
@@ -262,27 +262,27 @@ export function useAgentShell() {
   };
 
   const openSetup = () => {
-    void OpenSetupExperience().catch((err) => {
+    void openSetupExperience().catch((err) => {
       console.error("OpenSetupExperience failed:", err);
       setRoute("agent://setup");
     });
   };
 
-  const pendingSteps = setupStatus.steps.filter((step: uistate.SetupStep) => step.status !== "complete");
-  const completedSteps = setupStatus.steps.filter((step: uistate.SetupStep) => step.status === "complete");
+  const pendingSteps = setupStatus.steps.filter((step: SetupStepView) => step.status !== "complete");
+  const completedSteps = setupStatus.steps.filter((step: SetupStepView) => step.status === "complete");
   const activeStep = pendingSteps[0] ?? null;
 
   const setupOverallState: OverallState = setupStatus.complete
     ? "complete"
-    : setupStatus.last_error
+    : setupStatus.lastError
       ? "error"
-      : setupStatus.progress_pct > 0
+      : setupStatus.progressPct > 0
         ? "running"
         : "idle";
 
-  const supportOverallState: OverallState = supportSession?.context?.rustdeskId
+  const supportOverallState: OverallState = supportSession?.capabilities.remote?.externalId
     ? "complete"
-    : supportSession?.context?.remoteStatus === "pending"
+    : supportSession?.capabilities.remote?.status === "pending"
       ? "running"
       : setupOverallState;
 
