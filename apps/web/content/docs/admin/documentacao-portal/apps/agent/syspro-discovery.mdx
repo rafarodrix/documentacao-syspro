@@ -1,0 +1,68 @@
+# Descoberta Syspro no Agent
+
+Atualizado em 17/07/2026.
+
+## Resumo
+
+O agent nao trata mais a pasta `C:\Syspro` como uma unica instalacao.
+
+O portal envia apenas `syspro_installation_hints`, e o runtime local transforma
+essas pistas em:
+
+- `machineRole`
+- `validatedServerCount`
+- `installationGroups[]`
+
+## Hints enviados pelo portal
+
+O desired state do modulo `device` agora usa:
+
+```json
+{
+  "syspro_installation_hints": [
+    {
+      "company_id": "company-1",
+      "company_name": "Empresa A",
+      "path": "C:\\Syspro\\Server"
+    }
+  ]
+}
+```
+
+O campo `path` pode apontar para uma raiz conhecida ou para um executavel
+historicamente vinculado. Ainda assim, ele continua sendo apenas uma pista.
+
+## O que o agent valida no host
+
+Uma instancia de servidor so entra no diagnostico profundo quando o agent
+encontra assinaturas concretas como:
+
+- `SysproServer.exe`
+- `SysproServer.ini`
+- `SysproServerISAPI.dll`
+
+Se a raiz tiver apenas parte desses sinais, a classificacao pode cair em
+`PARTIAL`.
+
+## Estrutura do snapshot
+
+Cada `installationGroup` pode conter:
+
+- `clientInstances[]`
+- `serverInstances[]`
+- `sharedDirectories[]`
+- `discoveryEvidence[]`
+
+Cada `serverInstance` separa:
+
+- validacao
+- execucao
+- versao
+- diretorios de dados
+- informacao de atualizacao
+
+## Regras operacionais
+
+- O portal nao deve interpretar `syspro_installation_hints` como instalacao validada.
+- O agent so deve expor diagnostico profundo quando existir `SysproServer.exe` validado.
+- Mais de uma instancia de `SysproServer.exe` no mesmo host deve gerar mais de um `serverInstance`.

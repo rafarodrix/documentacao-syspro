@@ -97,7 +97,6 @@ export function RemoteHostDetailsPanel({
     canManageInstallations,
     serviceStatusIcon,
     diskSnapshot,
-    sysproProcessSnapshot,
     rebootPending,
     agentHealthCard,
     autoHealStatusIcon,
@@ -476,7 +475,6 @@ export function RemoteHostDetailsPanel({
             serviceStatus={serviceStatus}
             orchestrationStrategy={orchestrationStrategy}
             windowsUpdateStatus={details.agentTelemetry.windowsUpdateStatus}
-            sysproProcessSnapshot={sysproProcessSnapshot}
             diskSnapshot={diskSnapshot}
             firebirdData={firebirdData}
           />

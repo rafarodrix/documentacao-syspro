@@ -454,6 +454,53 @@ func TestSyncAuthFailureUsesStructuredPortalCodeForRebootstrap(t *testing.T) {
 	}
 }
 
+func TestRefreshRustDeskStateReusesInstalledClientAndReappliesConfigOnDrift(t *testing.T) {
+	t.Parallel()
+
+	manager := &fakeRustDeskController{
+		status: rustDeskStatus{
+			ExecutablePath: `C:\Program Files\RustDesk\rustdesk.exe`,
+			Installed:      true,
+			ServiceStatus:  "running",
+			RustDeskID:     "123456789",
+			Version:        "1.4.6",
+			AccessPassword: "123456",
+			ServerHost:     "relay.terceiro.example.com",
+			APIHost:        "api.terceiro.example.com",
+			PublicKeyHash:  "hash-terceiro",
+		},
+	}
+
+	module := newTestModule(nil, nil, manager, t.TempDir())
+	state := &remoteState{
+		Alias:                 "SERVIDOR",
+		ServerHost:            "acesso.trilinksoftware.com.br",
+		APIHost:               "acesso.trilinksoftware.com.br",
+		PublicKey:             "pub-key",
+		PublicKeyHash:         "pub-hash",
+		DefaultPassword:       "123456",
+		CurrentVersion:        "1.4.6",
+		AutoInstall:           false,
+		AutoUpgrade:           true,
+		AllowRemoteConfigMod:  false,
+		EnableDirectXCapture:  true,
+	}
+
+	if err := module.refreshRustDeskState(context.Background(), state, false, false, nil); err != nil {
+		t.Fatalf("refresh rustdesk state: %v", err)
+	}
+
+	if manager.ensureInstalledCalls != 0 {
+		t.Fatalf("expected installed client to be reused without reinstall, got %d ensureInstalled call(s)", manager.ensureInstalledCalls)
+	}
+	if manager.applyDesiredConfigCalls != 1 {
+		t.Fatalf("expected config reapply on server drift, got %d applyDesiredConfig call(s)", manager.applyDesiredConfigCalls)
+	}
+	if manager.lastAppliedDesired.ServerHost != "acesso.trilinksoftware.com.br" {
+		t.Fatalf("expected desired server host to target Trilink relay, got %q", manager.lastAppliedDesired.ServerHost)
+	}
+}
+
 func managedRemoteDesiredState() domain.DesiredState {
 	return domain.DesiredState{
 		Version:   1,
@@ -588,7 +635,10 @@ func (f *fakePortalClient) Ack(ctx context.Context, req domain.RemoteAckRequest)
 }
 
 type fakeRustDeskController struct {
-	status rustDeskStatus
+	status                  rustDeskStatus
+	ensureInstalledCalls    int
+	applyDesiredConfigCalls int
+	lastAppliedDesired      rustDeskDesiredConfig
 }
 
 func (f *fakeRustDeskController) inspect(ctx context.Context) (rustDeskStatus, error) {
@@ -596,6 +646,7 @@ func (f *fakeRustDeskController) inspect(ctx context.Context) (rustDeskStatus, e
 }
 
 func (f *fakeRustDeskController) ensureInstalled(ctx context.Context, upgrade *rustDeskUpgradeSpec) (string, bool, error) {
+	f.ensureInstalledCalls++
 	return f.status.ExecutablePath, false, nil
 }
 
@@ -604,6 +655,8 @@ func (f *fakeRustDeskController) ensureServiceRunning(ctx context.Context, exePa
 }
 
 func (f *fakeRustDeskController) applyDesiredConfig(ctx context.Context, exePath string, desired rustDeskDesiredConfig) error {
+	f.applyDesiredConfigCalls++
+	f.lastAppliedDesired = desired
 	return nil
 }
 

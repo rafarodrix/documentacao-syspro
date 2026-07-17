@@ -191,7 +191,8 @@ func (c *Collector) inspectSysproInstallationGroup(rootPath string, evidence []s
 	}
 
 	clientPath := filepath.Join(rootPath, "Client")
-	if dirExists(clientPath) {
+	hasServerInstallation := len(group.ServerInstances) > 0
+	if !hasServerInstallation && dirExists(clientPath) {
 		group.ClientInstances = append(group.ClientInstances, SysproClientInstance{
 			RootPath: clientPath,
 			Status:   "DISCOVERED",
@@ -318,13 +319,13 @@ func classifySysproGroup(group SysproInstallationGroup) string {
 	hasClient := len(group.ClientInstances) > 0
 
 	switch {
-	case hasValidatedServer && hasClient:
-		return "MIXED"
 	case hasValidatedServer:
 		return "SERVER"
+	case hasPartialServer:
+		return "PARTIAL"
 	case hasClient:
 		return "CLIENT"
-	case hasPartialServer || len(group.SharedDirectories) > 0:
+	case len(group.SharedDirectories) > 0:
 		return "PARTIAL"
 	default:
 		return "UNKNOWN"

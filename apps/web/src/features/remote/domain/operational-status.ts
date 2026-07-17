@@ -80,7 +80,7 @@ export function getRemoteProductStatusMeta(status: RemoteProductStatus): RemoteP
   if (status === "AWAITING_LINK") {
     return {
       label: "Aguardando vinculo",
-      description: "A maquina ja foi descoberta. O RustDesk so sera instalado/configurado depois do vinculo com um host da empresa.",
+      description: "A maquina ja foi descoberta. Depois do vinculo, o agente instala o RustDesk se faltar ou reaproveita a instalacao existente aplicando a configuracao do portal.",
       className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
       tone: "neutral",
       displayPriority: 20,
@@ -90,7 +90,7 @@ export function getRemoteProductStatusMeta(status: RemoteProductStatus): RemoteP
   if (status === "PROVISIONING_REMOTE") {
     return {
       label: "Provisionando remoto",
-      description: "O agente ja recebeu o vinculo e agora esta executando bootstrap, instalacao e configuracao do remoto.",
+      description: "O agente ja recebeu o vinculo e agora esta executando bootstrap e convergencia do remoto. Se o RustDesk ja existir no host, a instalacao atual sera reaproveitada e reconfigurada.",
       className: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
       tone: "neutral",
       displayPriority: 30,

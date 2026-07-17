@@ -150,9 +150,6 @@ export async function linkDiscoveredHostRecord(input: {
     });
 
     if (existingByRustdesk) {
-      if (existingByRustdesk.companyId !== input.companyId) {
-        throw new Error("HOST_AGENT_EXTERNAL_ID_CONFLICT");
-      }
       existingHostId = existingByRustdesk.id;
     }
   }
@@ -197,6 +194,7 @@ export async function linkDiscoveredHostRecord(input: {
       await tx.remoteHost.update({
         where: { id: hostId },
         data: {
+          companyId: input.companyId,
           name: input.name,
           provider: discoveredHost.provider?.trim() || "RustDesk",
           environment: discoveredHost.environment?.trim() || null,
@@ -217,6 +215,18 @@ export async function linkDiscoveredHostRecord(input: {
         hostCompanyNames: company.normalizedPrimaryNames,
         heartbeatAt,
         sysproUpdates,
+      });
+
+      await tx.remoteDiscoveredHost.updateMany({
+        where: {
+          linkedHostId: hostId,
+          id: { not: discoveredHost.id },
+        },
+        data: {
+          linkedHostId: null,
+          linkedAt: null,
+          status: "PENDING_LINK",
+        },
       });
 
       await tx.remoteDiscoveredHost.update({

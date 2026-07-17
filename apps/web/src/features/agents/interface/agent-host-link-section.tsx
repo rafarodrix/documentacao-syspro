@@ -82,6 +82,8 @@ export function AgentHostLinkSection({
 
   const trimmedProjectedHostName = projectedHostName.trim();
   const availableHosts = useMemo(() => hosts, [hosts]);
+  const pendingActionLabel = currentHostId ? "Reaproveitar host atual" : "Criar host e vincular";
+  const pendingActionBusyLabel = currentHostId ? "Atualizando host atual..." : "Criando vinculo...";
 
   function handleLink(hostId: string) {
     startLinking(async () => {
@@ -328,7 +330,9 @@ export function AgentHostLinkSection({
                 <p className="mt-1 text-xs text-muted-foreground">
                   {matchedPendingHost.status === "IGNORED"
                     ? `A maquina ${matchedPendingHost.machineName ?? "sem nome"} foi ignorada/removida anteriormente. Reautorize a descoberta para liberar o vinculo novamente.`
-                    : `A maquina ${matchedPendingHost.machineName ?? "sem nome"} apareceu no fluxo de descoberta, mas ainda nao tem host configurado. Selecione a empresa para criar e vincular agora.`}
+                    : currentHostId
+                      ? `A maquina ${matchedPendingHost.machineName ?? "sem nome"} apareceu no fluxo de descoberta. Como este agente ja possui um host vinculado, vamos reaproveitar o host atual e atualizar a empresa agora.`
+                      : `A maquina ${matchedPendingHost.machineName ?? "sem nome"} apareceu no fluxo de descoberta, mas ainda nao tem host configurado. Selecione a empresa para criar e vincular agora.`}
                 </p>
               </div>
 
@@ -374,8 +378,8 @@ export function AgentHostLinkSection({
                     ? "Reautorizando..."
                     : "Reautorizar descoberta"
                   : isLinkingPending
-                    ? "Criando vinculo..."
-                    : "Criar host e vincular"}
+                    ? pendingActionBusyLabel
+                    : pendingActionLabel}
               </Button>
             </div>
           )}

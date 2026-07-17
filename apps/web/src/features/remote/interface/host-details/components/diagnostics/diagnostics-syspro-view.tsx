@@ -18,22 +18,22 @@ export function DiagnosticsSysproView({ sysproVersionSnapshot, sysproVersionSnap
       <Card className="border-border/50">
         <CardHeader className="flex flex-col space-y-2 pb-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div>
-            <CardTitle className="text-lg">Instalações Syspro</CardTitle>
+            <CardTitle className="text-lg">Instalacoes Syspro</CardTitle>
             <CardDescription>
-              Grupos, componentes e instâncias validadas fisicamente pelo agente nesta máquina.
+              Diretorios e instancias de servidor validadas fisicamente pelo agente nesta maquina.
             </CardDescription>
           </div>
           <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
-            Última coleta: {displaySnapshotDate}
+            Ultima coleta: {displaySnapshotDate}
           </Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           {groups.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border/40 bg-muted/10 p-8 text-center">
               <Folder className="mx-auto h-8 w-8 text-muted-foreground" />
-              <p className="mt-2 text-sm font-medium text-foreground">Nenhuma topologia Syspro descoberta</p>
+              <p className="mt-2 text-sm font-medium text-foreground">Nenhuma instalacao Syspro descoberta</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                O agente ainda não validou nenhuma instância de servidor ou grupo relevante nesta máquina.
+                O agente ainda nao validou nenhuma instancia de servidor relevante nesta maquina.
               </p>
             </div>
           ) : (
@@ -46,33 +46,15 @@ export function DiagnosticsSysproView({ sysproVersionSnapshot, sysproVersionSnap
                     <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
                       {group.classification ?? "UNKNOWN"}
                     </Badge>
-                    {group.confidence ? (
-                      <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
-                        {group.confidence}
-                      </Badge>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm">
-                    <div>
-                      <span className="block text-xs text-muted-foreground">Papéis</span>
-                      <span>{group.roles.join(", ") || "Sem leitura"}</span>
-                    </div>
-                    <div>
-                      <span className="block text-xs text-muted-foreground">Clientes</span>
-                      <span>{group.clientInstances.length}</span>
-                    </div>
-                    <div>
-                      <span className="block text-xs text-muted-foreground">Servidores</span>
-                      <span>{group.serverInstances.length}</span>
-                    </div>
-                    <div>
-                      <span className="block text-xs text-muted-foreground">Evidências</span>
-                      <span>{group.discoveryEvidence.join(", ") || "Sem leitura"}</span>
-                    </div>
                   </div>
 
                   <div className="mt-4 grid gap-4">
+                    {group.serverInstances.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border/40 bg-background/40 p-4 text-sm text-muted-foreground">
+                        Nenhuma instancia de servidor validada neste diretorio.
+                      </div>
+                    ) : null}
+
                     {group.serverInstances.map((server) => (
                       <div key={server.id} className="rounded-xl border border-border/40 bg-background/60 p-4">
                         <div className="flex flex-wrap items-center gap-2">
@@ -86,9 +68,9 @@ export function DiagnosticsSysproView({ sysproVersionSnapshot, sysproVersionSnap
                           </Badge>
                         </div>
 
-                        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm">
+                        <div className="mt-4 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
                           <div>
-                            <span className="block text-xs text-muted-foreground">Versão</span>
+                            <span className="block text-xs text-muted-foreground">Versao</span>
                             <span className="font-mono text-foreground">
                               {server.productVersion ?? server.fileVersion ?? "Sem leitura"}
                             </span>
@@ -98,22 +80,11 @@ export function DiagnosticsSysproView({ sysproVersionSnapshot, sysproVersionSnap
                             <span>{server.updatedAt ? formatDateTime(server.updatedAt) : "Sem leitura"}</span>
                           </div>
                           <div>
-                            <span className="block text-xs text-muted-foreground">Origem da data</span>
-                            <span>{server.updateSource ?? "Sem leitura"}</span>
-                          </div>
-                          <div>
-                            <span className="block text-xs text-muted-foreground">Executável</span>
+                            <span className="block text-xs text-muted-foreground">Executavel</span>
                             <span>{server.executableSizeMb ? `${server.executableSizeMb.toFixed(1)} MB` : "Sem leitura"}</span>
                           </div>
-                        </div>
-
-                        <div className="mt-3 grid gap-3 md:grid-cols-2 text-sm">
                           <div>
-                            <span className="block text-xs text-muted-foreground">Arquivos validados</span>
-                            <span>{server.validationEvidence.join(", ") || "Sem leitura"}</span>
-                          </div>
-                          <div>
-                            <span className="block text-xs text-muted-foreground">Diretórios de dados</span>
+                            <span className="block text-xs text-muted-foreground">Diretorios de dados</span>
                             <span>{server.dataDirectories.map((entry) => entry.path).join(", ") || "Sem leitura"}</span>
                           </div>
                         </div>

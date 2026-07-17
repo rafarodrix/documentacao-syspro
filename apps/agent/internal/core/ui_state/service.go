@@ -99,7 +99,7 @@ func (s *Service) AgentSetupView(ctx context.Context) (AgentSetupView, error) {
 		),
 		buildStep(
 			"rustdesk",
-			"Instalacao do remoto",
+			"Cliente remoto",
 			remoteState.RustDeskID != "" || remoteState.CurrentVersion != "" || remoteState.RustDeskExecutable != "",
 			deriveRustDeskInstallError(remoteState, remoteResult),
 			deriveRustDeskDetail(remoteState),
@@ -650,11 +650,11 @@ func deriveRustDeskDetail(st persistedRemoteState) string {
 	case st.LastBootstrapFlow == "pending_link" && st.HostID == "" && st.CompanyID == "":
 		return "Bootstrap do RustDesk sera liberado assim que o host for vinculado no portal."
 	case st.RustDeskID != "":
-		return "RustDesk detectado no host: " + st.RustDeskID
+		return "RustDesk detectado no host: " + st.RustDeskID + ". Se necessario, o agente reaplica a configuracao desta instalacao."
 	case st.RustDeskExecutable != "":
-		return "Executavel remoto localizado no host."
+		return "Cliente RustDesk localizado. Aguardando convergencia e configuracao."
 	default:
-		return "Aguardando instalacao e deteccao do RustDesk."
+		return "Aguardando instalacao ou configuracao do RustDesk."
 	}
 }
 

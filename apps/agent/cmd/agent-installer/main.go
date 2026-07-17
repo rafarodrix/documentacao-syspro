@@ -72,20 +72,24 @@ type installerBuilder struct {
 
 func newInstallerBuilder(agentRoot string) installerBuilder {
 	installerRoot := filepath.Join(agentRoot, "deploy", "windows-installer")
+	overrideRoot := filepath.Join(agentRoot, "dist", "windows-installer", "generated")
 	return installerBuilder{
 		agentRoot:       agentRoot,
 		installerRoot:   installerRoot,
 		sourceDeployDir: filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64"),
 		sourceServiceBuilds: []string{
+			filepath.Join(overrideRoot, "agent-service.exe"),
 			filepath.Join(agentRoot, "build", "bin", "agent-service.exe"),
 			filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64", "agent-service.exe"),
 		},
 		sourceUIBuilds: []string{
+			filepath.Join(overrideRoot, "agent-ui.exe"),
 			filepath.Join(agentRoot, "build", "bin", "agent-ui.exe"),
 			filepath.Join(agentRoot, "build", "bin", "agent-ui"),
 			filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64", "agent-ui.exe"),
 		},
 		sourceUpdaterBuilds: []string{
+			filepath.Join(overrideRoot, "agent-updater.exe"),
 			filepath.Join(agentRoot, "build", "bin", "agent-updater.exe"),
 			filepath.Join(agentRoot, "dist", "test-deploy", "windows-amd64", "agent-updater.exe"),
 		},

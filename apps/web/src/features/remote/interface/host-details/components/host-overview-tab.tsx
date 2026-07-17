@@ -28,7 +28,6 @@ type Props = {
   serviceStatus: ServiceStatus;
   orchestrationStrategy: string;
   windowsUpdateStatus?: RemoteHostDetails["agentTelemetry"]["windowsUpdateStatus"];
-  sysproProcessSnapshot?: RemoteHostDetails["agentTelemetry"]["sysproProcessSnapshot"];
   diskSnapshot?: RemoteHostDetails["agentTelemetry"]["diskSnapshot"];
   firebirdData: { name: string | null; version: string | null; processRunning: boolean | null };
 };
@@ -66,15 +65,10 @@ export function HostOverviewTab({
   serviceStatus,
   orchestrationStrategy,
   windowsUpdateStatus,
-  sysproProcessSnapshot,
   diskSnapshot,
 }: Props) {
   const pendingUpdatesCount = windowsUpdateStatus?.["pendingCount"] ? Number(windowsUpdateStatus["pendingCount"]) : 0;
-
-  const sysproProcessDown = Array.isArray(sysproProcessSnapshot) && sysproProcessSnapshot.some((entry) => {
-    const running = entry["status"] === "running" || entry["running"] === true;
-    return running === false;
-  });
+  const sysproProcessDown = host.inventorySignals.sysproProcessDown === true;
 
   const diskLowMetrics = (host.lastAgentMetrics?.diskFree != null && Number(host.lastAgentMetrics.diskFree) < 5 * 1024 * 1024 * 1024);
   const diskLow = diskLowMetrics || (Array.isArray(diskSnapshot) && diskSnapshot.some((entry) => {

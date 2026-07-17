@@ -226,6 +226,7 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
   const rebootPendingFromWindows = readBooleanRecordValue(windowsUpdateStatus, "rebootRequired");
   const rebootPending = typeof host.lastRebootPending === "boolean" ? host.lastRebootPending : rebootPendingFromWindows;
   const windowsPendingCount = readNumberRecordValue(windowsUpdateStatus, "pendingCount");
+  const companyServerType = ((host.company as any).serverType ?? null) as "SYSPRO_SERVER" | "IIS" | null;
   const diskLow = diskSnapshot.some((entry) => {
     const freePercent = readNumberRecordValue(entry, "freePercent");
     const freeGb = readNumberRecordValue(entry, "freeGb");
@@ -239,12 +240,7 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     if (typeof usedPct === "number" && usedPct >= 90) return true;
     return false;
   });
-  const sysproProcessDown = sysproProcessSnapshot.some((entry) => {
-    const running = readBooleanRecordValue(entry, "running");
-    if (running === false) return true;
-    const status = typeof entry.status === "string" ? entry.status.trim().toLowerCase() : "";
-    return !!status && status !== "running";
-  });
+  const sysproProcessDown = companyServerType === "IIS" ? false : hasStoppedSysproService(sysproProcessSnapshot);
   const extendedSnapshotDates = [host.lastHardwareIdentityAt, host.lastDiskSnapshotAt, host.lastSysproProcessSnapshotAt, host.lastWindowsUpdateStatusAt, host.lastRebootPendingAt].filter((value): value is Date => value instanceof Date);
   const lastExtendedSnapshotAt = extendedSnapshotDates.length
     ? new Date(Math.max(...extendedSnapshotDates.map((value) => (value instanceof Date ? value.getTime() : 0)))).toISOString()
@@ -607,6 +603,28 @@ function readNumberRecordValue(record: Record<string, unknown> | null, key: stri
     if (Number.isFinite(parsed)) return parsed;
   }
   return null;
+}
+
+function readStringRecordValue(record: Record<string, unknown> | null, key: string): string | null {
+  if (!record) return null;
+  const value = record[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function isSysproServiceEntry(entry: Record<string, unknown>): boolean {
+  const name = readStringRecordValue(entry, "name")?.toLowerCase() ?? "";
+  const displayName = readStringRecordValue(entry, "displayName")?.toLowerCase() ?? "";
+  return name === "sysproserver" || name.includes("syspro") || displayName.includes("syspro");
+}
+
+function hasStoppedSysproService(entries: Array<Record<string, unknown>>): boolean {
+  return entries.some((entry) => {
+    if (!isSysproServiceEntry(entry)) return false;
+    const running = readBooleanRecordValue(entry, "running");
+    if (running === false) return true;
+    const status = readStringRecordValue(entry, "status")?.toLowerCase() ?? "";
+    return !!status && status !== "running";
+  });
 }
 
 function normalizeLastAgentMetrics(metrics: unknown) {
