@@ -47,12 +47,12 @@ type AgentInstallationView struct {
 }
 
 type AgentCapabilityView struct {
-	Kind           string `json:"kind"`
-	ExternalID     string `json:"externalId,omitempty"`
-	AccessPassword string `json:"accessPassword,omitempty"`
-	Status         string `json:"status,omitempty"`
-	StatusText     string `json:"statusText,omitempty"`
-	Ready          bool   `json:"ready"`
+	Kind       string `json:"kind"`
+	ExternalID string `json:"externalId,omitempty"`
+	Status     string `json:"status,omitempty"`
+	StatusText string `json:"statusText,omitempty"`
+	LastSyncAt string `json:"lastSyncAt,omitempty"`
+	Ready      bool   `json:"ready"`
 }
 
 type AgentCapabilitiesView struct {

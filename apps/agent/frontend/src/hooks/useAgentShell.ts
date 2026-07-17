@@ -19,6 +19,7 @@ import {
   openSupportConversation,
   syncSupportConversationContext,
 } from "../services/support-service";
+import { resolveSupportBannerState } from "../features/support/support-helpers";
 
 type OverallState = "complete" | "error" | "running" | "idle";
 
@@ -26,6 +27,7 @@ export function useAgentShell() {
   const [route, setRoute] = useState<Route>("agent://setup");
   const [setupView, setSetupView] = useState<AgentSetupViewModel>(defaultAgentSetupViewModel);
   const [supportView, setSupportView] = useState<AgentSupportViewModel | null>(null);
+  const [setupHistoryOpen, setSetupHistoryOpen] = useState(false);
   const [, setNotifications] = useState<NotificationView[]>([]);
   const [chatwootReady, setChatwootReady] = useState(false);
   const [chatwootLoading, setChatwootLoading] = useState(false);
@@ -74,6 +76,7 @@ export function useAgentShell() {
       EventsOn("agent:navigate", (payload: { target?: string }) => {
         const nextRoute = normalizeRoute(payload?.target);
         setRoute(nextRoute);
+        setSetupHistoryOpen(nextRoute === "agent://setup");
 
         if (nextRoute === "agent://support") {
           setChatwootReady(false);
@@ -86,7 +89,9 @@ export function useAgentShell() {
         }
       }),
       EventsOn("agent:setup-view", (payload: uistate.AgentSetupView) => {
-        setSetupView(normalizeAgentSetupView(payload));
+        const nextView = normalizeAgentSetupView(payload);
+        setSetupView(nextView);
+
       }),
       EventsOn("agent:notifications", (payload: Array<uistate.Notification>) => {
         setNotifications(mapNotifications(payload));
@@ -100,6 +105,12 @@ export function useAgentShell() {
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
   }, []);
+
+  useEffect(() => {
+    if (setupView.complete && route === "agent://setup" && !setupHistoryOpen) {
+      setRoute("agent://support");
+    }
+  }, [route, setupHistoryOpen, setupView.complete]);
 
   useEffect(() => {
     if (route !== "agent://support") return;
@@ -236,6 +247,7 @@ export function useAgentShell() {
 
   const openSupport = () => {
     setRoute("agent://support");
+    setSetupHistoryOpen(false);
     setPendingChatOpen(true);
 
     if (chatwootReady && openChatwootInline()) return;
@@ -265,6 +277,8 @@ export function useAgentShell() {
   };
 
   const openSetup = () => {
+    setSetupHistoryOpen(true);
+    setRoute("agent://setup");
     void openSetupExperience().catch((err) => {
       console.error("OpenSetupExperience failed:", err);
       setRoute("agent://setup");
@@ -289,7 +303,13 @@ export function useAgentShell() {
       ? "running"
       : setupOverallState;
 
-  const overallState = route === "agent://support" ? supportOverallState : setupOverallState;
+  const supportBanner = resolveSupportBannerState(setupView, supportView);
+  const overallState =
+    route === "agent://support"
+      ? supportBanner.tone
+      : setupHistoryOpen && setupView.complete
+        ? "complete"
+        : setupOverallState;
 
   return {
     route,
@@ -300,6 +320,7 @@ export function useAgentShell() {
     activeStep,
     setupOverallState,
     overallState,
+    headerStatusLabel: route === "agent://support" ? supportBanner.label : setupView.complete ? "Online" : "Provisionando",
     chatwootReady,
     chatwootLoading,
     remoteOpening,

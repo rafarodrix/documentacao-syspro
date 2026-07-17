@@ -27,7 +27,7 @@ export function formatSetupCopy(value?: string | null): string {
 
 export function resolveStartupRoute(target: string | undefined, status: AgentSetupViewModel): Route {
   if (!status.complete) return "agent://setup";
-  return normalizeRoute(target);
+  return target === "agent://setup" ? "agent://support" : normalizeRoute(target);
 }
 
 export function getSetupHeadline(
@@ -35,8 +35,8 @@ export function getSetupHeadline(
   activeStep: SetupStepView | null | undefined,
   overallState: "complete" | "error" | "running" | "idle",
 ): string {
-  if (overallState === "complete") return "Provisionamento concluido";
-  return activeStep?.label ?? status.stage;
+  if (overallState === "complete") return "Historico do provisionamento";
+  return displaySetupStepLabel(activeStep?.key, activeStep?.label ?? status.stage);
 }
 
 export function getSetupDetail(
@@ -44,8 +44,21 @@ export function getSetupDetail(
   activeStep: SetupStepView | null | undefined,
   overallState: "complete" | "error" | "running" | "idle",
 ): string {
-  if (overallState === "complete") return "Agente registrado e operacional.";
+  if (overallState === "complete") return "Provisionamento concluido. Revise as etapas executadas neste dispositivo.";
   return formatSetupCopy(activeStep?.detail || status.summary || "Aguardando proxima etapa do onboarding.");
+}
+
+export function displaySetupStepLabel(stepKey: string | null | undefined, fallback: string): string {
+  const labels: Record<string, string> = {
+    identity: "Registro do dispositivo",
+    portal: "Conexao com a Trilink",
+    discover: "Identificacao da maquina",
+    link: "Vinculo com a empresa",
+    rustdesk: "Configuracao do acesso remoto",
+    sync: "Validacao do acesso remoto",
+  };
+
+  return labels[stepKey ?? ""] ?? fallback;
 }
 
 export function getSetupHint(

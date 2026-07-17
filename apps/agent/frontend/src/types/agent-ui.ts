@@ -30,9 +30,9 @@ export type RemoteCapabilityStatus = "ready" | "pending" | "offline";
 export type RemoteCapabilityView = {
   kind: "remote";
   externalId: string | null;
-  accessPassword: string | null;
   status: RemoteCapabilityStatus;
   statusText: string | null;
+  lastSyncAt: string | null;
   ready: boolean;
 };
 
@@ -48,8 +48,8 @@ export type AgentSetupViewModel = {
   progressPct: number;
   lastError: string | null;
   steps: SetupStepView[];
-  device: Pick<DeviceView, "deviceId">;
-  installation: Pick<InstallationView, "companyName" | "hostId">;
+  device: Pick<DeviceView, "deviceId" | "hostname" | "machineName">;
+  installation: Pick<InstallationView, "companyName" | "hostId" | "hostAlias">;
   capabilities: AgentCapabilitiesView;
 };
 

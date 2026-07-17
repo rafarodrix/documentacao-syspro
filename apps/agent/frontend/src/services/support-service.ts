@@ -52,9 +52,9 @@ export function normalizeAgentSupportView(view: uistate.AgentSupportView): Agent
         ? {
             kind: "remote",
             externalId: view.capabilities.remote.externalId?.trim() || null,
-            accessPassword: view.capabilities.remote.accessPassword?.trim() || null,
             status: normalizeRemoteStatus(view.capabilities.remote.status),
             statusText: view.capabilities.remote.statusText?.trim() || null,
+            lastSyncAt: view.capabilities.remote.lastSyncAt?.trim() || null,
             ready: Boolean(view.capabilities.remote.ready),
           }
         : null,

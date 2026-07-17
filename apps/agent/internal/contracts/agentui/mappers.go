@@ -167,12 +167,12 @@ func fromUICapabilityView(value *uistate.AgentCapabilityView) *AgentCapabilityVi
 		return nil
 	}
 	return &AgentCapabilityView{
-		Kind:           value.Kind,
-		ExternalID:     value.ExternalID,
-		AccessPassword: value.AccessPassword,
-		Status:         value.Status,
-		StatusText:     value.StatusText,
-		Ready:          value.Ready,
+		Kind:       value.Kind,
+		ExternalID: value.ExternalID,
+		Status:     value.Status,
+		StatusText: value.StatusText,
+		LastSyncAt: value.LastSyncAt,
+		Ready:      value.Ready,
 	}
 }
 
@@ -181,12 +181,12 @@ func toUICapabilityView(value *AgentCapabilityView) *uistate.AgentCapabilityView
 		return nil
 	}
 	return &uistate.AgentCapabilityView{
-		Kind:           value.Kind,
-		ExternalID:     value.ExternalID,
-		AccessPassword: value.AccessPassword,
-		Status:         value.Status,
-		StatusText:     value.StatusText,
-		Ready:          value.Ready,
+		Kind:       value.Kind,
+		ExternalID: value.ExternalID,
+		Status:     value.Status,
+		StatusText: value.StatusText,
+		LastSyncAt: value.LastSyncAt,
+		Ready:      value.Ready,
 	}
 }
 

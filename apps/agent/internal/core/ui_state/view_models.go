@@ -1,6 +1,9 @@
 package uistate
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 type DeviceView struct {
 	DeviceID      string `json:"deviceId,omitempty"`
@@ -21,12 +24,12 @@ type AgentInstallationView struct {
 }
 
 type AgentCapabilityView struct {
-	Kind           string `json:"kind"`
-	ExternalID     string `json:"externalId,omitempty"`
-	AccessPassword string `json:"accessPassword,omitempty"`
-	Status         string `json:"status,omitempty"`
-	StatusText     string `json:"statusText,omitempty"`
-	Ready          bool   `json:"ready"`
+	Kind       string `json:"kind"`
+	ExternalID string `json:"externalId,omitempty"`
+	Status     string `json:"status,omitempty"`
+	StatusText string `json:"statusText,omitempty"`
+	LastSyncAt string `json:"lastSyncAt,omitempty"`
+	Ready      bool   `json:"ready"`
 }
 
 type AgentCapabilitiesView struct {
@@ -78,6 +81,7 @@ func BuildAgentSetupView(
 			ExternalID: strings.TrimSpace(context.RustDeskID),
 			Status:     "ready",
 			StatusText: "identificacao remota pronta",
+			LastSyncAt: formatTimestamp(context.LastSyncAt),
 			Ready:      true,
 		}
 	}
@@ -136,12 +140,12 @@ func buildPresentationParts(context SupportContext) (DeviceView, AgentInstallati
 	var remote *AgentCapabilityView
 	if context.RustDeskID != "" || context.RemoteStatus != "" || context.RemoteStatusText != "" {
 		remote = &AgentCapabilityView{
-			Kind:           "remote",
-			ExternalID:     strings.TrimSpace(context.RustDeskID),
-			AccessPassword: strings.TrimSpace(context.RemoteAccessPassword),
-			Status:         normalizeCapabilityStatus(context.RemoteStatus),
-			StatusText:     strings.TrimSpace(context.RemoteStatusText),
-			Ready:          strings.TrimSpace(context.RustDeskID) != "",
+			Kind:       "remote",
+			ExternalID: strings.TrimSpace(context.RustDeskID),
+			Status:     normalizeCapabilityStatus(context.RemoteStatus),
+			StatusText: strings.TrimSpace(context.RemoteStatusText),
+			LastSyncAt: formatTimestamp(context.LastSyncAt),
+			Ready:      strings.TrimSpace(context.RustDeskID) != "",
 		}
 	}
 
@@ -157,4 +161,11 @@ func normalizeCapabilityStatus(value string) string {
 	default:
 		return "offline"
 	}
+}
+
+func formatTimestamp(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	return value.UTC().Format(time.RFC3339)
 }

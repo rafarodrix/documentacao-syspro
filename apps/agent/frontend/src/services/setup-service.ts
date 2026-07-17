@@ -12,10 +12,13 @@ export const defaultAgentSetupViewModel: AgentSetupViewModel = {
   steps: [],
   device: {
     deviceId: null,
+    hostname: null,
+    machineName: null,
   },
   installation: {
     companyName: null,
     hostId: null,
+    hostAlias: null,
   },
   capabilities: {
     remote: null,
@@ -42,19 +45,22 @@ export function normalizeAgentSetupView(view: uistate.AgentSetupView): AgentSetu
     steps: (view.steps ?? []).map(mapSetupStep),
     device: {
       deviceId: view.device?.deviceId?.trim() || null,
+      hostname: view.device?.hostname?.trim() || null,
+      machineName: view.device?.machineName?.trim() || null,
     },
     installation: {
       companyName: view.installation?.companyName?.trim() || null,
       hostId: view.installation?.hostId?.trim() || null,
+      hostAlias: view.installation?.hostAlias?.trim() || null,
     },
     capabilities: {
       remote: view.capabilities?.remote
         ? {
             kind: "remote",
             externalId: view.capabilities.remote.externalId?.trim() || null,
-            accessPassword: view.capabilities.remote.accessPassword?.trim() || null,
             status: normalizeRemoteStatus(view.capabilities.remote.status),
             statusText: view.capabilities.remote.statusText?.trim() || null,
+            lastSyncAt: view.capabilities.remote.lastSyncAt?.trim() || null,
             ready: Boolean(view.capabilities.remote.ready),
           }
         : null,

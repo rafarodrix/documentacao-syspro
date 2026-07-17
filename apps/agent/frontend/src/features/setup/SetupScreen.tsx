@@ -3,6 +3,7 @@ import { RemoteAccessCard } from "../../components/RemoteAccessCard";
 import { CheckIcon } from "../../components/icons";
 import type { AgentSetupViewModel, SetupStepView } from "../../types/agent-ui";
 import {
+  displaySetupStepLabel,
   getSetupDetail,
   getSetupHeadline,
   getSetupHint,
@@ -22,13 +23,17 @@ type SetupScreenProps = {
 export function SetupScreen(props: SetupScreenProps) {
   const { status, pendingSteps, completedSteps, activeStep, overallState } = props;
   const [showCompleted, setShowCompleted] = useState(false);
+  const isHistoryMode = status.complete;
   const setupHeadline = getSetupHeadline(status, activeStep, overallState);
   const setupDetail = getSetupDetail(status, activeStep, overallState);
   const setupHint = getSetupHint(status, activeStep);
-  const visibleSteps = showCompleted || pendingSteps.length === 0 ? [...pendingSteps, ...completedSteps] : pendingSteps;
+  const visibleSteps =
+    isHistoryMode || showCompleted || pendingSteps.length === 0 ? [...pendingSteps, ...completedSteps] : pendingSteps;
+  const deviceName =
+    status.device.machineName || status.device.hostname || status.installation.hostAlias || "Aguardando identificacao";
 
   return (
-    <main className="panel setup-panel">
+    <main className={`panel setup-panel ${isHistoryMode ? "history-mode" : ""}`}>
       <section className="setup-hero">
         <div className="setup-hero-left">
           <div className="setup-stage-label">{setupHeadline}</div>
@@ -58,11 +63,13 @@ export function SetupScreen(props: SetupScreenProps) {
 
       <section className="setup-content-grid">
         <div className={`setup-diagnostic-card state-${overallState}`}>
-          <div className="setup-card-kicker">Diagnostico atual</div>
-          <div className="setup-card-title">{setupHeadline}</div>
-          <div className="setup-card-detail">{setupDetail}</div>
+          <div className="setup-card-kicker">{isHistoryMode ? "Resumo do provisionamento" : "Diagnostico atual"}</div>
+          <div className="setup-card-title">{isHistoryMode ? "Agente operacional" : setupHeadline}</div>
+          <div className="setup-card-detail">
+            {isHistoryMode ? "O provisionamento foi concluido e o painel operacional ja pode ser usado normalmente." : setupDetail}
+          </div>
 
-          {setupHint ? <div className="setup-callout">{setupHint}</div> : null}
+          {!isHistoryMode && setupHint ? <div className="setup-callout">{setupHint}</div> : null}
 
           {status.lastError ? (
             <div className="setup-error-banner">
@@ -77,26 +84,33 @@ export function SetupScreen(props: SetupScreenProps) {
               <span className="setup-fact-value">{status.installation.companyName || "Aguardando vinculo"}</span>
             </div>
             <div className="setup-fact-card">
-              <span className="setup-fact-label">Host</span>
-              <span className="setup-fact-value mono">{status.installation.hostId || "Nao vinculado"}</span>
+              <span className="setup-fact-label">Dispositivo</span>
+              <span className="setup-fact-value">{deviceName}</span>
             </div>
           </div>
         </div>
 
-        <RemoteAccessCard rustdeskId={status.capabilities.remote?.externalId ?? undefined} />
+        <RemoteAccessCard
+          rustdeskId={status.capabilities.remote?.externalId ?? undefined}
+          status={status.capabilities.remote?.status}
+          statusText={status.capabilities.remote?.statusText}
+          lastSyncAt={status.capabilities.remote?.lastSyncAt}
+        />
       </section>
 
       <section className="setup-timeline-card">
         <div className="setup-timeline-header">
           <div>
-            <div className="setup-card-kicker">Checklist do onboarding</div>
+            <div className="setup-card-kicker">{isHistoryMode ? "Historico do provisionamento" : "Checklist do onboarding"}</div>
             <div className="setup-timeline-title">
-              {pendingSteps.length > 0
+              {isHistoryMode
+                ? "Provisionamento concluido"
+                : pendingSteps.length > 0
                 ? `${pendingSteps.length} etapa(s) restante(s)`
                 : "Todos os passos foram concluidos"}
             </div>
           </div>
-          {completedSteps.length > 0 && pendingSteps.length > 0 ? (
+          {completedSteps.length > 0 && pendingSteps.length > 0 && !isHistoryMode ? (
             <button
               type="button"
               className="timeline-toggle"
@@ -134,7 +148,7 @@ function TimelineItem({ step, isFirst }: { step: SetupStepView; isFirst: boolean
         <div className="timeline-line" />
       </div>
       <div className="timeline-content">
-        <div className="timeline-item-label">{step.label}</div>
+        <div className="timeline-item-label">{displaySetupStepLabel(step.key, step.label)}</div>
         <div className="timeline-item-detail">{step.detail}</div>
       </div>
       <div className={`timeline-badge ${step.status}`}>{stepBadge(step.status)}</div>

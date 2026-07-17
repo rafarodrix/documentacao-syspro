@@ -321,8 +321,8 @@ func (s *Service) buildSupportContext() SupportContext {
 		context.HostID = strings.TrimSpace(remoteState.HostID)
 		context.HostAlias = strings.TrimSpace(remoteState.Alias)
 		context.RustDeskID = strings.TrimSpace(remoteState.RustDeskID)
-		context.RemoteAccessPassword = resolveDisplayedRustDeskPassword(remoteState)
 		context.MachineName = strings.TrimSpace(remoteState.MachineName)
+		context.LastSyncAt = remoteState.LastSyncAt
 	}
 
 	context.RemoteStatus, context.RemoteStatusText = resolveRemoteStatus(context)

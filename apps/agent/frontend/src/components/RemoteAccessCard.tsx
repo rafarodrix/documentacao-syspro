@@ -1,14 +1,23 @@
 import { CopyButton } from "./CopyButton";
 import { MonitorIcon } from "./icons";
-import { formatRustDeskId } from "../features/setup/setup-helpers";
+import { formatRustDeskId, formatSetupCopy } from "../features/setup/setup-helpers";
 
 type RemoteAccessCardProps = {
   rustdeskId?: string;
+  status?: "ready" | "pending" | "offline";
+  statusText?: string | null;
+  lastSyncAt?: string | null;
 };
 
-export function RemoteAccessCard({ rustdeskId }: RemoteAccessCardProps) {
+export function RemoteAccessCard({ rustdeskId, status = "pending", statusText, lastSyncAt }: RemoteAccessCardProps) {
   const hasId = Boolean(rustdeskId);
   const formattedId = rustdeskId ? formatRustDeskId(rustdeskId) : null;
+  const pillLabel = status === "ready" ? "Disponivel" : status === "offline" ? "Indisponivel" : "Configurando";
+  const detail = statusText?.trim()
+    ? formatSetupCopy(statusText.trim())
+    : status === "ready"
+      ? "Acesso remoto pronto para uso."
+      : "Aguardando liberacao do bootstrap e sincronizacao do RustDesk.";
 
   return (
     <div className="remote-access-card">
@@ -16,25 +25,27 @@ export function RemoteAccessCard({ rustdeskId }: RemoteAccessCardProps) {
         <div className="remote-access-card-head">
           <div className="remote-access-card-title">
             <MonitorIcon />
-            ID de acesso remoto
+            Acesso remoto
           </div>
-          <span className={`remote-access-pill ${hasId ? "ready" : "configuring"}`}>
+          <span className={`remote-access-pill ${status === "ready" ? "ready" : status === "offline" ? "offline" : "configuring"}`}>
             <span className="remote-access-pill-dot" />
-            {hasId ? "Pronto" : "Configurando"}
+            {pillLabel}
           </span>
         </div>
 
+        <div className="remote-access-detail">{detail}</div>
+
         <div className="remote-id-row">
           <div className={`remote-id-display ${!hasId ? "dim" : ""}`}>
-            {formattedId ?? "--- --- ---"}
+            {formattedId ?? "Aguardando vinculacao"}
           </div>
           {hasId ? <CopyButton value={rustdeskId ?? ""} label="Copiar ID" tone="dark" /> : null}
         </div>
 
-        <div className="remote-pw-row">
-          <span className="remote-pw-label">Senha</span>
-          <span className="remote-pw-value">
-            {hasId ? "Disponivel no app de suporte" : "Aguardando configuracao"}
+        <div className="remote-access-footer">
+          <span className="remote-access-footer-label">ID RustDesk</span>
+          <span className="remote-access-footer-value">
+            {lastSyncAt?.trim() ? `Ultima comunicacao registrada em ${new Date(lastSyncAt).toLocaleString("pt-BR")}` : "Sem sincronizacao registrada ainda."}
           </span>
         </div>
       </div>

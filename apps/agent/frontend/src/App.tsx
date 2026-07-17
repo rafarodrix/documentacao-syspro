@@ -20,12 +20,7 @@ function App() {
         </div>
         <div className={`navbar-badge state-${shell.overallState}`}>
           <span className={`navbar-badge-dot state-${shell.overallState}`} />
-          <span>
-            {shell.overallState === "complete" && "Ativo"}
-            {shell.overallState === "error" && "Erro"}
-            {shell.overallState === "running" && "Configurando"}
-            {shell.overallState === "idle" && "Iniciando"}
-          </span>
+          <span>{shell.headerStatusLabel}</span>
         </div>
       </nav>
 
