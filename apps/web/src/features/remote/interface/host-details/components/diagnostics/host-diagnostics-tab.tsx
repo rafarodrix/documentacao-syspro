@@ -3,7 +3,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { DiagnosticsSoftwareView } from "./diagnostics-software-view";
-import { DiagnosticsSysproView } from "./diagnostics-syspro-view";
 import { DiagnosticsSummaryView } from "./diagnostics-summary-view";
 import { DiagnosticsHardwareView } from "./diagnostics-hardware-view";
 import { DiagnosticsSystemView } from "./diagnostics-system-view";
@@ -31,7 +30,6 @@ export function HostDiagnosticsTab({ details }: Props) {
           <TabsTrigger value="servicos">Serviços Windows</TabsTrigger>
           <TabsTrigger value="rede">Rede</TabsTrigger>
           <TabsTrigger value="armazenamento">Armazenamento</TabsTrigger>
-          <TabsTrigger value="syspro">Instalações Syspro</TabsTrigger>
         </TabsList>
       </div>
 
@@ -77,10 +75,6 @@ export function HostDiagnosticsTab({ details }: Props) {
 
       <TabsContent value="armazenamento" className="m-0 space-y-6">
         <DiagnosticsStorageView diskSnapshot={telemetry.diskSnapshot} diskSnapshotAt={telemetry.diskSnapshotAt} />
-      </TabsContent>
-
-      <TabsContent value="syspro" className="m-0 space-y-6">
-        <DiagnosticsSysproView sysproVersionSnapshot={telemetry.sysproVersionSnapshot as any} sysproVersionSnapshotAt={telemetry.sysproVersionSnapshotAt} />
       </TabsContent>
     </Tabs>
   );

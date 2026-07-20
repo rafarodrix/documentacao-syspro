@@ -5,7 +5,6 @@ import { Button } from "@dosc-syspro/ui";
 import { Copy, Terminal, ShieldAlert, MonitorSmartphone, RefreshCw, Globe } from "lucide-react";
 import { differenceInMinutes } from "@/lib/date";
 import { ReactNode } from "react";
-import { readSysproValidatedServers } from "../host-details.helpers";
 
 type HostServicesTabProps = {
   host: RemoteHostDetails["host"];
@@ -134,92 +133,13 @@ export function HostServicesTab({
             <Copy className="mr-2 h-3.5 w-3.5" />
             Copiar ID
           </Button>
-          <Button size="sm" className="h-8 text-xs bg-primary/20 hover:bg-primary/30 text-primary border-primary/20" onClick={onConnectRustDesk}>
-            <MonitorSmartphone className="mr-2 h-3.5 w-3.5" />
-            Conectar
-          </Button>
         </>
       ),
       orderWeight: getStatusWeight(rustDeskStatus)
     });
   }
 
-  // 3. Firebird
-  let firebirdStatus: ComponentStatus = "not_installed";
-  let firebirdStatusLabel = "Não detectado";
-  if (firebirdData.name || firebirdData.version) {
-    firebirdStatus = firebirdData.processRunning ? "operational" : "failed";
-    firebirdStatusLabel = firebirdData.processRunning ? "Operacional" : "Parado";
-  }
-  
-  if (firebirdStatus !== "not_installed") {
-    services.push({
-      id: "firebird",
-      title: "Firebird Server",
-      status: firebirdStatus,
-      statusLabel: firebirdStatusLabel,
-      details: [
-        { label: "Versão", value: firebirdData.version || "Desconhecida" },
-        { label: "Serviço Windows", value: firebirdData.processRunning ? "Rodando" : "Parado" },
-        ...(firebirdStatus === "failed" ? [{ label: "Atenção", value: "O serviço fbserver não está rodando." }] : []),
-      ],
-      actions: (
-        <Button variant="outline" size="sm" className="h-8 text-xs">
-          <RefreshCw className="mr-2 h-3.5 w-3.5" />
-          Testar conexão
-        </Button>
-      ),
-      orderWeight: getStatusWeight(firebirdStatus)
-    });
-  }
-
-  // 4. IIS
-  const hasIis = configuredServerType === "IIS";
-  let iisStatus: ComponentStatus = hasIis ? "operational" : "not_installed";
-  
-  if (iisStatus !== "not_installed") {
-    services.push({
-      id: "iis",
-      title: "IIS (Internet Information Services)",
-      status: iisStatus,
-      statusLabel: "Operacional",
-      details: [
-        { label: "Serviço", value: "W3SVC Rodando" },
-      ],
-      actions: (
-        <Button variant="outline" size="sm" className="h-8 text-xs">
-          <Globe className="mr-2 h-3.5 w-3.5" />
-          Ver sites
-        </Button>
-      ),
-      orderWeight: getStatusWeight(iisStatus)
-    });
-  }
-
-  // 5. Syspro Server
-  const servers = readSysproValidatedServers(sysproVersionSnapshot);
-  const hasSyspro = configuredServerType !== "IIS" && servers.length > 0;
-  let sysproStatus: ComponentStatus = hasSyspro ? "operational" : "not_installed";
-  
-  if (sysproStatus !== "not_installed") {
-    services.push({
-      id: "syspro",
-      title: "Syspro Server",
-      status: sysproStatus,
-      statusLabel: "Operacional",
-      details: [
-        { label: "Instâncias validadas", value: servers.length.toString() },
-        { label: "Versão principal", value: servers[0]?.productVersion ?? servers[0]?.fileVersion ?? "Sem leitura" },
-      ],
-      actions: (
-        <Button variant="outline" size="sm" className="h-8 text-xs">
-          <ShieldAlert className="mr-2 h-3.5 w-3.5" />
-          Validar instalação
-        </Button>
-      ),
-      orderWeight: getStatusWeight(sysproStatus)
-    });
-  }
+  // Firebird, IIS, and Syspro removed to ERP tab
 
   // Sort services by priority (failed first, attention second, operational last)
   services.sort((a, b) => a.orderWeight - b.orderWeight);
@@ -227,13 +147,13 @@ export function HostServicesTab({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xl font-bold tracking-tight">Componentes e Capacidades</h2>
+        <h2 className="text-xl font-bold tracking-tight">Serviços do dispositivo</h2>
         <p className="text-sm text-muted-foreground">
-          Gerencie os serviços e softwares vinculados a este dispositivo.
+          Acompanhe o estado dos serviços responsáveis pelo gerenciamento e acesso a este dispositivo.
         </p>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
         {services.map(service => (
           <HostComponentCard
             key={service.id}

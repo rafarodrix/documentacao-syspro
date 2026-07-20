@@ -20,6 +20,7 @@ import {
   HostSettingsTab,
   HostDiagnosticsTab,
 } from "./host-details/components";
+import { ErpTab } from "@/features/infrastructure/device/erp/erp-tab";
 
 export function RemoteHostDetailsPanel({
   details,
@@ -482,10 +483,11 @@ export function RemoteHostDetailsPanel({
 
       <Tabs defaultValue="geral" className="space-y-6">
         <div className="flex w-full">
-          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:grid-cols-6">
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:grid-cols-7">
             <TabsTrigger value="geral">Visão geral</TabsTrigger>
             <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
-            <TabsTrigger value="servicos">Serviços</TabsTrigger>
+            <TabsTrigger value="servicos">Serviços do dispositivo</TabsTrigger>
+            <TabsTrigger value="erp">ERP</TabsTrigger>
             <TabsTrigger value="bkp">Backup</TabsTrigger>
             <TabsTrigger value="eventos">Eventos</TabsTrigger>
             <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
@@ -537,6 +539,10 @@ export function RemoteHostDetailsPanel({
             onCopyRustDeskId={(val: string | null) => handleCopy(val, "ID do RustDesk")}
             onConnectRustDesk={handleStartOrchestratedSession}
           />
+        </TabsContent>
+
+        <TabsContent value="erp" className="m-0 space-y-6">
+          <ErpTab details={details} />
         </TabsContent>
 
         <TabsContent value="bkp" className="space-y-6">
