@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowRightLeft, Copy, Fingerprint, HardDriveDownload, RefreshCcw, Trash2, ArrowUpCircle } from "lucide-react";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Copy, Fingerprint, HardDriveDownload, RefreshCcw, Save, Trash2, ArrowUpCircle } from "lucide-react";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
-import { MACHINE_PROFILE_LABEL } from "../host-details.constants";
 import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { AgentLinkSection } from "./agent-link-section";
+import { DeviceIdentityForm } from "./device-identity-form";
 import { SettingsInstallationsView, type SettingsInstallationsViewProps } from "./settings-installations-view";
 import { SettingsAgentView, type SettingsAgentViewProps } from "./settings-agent-view";
 
@@ -14,8 +14,15 @@ type Props = SettingsInstallationsViewProps & Omit<SettingsAgentViewProps, "host
   host: RemoteHostDetails["host"];
   details: RemoteHostDetails;
   linkedDevice?: AgentInstallationSummary | null;
+  projectedHostName: string;
+  setProjectedHostName: (value: string) => void;
+  projectedCompanyId: string;
+  setProjectedCompanyId: (value: string) => void;
   projectedMachineProfile: RemoteHostDetails["host"]["machineProfile"];
   setProjectedMachineProfile: (value: RemoteHostDetails["host"]["machineProfile"]) => void;
+  projectedNotes: string;
+  setProjectedNotes: (value: string) => void;
+  windowsComputerName: string | null;
   isSavingMachineName: boolean;
   canSaveProjectedHostName: boolean;
   onSaveHostName: () => void;
@@ -35,8 +42,15 @@ export function HostSettingsTab(props: Props) {
     host,
     details,
     linkedDevice,
+    projectedHostName,
+    setProjectedHostName,
+    projectedCompanyId,
+    setProjectedCompanyId,
     projectedMachineProfile,
     setProjectedMachineProfile,
+    projectedNotes,
+    setProjectedNotes,
+    windowsComputerName,
     isSavingMachineName,
     canSaveProjectedHostName,
     onSaveHostName,
@@ -65,7 +79,7 @@ export function HostSettingsTab(props: Props) {
             Identificação do dispositivo
           </TabsTrigger>
           <TabsTrigger value="instalacoes" className="justify-start px-4 py-2.5 text-left data-[state=active]:bg-muted">
-            Empresas e instalações
+            Instalações Syspro
           </TabsTrigger>
           <TabsTrigger value="agente" className="justify-start px-4 py-2.5 text-left data-[state=active]:bg-muted">
             Agente e Sincronização
@@ -84,39 +98,31 @@ export function HostSettingsTab(props: Props) {
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Identificação do dispositivo</CardTitle>
-              <CardDescription>Nome operacional e função usados pelo portal para representar este dispositivo.</CardDescription>
+              <CardDescription>Defina nome amigável, empresa principal, função atribuída e observações deste dispositivo.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Função do dispositivo</p>
-                <Select
-                  value={projectedMachineProfile ?? "__none__"}
-                  onValueChange={(value) =>
-                    setProjectedMachineProfile(value === "__none__" ? null : (value as RemoteHostDetails["host"]["machineProfile"]))
-                  }
-                  disabled={isSavingMachineName}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a função" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Não definido</SelectItem>
-                    {Object.entries(MACHINE_PROFILE_LABEL).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <CardContent className="space-y-6">
+              <DeviceIdentityForm
+                displayName={projectedHostName}
+                onDisplayNameChange={setProjectedHostName}
+                primaryCompanyId={projectedCompanyId}
+                onPrimaryCompanyIdChange={setProjectedCompanyId}
+                companyOptions={details.companyOptions}
+                hostname={windowsComputerName}
+                machineProfile={projectedMachineProfile}
+                onMachineProfileChange={setProjectedMachineProfile}
+                notes={projectedNotes}
+                onNotesChange={setProjectedNotes}
+                disabled={isSavingMachineName}
+              />
+
               <Button
                 type="button"
                 onClick={onSaveHostName}
                 disabled={isSavingMachineName || !canSaveProjectedHostName}
                 className="gap-2"
               >
-                {isSavingMachineName ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
-                {isSavingMachineName ? "Salvando..." : "Salvar dispositivo"}
+                {isSavingMachineName ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {isSavingMachineName ? "Salvando..." : "Salvar alterações"}
               </Button>
             </CardContent>
           </Card>

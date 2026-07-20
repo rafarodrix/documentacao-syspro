@@ -33,9 +33,11 @@ export function RemoteHostDetailsPanel({
 
   // ── UI state ────────────────────────────────────────────────────────────────
   const [projectedHostName, setProjectedHostName] = useState(host.name);
+  const [projectedCompanyId, setProjectedCompanyId] = useState(host.companyId ?? details.companyOptions[0]?.id ?? "");
   const [projectedMachineProfile, setProjectedMachineProfile] = useState<RemoteHostDetails["host"]["machineProfile"]>(
     host.machineProfile,
   );
+  const [projectedNotes, setProjectedNotes] = useState(host.notes ?? "");
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [installationFilter, setInstallationFilter] = useState<"all" | "unlinked">("all");
   const [bulkInstallationCompanyId, setBulkInstallationCompanyId] = useState(details.companyOptions[0]?.id ?? "");
@@ -78,6 +80,7 @@ export function RemoteHostDetailsPanel({
   const [isDeletingHost, startDeletingHost] = useTransition();
   const [isRequestingUpgrade, startRequestingUpgrade] = useTransition();
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
+  const [showCompanyChangeConfirm, setShowCompanyChangeConfirm] = useState(false);
 
   // ── Computed values (memos) ──────────────────────────────────────────────────
   const computed = useHostComputedValues(details, installationFilter);
@@ -115,9 +118,12 @@ export function RemoteHostDetailsPanel({
   const ticketNumber = useSearchParams().get("ticketNumber");
 
   const normalizedProjectedHostName = projectedHostName.trim();
+  const normalizedProjectedNotes = projectedNotes.trim();
   const canSaveProjectedHostName =
     (normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim()) ||
-    projectedMachineProfile !== host.machineProfile;
+    projectedCompanyId !== host.companyId ||
+    projectedMachineProfile !== host.machineProfile ||
+    normalizedProjectedNotes !== (host.notes?.trim() ?? "");
 
   // ── Effects ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -129,6 +135,22 @@ export function RemoteHostDetailsPanel({
         .finally(() => setIsLoadingTicket(false));
     }
   }, [ticketNumber]);
+
+  useEffect(() => {
+    setProjectedHostName(host.name);
+  }, [host.name]);
+
+  useEffect(() => {
+    setProjectedCompanyId(host.companyId ?? details.companyOptions[0]?.id ?? "");
+  }, [details.companyOptions, host.companyId]);
+
+  useEffect(() => {
+    setProjectedMachineProfile(host.machineProfile);
+  }, [host.machineProfile]);
+
+  useEffect(() => {
+    setProjectedNotes(host.notes ?? "");
+  }, [host.notes]);
 
   useEffect(() => {
     setManualInstallationCompanyId(host.companyId ?? details.companyOptions[0]?.id ?? "");
@@ -204,27 +226,38 @@ export function RemoteHostDetailsPanel({
     }
   }
 
+  async function persistProjectedDeviceIdentity() {
+    await requestRemoteMutation({
+      url: `/api/remote/hosts/${host.id}`,
+      method: "PATCH",
+      body: {
+        companyId: projectedCompanyId || host.companyId,
+        name: normalizedProjectedHostName,
+        machineName: agent.machineName,
+        machineProfile: projectedMachineProfile,
+        environment: null,
+        provider: host.provider,
+        description: host.description,
+        notes: normalizedProjectedNotes || null,
+        agentExternalId: agent.rustdeskId,
+        status: host.status,
+      },
+    });
+    toast.success("Dispositivo atualizado.");
+    setShowCompanyChangeConfirm(false);
+    router.refresh();
+  }
+
   function handleSaveProjectedHostName() {
-    if (!normalizedProjectedHostName) { toast.error("Informe um nome válido para a máquina."); return; }
+    if (!normalizedProjectedHostName) { toast.error("Informe um nome amigável válido para o dispositivo."); return; }
+    if (!projectedCompanyId) { toast.error("Selecione a empresa principal do dispositivo."); return; }
+    if (projectedCompanyId !== host.companyId) {
+      setShowCompanyChangeConfirm(true);
+      return;
+    }
     startSavingMachineName(async () => {
       try {
-        await requestRemoteMutation({
-          url: `/api/remote/hosts/${host.id}`,
-          method: "PATCH",
-          body: {
-            companyId: host.companyId,
-            name: normalizedProjectedHostName,
-            machineName: agent.machineName,
-            machineProfile: projectedMachineProfile,
-            environment: null,
-            provider: host.provider,
-            description: host.description,
-            notes: host.notes,
-            agentExternalId: agent.rustdeskId,
-            status: host.status,
-          },
-        });
-        toast.success("Nome da máquina atualizado.");
+        await persistProjectedDeviceIdentity();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
       }
@@ -464,20 +497,27 @@ export function RemoteHostDetailsPanel({
             host={host}
             agent={agent}
             heartbeat={heartbeat}
-            linkedDevice={linkedDevice}
+            companyOptions={details.companyOptions}
             windowsComputerName={windowsComputerName}
-            machineIpv4={machineIpv4}
-            normalizedRustdeskId={normalizedRustdeskId}
             ticketNumber={ticketNumber}
             ticketDetails={ticketDetails}
             isLoadingTicket={isLoadingTicket}
             rebootPending={rebootPending}
             contractValidationError={contractValidationError}
-            serviceStatus={serviceStatus}
-            orchestrationStrategy={orchestrationStrategy}
             windowsUpdateStatus={details.agentTelemetry.windowsUpdateStatus}
             diskSnapshot={diskSnapshot}
-            firebirdData={firebirdData}
+            projectedHostName={projectedHostName}
+            setProjectedHostName={setProjectedHostName}
+            projectedCompanyId={projectedCompanyId}
+            setProjectedCompanyId={setProjectedCompanyId}
+            projectedMachineProfile={projectedMachineProfile}
+            setProjectedMachineProfile={setProjectedMachineProfile}
+            projectedNotes={projectedNotes}
+            setProjectedNotes={setProjectedNotes}
+            canSaveProjectedHostName={canSaveProjectedHostName}
+            isSavingMachineName={isSavingMachineName}
+            onSaveHostName={handleSaveProjectedHostName}
+            installationCount={dedupedInstallationContexts.length}
           />
         </TabsContent>
 
@@ -515,8 +555,15 @@ export function RemoteHostDetailsPanel({
             host={host}
             details={details}
             linkedDevice={linkedDevice}
+            projectedHostName={projectedHostName}
+            setProjectedHostName={setProjectedHostName}
+            projectedCompanyId={projectedCompanyId}
+            setProjectedCompanyId={setProjectedCompanyId}
             projectedMachineProfile={projectedMachineProfile}
             setProjectedMachineProfile={setProjectedMachineProfile}
+            projectedNotes={projectedNotes}
+            setProjectedNotes={setProjectedNotes}
+            windowsComputerName={windowsComputerName}
             isSavingMachineName={isSavingMachineName}
             canSaveProjectedHostName={canSaveProjectedHostName}
             onSaveHostName={handleSaveProjectedHostName}
@@ -599,6 +646,25 @@ export function RemoteHostDetailsPanel({
         isLoading={isRevokingAgentToken}
         variant="danger"
         onConfirm={handleRevokeAgentToken}
+      />
+
+      <ConfirmActionDialog
+        open={showCompanyChangeConfirm}
+        onOpenChange={setShowCompanyChangeConfirm}
+        title="Alterar empresa principal"
+        description="Esta alteração atualizará a listagem do dispositivo, vínculo do agente, sessões remotas, alertas, relatórios e alias do RustDesk. As empresas vinculadas às instalações Syspro não serão alteradas automaticamente."
+        confirmLabel="Confirmar alteração"
+        cancelLabel="Cancelar"
+        isLoading={isSavingMachineName}
+        onConfirm={async () => {
+          startSavingMachineName(async () => {
+            try {
+              await persistProjectedDeviceIdentity();
+            } catch (error) {
+              toast.error(getRemoteApiErrorMessage(error));
+            }
+          });
+        }}
       />
     </div>
   );

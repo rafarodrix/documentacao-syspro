@@ -1,13 +1,12 @@
 "use client";
 
-import { Activity, AlertCircle, Clock, Database, HardDrive, RefreshCw, Shield, Ticket } from "lucide-react";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
+import { useState } from "react";
+import { Activity, AlertCircle, Clock, Database, Edit3, HardDrive, RefreshCw, Shield, Ticket } from "lucide-react";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@dosc-syspro/ui";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { MACHINE_PROFILE_LABEL } from "../host-details.constants";
 import { formatDateTime, formatRelativeHeartbeat } from "../host-details.helpers";
-
-type ServiceStatus = { label: string };
+import { DeviceIdentityForm } from "./device-identity-form";
 
 type Props = {
   host: RemoteHostDetails["host"];
@@ -16,20 +15,27 @@ type Props = {
     label: string;
     description: string;
   };
-  linkedDevice: AgentInstallationSummary | null;
+  companyOptions: Array<{ id: string; label: string; searchText?: string }>;
   windowsComputerName: string | null;
-  machineIpv4: string | null;
-  normalizedRustdeskId: string | null;
   ticketNumber: string | null;
   ticketDetails: { title: string; state: string; priority: string } | null;
   isLoadingTicket: boolean;
   rebootPending: unknown;
   contractValidationError: string | null;
-  serviceStatus: ServiceStatus;
-  orchestrationStrategy: string;
   windowsUpdateStatus?: RemoteHostDetails["agentTelemetry"]["windowsUpdateStatus"];
   diskSnapshot?: RemoteHostDetails["agentTelemetry"]["diskSnapshot"];
-  firebirdData: { name: string | null; version: string | null; processRunning: boolean | null };
+  projectedHostName: string;
+  setProjectedHostName: (value: string) => void;
+  projectedCompanyId: string;
+  setProjectedCompanyId: (value: string) => void;
+  projectedMachineProfile: RemoteHostDetails["host"]["machineProfile"];
+  setProjectedMachineProfile: (value: RemoteHostDetails["host"]["machineProfile"]) => void;
+  projectedNotes: string;
+  setProjectedNotes: (value: string) => void;
+  canSaveProjectedHostName: boolean;
+  isSavingMachineName: boolean;
+  onSaveHostName: () => void;
+  installationCount: number;
 };
 
 function HeartbeatIndicator({ label }: { label: string }) {
@@ -54,6 +60,7 @@ export function HostOverviewTab(props: Props) {
     host,
     agent,
     heartbeat,
+    companyOptions,
     windowsComputerName,
     ticketNumber,
     ticketDetails,
@@ -62,8 +69,21 @@ export function HostOverviewTab(props: Props) {
     contractValidationError,
     windowsUpdateStatus,
     diskSnapshot,
+    projectedHostName,
+    setProjectedHostName,
+    projectedCompanyId,
+    setProjectedCompanyId,
+    projectedMachineProfile,
+    setProjectedMachineProfile,
+    projectedNotes,
+    setProjectedNotes,
+    canSaveProjectedHostName,
+    isSavingMachineName,
+    onSaveHostName,
+    installationCount,
   } = props;
 
+  const [identitySheetOpen, setIdentitySheetOpen] = useState(false);
   const resolvedHostname = windowsComputerName?.trim() || null;
   const effectiveRole = host.machineProfile ? MACHINE_PROFILE_LABEL[host.machineProfile] : "Não definida";
   const pendingUpdatesCount = windowsUpdateStatus?.pendingCount ? Number(windowsUpdateStatus.pendingCount) : 0;
@@ -119,16 +139,26 @@ export function HostOverviewTab(props: Props) {
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="border-border/40 bg-card/65 shadow-sm backdrop-blur-md">
-          <CardHeader className="pb-4">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
               <HardDrive className="h-4.5 w-4.5 text-primary" />
               Resumo do dispositivo
             </CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => setIdentitySheetOpen(true)}
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              Editar
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Nome no portal</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Nome amigável</p>
                 <p className="truncate text-sm font-medium text-foreground" title={host.name ?? "Sem nome configurado"}>
                   {host.name ?? "Sem nome configurado"}
                 </p>
@@ -146,16 +176,20 @@ export function HostOverviewTab(props: Props) {
                 </p>
               </div>
               <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Função do dispositivo</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Função</p>
                 <p className="text-sm font-medium text-foreground">{effectiveRole}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Último heartbeat</p>
-                <p className="text-sm font-medium text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Instalações Syspro</p>
+                <p className="text-sm font-medium text-foreground">{installationCount}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Versão do agente</p>
                 <p className="text-sm font-medium text-foreground">{agent.agentVersion ?? "Desconhecida"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Último heartbeat</p>
+                <p className="text-sm font-medium text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
               </div>
             </div>
           </CardContent>
@@ -268,7 +302,7 @@ export function HostOverviewTab(props: Props) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-0.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Último contato</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Último heartbeat</p>
               <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
               <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
             </div>
@@ -276,7 +310,7 @@ export function HostOverviewTab(props: Props) {
               <div className="relative flex h-2 w-2 shrink-0">
                 <HeartbeatIndicator label={heartbeat.label} />
               </div>
-              <span>{heartbeat.description}</span>
+              <span>O agente está conectado ao portal. {heartbeat.description}</span>
             </div>
           </CardContent>
         </Card>
@@ -332,6 +366,43 @@ export function HostOverviewTab(props: Props) {
           </CardContent>
         </Card>
       </div>
+
+      <Sheet open={identitySheetOpen} onOpenChange={setIdentitySheetOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Editar dispositivo</SheetTitle>
+            <SheetDescription>
+              Atualize nome amigável, empresa principal, função atribuída e observações sem sair da visão geral.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6">
+            <DeviceIdentityForm
+              displayName={projectedHostName}
+              onDisplayNameChange={setProjectedHostName}
+              primaryCompanyId={projectedCompanyId}
+              onPrimaryCompanyIdChange={setProjectedCompanyId}
+              companyOptions={companyOptions}
+              hostname={resolvedHostname}
+              machineProfile={projectedMachineProfile}
+              onMachineProfileChange={setProjectedMachineProfile}
+              notes={projectedNotes}
+              onNotesChange={setProjectedNotes}
+              disabled={isSavingMachineName}
+            />
+          </div>
+
+          <SheetFooter className="mt-6">
+            <Button type="button" variant="ghost" onClick={() => setIdentitySheetOpen(false)} disabled={isSavingMachineName}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={onSaveHostName} disabled={isSavingMachineName || !canSaveProjectedHostName}>
+              {isSavingMachineName ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
+              {isSavingMachineName ? "Salvando..." : "Salvar alterações"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
