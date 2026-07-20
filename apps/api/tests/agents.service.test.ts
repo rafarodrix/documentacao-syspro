@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ForbiddenException } from "@nestjs/common";
 
 vi.mock("../src/common/auth/internal-api-auth", () => ({
   assertInternalApiKey: vi.fn(),
@@ -115,6 +116,7 @@ describe("AgentsService", () => {
     },
     agentDeviceRevocation: {
       findUnique: vi.fn(),
+      deleteMany: vi.fn(),
     },
     remoteHost: {
       findFirst: vi.fn(),
@@ -148,6 +150,7 @@ describe("AgentsService", () => {
       return Promise.all(input as Array<Promise<unknown>>);
     });
     prisma.agentDeviceRevocation.findUnique.mockResolvedValue(null);
+    prisma.agentDeviceRevocation.deleteMany.mockResolvedValue({ count: 0 });
     prisma.remoteHost.findFirst.mockResolvedValue(null);
     prisma.remoteHost.findMany.mockResolvedValue([]);
     prisma.remoteHost.findUnique.mockResolvedValue(null);
@@ -217,6 +220,111 @@ describe("AgentsService", () => {
     expect(prisma.remoteDiscoveredHost.findFirst).not.toHaveBeenCalled();
     expect(prisma.remoteDiscoveredHost.create).not.toHaveBeenCalled();
     expect(prisma.remoteDiscoveredHost.update).not.toHaveBeenCalled();
+  });
+
+  it("auto-releases removable revocation during register and reopens pending discovery without restoring link context", async () => {
+    prisma.agentDeviceRevocation.findUnique.mockResolvedValueOnce({
+      id: "rev-1",
+      deviceId: "device-123",
+      hostname: "SERVIDOR-01",
+      reason: "removed_by_portal",
+    });
+    prisma.remoteDiscoveredHost.findMany.mockResolvedValueOnce([
+      {
+        id: "disc-ignored-1",
+        linkedHostId: null,
+        machineName: "SERVIDOR-01",
+        agentExternalId: "123456789",
+      },
+    ]);
+    prisma.remoteDiscoveredHost.update.mockResolvedValueOnce({ id: "disc-ignored-1" });
+    prisma.agentInstallation.findUnique.mockResolvedValue(
+      buildInstallationRow({
+        companyId: null,
+        company: null,
+        remoteCapability: {
+          remoteHostId: null,
+          remoteHost: null,
+          externalId: null,
+          companyId: null,
+        },
+      }),
+    );
+
+    const response = await service.register("internal-key", {
+      deviceId: "device-123",
+      agentInstanceId: "install-123",
+      credentialId: "cred-123",
+      hostname: "SERVIDOR-01",
+      os: "Windows Server",
+      identitySource: "windows",
+      agentVersion: "go-agent-v2",
+      remoteLinkContext: {
+        remoteHostId: "host-legacy",
+        companyId: "company-legacy",
+        rustdeskId: "123456789",
+      },
+    });
+
+    expect(response.success).toBe(true);
+    expect(prisma.agentDeviceRevocation.deleteMany).toHaveBeenCalledWith({
+      where: { deviceId: "device-123" },
+    });
+    expect(prisma.remoteDiscoveredHost.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "disc-ignored-1" },
+        data: expect.objectContaining({
+          status: "PENDING_LINK",
+          linkedHostId: null,
+          linkedAt: null,
+        }),
+      }),
+    );
+    expect(prisma.agentInstallation.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          companyId: null,
+        }),
+      }),
+    );
+    expect(prisma.remoteHost.findFirst).not.toHaveBeenCalled();
+    expect(prisma.remoteHost.findMany).not.toHaveBeenCalled();
+  });
+
+  it("keeps heartbeat blocked while the device revocation still exists", async () => {
+    prisma.agentDeviceRevocation.findUnique.mockResolvedValueOnce({ id: "rev-1" });
+
+    await expect(
+      service.heartbeat("internal-key", {
+        deviceId: "device-123",
+        agentInstanceId: "install-123",
+        credentialId: "cred-123",
+        agentVersion: "go-agent-v2",
+        at: "2026-07-20T18:00:00.000Z",
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("keeps register blocked for revocations outside the removable reasons", async () => {
+    prisma.agentDeviceRevocation.findUnique.mockResolvedValueOnce({
+      id: "rev-1",
+      deviceId: "device-123",
+      hostname: "SERVIDOR-01",
+      reason: "security_block",
+    });
+
+    await expect(
+      service.register("internal-key", {
+        deviceId: "device-123",
+        agentInstanceId: "install-123",
+        credentialId: "cred-123",
+        hostname: "SERVIDOR-01",
+        os: "Windows Server",
+        identitySource: "windows",
+        agentVersion: "go-agent-v2",
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.agentDeviceRevocation.deleteMany).not.toHaveBeenCalled();
   });
 
   it("returns all linked Syspro installations for a host with multiple companies", async () => {

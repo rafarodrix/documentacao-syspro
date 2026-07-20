@@ -138,7 +138,7 @@ O discovery continua existindo, mas agora deve ser lido como parte da capability
 | `host_bootstrap_required` | O `RemoteDiscoveredHost` ja vinculado requer bootstrap autenticado | Bootstrap |
 | `token_invalid` | O `RemoteDiscoveredHost` ja vinculado tem credencial remota invalida ou rotacionada | Bootstrap |
 
-Se o host tiver sido removido do portal, o discovery deixa de rematerializar automaticamente a capability remota. A reinstalação ou a reautorização passa a recriar a instalação e, depois, reexecutar o fluxo remoto.
+Se o host tiver sido removido do portal, o discovery deixa de rematerializar automaticamente a capability remota. A reautorização continua devolvendo a máquina ao fluxo de vínculo. Já a reinstalação agora limpa a revogação automaticamente no primeiro `register` apenas quando a remoção anterior foi operacional (`removed_by_portal` ou `removed_by_remote_host_delete`), reabre a descoberta como `pending_link` e exige novo vínculo explícito no portal, sem restaurar host/empresa antigos.
 
 O backend também não deve usar `rustdeskId` como identidade principal do agente. Ele vale só como identificador externo da capability remota.
 

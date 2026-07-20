@@ -5,15 +5,20 @@ package storage
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
 
-const cryptProtectUIForbidden = 0x1
+const (
+	cryptProtectUIForbidden  = 0x1
+	cryptProtectLocalMachine = 0x4
+	machineProtectedPrefix   = "dpapi-machine:"
+)
 
 var (
-	modCrypt32          = windows.NewLazySystemDLL("crypt32.dll")
+	modCrypt32             = windows.NewLazySystemDLL("crypt32.dll")
 	procCryptProtectData   = modCrypt32.NewProc("CryptProtectData")
 	procCryptUnprotectData = modCrypt32.NewProc("CryptUnprotectData")
 )
@@ -34,7 +39,7 @@ func protectString(value string) (string, error) {
 		0,
 		0,
 		0,
-		uintptr(cryptProtectUIForbidden),
+		uintptr(cryptProtectUIForbidden|cryptProtectLocalMachine),
 		uintptr(unsafe.Pointer(&output)),
 	)
 	if r1 == 0 {
@@ -43,13 +48,19 @@ func protectString(value string) (string, error) {
 	defer windows.LocalFree(windows.Handle(uintptr(unsafe.Pointer(output.pbData))))
 
 	protectedBytes := copyBlobBytes(output)
-	return base64.StdEncoding.EncodeToString(protectedBytes), nil
+	return machineProtectedPrefix + base64.StdEncoding.EncodeToString(protectedBytes), nil
 }
 
-func unprotectString(value string) (string, error) {
-	protectedBytes, err := base64.StdEncoding.DecodeString(value)
+func unprotectString(value string) (string, bool, error) {
+	trimmed := strings.TrimSpace(value)
+	needsMigration := !strings.HasPrefix(trimmed, machineProtectedPrefix)
+	if !needsMigration {
+		trimmed = strings.TrimPrefix(trimmed, machineProtectedPrefix)
+	}
+
+	protectedBytes, err := base64.StdEncoding.DecodeString(trimmed)
 	if err != nil {
-		return "", fmt.Errorf("decode protected payload: %w", err)
+		return "", false, fmt.Errorf("decode protected payload: %w", err)
 	}
 
 	input := newDataBlob(protectedBytes)
@@ -65,11 +76,11 @@ func unprotectString(value string) (string, error) {
 		uintptr(unsafe.Pointer(&output)),
 	)
 	if r1 == 0 {
-		return "", fmt.Errorf("CryptUnprotectData failed: %w", callErr)
+		return "", false, fmt.Errorf("CryptUnprotectData failed: %w", callErr)
 	}
 	defer windows.LocalFree(windows.Handle(uintptr(unsafe.Pointer(output.pbData))))
 
-	return string(copyBlobBytes(output)), nil
+	return string(copyBlobBytes(output)), needsMigration, nil
 }
 
 func newDataBlob(data []byte) dataBlob {

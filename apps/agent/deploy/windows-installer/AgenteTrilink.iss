@@ -37,8 +37,7 @@ Name: "desktopicon"; Description: "Criar atalho na area de trabalho"; GroupDescr
 
 [Dirs]
 Name: "{commonappdata}\Trilink\Agent"
-Name: "{commonappdata}\Trilink\Agent\runtime-state"
-Name: "{commonappdata}\Trilink\Agent\runtime-state\logs"
+Name: "{commonappdata}\Trilink\Agent\logs"
 
 [Files]
 Source: "{#SourceDir}\agent-service.exe"; DestDir: "{app}"; Flags: ignoreversion restartreplace
@@ -83,8 +82,9 @@ Filename: "{app}\agent-service.exe"; Parameters: "stop"; Flags: runhidden skipif
 Filename: "{app}\agent-service.exe"; Parameters: "uninstall"; Flags: runhidden skipifdoesntexist; RunOnceId: "UninstallTrillinkAgentService"
 
 [UninstallDelete]
-; Remove o diretorio de estado criado em tempo de execucao (nao rastreado pelo Inno)
+; Remove diretorios de runtime/logs criados em tempo de execucao (nao rastreados pelo Inno)
 Type: filesandordirs; Name: "{commonappdata}\Trilink\Agent\runtime-state"
+Type: filesandordirs; Name: "{commonappdata}\Trilink\Agent\logs"
 
 [Code]
 

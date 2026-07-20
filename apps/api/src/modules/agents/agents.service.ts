@@ -19,6 +19,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 
 const ONLINE_THRESHOLD_SECONDS = 5 * 60;
+const AUTO_RELEASE_REINSTALL_REVOCATION_REASONS = new Set([
+  'removed_by_portal',
+  'removed_by_remote_host_delete',
+]);
 
 const INSTALLATION_INCLUDE = {
   deviceRecord: {
@@ -139,6 +143,13 @@ type ManualLinkDiscoveredHostRow = {
   agentExternalId: string | null;
 };
 
+type DeviceRevocationRow = {
+  id: string;
+  deviceId: string;
+  hostname: string | null;
+  reason: string | null;
+};
+
 type DesiredStateInstallationRow = {
   deviceRecord: {
     id: string;
@@ -183,9 +194,12 @@ export class AgentsService {
 
     const payload = parsed.data;
     const now = new Date();
-    const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
-
-    await this.assertDeviceNotRevoked(parsed.data.deviceId, remoteLinkContext);
+    const rawRemoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
+    const remoteLinkContext = await this.resolveRegisterLinkContextAfterRevocation({
+      deviceId: parsed.data.deviceId,
+      hostname: payload.hostname,
+      remoteLinkContext: rawRemoteLinkContext,
+    });
 
     const installation = await this.upsertInstallationPresence({
       deviceId: payload.deviceId,
@@ -244,7 +258,7 @@ export class AgentsService {
     const now = new Date();
     const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
 
-    await this.assertDeviceNotRevoked(parsed.data.deviceId, remoteLinkContext);
+    await this.assertDeviceNotRevoked(parsed.data.deviceId);
 
     const installation = await this.upsertInstallationPresence({
       deviceId: payload.deviceId,
@@ -1080,12 +1094,12 @@ export class AgentsService {
     }
   }
 
-  private normalizeMachineNameKey(value: string | null | undefined) {
+  private normalizeLookupValue(value: string | null | undefined) {
     return value?.trim().toLowerCase() ?? '';
   }
 
-  private normalizeLookupValue(value: string | null | undefined) {
-    return value?.trim().toLowerCase() ?? '';
+  private normalizeMachineNameKey(value: string | null | undefined) {
+    return this.normalizeLookupValue(value);
   }
 
   private buildLookupValues(values: Array<string | null | undefined>) {
@@ -1101,6 +1115,163 @@ export class AgentsService {
     }
 
     return normalized;
+  }
+
+  private isAutoReleaseReinstallRevocation(reason: string | null | undefined) {
+    return reason ? AUTO_RELEASE_REINSTALL_REVOCATION_REASONS.has(reason) : false;
+  }
+
+  private buildRevocationForbiddenException() {
+    return new ForbiddenException({
+      success: false,
+      error: 'AGENT_INSTALLATION_REVOKED',
+      message: 'Este dispositivo foi removido do portal. Reinstale o agente para registrar novamente.',
+    });
+  }
+
+  private findReinstallDiscoveredHostCandidate(
+    rows: ManualLinkDiscoveredHostRow[],
+    input: {
+      agentExternalIds: string[];
+      machineNames: string[];
+    },
+  ): ManualLinkDiscoveredHostRow | null {
+    for (const agentExternalId of input.agentExternalIds) {
+      const normalizedAgentExternalId = this.normalizeLookupValue(agentExternalId);
+      const matches = rows.filter(
+        (row) => this.normalizeLookupValue(row.agentExternalId) === normalizedAgentExternalId,
+      );
+      if (matches.length > 0) {
+        return matches[0];
+      }
+    }
+
+    for (const machineName of input.machineNames) {
+      const normalizedMachineName = this.normalizeLookupValue(machineName);
+      const matches = rows.filter(
+        (row) => this.normalizeLookupValue(row.machineName) === normalizedMachineName,
+      );
+      if (matches.length === 1) {
+        return matches[0];
+      }
+    }
+
+    if (rows.length === 1) {
+      return rows[0];
+    }
+
+    return null;
+  }
+
+  private async reactivateIgnoredDiscoveredHostForReinstall(
+    client: Prisma.TransactionClient,
+    input: {
+      hostname: string | null;
+      rustdeskId: string | null;
+    },
+  ) {
+    const agentExternalIds = this.buildLookupValues([input.rustdeskId]);
+    const machineNames = this.buildLookupValues([input.hostname]);
+    if (!agentExternalIds.length && !machineNames.length) {
+      return null;
+    }
+
+    const rows = (await client.remoteDiscoveredHost.findMany({
+      where: {
+        status: 'IGNORED',
+        linkedHostId: null,
+        OR: [
+          ...agentExternalIds.map((agentExternalId) => ({
+            agentExternalId: { equals: agentExternalId, mode: Prisma.QueryMode.insensitive },
+          })),
+          ...machineNames.map((machineName) => ({
+            machineName: { equals: machineName, mode: Prisma.QueryMode.insensitive },
+          })),
+        ],
+      },
+      orderBy: [{ updatedAt: 'desc' }, { lastHeartbeatAt: 'desc' }],
+      select: {
+        id: true,
+        linkedHostId: true,
+        machineName: true,
+        agentExternalId: true,
+      },
+    })) as ManualLinkDiscoveredHostRow[];
+
+    const candidate = this.findReinstallDiscoveredHostCandidate(rows, {
+      agentExternalIds,
+      machineNames,
+    });
+    if (!candidate) {
+      return null;
+    }
+
+    await client.remoteDiscoveredHost.update({
+      where: { id: candidate.id },
+      data: {
+        status: 'PENDING_LINK',
+        linkedHostId: null,
+        linkedAt: null,
+        lastHeartbeatAt: new Date(),
+        description:
+          'Dispositivo reinstalado e reautorizado automaticamente apos remocao anterior no portal. Aguardando novo vinculo.',
+        ...(machineNames[0] ? { machineName: machineNames[0] } : {}),
+        ...(agentExternalIds[0] ? { agentExternalId: agentExternalIds[0] } : {}),
+      },
+    });
+
+    return candidate.id;
+  }
+
+  private async resolveRegisterLinkContextAfterRevocation(input: {
+    deviceId: string;
+    hostname: string | null;
+    remoteLinkContext: AgentRemoteLinkContext;
+  }): Promise<AgentRemoteLinkContext> {
+    const normalizedDeviceId = input.deviceId?.trim();
+    if (!normalizedDeviceId) {
+      return input.remoteLinkContext;
+    }
+
+    const revoked = await this.prisma.agentDeviceRevocation.findUnique({
+      where: { deviceId: normalizedDeviceId },
+      select: {
+        id: true,
+        deviceId: true,
+        hostname: true,
+        reason: true,
+      },
+    }) as DeviceRevocationRow | null;
+
+    if (!revoked) {
+      return input.remoteLinkContext;
+    }
+
+    if (!this.isAutoReleaseReinstallRevocation(revoked.reason)) {
+      throw this.buildRevocationForbiddenException();
+    }
+
+    const reactivatedDiscoveredHostId = await this.prisma.$transaction(async (tx) => {
+      await tx.agentDeviceRevocation.deleteMany({
+        where: { deviceId: normalizedDeviceId },
+      });
+
+      return this.reactivateIgnoredDiscoveredHostForReinstall(tx, {
+        hostname: input.hostname?.trim() || revoked.hostname,
+        rustdeskId: input.remoteLinkContext.rustdeskId ?? null,
+      });
+    });
+
+    this.logger.log({
+      event: 'agent.revocation_auto_released_on_register',
+      deviceId: normalizedDeviceId,
+      reason: revoked.reason,
+      reactivatedDiscoveredHostId,
+      hostname: input.hostname ?? revoked.hostname,
+      rustdeskId: input.remoteLinkContext.rustdeskId ?? null,
+    });
+
+    return {};
   }
 
   private findManualLinkDiscoveredHostCandidate(
@@ -1390,13 +1561,9 @@ export class AgentsService {
     };
   }
 
-  private async assertDeviceNotRevoked(
-    deviceId: string,
-    linkContext?: AgentRemoteLinkContext,
-  ): Promise<void> {
+  private async assertDeviceNotRevoked(deviceId: string): Promise<void> {
     const normalizedDeviceId = deviceId?.trim();
     if (!normalizedDeviceId) return;
-    void linkContext;
 
     const revoked = await this.prisma.agentDeviceRevocation.findUnique({
       where: { deviceId: normalizedDeviceId },
@@ -1404,11 +1571,7 @@ export class AgentsService {
     });
 
     if (revoked) {
-      throw new ForbiddenException({
-        success: false,
-        error: 'AGENT_INSTALLATION_REVOKED',
-        message: 'Este dispositivo foi removido do portal. Reinstale o agente para registrar novamente.',
-      });
+      throw this.buildRevocationForbiddenException();
     }
   }
 

@@ -84,7 +84,7 @@ O `discoveryToken` identifica a maquina antes do bootstrap.
 - `host_bootstrap_required`
 - `token_invalid`
 
-Quando um host/dispositivo e removido do portal, o `discover` deixa de rematerializar esse registro automaticamente. O retorno operacional permanece em modo de triagem ate nova autorizacao operacional ou reinstalacao controlada.
+Quando um host/dispositivo e removido do portal, o `discover` deixa de rematerializar esse registro automaticamente. O retorno operacional permanece em modo de triagem ate nova autorizacao operacional ou reinstalacao controlada. Na reinstalacao, o backend remove a revogacao automaticamente apenas para remocoes operacionais (`removed_by_portal` e `removed_by_remote_host_delete`) e recoloca a descoberta em `pending_link`, sem reaproveitar vinculo antigo de host ou empresa.
 
 O `discover` tambem nao promove mais uma maquina para `linked_host_detected`
 apenas porque encontrou um `RemoteHost` legado com o mesmo `rustdeskId`.

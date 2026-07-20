@@ -168,12 +168,21 @@ func decodeProtectedJSONValue(value any, protectedFields map[string]struct{}) (d
 				if strings.TrimSpace(encryptedValue) == "" {
 					continue
 				}
-				plainText, err := unprotectString(encryptedValue)
+				plainText, fieldNeedsMigration, err := unprotectString(encryptedValue)
 				if err != nil {
 					return nil, nil, false, fmt.Errorf("unprotect %s: %w", baseKey, err)
 				}
 				decodedMap[baseKey] = plainText
-				migratedMap[key] = encryptedValue
+				if fieldNeedsMigration {
+					protectedValue, err := protectString(plainText)
+					if err != nil {
+						return nil, nil, false, fmt.Errorf("migrate protected %s: %w", baseKey, err)
+					}
+					migratedMap[key] = protectedValue
+					needsMigration = true
+				} else {
+					migratedMap[key] = encryptedValue
+				}
 				continue
 			}
 

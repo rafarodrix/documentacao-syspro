@@ -1,4 +1,4 @@
 @echo off
-set LOGDIR=%ProgramData%\Trilink\Agent\runtime-state\logs
+set LOGDIR=%ProgramData%\Trilink\Agent\logs
 if not exist "%LOGDIR%" mkdir "%LOGDIR%"
 explorer "%LOGDIR%"
