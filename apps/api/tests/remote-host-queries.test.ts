@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buildScopedPendingItems } from "../src/modules/remote-admin/support/remote-host.queries";
+import {
+  buildScopedPendingItems,
+  resolveConfiguredHostBootstrapFlow,
+} from "../src/modules/remote-admin/support/remote-host.queries";
 
 describe("buildScopedPendingItems", () => {
   const companyOptions = [
@@ -121,5 +124,27 @@ describe("buildScopedPendingItems", () => {
     );
 
     expect(items).toHaveLength(0);
+  });
+});
+
+describe("resolveConfiguredHostBootstrapFlow", () => {
+  it("treats configured hosts with pending discovery link as awaiting link", () => {
+    expect(
+      resolveConfiguredHostBootstrapFlow({
+        agentExternalId: "123456789",
+        agentTokenHash: null,
+        discoveryRecord: { status: "PENDING_LINK" },
+      }),
+    ).toBe("pending_link");
+  });
+
+  it("keeps bootstrap required when there is no pending discovery and the host has no token", () => {
+    expect(
+      resolveConfiguredHostBootstrapFlow({
+        agentExternalId: "123456789",
+        agentTokenHash: null,
+        discoveryRecord: { status: "LINKED" },
+      }),
+    ).toBe("host_bootstrap_required");
   });
 });

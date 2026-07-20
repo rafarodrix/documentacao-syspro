@@ -181,19 +181,41 @@ function resolveRemoteProductStatus(input: {
   return "ATTENTION_REQUIRED";
 }
 
+type HostBootstrapFlowSource = {
+  agentExternalId?: string | null;
+  agentTokenHash?: string | null;
+  lastAgentMetrics?: Prisma.JsonValue | null;
+  lastHeartbeatErrorMessage?: string | null;
+  discoveryRecord?: {
+    status?: string | null;
+  } | null;
+};
+
+export function resolveConfiguredHostBootstrapFlow(
+  host: HostBootstrapFlowSource,
+): RemoteConfiguredHostItem["bootstrapFlow"] {
+  const bootstrapFlowFromMetrics = readBootstrapFlowFromMetrics(host.lastAgentMetrics ?? null);
+  if (bootstrapFlowFromMetrics) return bootstrapFlowFromMetrics;
+
+  if (host.discoveryRecord?.status === "PENDING_LINK") return "pending_link";
+
+  const lastHeartbeatError = (host.lastHeartbeatErrorMessage ?? "").toLowerCase();
+  if (/agenttoken (invalido|expirado|rotacionado|indisponivel)/.test(lastHeartbeatError)) {
+    return "token_invalid";
+  }
+
+  if (!host.agentTokenHash || !host.agentExternalId) {
+    return "host_bootstrap_required";
+  }
+
+  if (host.discoveryRecord?.status === "LINKED") return "linked_host_detected";
+
+  return "linked_host_detected";
+}
+
 function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
   const companyName = host.company.nomeFantasia ?? host.company.razaoSocial;
-  const bootstrapFlowFromMetrics = readBootstrapFlowFromMetrics(host.lastAgentMetrics);
-  const bootstrapFlow: RemoteConfiguredHostItem["bootstrapFlow"] =
-    bootstrapFlowFromMetrics ??
-    (() => {
-      if (!host.agentExternalId) return "host_bootstrap_required";
-      const lastHeartbeatError = (host.lastHeartbeatErrorMessage ?? "").toLowerCase();
-      if (/agenttoken (invalido|expirado|rotacionado|indisponivel)/.test(lastHeartbeatError)) {
-        return "token_invalid";
-      }
-      return "linked_host_detected";
-    })();
+  const bootstrapFlow = resolveConfiguredHostBootstrapFlow(host);
   const contractErrorCode = readContractErrorCodeFromMetrics(host.lastAgentMetrics);
   const bootstrapRate24hPct = readBootstrapRatePctFromMetrics(host.lastAgentMetrics);
   const pendingAckQueueSize = readPendingAckQueueSizeFromMetrics(host.lastAgentMetrics);
@@ -1549,14 +1571,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
     }
     return { count: acc.count, stopped: true };
   }, { count: 0, stopped: false }).count;
-  const bootstrapFlowFromMetrics = readBootstrapFlowFromMetrics(host.lastAgentMetrics);
-  const bootstrapFlow: RemoteHostDetails["agentHealth"]["bootstrapFlow"] = (() => {
-    if (bootstrapFlowFromMetrics) return bootstrapFlowFromMetrics;
-    if (host.discoveryRecord?.status === "PENDING_LINK") return "pending_link";
-    if (!host.agentTokenHash) return "host_bootstrap_required";
-    if (host.discoveryRecord?.status === "LINKED") return "linked_host_detected";
-    return "unknown";
-  })();
+  const bootstrapFlow = resolveConfiguredHostBootstrapFlow(host) as RemoteHostDetails["agentHealth"]["bootstrapFlow"];
   const contractErrorCode = readContractErrorCodeFromMetrics(host.lastAgentMetrics);
   const hostTelemetry = host as typeof host & {
     lastSysproVersionSnapshot?: Prisma.JsonValue | null;
