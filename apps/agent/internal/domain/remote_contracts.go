@@ -187,6 +187,7 @@ type RemoteSyncCommand struct {
 type RemoteSyncResponse struct {
 	ContractVersion      string `json:"contractVersion"`
 	HostID               string `json:"hostId"`
+	CompanyID            string `json:"companyId,omitempty"`
 	CompanyName          string `json:"companyName,omitempty"`
 	Alias                string `json:"alias"`
 	RustDeskID           string `json:"rustdeskId"`

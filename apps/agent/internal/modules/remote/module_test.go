@@ -54,6 +54,7 @@ func TestDiscoverBootstrapSyncCyclePersistsProtectedState(t *testing.T) {
 		syncResponses: []*domain.RemoteSyncResponse{
 			{
 				HostID:              "host-1",
+				CompanyID:           "company-1",
 				CompanyName:         "Trilink",
 				Alias:               "Servidor",
 				RustDeskID:          "123456789",
@@ -110,6 +111,12 @@ func TestDiscoverBootstrapSyncCyclePersistsProtectedState(t *testing.T) {
 	}
 	if persisted.HostID != "host-1" {
 		t.Fatalf("expected host id host-1, got %q", persisted.HostID)
+	}
+	if persisted.CompanyID != "company-1" {
+		t.Fatalf("expected company id company-1, got %q", persisted.CompanyID)
+	}
+	if persisted.CompanyName != "Trilink" {
+		t.Fatalf("expected company name Trilink, got %q", persisted.CompanyName)
 	}
 	if persisted.RebootstrapRequired {
 		t.Fatalf("expected rebootstrap flag to be false")

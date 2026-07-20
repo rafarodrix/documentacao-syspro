@@ -149,7 +149,7 @@ function buildAgentProjection(input: {
   };
 }
 
-function resolveRemoteProductStatus(input: {
+export function resolveRemoteProductStatus(input: {
   bootstrapFlow: RemoteConfiguredHostItem["bootstrapFlow"];
   lifecycleStatus: RemoteAgentLifecycleStatus;
   operationalStatus: RemoteConfiguredHostItem["operationalStatus"];
@@ -167,6 +167,8 @@ function resolveRemoteProductStatus(input: {
     return "ATTENTION_REQUIRED";
   }
 
+  if (input.operationalStatus === "ONLINE") return "REMOTE_READY";
+
   if (
     input.lifecycleStatus === "PENDING_INSTALL" ||
     input.bootstrapFlow === "host_bootstrap_required" ||
@@ -175,8 +177,6 @@ function resolveRemoteProductStatus(input: {
   ) {
     return "PROVISIONING_REMOTE";
   }
-
-  if (input.operationalStatus === "ONLINE") return "REMOTE_READY";
 
   return "ATTENTION_REQUIRED";
 }

@@ -32,6 +32,8 @@ func NewService(
 }
 
 func (s *Service) Start(ctx context.Context) error {
+	s.runOnce(ctx)
+
 	ticker := time.NewTicker(45 * time.Second)
 	defer ticker.Stop()
 
@@ -42,18 +44,22 @@ func (s *Service) Start(ctx context.Context) error {
 			return nil
 
 		case <-ticker.C:
-			if err := s.reconcileOnce(ctx); err != nil {
-				s.logger.Error("reconcile failed", "error", err)
-				_ = s.events.Publish(ctx, domain.TelemetryEvent{
-					Type:       "reconcile_failed",
-					Severity:   "error",
-					Module:     "reconcile",
-					Message:    "reconcile cycle failed",
-					OccurredAt: time.Now().UTC(),
-					Metadata:   map[string]any{"error": err.Error()},
-				})
-			}
+			s.runOnce(ctx)
 		}
+	}
+}
+
+func (s *Service) runOnce(ctx context.Context) {
+	if err := s.reconcileOnce(ctx); err != nil {
+		s.logger.Error("reconcile failed", "error", err)
+		_ = s.events.Publish(ctx, domain.TelemetryEvent{
+			Type:       "reconcile_failed",
+			Severity:   "error",
+			Module:     "reconcile",
+			Message:    "reconcile cycle failed",
+			OccurredAt: time.Now().UTC(),
+			Metadata:   map[string]any{"error": err.Error()},
+		})
 	}
 }
 

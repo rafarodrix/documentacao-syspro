@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildScopedPendingItems,
   resolveConfiguredHostBootstrapFlow,
+  resolveRemoteProductStatus,
 } from "../src/modules/remote-admin/support/remote-host.queries";
 
 describe("buildScopedPendingItems", () => {
@@ -146,5 +147,18 @@ describe("resolveConfiguredHostBootstrapFlow", () => {
         discoveryRecord: { status: "LINKED" },
       }),
     ).toBe("host_bootstrap_required");
+  });
+});
+
+describe("resolveRemoteProductStatus", () => {
+  it("treats online linked hosts as ready even when bootstrap flow still says linked_host_detected", () => {
+    expect(
+      resolveRemoteProductStatus({
+        bootstrapFlow: "linked_host_detected",
+        lifecycleStatus: "ONLINE",
+        operationalStatus: "ONLINE",
+        contractErrorCode: null,
+      }),
+    ).toBe("REMOTE_READY");
   });
 });

@@ -24,6 +24,8 @@ func NewService(client PortalClient, store StateStore, logger Logger, events Eve
 }
 
 func (s *Service) Start(ctx context.Context) error {
+	s.runOnce(ctx)
+
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -33,23 +35,27 @@ func (s *Service) Start(ctx context.Context) error {
 			s.logger.Info("heartbeat loop stopped")
 			return nil
 		case <-ticker.C:
-			if err := s.client.SendHeartbeat(ctx); err != nil {
-				s.logger.Warn("heartbeat failed", "error", err)
-				_ = s.events.Publish(ctx, domain.TelemetryEvent{
-					Type:       "heartbeat_failed",
-					Severity:   "warn",
-					Module:     "heartbeat",
-					Message:    "heartbeat failed",
-					OccurredAt: time.Now().UTC(),
-				})
-				continue
-			}
-
-			_ = s.store.SaveJSON(ctx, "heartbeat.json", map[string]any{
-				"last_success_at": time.Now().UTC(),
-			})
-
-			s.logger.Debug("heartbeat sent")
+			s.runOnce(ctx)
 		}
 	}
+}
+
+func (s *Service) runOnce(ctx context.Context) {
+	if err := s.client.SendHeartbeat(ctx); err != nil {
+		s.logger.Warn("heartbeat failed", "error", err)
+		_ = s.events.Publish(ctx, domain.TelemetryEvent{
+			Type:       "heartbeat_failed",
+			Severity:   "warn",
+			Module:     "heartbeat",
+			Message:    "heartbeat failed",
+			OccurredAt: time.Now().UTC(),
+		})
+		return
+	}
+
+	_ = s.store.SaveJSON(ctx, "heartbeat.json", map[string]any{
+		"last_success_at": time.Now().UTC(),
+	})
+
+	s.logger.Debug("heartbeat sent")
 }

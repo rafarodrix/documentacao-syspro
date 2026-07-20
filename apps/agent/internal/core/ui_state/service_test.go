@@ -142,6 +142,59 @@ func TestAgentSetupViewKeepsTechnicalBootstrapRunningWhileAwaitingLink(t *testin
 	}
 }
 
+func TestAgentSetupViewTreatsSyncedRemoteAsLinkedEvenWithoutLocalCompanyID(t *testing.T) {
+	store, localStore, stateDir := newTestStateStore(t)
+
+	if err := localStore.SaveJSON(context.Background(), "identity.json", domain.DeviceIdentity{
+		DeviceID: "device-789",
+		Hostname: "SERVIDOR",
+		OS:       "windows",
+	}); err != nil {
+		t.Fatalf("save identity: %v", err)
+	}
+
+	if err := localStore.SaveJSON(context.Background(), "desired_state.json", domain.DesiredState{
+		Version:   1,
+		UpdatedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save desired state: %v", err)
+	}
+
+	if err := localStore.SaveJSON(context.Background(), "current_state.json", domain.CurrentState{
+		Remote: domain.CurrentModuleState{
+			Enabled: true,
+			Status:  domain.ModuleStatusReady,
+		},
+	}); err != nil {
+		t.Fatalf("save current state: %v", err)
+	}
+
+	if err := store.SaveJSON(context.Background(), "remote_state.json", domain.PersistedRemoteState{
+		HostID:            "host-1",
+		CompanyName:       "Casa de Carne Maravilha",
+		MachineName:       "SERVIDOR",
+		RustDeskID:        "123456789",
+		LastSyncAt:        time.Now().UTC(),
+		LastBootstrapFlow: "linked_host_detected",
+	}); err != nil {
+		t.Fatalf("save remote state: %v", err)
+	}
+
+	service := NewService(stateDir, ChatwootConfig{}, "1.0.83", nil, nil)
+
+	view, err := service.AgentSetupView(context.Background())
+	if err != nil {
+		t.Fatalf("AgentSetupView returned error: %v", err)
+	}
+
+	if !view.Complete {
+		t.Fatalf("expected synced remote to complete setup, got stage %q", view.Stage)
+	}
+	if view.Installation.CompanyName != "Casa de Carne Maravilha" {
+		t.Fatalf("expected installation company name to come from synced remote state, got %q", view.Installation.CompanyName)
+	}
+}
+
 func TestAgentSetupViewUsesDesiredStateProviderWhenDiskStateIsMissing(t *testing.T) {
 	store, localStore, stateDir := newTestStateStore(t)
 

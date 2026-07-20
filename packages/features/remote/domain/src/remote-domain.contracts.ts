@@ -303,6 +303,7 @@ export type ProcessDiscoverOutput = {
 export type ProcessSyncOutput = {
   contractVersion: "rustdesk.sync.v1";
   hostId: string;
+  companyId: string;
   companyName: string;
   alias: string;
   rustdeskId: string | null;
@@ -561,4 +562,3 @@ export type RevokeAddressBookCredentialOutput = {
   alreadyRevoked: boolean;
   message: string;
 };
-

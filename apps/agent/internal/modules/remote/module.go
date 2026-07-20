@@ -623,10 +623,14 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	}
 
 	st.HostID = firstNonEmpty(syncResp.HostID, st.HostID)
+	st.CompanyID = firstNonEmpty(syncResp.CompanyID, st.CompanyID)
 	st.CompanyName = firstNonEmpty(syncResp.CompanyName, st.CompanyName)
 	st.Alias = firstNonEmpty(syncResp.Alias, st.Alias)
 	st.RustDeskID = firstNonEmpty(syncResp.RustDeskID, st.RustDeskID)
 	st.MachineName = firstNonEmpty(syncResp.MachineName, hostname)
+	if st.CompanyID != "" || st.CompanyName != "" {
+		st.PendingLinkReady = false
+	}
 	if issuedAt := parseRemoteTime(syncResp.AgentTokenIssuedAt); !issuedAt.IsZero() {
 		st.AgentTokenIssuedAt = issuedAt
 	}

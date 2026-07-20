@@ -95,9 +95,9 @@ func (s *Service) AgentSetupView(ctx context.Context) (AgentSetupView, error) {
 		buildStep(
 			"link",
 			"Vinculo com a empresa",
-			remoteState.HostID != "" && remoteState.CompanyID != "",
+			isPortalLinkResolved(remoteState, current),
 			"",
-			deriveLinkDetail(remoteState),
+			deriveLinkDetail(remoteState, current),
 		),
 		buildStep(
 			"rustdesk",
@@ -687,10 +687,14 @@ func deriveRustDeskDetail(st persistedRemoteState) string {
 	}
 }
 
-func deriveLinkDetail(st persistedRemoteState) string {
+func deriveLinkDetail(st persistedRemoteState, current domain.CurrentState) string {
 	switch {
 	case st.CompanyID != "" && st.CompanyName != "":
 		return "Empresa vinculada: " + st.CompanyName
+	case st.CompanyName != "":
+		return "Empresa vinculada no portal: " + st.CompanyName
+	case isRemoteOperational(st, current):
+		return "Host remoto sincronizado no portal. O contexto empresarial local sera atualizado automaticamente."
 	case st.PendingLinkReady:
 		return "Instalacao concluida. Falta apenas associar esta maquina a uma empresa no portal."
 	case st.HostID != "":
@@ -734,6 +738,18 @@ func deriveSyncDetail(st persistedRemoteState, current domain.CurrentState) stri
 
 func isPendingLinkReady(st persistedRemoteState) bool {
 	return st.PendingLinkReady && st.RustDeskID != "" && !st.RebootstrapRequired
+}
+
+func isPortalLinkResolved(st persistedRemoteState, current domain.CurrentState) bool {
+	if strings.TrimSpace(st.HostID) == "" {
+		return false
+	}
+
+	if strings.TrimSpace(st.CompanyID) != "" || strings.TrimSpace(st.CompanyName) != "" {
+		return true
+	}
+
+	return isRemoteOperational(st, current)
 }
 
 func isRemoteOperational(st persistedRemoteState, current domain.CurrentState) bool {
