@@ -75,8 +75,57 @@ func TestAgentSetupViewPrioritizesPortalLinkBeforeRustDesk(t *testing.T) {
 
 func TestDescribeBootstrapFlowPendingLinkIsHumanReadable(t *testing.T) {
 	got := describeBootstrapFlow("pending_link")
-	if !strings.Contains(strings.ToLower(got), "aguardando vinculo") {
+	if !strings.Contains(strings.ToLower(got), "bootstrap tecnico") {
 		t.Fatalf("expected human-readable pending_link detail, got %q", got)
+	}
+}
+
+func TestAgentSetupViewMarksTechnicalBootstrapAsCompleteWhileAwaitingLink(t *testing.T) {
+	store, localStore, stateDir := newTestStateStore(t)
+
+	if err := localStore.SaveJSON(context.Background(), "identity.json", domain.DeviceIdentity{
+		DeviceID: "device-456",
+		Hostname: "SERVIDOR",
+		OS:       "windows",
+	}); err != nil {
+		t.Fatalf("save identity: %v", err)
+	}
+
+	if err := localStore.SaveJSON(context.Background(), "desired_state.json", domain.DesiredState{
+		Version:   1,
+		UpdatedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save desired state: %v", err)
+	}
+
+	if err := localStore.SaveJSON(context.Background(), "current_state.json", domain.CurrentState{}); err != nil {
+		t.Fatalf("save current state: %v", err)
+	}
+
+	if err := store.SaveJSON(context.Background(), "remote_state.json", domain.PersistedRemoteState{
+		MachineName:       "SERVIDOR",
+		RustDeskID:        "123456789",
+		PendingLinkReady:  true,
+		LastBootstrapFlow: "pending_link_bootstrapped",
+	}); err != nil {
+		t.Fatalf("save remote state: %v", err)
+	}
+
+	service := NewService(stateDir, ChatwootConfig{}, "1.0.64", nil)
+
+	view, err := service.AgentSetupView(context.Background())
+	if err != nil {
+		t.Fatalf("AgentSetupView returned error: %v", err)
+	}
+
+	if !view.Complete {
+		t.Fatalf("expected technical bootstrap to mark setup as complete")
+	}
+	if view.ProgressPct != 100 {
+		t.Fatalf("expected progress to be 100, got %d", view.ProgressPct)
+	}
+	if !strings.Contains(strings.ToLower(view.Summary), "vincular") {
+		t.Fatalf("expected summary to mention pending link, got %q", view.Summary)
 	}
 }
 

@@ -315,7 +315,7 @@ func TestDiscoverLinkedHostWithoutPortalInstallTokenWaitsInsteadOfForcingBootstr
 	}
 }
 
-func TestDiscoverBootstrapRequiredWithoutInstallTokenFailsClosed(t *testing.T) {
+func TestPendingLinkDiscoverRunsTechnicalBootstrapWithoutHostInstallToken(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -332,23 +332,42 @@ func TestDiscoverBootstrapRequiredWithoutInstallTokenFailsClosed(t *testing.T) {
 	}
 	client := &fakePortalClient{
 		discoverResp: &domain.RemoteDiscoverResponse{
-			BootstrapFlow: domain.RemoteBootstrapFlowHostBootstrapRequired,
-			HostID:        "host-1",
+			BootstrapFlow:    domain.RemoteBootstrapFlowPendingLink,
+			DiscoveredHostID: "disc-1",
+		},
+		bootstrapResp: &domain.RemoteBootstrapResponse{
+			BootstrapMode: "discovery",
+			Alias:         "SERVIDOR",
+			RustDeskID:    "123456789",
+			MachineName:   "srv-01",
+			ServerHost:    "relay.example.com",
+			APIHost:       "api.example.com",
+			PublicKey:     "pub-key",
+			PublicKeyHash: "pub-hash",
 		},
 	}
 
 	module := newTestModule(store, client, manager, stateDir)
 	result := module.Apply(ctx, managedRemoteDesiredState(), domain.CurrentModuleState{})
-	if result.Error == "" {
-		t.Fatalf("expected discover/bootstrap cycle to fail closed when installToken is omitted")
+	if result.Error != "" {
+		t.Fatalf("expected technical bootstrap to succeed, got %s", result.Error)
 	}
 
 	var persisted remoteState
 	if err := store.LoadJSON(ctx, stateFile, &persisted); err != nil {
 		t.Fatalf("load state: %v", err)
 	}
-	if persisted.LastErrorCode != "REMOTE_DISCOVER_INSTALL_TOKEN_REQUIRED" {
-		t.Fatalf("expected structured error code, got %q", persisted.LastErrorCode)
+	if !persisted.PendingLinkReady {
+		t.Fatalf("expected pending_link_ready after technical bootstrap")
+	}
+	if persisted.AgentToken != "" {
+		t.Fatalf("expected agent token to remain empty before host link")
+	}
+	if client.bootstrapCalls != 1 {
+		t.Fatalf("expected one bootstrap call, got %d", client.bootstrapCalls)
+	}
+	if client.lastBootstrapReq.DiscoveryToken == "" || client.lastBootstrapReq.DiscoveredHostID != "disc-1" {
+		t.Fatalf("expected discovery bootstrap credentials, got %+v", client.lastBootstrapReq)
 	}
 }
 

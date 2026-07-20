@@ -57,8 +57,8 @@ export type RemoteScope = {
 const DISCOVER_TRANSITIONS = {
   pending_link: {
     state: 'PENDING_LINK',
-    nextStep: 'manual_link',
-    nextEndpoint: '/api/remote/discovered-hosts/:id/link',
+    nextStep: 'technical_bootstrap_then_link',
+    nextEndpoint: '/api/remote/rustdesk/bootstrap',
     allowDiscoveryHeartbeat: true,
     requiresAuthenticatedBootstrap: false,
   },

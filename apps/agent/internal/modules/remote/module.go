@@ -45,6 +45,7 @@ type remoteState struct {
 	HostID                   string    `json:"host_id,omitempty"`
 	CompanyID                string    `json:"company_id,omitempty"`
 	CompanyName              string    `json:"company_name,omitempty"`
+	PendingLinkReady         bool      `json:"pending_link_ready,omitempty"`
 	Alias                    string    `json:"alias,omitempty"`
 	RustDeskID               string    `json:"rustdesk_id,omitempty"`
 	MachineName              string    `json:"machine_name,omitempty"`
@@ -318,7 +319,13 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 
 	flow := discoverResp.BootstrapFlow
 
-	st.HostID = firstNonEmpty(discoverResp.HostID, st.HostID)
+	if strings.TrimSpace(discoverResp.HostID) != "" {
+		st.HostID = strings.TrimSpace(discoverResp.HostID)
+	} else if flow == domain.RemoteBootstrapFlowPendingLink {
+		st.HostID = ""
+		st.CompanyID = ""
+		st.CompanyName = ""
+	}
 	st.MachineName = hostname
 	st.LastBootstrapFlow = string(flow)
 	m.clearFailure(st)
@@ -339,7 +346,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 		"install_token_auto": strings.TrimSpace(discoverResp.InstallToken) != "",
 	})
 
-	decision := m.resolveDiscoverDecision(discoverResp)
+	decision := m.resolveDiscoverDecision(discoverResp, st)
 	m.logger.Info("remote discover decision", "flow", decision.flow, "phase", decision.phase, "message", decision.message)
 	switch decision.phase {
 	case runtimePhaseWait:
@@ -349,7 +356,15 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 			Message: decision.message,
 		}
 	case runtimePhaseBootstrap:
-		return m.runBootstrapThenSync(ctx, st, hostname, strings.TrimSpace(discoverResp.InstallToken), intent)
+		return m.runBootstrapThenSync(
+			ctx,
+			st,
+			hostname,
+			strings.TrimSpace(discoverResp.InstallToken),
+			strings.TrimSpace(discoverResp.DiscoveredHostID),
+			flow,
+			intent,
+		)
 	default:
 		return domain.ApplyResult{
 			Module:  "remote",
@@ -364,9 +379,11 @@ func (m *Module) runBootstrapThenSync(
 	st *remoteState,
 	hostname string,
 	installToken string,
+	discoveredHostID string,
+	flow domain.RemoteBootstrapFlow,
 	intent remoteDesiredIntent,
 ) domain.ApplyResult {
-	if strings.TrimSpace(installToken) == "" {
+	if strings.TrimSpace(installToken) == "" && strings.TrimSpace(discoveredHostID) == "" {
 		err := errors.New("REMOTE_DISCOVER_INSTALL_TOKEN_REQUIRED")
 		m.rememberFailure(st, runtimePhaseBootstrap, err)
 		_ = m.saveState(ctx, st)
@@ -382,16 +399,18 @@ func (m *Module) runBootstrapThenSync(
 	}
 
 	bootstrapResp, err := m.client.Bootstrap(ctx, domain.RemoteBootstrapRequest{
-		InstallToken:   installToken,
-		RustDeskID:     st.RustDeskID,
-		MachineName:    hostname,
-		AgentVersion:   m.agentVersion,
-		CurrentAlias:   st.Alias,
-		CurrentVersion: st.CurrentVersion,
-		ServerHost:     st.ServerHost,
-		APIHost:        st.APIHost,
-		PublicKey:      st.PublicKey,
-		Environment:    m.environment,
+		InstallToken:     installToken,
+		DiscoveryToken:   firstNonEmpty(m.discoveryToken, intent.discoveryToken),
+		DiscoveredHostID: discoveredHostID,
+		RustDeskID:       st.RustDeskID,
+		MachineName:      hostname,
+		AgentVersion:     m.agentVersion,
+		CurrentAlias:     st.Alias,
+		CurrentVersion:   st.CurrentVersion,
+		ServerHost:       st.ServerHost,
+		APIHost:          st.APIHost,
+		PublicKey:        st.PublicKey,
+		Environment:      m.environment,
 	})
 	if err != nil {
 		if isApplyContextCanceled(err) {
@@ -414,7 +433,12 @@ func (m *Module) runBootstrapThenSync(
 		return m.fail("bootstrap failed", err)
 	}
 
-	if bootstrapResp.AgentToken == "" {
+	mode := strings.TrimSpace(strings.ToLower(bootstrapResp.BootstrapMode))
+	if mode == "" {
+		mode = "host"
+	}
+
+	if mode == "host" && bootstrapResp.AgentToken == "" {
 		return domain.ApplyResult{
 			Module:  "remote",
 			Changed: false,
@@ -422,16 +446,27 @@ func (m *Module) runBootstrapThenSync(
 		}
 	}
 
-	st.AgentToken = bootstrapResp.AgentToken
-	st.AgentTokenIssuedAt = parseRemoteTime(bootstrapResp.AgentTokenIssuedAt)
-	st.HostID = firstNonEmpty(bootstrapResp.HostID, st.HostID)
-	st.CompanyID = firstNonEmpty(bootstrapResp.CompanyID, st.CompanyID)
-	st.CompanyName = firstNonEmpty(bootstrapResp.CompanyName, st.CompanyName)
 	st.Alias = firstNonEmpty(bootstrapResp.Alias, st.Alias)
 	st.RustDeskID = firstNonEmpty(bootstrapResp.RustDeskID, st.RustDeskID)
 	st.MachineName = firstNonEmpty(bootstrapResp.MachineName, hostname)
 	st.RebootstrapRequired = false
-	st.LastBootstrapFlow = "bootstrap_completed"
+	if mode == "discovery" {
+		st.AgentToken = ""
+		st.AgentTokenIssuedAt = time.Time{}
+		st.HostID = ""
+		st.CompanyID = ""
+		st.CompanyName = ""
+		st.PendingLinkReady = true
+		st.LastBootstrapFlow = "pending_link_bootstrapped"
+	} else {
+		st.AgentToken = bootstrapResp.AgentToken
+		st.AgentTokenIssuedAt = parseRemoteTime(bootstrapResp.AgentTokenIssuedAt)
+		st.HostID = firstNonEmpty(bootstrapResp.HostID, st.HostID)
+		st.CompanyID = firstNonEmpty(bootstrapResp.CompanyID, st.CompanyID)
+		st.CompanyName = firstNonEmpty(bootstrapResp.CompanyName, st.CompanyName)
+		st.PendingLinkReady = false
+		st.LastBootstrapFlow = "bootstrap_completed"
+	}
 	m.clearFailure(st)
 	m.applyPortalConfig(st, rustDeskDesiredConfig{
 		Alias:                    bootstrapResp.Alias,
@@ -464,14 +499,26 @@ func (m *Module) runBootstrapThenSync(
 
 	m.logger.Info("remote bootstrap completed",
 		"host_id", st.HostID,
+		"bootstrap_mode", mode,
 		"alias", st.Alias,
 		"install_token_fingerprint", tokenFingerprint(installToken),
 		"token_fingerprint", tokenFingerprint(st.AgentToken),
 	)
 	_ = m.publish(ctx, "remote.bootstrap.completed", "bootstrap completed", map[string]any{
-		"host_id": st.HostID,
-		"alias":   st.Alias,
+		"host_id":         st.HostID,
+		"alias":           st.Alias,
+		"bootstrap_mode":  mode,
+		"pending_link":    flow == domain.RemoteBootstrapFlowPendingLink,
+		"pending_link_id": discoveredHostID,
 	})
+
+	if mode == "discovery" {
+		return domain.ApplyResult{
+			Module:  "remote",
+			Changed: true,
+			Message: "bootstrap tecnico concluido; aguardando vinculo empresarial no portal",
+		}
+	}
 
 	return m.runSync(ctx, st, bootstrapResp.AgentToken, intent)
 }
@@ -543,12 +590,13 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 				"error_code", failure.Code,
 				"error", err,
 			)
-			st.AgentToken = ""
-			st.AgentTokenIssuedAt = time.Time{}
-			st.HostID = ""
-			st.CompanyID = ""
-			st.CompanyName = ""
-			st.RebootstrapRequired = true
+		st.AgentToken = ""
+		st.AgentTokenIssuedAt = time.Time{}
+		st.HostID = ""
+		st.CompanyID = ""
+		st.CompanyName = ""
+		st.PendingLinkReady = false
+		st.RebootstrapRequired = true
 			m.rememberFailure(st, runtimePhaseSync, err)
 			_ = m.saveState(ctx, st)
 			if intent.bootstrapEnabled && m.discoveryToken != "" {
@@ -1186,7 +1234,7 @@ func (m *Module) buildRuntimePlan(st *remoteState, intent remoteDesiredIntent) r
 	}
 }
 
-func (m *Module) resolveDiscoverDecision(resp *domain.RemoteDiscoverResponse) discoverDecision {
+func (m *Module) resolveDiscoverDecision(resp *domain.RemoteDiscoverResponse, st *remoteState) discoverDecision {
 	if resp == nil {
 		return discoverDecision{
 			phase:   runtimePhaseWait,
@@ -1196,11 +1244,23 @@ func (m *Module) resolveDiscoverDecision(resp *domain.RemoteDiscoverResponse) di
 	}
 
 	switch resp.BootstrapFlow {
-	case domain.RemoteBootstrapFlowPendingLink, domain.RemoteBootstrapFlowLinkedHostDetected:
+	case domain.RemoteBootstrapFlowPendingLink:
+		if st.PendingLinkReady {
+			return discoverDecision{
+				phase:   runtimePhaseWait,
+				flow:    resp.BootstrapFlow,
+				message: "instalacao tecnica concluida; aguardando vinculo empresarial no portal",
+			}
+		}
+		return discoverDecision{
+			phase: runtimePhaseBootstrap,
+			flow:  resp.BootstrapFlow,
+		}
+	case domain.RemoteBootstrapFlowLinkedHostDetected:
 		return discoverDecision{
 			phase:   runtimePhaseWait,
 			flow:    resp.BootstrapFlow,
-			message: "waiting for host link in portal before remote bootstrap",
+			message: "host ja vinculado no portal; aguardando heartbeat autenticado do remoto",
 		}
 	case domain.RemoteBootstrapFlowHostBootstrapRequired, domain.RemoteBootstrapFlowTokenInvalid:
 		return discoverDecision{

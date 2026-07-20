@@ -86,6 +86,14 @@ export type RemoteBootstrapHostContext = {
   bootstrapAuthorizedUntil: Date | null;
 };
 
+export type RemoteBootstrapDiscoveryContext = {
+  discoveredHostId: string;
+  discoveryStatus: "PENDING_LINK" | "LINKED" | "IGNORED" | null;
+  discoveryAgentExternalId: string | null;
+  discoveryMachineName: string | null;
+  discoveryLastHeartbeatAt: Date | null;
+};
+
 export type RemoteBootstrapConfigProfile = {
   serverHost: string | null;
   apiHost: string | null;
@@ -144,7 +152,9 @@ export type ProcessedBootstrapRecord = {
 };
 
 export interface RemoteBootstrapPort {
+  getExpectedDiscoveryToken(): string | null;
   resolveHostByInstallToken(installToken: string): Promise<RemoteBootstrapHostContext | null>;
+  resolvePendingBootstrapByDiscovery(discoveredHostId: string): Promise<RemoteBootstrapDiscoveryContext | null>;
   getConfigProfile(): Promise<RemoteBootstrapConfigProfile>;
   issueAgentToken(): Promise<IssuedAgentToken>;
   hashPublicKey(publicKey: string): string;

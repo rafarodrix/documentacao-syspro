@@ -79,10 +79,10 @@ func BuildAgentSetupView(
 		capabilities.Remote = &AgentCapabilityView{
 			Kind:       "remote",
 			ExternalID: strings.TrimSpace(context.RustDeskID),
-			Status:     "ready",
-			StatusText: "identificacao remota pronta",
+			Status:     normalizeCapabilityStatus(context.RemoteStatus),
+			StatusText: strings.TrimSpace(context.RemoteStatusText),
 			LastSyncAt: formatTimestamp(context.LastSyncAt),
-			Ready:      true,
+			Ready:      strings.TrimSpace(context.RemoteStatus) == "ready",
 		}
 	}
 
@@ -145,7 +145,7 @@ func buildPresentationParts(context SupportContext) (DeviceView, AgentInstallati
 			Status:     normalizeCapabilityStatus(context.RemoteStatus),
 			StatusText: strings.TrimSpace(context.RemoteStatusText),
 			LastSyncAt: formatTimestamp(context.LastSyncAt),
-			Ready:      strings.TrimSpace(context.RustDeskID) != "",
+			Ready:      strings.TrimSpace(context.RemoteStatus) == "ready",
 		}
 	}
 

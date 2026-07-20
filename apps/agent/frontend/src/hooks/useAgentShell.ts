@@ -337,7 +337,14 @@ export function useAgentShell() {
     activeStep,
     setupOverallState,
     overallState,
-    headerStatusLabel: route === "agent://support" ? supportBanner.label : setupView.complete ? "Online" : "Provisionando",
+    headerStatusLabel:
+      route === "agent://support"
+        ? supportBanner.label
+        : setupView.complete
+          ? setupView.capabilities.remote?.status === "pending"
+            ? "Pronto para vinculo"
+            : "Online"
+          : "Configurando",
     chatwootReady,
     chatwootLoading,
     remoteOpening,

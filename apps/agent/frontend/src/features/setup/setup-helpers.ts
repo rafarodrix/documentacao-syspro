@@ -2,7 +2,8 @@ import type { AgentSetupViewModel, SetupStepView } from "../../types/agent-ui";
 import { Route, normalizeRoute } from "../../types/route";
 
 const bootstrapFlowLabels: Record<string, string> = {
-  pending_link: "aguardando vinculo no portal",
+  pending_link: "pronto para bootstrap tecnico e aguardando vinculo no portal",
+  pending_link_bootstrapped: "instalacao concluida e aguardando vinculo no portal",
   host_bootstrap_required: "host vinculado sem credencial ativa",
   token_invalid: "credencial do host invalida ou expirada",
   linked_host_detected: "host vinculado detectado",
@@ -44,7 +45,7 @@ export function getSetupDetail(
   activeStep: SetupStepView | null | undefined,
   overallState: "complete" | "error" | "running" | "idle",
 ): string {
-  if (overallState === "complete") return "Provisionamento concluido. Revise as etapas executadas neste dispositivo.";
+  if (overallState === "complete") return "Instalacao concluida. Revise as etapas executadas neste dispositivo.";
   return formatSetupCopy(activeStep?.detail || status.summary || "Aguardando proxima etapa do onboarding.");
 }
 
@@ -74,8 +75,11 @@ export function getSetupHint(
     .join(" ")
     .toLowerCase();
 
+  if (combined.includes("pending_link_bootstrapped")) {
+    return "O acesso remoto ja foi preparado. Falta apenas concluir o vinculo empresarial no portal.";
+  }
   if (activeStep?.key === "link" || combined.includes("pending_link") || combined.includes("aguardando vincul")) {
-    return "Esta instalacao limpa depende do vinculo do host no portal antes do bootstrap do RustDesk.";
+    return "O agente ja pode preparar o acesso remoto antes do vinculo. O portal ainda precisa associar esta maquina a uma empresa.";
   }
   if (combined.includes("host_bootstrap_required")) {
     return "O host ja foi identificado, mas ainda nao recebeu uma credencial valida para concluir o bootstrap.";

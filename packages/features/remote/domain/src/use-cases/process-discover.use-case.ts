@@ -225,6 +225,6 @@ export async function processDiscover(
     bootstrapFlow: "pending_link",
     transition: transitions.pending_link,
     message:
-      "Maquina descoberta com sucesso. Este fluxo serve apenas para triagem inicial; depois do vinculo, use o bootstrap autenticado do host para emitir agentToken.",
+      "Maquina descoberta com sucesso. O bootstrap tecnico do RustDesk ja pode ocorrer antes do vinculo; o heartbeat autenticado continua sendo liberado apos a associacao no portal.",
   };
 }

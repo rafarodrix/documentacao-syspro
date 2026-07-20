@@ -351,6 +351,9 @@ export function createRemoteBootstrapPort(params: { logger: RemoteLogger; reques
   const { logger, requestIp } = params;
 
   return {
+    getExpectedDiscoveryToken() {
+      return process.env.REMOTE_DISCOVERY_TOKEN?.trim() || null;
+    },
     async resolveHostByInstallToken(installToken) {
       const host = await prisma.remoteHost.findFirst({
         where: { installToken },
@@ -402,6 +405,30 @@ export function createRemoteBootstrapPort(params: { logger: RemoteLogger; reques
         discoveryMachineName: host.discoveryRecord?.machineName ?? null,
         discoveryLastHeartbeatAt,
         bootstrapAuthorizedUntil,
+      };
+    },
+    async resolvePendingBootstrapByDiscovery(discoveredHostId) {
+      const discovery = await prisma.remoteDiscoveredHost.findFirst({
+        where: { id: discoveredHostId },
+        select: {
+          id: true,
+          status: true,
+          agentExternalId: true,
+          machineName: true,
+          lastHeartbeatAt: true,
+        },
+      });
+
+      if (!discovery) {
+        return null;
+      }
+
+      return {
+        discoveredHostId: discovery.id,
+        discoveryStatus: discovery.status,
+        discoveryAgentExternalId: discovery.agentExternalId,
+        discoveryMachineName: discovery.machineName,
+        discoveryLastHeartbeatAt: discovery.lastHeartbeatAt,
       };
     },
     async getConfigProfile() {

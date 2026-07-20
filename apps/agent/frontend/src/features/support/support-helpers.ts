@@ -35,7 +35,7 @@ export function resolveSupportBannerState(
 
     return {
       tone: setupView.progressPct > 0 ? "running" : "idle",
-      label: "Provisionando",
+      label: "Configurando",
       detail: "Configuracao do agente em andamento.",
     };
   }
@@ -52,8 +52,8 @@ export function resolveSupportBannerState(
   if (remote?.status === "pending") {
     return {
       tone: "running",
-      label: "Atencao",
-      detail: "Acesso remoto ainda em configuracao.",
+      label: "Aguardando vinculo",
+      detail: "Instalacao tecnica concluida. Falta apenas concluir o vinculo no portal.",
     };
   }
 
@@ -93,7 +93,7 @@ export function formatRelativeTime(value?: string | null): string {
 export function getRemoteOperationalLabel(remote: RemoteCapabilityView | null): string {
   if (!remote) return "Nao instalado";
   if (remote.status === "ready") return "Operacional";
-  if (remote.status === "pending") return "Configurando";
+  if (remote.status === "pending") return remote.externalId ? "Pronto para vinculo" : "Configurando";
   return "Indisponivel";
 }
 
@@ -110,7 +110,7 @@ export function getRemoteActionLabel(
   if (remoteOpening) return "Abrindo suporte remoto...";
   if (remoteResult?.needsRepair) return "Reparar acesso remoto";
   if (remote?.ready) return "Suporte remoto";
-  if (remote?.status === "pending") return "Suporte remoto em configuracao";
+  if (remote?.status === "pending") return remote.externalId ? "Abrir suporte remoto" : "Suporte remoto em configuracao";
   return "Suporte remoto indisponivel";
 }
 
@@ -152,7 +152,7 @@ export function buildOperationalStatusRows(
   return [
     {
       label: "Agente Trilink",
-      value: setupView.complete ? "Operacional" : "Provisionando",
+      value: setupView.complete ? "Operacional" : "Configurando",
       tone: setupView.complete ? "ok" : "warn",
     },
     {
@@ -180,7 +180,7 @@ export function summarizeOperationalHealth(
   }
 
   if (!remote?.lastSyncAt) {
-    issues.push("Sem confirmacao recente de comunicacao com o portal.");
+    issues.push(remote?.externalId ? "Instalacao concluida; aguardando vinculo empresarial para sincronizacao autenticada." : "Sem confirmacao recente de comunicacao com o portal.");
   }
 
   if (!remote?.ready) {

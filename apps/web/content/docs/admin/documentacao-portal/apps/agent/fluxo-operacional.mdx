@@ -133,7 +133,7 @@ O discovery continua existindo, mas agora deve ser lido como parte da capability
 
 | `bootstrapFlow` | Significado | Proximo passo |
 | --- | --- | --- |
-| `pending_link` | Maquina descoberta, mas ainda sem host vinculado | Aguardar vinculo |
+| `pending_link` | Maquina descoberta e apta ao bootstrap tecnico local, mas ainda sem host/empresa vinculados | Executar bootstrap tecnico e aguardar vinculo |
 | `linked_host_detected` | O `RemoteDiscoveredHost` ja esta vinculado no portal e segue aguardando ou reaproveitando bootstrap | Aguardar `installToken` |
 | `host_bootstrap_required` | O `RemoteDiscoveredHost` ja vinculado requer bootstrap autenticado | Bootstrap |
 | `token_invalid` | O `RemoteDiscoveredHost` ja vinculado tem credencial remota invalida ou rotacionada | Bootstrap |
@@ -155,12 +155,20 @@ Nos dois casos o backend continua sendo a fonte única do vínculo operacional e
 
 O `installToken` e o `agentToken` passam a ser credenciais da capability remota.
 
-Se o `discover` nao devolver `installToken`, o agente espera o proximo
-ciclo e nao tenta reaproveitar token local legado.
+Quando o `discover` responder `pending_link`, o agente ja pode chamar o
+bootstrap tecnico usando `discoveryToken + discoveredHostId` para instalar ou
+reconfigurar o RustDesk antes do vinculo empresarial.
+
+Se o `discover` nao devolver `installToken` em fluxo vinculado, o agente espera
+o proximo ciclo e nao tenta reaproveitar token local legado.
 
 O backend agora so aceita `bootstrap` quando esse `installToken` estiver
 amparado por um `discover` recente da mesma maquina vinculada. Token de
 instalacao sem triagem recente, ou vindo de identidade divergente, e rejeitado.
+
+No fluxo tecnico (`pending_link`), o backend exige `discover` recente da mesma
+maquina e `discoveryToken` valido, mas ainda nao emite `agentToken`. O sync
+autenticado continua reservado para depois do vinculo.
 
 Cada `discover` que exigir bootstrap emite um novo `installToken`, e o token
 anterior deixa de valer. Depois do bootstrap bem-sucedido, esse `installToken`
@@ -170,7 +178,8 @@ tambem e invalidado no portal.
 
 ```json
 {
-  "installToken": "rhost_...",
+  "discoveryToken": "DISCOVERY_TOKEN",
+  "discoveredHostId": "disc_...",
   "rustdeskId": "123456789",
   "machineName": "PC-CLIENTE-01",
   "agentVersion": "go-agent-v1",

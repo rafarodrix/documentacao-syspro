@@ -7,6 +7,7 @@ type SupportContext struct {
 	CompanyDisplayName string    `json:"companyDisplayName,omitempty"`
 	HostID             string    `json:"hostId,omitempty"`
 	HostAlias          string    `json:"hostAlias,omitempty"`
+	PendingLinkReady   bool      `json:"pendingLinkReady,omitempty"`
 	RustDeskID         string    `json:"rustdeskId,omitempty"`
 	RemoteStatus       string    `json:"remoteStatus,omitempty"`
 	RemoteStatusText   string    `json:"remoteStatusText,omitempty"`
@@ -27,6 +28,7 @@ type SupportConversationContext struct {
 	CompanyName      string   `json:"companyDisplayName,omitempty"`
 	HostID           string   `json:"hostId,omitempty"`
 	HostAlias        string   `json:"hostAlias,omitempty"`
+	PendingLinkReady bool     `json:"pendingLinkReady,omitempty"`
 	RustDeskID       string   `json:"rustdeskId,omitempty"`
 	RemoteStatus     string   `json:"remoteStatus,omitempty"`
 	RemoteStatusText string   `json:"remoteStatusText,omitempty"`
@@ -47,6 +49,7 @@ func (c SupportContext) ToConversationContext() SupportConversationContext {
 		CompanyName:      c.CompanyDisplayName,
 		HostID:           c.HostID,
 		HostAlias:        c.HostAlias,
+		PendingLinkReady: c.PendingLinkReady,
 		RustDeskID:       c.RustDeskID,
 		RemoteStatus:     c.RemoteStatus,
 		RemoteStatusText: c.RemoteStatusText,
@@ -67,6 +70,7 @@ type PersistedRemoteState struct {
 	CompanyID           string    `json:"company_id"`
 	CompanyName         string    `json:"company_name"`
 	HostID              string    `json:"host_id"`
+	PendingLinkReady    bool      `json:"pending_link_ready"`
 	Alias               string    `json:"alias"`
 	RustDeskID          string    `json:"rustdesk_id"`
 	DefaultPassword     string    `json:"default_password"`

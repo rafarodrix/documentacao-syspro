@@ -86,11 +86,29 @@ func validateBootstrapResponse(resp *domain.RemoteBootstrapResponse) error {
 		}
 	}
 
-	if strings.TrimSpace(resp.AgentToken) == "" || strings.TrimSpace(resp.HostID) == "" {
+	mode := strings.TrimSpace(strings.ToLower(resp.BootstrapMode))
+	switch mode {
+	case "", "host":
+		if strings.TrimSpace(resp.AgentToken) == "" || strings.TrimSpace(resp.HostID) == "" {
+			return &RemoteContractError{
+				Procedure: "bootstrap",
+				Code:      "REMOTE_BOOTSTRAP_CONTRACT_INCOMPLETE",
+				Message:   "portal returned an incomplete bootstrap response",
+			}
+		}
+	case "discovery":
+		if strings.TrimSpace(resp.Alias) == "" {
+			return &RemoteContractError{
+				Procedure: "bootstrap",
+				Code:      "REMOTE_BOOTSTRAP_CONTRACT_INCOMPLETE",
+				Message:   "portal returned an incomplete discovery bootstrap response",
+			}
+		}
+	default:
 		return &RemoteContractError{
 			Procedure: "bootstrap",
-			Code:      "REMOTE_BOOTSTRAP_CONTRACT_INCOMPLETE",
-			Message:   "portal returned an incomplete bootstrap response",
+			Code:      "REMOTE_BOOTSTRAP_MODE_INVALID",
+			Message:   fmt.Sprintf("portal returned unsupported bootstrap mode %q", strings.TrimSpace(resp.BootstrapMode)),
 		}
 	}
 

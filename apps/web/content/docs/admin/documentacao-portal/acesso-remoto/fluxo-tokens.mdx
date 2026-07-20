@@ -49,7 +49,7 @@ POST /api/remote/hosts/:id/agent-token
 
 ## installToken
 
-O `installToken` e usado apenas no bootstrap autenticado.
+O `installToken` e usado apenas no bootstrap autenticado de hosts ja vinculados.
 
 ### Regras atuais
 
@@ -73,7 +73,8 @@ O `discoveryToken` identifica a maquina antes do bootstrap.
 - E a unica credencial remota configurada localmente no agent
 - Permite descoberta e triagem inicial
 - Nao concede `sync` autenticado por si so
-- O portal responde com o estado operacional do host e informa se ja existe `installToken`
+- O portal responde com o estado operacional do host e, quando o item ainda estiver em `pending_link`, ja libera bootstrap tecnico com `discoveryToken + discoveredHostId`
+- O portal so informa `installToken` quando o host ja esta vinculado e apto a bootstrap autenticado
 - O agent aceita apenas o contrato `discover.v2`; payload/flow inesperado entra em erro estruturado local
 
 ### Resultados comuns
@@ -155,3 +156,7 @@ Quando o POST de ACK falha, a confirmacao entra em fila local persistida com:
 Se um host estiver vinculado mas o portal ainda nao devolver `installToken`,
 o agente permanece aguardando bootstrap autenticado. Ele nao usa mais
 `REMOTE_INSTALL_TOKEN` local legado para tentar completar o onboarding.
+
+Se o host ainda nao estiver vinculado, isso nao bloqueia mais a instalacao
+tecnica do remoto: o agent pode concluir bootstrap/configuracao local e ficar
+em estado "pronto para vinculo" ate a associacao empresarial no portal.

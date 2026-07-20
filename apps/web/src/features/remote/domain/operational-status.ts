@@ -79,8 +79,8 @@ export function getRemoteOperationalStatusMeta(status: RemoteOperationalStatus):
 export function getRemoteProductStatusMeta(status: RemoteProductStatus): RemoteProductStatusMeta {
   if (status === "AWAITING_LINK") {
     return {
-      label: "Aguardando vinculo",
-      description: "A maquina ja foi descoberta. Depois do vinculo, o agente instala o RustDesk se faltar ou reaproveita a instalacao existente aplicando a configuracao do portal.",
+      label: "Pronto para vinculo",
+      description: "A instalacao tecnica do agent ja pode estar concluida nesta maquina. Falta apenas associar o dispositivo a uma empresa no portal para liberar o heartbeat autenticado.",
       className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
       tone: "neutral",
       displayPriority: 20,

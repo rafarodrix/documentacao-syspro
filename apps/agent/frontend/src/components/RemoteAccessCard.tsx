@@ -12,12 +12,14 @@ type RemoteAccessCardProps = {
 export function RemoteAccessCard({ rustdeskId, status = "pending", statusText, lastSyncAt }: RemoteAccessCardProps) {
   const hasId = Boolean(rustdeskId);
   const formattedId = rustdeskId ? formatRustDeskId(rustdeskId) : null;
-  const pillLabel = status === "ready" ? "Disponivel" : status === "offline" ? "Indisponivel" : "Configurando";
+  const pillLabel = status === "ready" ? "Disponivel" : status === "offline" ? "Indisponivel" : hasId ? "Pronto para vinculo" : "Configurando";
   const detail = statusText?.trim()
     ? formatSetupCopy(statusText.trim())
     : status === "ready"
       ? "Acesso remoto pronto para uso."
-      : "Aguardando liberacao do bootstrap e sincronizacao do RustDesk.";
+      : hasId
+        ? "Acesso remoto preparado nesta maquina. O portal ainda precisa concluir o vinculo empresarial."
+        : "Aguardando bootstrap tecnico e sincronizacao inicial do RustDesk.";
 
   return (
     <div className="remote-access-card">
@@ -45,7 +47,7 @@ export function RemoteAccessCard({ rustdeskId, status = "pending", statusText, l
         <div className="remote-access-footer">
           <span className="remote-access-footer-label">ID RustDesk</span>
           <span className="remote-access-footer-value">
-            {lastSyncAt?.trim() ? `Ultima comunicacao registrada em ${new Date(lastSyncAt).toLocaleString("pt-BR")}` : "Sem sincronizacao registrada ainda."}
+            {lastSyncAt?.trim() ? `Ultima comunicacao registrada em ${new Date(lastSyncAt).toLocaleString("pt-BR")}` : hasId ? "Sem sync autenticado ainda. O discover segue ativo ate o vinculo." : "Sem sincronizacao registrada ainda."}
           </span>
         </div>
       </div>

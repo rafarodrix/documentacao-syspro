@@ -148,6 +148,7 @@ function buildAckPort(overrides: Partial<RemoteAckPort> = {}): RemoteAckPort {
 
 function buildBootstrapPort(overrides: Partial<RemoteBootstrapPort> = {}): RemoteBootstrapPort {
   const port: RemoteBootstrapPort = {
+    getExpectedDiscoveryToken: vi.fn(() => "DISCOVERY_TOKEN"),
     resolveHostByInstallToken: vi.fn(async () => ({
       hostId: "host-1",
       hostName: "ERP-MATRIZ-01",
@@ -163,6 +164,13 @@ function buildBootstrapPort(overrides: Partial<RemoteBootstrapPort> = {}): Remot
       discoveryMachineName: "ERP-MATRIZ-01",
       discoveryLastHeartbeatAt: new Date("2026-03-28T10:00:00.000Z"),
       bootstrapAuthorizedUntil: new Date("2026-03-28T10:30:00.000Z"),
+    })),
+    resolvePendingBootstrapByDiscovery: vi.fn(async () => ({
+      discoveredHostId: "disc-1",
+      discoveryStatus: "PENDING_LINK",
+      discoveryAgentExternalId: "21187620068",
+      discoveryMachineName: "ERP-MATRIZ-01",
+      discoveryLastHeartbeatAt: new Date("2026-03-28T10:00:00.000Z"),
     })),
     getConfigProfile: vi.fn(async () => ({
       serverHost: "acesso.trilinksoftware.com.br",
@@ -307,6 +315,30 @@ describe("agent token lifecycle", () => {
         reason: "INSTALL_TOKEN_IDENTITY_MISMATCH",
       }),
     );
+  });
+
+  it("accepts technical bootstrap while discovery is pending link", async () => {
+    const port = buildBootstrapPort();
+
+    const result = await processBootstrap(
+      {
+        discoveryToken: "DISCOVERY_TOKEN",
+        discoveredHostId: "disc-1",
+        rustdeskId: "21187620068",
+        machineName: "ERP-MATRIZ-01",
+        agentVersion: "1.4.6",
+      },
+      {
+        port,
+        now: () => new Date("2026-03-28T10:10:00.000Z"),
+      },
+    );
+
+    expect(result.bootstrapMode).toBe("discovery");
+    expect(result.agentToken).toBeNull();
+    expect(result.hostId).toBeNull();
+    expect(result.flow.stage).toBe("AWAITING_LINK");
+    expect(port.saveProcessedBootstrap).not.toHaveBeenCalled();
   });
 
   it("accepts sync when token is valid", async () => {

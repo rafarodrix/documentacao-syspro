@@ -137,6 +137,13 @@ func (s *Service) AgentSetupView(ctx context.Context) (AgentSetupView, error) {
 		progress = int(float64(completed) / float64(len(steps)) * 100)
 	}
 
+	if isPendingLinkReady(remoteState) {
+		complete = true
+		stage = "Instalacao concluida"
+		summary = "Agente instalado e acesso remoto preparado. Falta apenas vincular esta maquina no portal."
+		progress = 100
+	}
+
 	if !complete && lastError == "" {
 		for _, step := range steps {
 			if step.Status == "error" {
@@ -353,6 +360,7 @@ func (s *Service) buildSupportContext() SupportContext {
 		context.CompanyDisplayName = strings.TrimSpace(remoteState.CompanyName)
 		context.HostID = strings.TrimSpace(remoteState.HostID)
 		context.HostAlias = strings.TrimSpace(remoteState.Alias)
+		context.PendingLinkReady = remoteState.PendingLinkReady
 		context.RustDeskID = strings.TrimSpace(remoteState.RustDeskID)
 		context.MachineName = strings.TrimSpace(remoteState.MachineName)
 		context.LastSyncAt = remoteState.LastSyncAt
@@ -441,8 +449,10 @@ func resolveRemoteStatus(context SupportContext) (string, string) {
 	switch {
 	case context.RustDeskID != "" && (context.HostID != "" || context.HostAlias != ""):
 		return "ready", "identificacao remota pronta"
+	case context.PendingLinkReady && context.RustDeskID != "":
+		return "pending", "instalacao tecnica concluida; aguardando vinculo empresarial"
 	case context.RustDeskID != "":
-		return "pending", "RustDesk detectado, aguardando vinculo completo"
+		return "pending", "RustDesk detectado; configuracao tecnica em andamento"
 	case context.HostID != "" || context.HostAlias != "" || context.CompanyID != "":
 		return "pending", "vinculo remoto em preparacao"
 	default:
@@ -647,8 +657,10 @@ func deriveRustDeskInstallError(st persistedRemoteState, result *domain.ApplyRes
 
 func deriveRustDeskDetail(st persistedRemoteState) string {
 	switch {
+	case st.PendingLinkReady && st.RustDeskID != "":
+		return "RustDesk preparado nesta maquina. O portal ainda precisa apenas concluir o vinculo empresarial."
 	case st.LastBootstrapFlow == "pending_link" && st.HostID == "" && st.CompanyID == "":
-		return "Bootstrap do RustDesk sera liberado assim que o host for vinculado no portal."
+		return "A descoberta ja foi registrada. O bootstrap tecnico do RustDesk sera executado nesta mesma instalacao."
 	case st.RustDeskID != "":
 		return "RustDesk detectado no host: " + st.RustDeskID + ". Se necessario, o agente reaplica a configuracao desta instalacao."
 	case st.RustDeskExecutable != "":
@@ -662,10 +674,12 @@ func deriveLinkDetail(st persistedRemoteState) string {
 	switch {
 	case st.CompanyID != "" && st.CompanyName != "":
 		return "Empresa vinculada: " + st.CompanyName
+	case st.PendingLinkReady:
+		return "Instalacao concluida. Falta apenas associar esta maquina a uma empresa no portal."
 	case st.HostID != "":
 		return "Host remoto criado e aguardando vinculo empresarial."
 	case st.LastBootstrapFlow == "pending_link":
-		return "Maquina descoberta. Aguardando vinculo no portal para liberar o bootstrap do RustDesk."
+		return "Maquina descoberta. O portal ainda precisa concluir o vinculo empresarial."
 	default:
 		return "Aguardando vinculacao da maquina a um host/empresa no portal."
 	}
@@ -692,11 +706,17 @@ func deriveSyncDetail(st persistedRemoteState, current domain.CurrentState) stri
 	switch {
 	case isRemoteOperational(st, current):
 		return "Configuracao remota sincronizada e operacional."
+	case st.PendingLinkReady:
+		return "A comunicacao tecnica foi preparada. O sync autenticado sera liberado apos o vinculo empresarial."
 	case st.AgentToken != "":
 		return "Credencial remota emitida; aguardando sincronizacao final."
 	default:
 		return "Aguardando bootstrap e sync autenticado do remoto."
 	}
+}
+
+func isPendingLinkReady(st persistedRemoteState) bool {
+	return st.PendingLinkReady && st.RustDeskID != "" && !st.RebootstrapRequired
 }
 
 func isRemoteOperational(st persistedRemoteState, current domain.CurrentState) bool {
@@ -718,7 +738,9 @@ func deriveStructuredRemoteError(st persistedRemoteState, phases ...string) stri
 func describeBootstrapFlow(flow string) string {
 	switch strings.TrimSpace(strings.ToLower(flow)) {
 	case "pending_link":
-		return "Maquina descoberta e aguardando vinculo no portal."
+		return "Maquina descoberta. O bootstrap tecnico pode seguir antes do vinculo."
+	case "pending_link_bootstrapped":
+		return "Instalacao tecnica concluida. Aguardando vinculo empresarial no portal."
 	case "host_bootstrap_required":
 		return "Host vinculado sem agentToken ativo. Bootstrap autenticado necessario."
 	case "token_invalid":

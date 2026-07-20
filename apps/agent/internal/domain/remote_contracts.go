@@ -92,28 +92,30 @@ type RemoteDiscoverResponse struct {
 }
 
 type RemoteBootstrapRequest struct {
-	InstallToken   string `json:"installToken"`
-	RustDeskID     string `json:"rustdeskId,omitempty"`
-	MachineName    string `json:"machineName,omitempty"`
-	AgentVersion   string `json:"agentVersion,omitempty"`
-	Environment    string `json:"environment,omitempty"`
-	CurrentAlias   string `json:"currentAlias,omitempty"`
-	CurrentVersion string `json:"currentVersion,omitempty"`
-	ServerHost     string `json:"serverHost,omitempty"`
-	APIHost        string `json:"apiHost,omitempty"`
-	PublicKey      string `json:"publicKey,omitempty"`
+	InstallToken     string `json:"installToken,omitempty"`
+	DiscoveryToken   string `json:"discoveryToken,omitempty"`
+	DiscoveredHostID string `json:"discoveredHostId,omitempty"`
+	RustDeskID       string `json:"rustdeskId,omitempty"`
+	MachineName      string `json:"machineName,omitempty"`
+	AgentVersion     string `json:"agentVersion,omitempty"`
+	Environment      string `json:"environment,omitempty"`
+	CurrentAlias     string `json:"currentAlias,omitempty"`
+	CurrentVersion   string `json:"currentVersion,omitempty"`
+	ServerHost       string `json:"serverHost,omitempty"`
+	APIHost          string `json:"apiHost,omitempty"`
+	PublicKey        string `json:"publicKey,omitempty"`
 }
 
 type RemoteBootstrapResponse struct {
 	ContractVersion          string `json:"contractVersion"`
 	BootstrapMode            string `json:"bootstrapMode"`
-	HostID                   string `json:"hostId"`
-	CompanyID                string `json:"companyId"`
+	HostID                   string `json:"hostId,omitempty"`
+	CompanyID                string `json:"companyId,omitempty"`
 	CompanyName              string `json:"companyName,omitempty"`
 	Alias                    string `json:"alias"`
 	RustDeskID               string `json:"rustdeskId"`
 	MachineName              string `json:"machineName"`
-	AgentToken               string `json:"agentToken"`
+	AgentToken               string `json:"agentToken,omitempty"`
 	AgentTokenIssuedAt       string `json:"agentTokenIssuedAt"`
 	AgentTokenExpiresAt      string `json:"agentTokenExpiresAt"`
 	ServerHost               string `json:"serverHost"`

@@ -37,25 +37,40 @@ export const processHeartbeatInputSchema = z.object({
     .optional(),
 });
 
-export const processBootstrapInputSchema = z.object({
-  installToken: z.string().trim().min(1),
-  rustdeskId: z.string().trim().min(1).nullable().optional(),
-  machineName: z.string().trim().min(1).nullable().optional(),
-  agentVersion: z.string().trim().min(1).nullable().optional(),
-  environment: z.string().trim().min(1).nullable().optional(),
-  currentAlias: z.string().trim().min(1).nullable().optional(),
-  currentVersion: z.string().trim().min(1).nullable().optional(),
-  serverHost: z.string().trim().min(1).nullable().optional(),
-  apiHost: z.string().trim().min(1).nullable().optional(),
-  publicKey: z.string().trim().min(1).nullable().optional(),
-  metadata: z
-    .object({
-      ip: z.string().trim().min(1).nullable().optional(),
-      userAgent: z.string().trim().min(1).nullable().optional(),
-      correlationId: z.string().trim().min(1).nullable().optional(),
-    })
-    .optional(),
-});
+export const processBootstrapInputSchema = z
+  .object({
+    installToken: z.string().trim().min(1).optional(),
+    discoveryToken: z.string().trim().min(1).optional(),
+    discoveredHostId: z.string().trim().min(1).optional(),
+    rustdeskId: z.string().trim().min(1).nullable().optional(),
+    machineName: z.string().trim().min(1).nullable().optional(),
+    agentVersion: z.string().trim().min(1).nullable().optional(),
+    environment: z.string().trim().min(1).nullable().optional(),
+    currentAlias: z.string().trim().min(1).nullable().optional(),
+    currentVersion: z.string().trim().min(1).nullable().optional(),
+    serverHost: z.string().trim().min(1).nullable().optional(),
+    apiHost: z.string().trim().min(1).nullable().optional(),
+    publicKey: z.string().trim().min(1).nullable().optional(),
+    metadata: z
+      .object({
+        ip: z.string().trim().min(1).nullable().optional(),
+        userAgent: z.string().trim().min(1).nullable().optional(),
+        correlationId: z.string().trim().min(1).nullable().optional(),
+      })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    const hasInstallToken = !!value.installToken?.trim();
+    const hasDiscoveryBootstrap = !!value.discoveryToken?.trim() && !!value.discoveredHostId?.trim();
+
+    if (!hasInstallToken && !hasDiscoveryBootstrap) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "installToken or discovery bootstrap credentials are required",
+        path: ["installToken"],
+      });
+    }
+  });
 
 export const processAckInputSchema = z.object({
   schemaVersion: z.literal(AGENT_ACK_SCHEMA_VERSION),
@@ -215,14 +230,14 @@ export type ProcessHeartbeatOutput = {
 
 export type ProcessBootstrapOutput = {
   contractVersion: "rustdesk.bootstrap.v1";
-  bootstrapMode: "host";
-  hostId: string;
-  companyId: string;
-  companyName: string;
+  bootstrapMode: "host" | "discovery";
+  hostId: string | null;
+  companyId: string | null;
+  companyName: string | null;
   alias: string;
   rustdeskId: string | null;
   machineName: string | null;
-  agentToken: string;
+  agentToken: string | null;
   agentTokenIssuedAt: string | null;
   agentTokenExpiresAt: string | null;
   serverHost: string | null;
@@ -247,12 +262,12 @@ export type ProcessBootstrapOutput = {
   enableDirectXCapture: boolean;
   compliance: BootstrapCompliance;
   flow: {
-    stage: "BOOTSTRAPPED";
-    nextStep: "call_sync_with_agent_token";
-    nextEndpoint: "/api/remote/rustdesk/sync";
+    stage: "BOOTSTRAPPED" | "AWAITING_LINK";
+    nextStep: "call_sync_with_agent_token" | "continue_discover_until_linked";
+    nextEndpoint: "/api/remote/rustdesk/sync" | "/api/remote/agents/discover";
     discoverRole: "triage_only";
   };
-  actions: ["bootstrap_complete"];
+  actions: Array<"bootstrap_complete" | "await_link">;
 };
 
 export type ProcessAckOutput = {
@@ -546,6 +561,4 @@ export type RevokeAddressBookCredentialOutput = {
   alreadyRevoked: boolean;
   message: string;
 };
-
-
 

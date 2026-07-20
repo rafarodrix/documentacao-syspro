@@ -15,6 +15,9 @@ var localStructuredErrorMessages = map[string]string{
 	"REMOTE_DISCOVER_CONTRACT_INCOMPLETE":    "portal returned an incomplete discover response",
 	"REMOTE_DISCOVER_INSTALL_TOKEN_REQUIRED": "portal omitted installToken for bootstrap-required discover flow",
 	"REMOTE_BOOTSTRAP_CONTRACT_INCOMPLETE":   "portal returned an incomplete bootstrap response",
+	"DISCOVERY_BOOTSTRAP_DISCOVER_REQUIRED":  "recent discover heartbeat required before technical bootstrap",
+	"DISCOVERY_BOOTSTRAP_IDENTITY_MISMATCH":  "machine identity diverges from the pending discover record",
+	"DISCOVERY_TOKEN_INVALID":                "discovery token invalid for technical bootstrap",
 	"REMOTE_SYNC_CONTRACT_INCOMPLETE":        "portal returned an incomplete sync response",
 }
 
