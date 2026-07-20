@@ -4,31 +4,39 @@ import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { formatInstallationHeartbeatLag, getInstallationOfflineWarningMessage } from "@/features/agents/domain/agent-installation-status";
 
-export function LinkedInstallationCard({ device }: { device: AgentInstallationSummary }) {
+export function LinkedInstallationCard({
+  device,
+  showNavigation = true,
+}: {
+  device: AgentInstallationSummary;
+  showNavigation?: boolean;
+}) {
   return (
     <Card className="border-border/40 bg-card/65 backdrop-blur-md shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-2 text-base font-semibold">
             <Cpu className="h-4 w-4 text-primary" />
-            Dispositivo vinculado
+            Instalação do agente
           </span>
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/portal/infraestrutura/agentes/${encodeURIComponent(device.deviceId)}`}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
-            >
-              Ver detalhes
-              <ExternalLink className="h-3 w-3" />
-            </Link>
-            <Link
-              href="/portal/infraestrutura?tab=agentes"
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
-            >
-              Ver todos
-              <ExternalLink className="h-3 w-3" />
-            </Link>
-          </div>
+          {showNavigation ? (
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/portal/infraestrutura/agentes/${encodeURIComponent(device.deviceId)}`}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
+              >
+                Ver detalhes
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+              <Link
+                href="/portal/infraestrutura?tab=agentes"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
+              >
+                Ver todos
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            </div>
+          ) : null}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -438,6 +438,7 @@ export function RemoteHostDetailsPanel({
       <HostHeroHeader
         host={host}
         heartbeat={heartbeat}
+        windowsComputerName={windowsComputerName}
         normalizedRustdeskId={normalizedRustdeskId}
         machineIpv4={machineIpv4}
         ticketNumber={ticketNumber}

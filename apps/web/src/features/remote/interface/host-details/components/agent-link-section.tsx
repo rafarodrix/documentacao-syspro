@@ -10,13 +10,19 @@ import { fetchAgentInstallationListClient } from "@/features/agents/application/
 import { patchAgentInstallation } from "@/features/agents/application/agent-write.actions";
 import { LinkedInstallationCard } from "./linked-installation-card";
 
+type Props = {
+  hostId: string;
+  linkedDevice: AgentInstallationSummary | null;
+  showNavigation?: boolean;
+  showUnlink?: boolean;
+};
+
 export function AgentLinkSection({
   hostId,
   linkedDevice,
-}: {
-  hostId: string;
-  linkedDevice: AgentInstallationSummary | null;
-}) {
+  showNavigation = true,
+  showUnlink = true,
+}: Props) {
   const router = useRouter();
   const [isLinking, startLinking] = useTransition();
   const [isUnlinking, startUnlinking] = useTransition();
@@ -38,11 +44,11 @@ export function AgentLinkSection({
     startLinking(async () => {
       try {
         await patchAgentInstallation(deviceId, { remoteHostId: hostId });
-        toast.success("Dispositivo vinculado com sucesso.");
+        toast.success("Instalação do agente vinculada com sucesso.");
         setPickerOpen(false);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Erro ao vincular dispositivo.");
+        toast.error(err instanceof Error ? err.message : "Erro ao vincular instalação do agente.");
       }
     });
   }
@@ -52,10 +58,10 @@ export function AgentLinkSection({
     startUnlinking(async () => {
       try {
         await patchAgentInstallation(linkedDevice.deviceId, { remoteHostId: null });
-        toast.success("Dispositivo desvinculado.");
+        toast.success("Instalação do agente desvinculada.");
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Erro ao desvincular dispositivo.");
+        toast.error(err instanceof Error ? err.message : "Erro ao desvincular instalação do agente.");
       }
     });
   }
@@ -63,46 +69,47 @@ export function AgentLinkSection({
   if (linkedDevice) {
     return (
       <div className="space-y-2">
-        <LinkedInstallationCard device={linkedDevice} />
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full gap-1.5 text-muted-foreground hover:text-destructive"
-              disabled={isUnlinking}
-            >
-              {isUnlinking ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Unlink className="h-3 w-3" />
-              )}
-              Desvincular dispositivo
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Desvincular dispositivo?</AlertDialogTitle>
-              <AlertDialogDescription>
-                O dispositivo{" "}
-                <span className="font-mono font-medium">
-                  {linkedDevice.hostname ?? linkedDevice.deviceId}
-                </span>{" "}
-                será desvinculado deste host. O match automático por hostname pode
-                recriá-lo no próximo heartbeat do agente.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleUnlink}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        <LinkedInstallationCard device={linkedDevice} showNavigation={showNavigation} />
+        {showUnlink ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full gap-1.5 text-muted-foreground hover:text-destructive"
+                disabled={isUnlinking}
               >
-                Desvincular
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                {isUnlinking ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Unlink className="h-3 w-3" />
+                )}
+                Desvincular instalação do agente
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Desvincular instalação do agente?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  A instalação{" "}
+                  <span className="font-mono font-medium">
+                    {linkedDevice.hostname ?? linkedDevice.deviceId}
+                  </span>{" "}
+                  será desvinculada deste dispositivo. O match automático por hostname pode recriá-la no próximo heartbeat do agente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleUnlink}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Desvincular
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
       </div>
     );
   }
@@ -111,21 +118,21 @@ export function AgentLinkSection({
     <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
       <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 p-6 text-center">
         <Cpu className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-        <p className="text-sm font-medium text-muted-foreground">Nenhum dispositivo vinculado</p>
+        <p className="text-sm font-medium text-muted-foreground">Nenhuma instalação do agente vinculada</p>
         <p className="mt-1 text-xs text-muted-foreground">
           O match automático por hostname ocorre no próximo heartbeat do agente.
         </p>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="mt-4 gap-2" disabled={isLinking}>
             <Link2 className="h-3.5 w-3.5" />
-            Vincular dispositivo
+            Vincular instalação do agente
           </Button>
         </DialogTrigger>
       </div>
 
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Vincular dispositivo ao host</DialogTitle>
+          <DialogTitle>Vincular instalação do agente ao dispositivo</DialogTitle>
         </DialogHeader>
 
         <div className="relative">

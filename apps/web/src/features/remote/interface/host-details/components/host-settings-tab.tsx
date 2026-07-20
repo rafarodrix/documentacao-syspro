@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { ArrowRightLeft, Copy, Fingerprint, HardDriveDownload, RefreshCcw, Trash2, ArrowUpCircle } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { MACHINE_PROFILE_LABEL } from "../host-details.constants";
@@ -63,10 +62,10 @@ export function HostSettingsTab(props: Props) {
       <div className="w-full md:w-64 shrink-0">
         <TabsList className="flex flex-col h-auto w-full items-stretch justify-start space-y-1 bg-transparent p-0">
           <TabsTrigger value="geral" className="justify-start px-4 py-2.5 text-left data-[state=active]:bg-muted">
-            Configurações Gerais
+            Identificação do dispositivo
           </TabsTrigger>
           <TabsTrigger value="instalacoes" className="justify-start px-4 py-2.5 text-left data-[state=active]:bg-muted">
-            Empresas e Pastas
+            Empresas e instalações
           </TabsTrigger>
           <TabsTrigger value="agente" className="justify-start px-4 py-2.5 text-left data-[state=active]:bg-muted">
             Agente e Sincronização
@@ -84,12 +83,12 @@ export function HostSettingsTab(props: Props) {
         <TabsContent value="geral" className="space-y-6 m-0">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Identidade do host</CardTitle>
-              <CardDescription>Nome e perfil da máquina usados pelo portal para identificação e filtragem.</CardDescription>
+              <CardTitle className="text-lg">Identificação do dispositivo</CardTitle>
+              <CardDescription>Nome operacional e função usados pelo portal para representar este dispositivo.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Tipo do host</p>
+                <p className="text-xs text-muted-foreground">Função do dispositivo</p>
                 <Select
                   value={projectedMachineProfile ?? "__none__"}
                   onValueChange={(value) =>
@@ -98,7 +97,7 @@ export function HostSettingsTab(props: Props) {
                   disabled={isSavingMachineName}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <SelectValue placeholder="Selecione a função" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Não definido</SelectItem>
@@ -117,20 +116,8 @@ export function HostSettingsTab(props: Props) {
                 className="gap-2"
               >
                 {isSavingMachineName ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
-                {isSavingMachineName ? "Salvando..." : "Salvar host"}
+                {isSavingMachineName ? "Salvando..." : "Salvar dispositivo"}
               </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg">Dispositivo Físico Vinculado</CardTitle>
-              <CardDescription>
-                Máquina associada a este host remoto. O vínculo permite correlacionar telemetria com inventário de hardware.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AgentLinkSection hostId={details.host.id} linkedDevice={linkedDevice ?? null} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -169,6 +156,23 @@ export function HostSettingsTab(props: Props) {
         </TabsContent>
 
         <TabsContent value="agente" className="space-y-6 m-0">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Instalação do agente</CardTitle>
+              <CardDescription>
+                Estado do runtime instalado neste dispositivo e vínculo usado para heartbeat e sincronização.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AgentLinkSection
+                hostId={details.host.id}
+                linkedDevice={linkedDevice ?? null}
+                showNavigation={false}
+                showUnlink={false}
+              />
+            </CardContent>
+          </Card>
+
           <SettingsAgentView
             host={host as any}
             orchestrationStrategy={props.orchestrationStrategy}

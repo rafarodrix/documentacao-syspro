@@ -15,6 +15,7 @@ type Heartbeat = {
 type Props = {
   host: RemoteHostDetails["host"];
   heartbeat: Heartbeat;
+  windowsComputerName: string | null;
   normalizedRustdeskId: string | null;
   machineIpv4: string | null;
   ticketNumber: string | null;
@@ -26,6 +27,7 @@ type Props = {
 export function HostHeroHeader({
   host,
   heartbeat,
+  windowsComputerName,
   normalizedRustdeskId,
   machineIpv4,
   ticketNumber,
@@ -33,6 +35,10 @@ export function HostHeroHeader({
   isMobileClient,
   onStartSession,
 }: Props) {
+  const resolvedHostname = windowsComputerName?.trim() || null;
+  const resolvedTitle = host.name?.trim() || resolvedHostname || "Dispositivo";
+  const showHostname = !!resolvedHostname && resolvedHostname.localeCompare(resolvedTitle, "pt-BR", { sensitivity: "base" }) !== 0;
+
   return (
     <div className="sticky top-0 z-30 -mx-6 -mt-6 mb-6 border-b border-border/45 bg-gradient-to-r from-background/80 via-background/75 to-muted/20 px-6 py-4 backdrop-blur-xl shadow-sm transition-all animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -47,7 +53,7 @@ export function HostHeroHeader({
           <div className="min-w-0 space-y-0.5">
             <div className="flex items-center gap-2.5">
               <h1 className="truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">
-                {host.name}
+                {resolvedTitle}
               </h1>
               
               <div className="relative flex h-2.5 w-2.5 shrink-0 items-center justify-center">
@@ -61,6 +67,11 @@ export function HostHeroHeader({
                 )}
               </div>
             </div>
+            {showHostname ? (
+              <p className="text-xs text-muted-foreground">
+                Hostname: <span className="font-mono text-foreground">{resolvedHostname}</span>
+              </p>
+            ) : null}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1 font-mono text-primary/85 font-medium">
                 <Fingerprint className="h-3 w-3" />
