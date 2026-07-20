@@ -518,16 +518,45 @@ type sysproInstallationManifest struct {
 	Version     string `json:"version"`
 }
 
+func parseSysproManifestTimestamp(value string) (time.Time, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return time.Time{}, false
+	}
+
+	layouts := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	}
+
+	for _, layout := range layouts {
+		parsed, err := time.Parse(layout, value)
+		if err == nil {
+			return parsed.UTC(), true
+		}
+	}
+	return time.Time{}, false
+}
+
 func readSysproUpdateInformation(serverRoot, executablePath, isapiDLLPath string) SysproUpdateInfo {
+	var manifestTimestamp time.Time
+	var manifestAvailable bool
+
 	manifestPath := filepath.Join(serverRoot, "syspro-installation.json")
 	if payload, err := os.ReadFile(manifestPath); err == nil {
 		var manifest sysproInstallationManifest
 		if json.Unmarshal(payload, &manifest) == nil {
 			if timestamp := strings.TrimSpace(coalesceNonEmpty(manifest.UpdatedAt, manifest.InstalledAt)); timestamp != "" {
-				return SysproUpdateInfo{
-					UpdatedAt:  timestamp,
-					Source:     "INSTALLATION_MANIFEST",
-					Confidence: "CONFIRMED",
+				manifestTimestamp, manifestAvailable = parseSysproManifestTimestamp(timestamp)
+				if !manifestAvailable {
+					return SysproUpdateInfo{
+						UpdatedAt:  timestamp,
+						Source:     "INSTALLATION_MANIFEST",
+						Confidence: "CONFIRMED",
+					}
 				}
 			}
 		}
@@ -540,8 +569,24 @@ func readSysproUpdateInformation(serverRoot, executablePath, isapiDLLPath string
 		}
 	}
 	if latest.IsZero() {
+		if manifestAvailable {
+			return SysproUpdateInfo{
+				UpdatedAt:  manifestTimestamp.Format(time.RFC3339),
+				Source:     "INSTALLATION_MANIFEST",
+				Confidence: "CONFIRMED",
+			}
+		}
 		return SysproUpdateInfo{}
 	}
+
+	if manifestAvailable && !manifestTimestamp.Before(latest.UTC()) {
+		return SysproUpdateInfo{
+			UpdatedAt:  manifestTimestamp.Format(time.RFC3339),
+			Source:     "INSTALLATION_MANIFEST",
+			Confidence: "CONFIRMED",
+		}
+	}
+
 	return SysproUpdateInfo{
 		UpdatedAt:  latest.UTC().Format(time.RFC3339),
 		Source:     "CORE_FILES_LAST_WRITE",
