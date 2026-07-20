@@ -321,11 +321,14 @@ export class AgentsService {
       if (!match) return;
 
 
+      const targetCompanyId = match.companyId;
+      const shouldPropagateToAgent = targetCompanyId !== companyId;
+
       await this.prisma.$transaction(async (tx) => {
-        if (match.companyId && !companyId) {
+        if (shouldPropagateToAgent) {
           await tx.agentInstallation.update({
             where: { id: installationId },
-            data: { companyId: match.companyId },
+            data: { companyId: targetCompanyId },
           });
         }
 
@@ -341,14 +344,14 @@ export class AgentsService {
             kind: 'REMOTE',
             status: 'ACTIVE',
             externalId: linkContext.rustdeskId ?? null,
-            companyId: match.companyId ?? companyId ?? null,
+            companyId: targetCompanyId,
             remoteHostId: match.id,
             lastSeenAt: new Date(),
           },
           update: {
             status: 'ACTIVE',
             externalId: linkContext.rustdeskId ?? undefined,
-            companyId: match.companyId ?? companyId ?? undefined,
+            companyId: targetCompanyId,
             remoteHostId: match.id,
             lastSeenAt: new Date(),
           },
@@ -361,7 +364,7 @@ export class AgentsService {
         remoteHostId: match.id,
         rustdeskId: linkContext.rustdeskId,
         linkedBy: linkContext.remoteHostId ? 'remote_host_id' : 'rustdesk_id',
-        companyIdPropagated: !!(match.companyId && !companyId),
+        companyIdPropagated: shouldPropagateToAgent,
       });
     } catch (err) {
       this.logger.warn({ event: 'agent.host_link_failed', deviceId, error: String(err) });

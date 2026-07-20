@@ -13,8 +13,14 @@ $legacyRoots = @(
 $helperHints = @(
     "configure_agent_helper.ps1",
     "configure-agent-helper.cmd",
+    "start-agent-from-env.ps1",
+    "start-agent-from-env.cmd",
+    "remote_state.json",
     "trilink\\agent\\scripts",
-    "remote_install_token"
+    "remote_install_token",
+    "installtoken",
+    "/api/remote/agents/discover",
+    "/api/remote/rustdesk/bootstrap"
 )
 
 function Write-Info {
@@ -194,13 +200,30 @@ function Remove-LegacyHelperFiles {
     foreach ($root in $legacyRoots) {
         foreach ($relativePath in @(
             "scripts\\configure_agent_helper.ps1",
-            "scripts\\configure-agent-helper.cmd"
+            "scripts\\configure-agent-helper.cmd",
+            "start-agent-from-env.ps1",
+            "start-agent-from-env.cmd"
         )) {
             $target = Join-Path $root $relativePath
             if (Test-Path -LiteralPath $target) {
                 Write-Info ("Removendo helper legado: " + $target)
                 Remove-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue
             }
+        }
+    }
+}
+
+function Remove-LegacyInstallRoots {
+    foreach ($root in $legacyRoots) {
+        if (-not (Test-Path -LiteralPath $root)) {
+            continue
+        }
+
+        try {
+            Write-Info ("Removendo arvore legado: " + $root)
+            Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction Stop
+        } catch {
+            Write-Info ("Falha ao remover arvore legada " + $root + ": " + $_.Exception.Message)
         }
     }
 }
@@ -235,5 +258,6 @@ Remove-LegacyRunEntries
 Remove-LegacyScheduledTasks
 Remove-LegacyStartupArtifacts
 Remove-LegacyHelperFiles
+Remove-LegacyInstallRoots
 SanitizeLegacyRemoteState
 Write-Info "Limpeza de residuos legados concluida."
