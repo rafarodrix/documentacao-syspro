@@ -55,7 +55,7 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 	uiStateService := uistate.NewService(cfg.Paths.StateDir, uistate.ChatwootConfig{
 		BaseURL:      cfg.Support.ChatwootBaseURL,
 		WebsiteToken: cfg.Support.ChatwootWebsiteToken,
-	}, cfg.Agent.Version, portalClient)
+	}, cfg.Agent.Version, portalClient, desiredStateService)
 
 	deviceMod := devicemodule.New(logger)
 

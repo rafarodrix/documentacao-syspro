@@ -55,7 +55,7 @@ func (s *Service) Start(ctx context.Context) error {
 			// Add 15% random jitter using simple pseudo-random noise
 			// to avoid seeding issues or heavy imports
 			noise := float64(time.Now().UnixNano()%1000) / 1000.0 // value between 0.0 and 1.0
-			jitterPercent := 0.15 * (2.0*noise - 1.0)              // value between -0.15 and +0.15
+			jitterPercent := 0.15 * (2.0*noise - 1.0)             // value between -0.15 and +0.15
 			delay = delay + time.Duration(float64(delay)*jitterPercent)
 		}
 
@@ -87,6 +87,10 @@ func (s *Service) fetchOnce(ctx context.Context) error {
 		return err
 	}
 
+	if saveErr := s.store.SaveJSON(ctx, "desired_state.json", state); saveErr != nil {
+		s.logger.Warn("persist desired state failed", "version", state.Version, "error", saveErr)
+	}
+
 	if state.Version != s.last.Version {
 		s.logger.Info("desired state changed",
 			"old_version", s.last.Version,
@@ -94,8 +98,6 @@ func (s *Service) fetchOnce(ctx context.Context) error {
 		)
 
 		s.last = state
-
-		_ = s.store.SaveJSON(ctx, "desired_state.json", state)
 
 		_ = s.events.Publish(ctx, domain.TelemetryEvent{
 			Type:       "desired_state_updated",
@@ -107,6 +109,8 @@ func (s *Service) fetchOnce(ctx context.Context) error {
 				"version": state.Version,
 			},
 		})
+	} else {
+		s.last = state
 	}
 
 	s.logger.Debug("desired state checked", "version", state.Version)

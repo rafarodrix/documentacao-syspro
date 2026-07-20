@@ -30,7 +30,7 @@ func BootstrapUI(ctx context.Context) (*Container, error) {
 	localUIState := uistate.NewService(cfg.Paths.StateDir, uistate.ChatwootConfig{
 		BaseURL:      cfg.Support.ChatwootBaseURL,
 		WebsiteToken: cfg.Support.ChatwootWebsiteToken,
-	}, cfg.Agent.Version, nil)
+	}, cfg.Agent.Version, nil, nil)
 	wailsHost := uiwails.NewHost(logger, ipcClient, localUIState)
 	agentUIService := ui.NewService(logger, trayService, trayService, ipcClient, ipcClient, ipcClient, ipcClient, wailsHost, trayService)
 

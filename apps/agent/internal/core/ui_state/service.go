@@ -58,11 +58,13 @@ type SupportContextSyncResult struct {
 	Message  string `json:"message"`
 }
 
-func (s *Service) AgentSetupView(ctx context.Context) (AgentSetupView, error) {
-	_ = ctx
+type DesiredStateProvider interface {
+	GetLast(ctx context.Context) (domain.DesiredState, error)
+}
 
+func (s *Service) AgentSetupView(ctx context.Context) (AgentSetupView, error) {
 	context := s.buildSupportContext()
-	desired, _ := loadJSON[domain.DesiredState](filepath.Join(s.stateDir, "desired_state.json"))
+	desired, _ := s.loadDesiredState(ctx)
 	current, _ := loadJSON[domain.CurrentState](filepath.Join(s.stateDir, "current_state.json"))
 	results, _ := loadJSON[[]domain.ApplyResult](filepath.Join(s.stateDir, "apply_results.json"))
 	remoteState, _ := s.loadPersistedRemoteState()
@@ -186,6 +188,7 @@ type Service struct {
 	chatwoot     ChatwootConfig
 	agentVersion string
 	publisher    SupportContextPublisher
+	desired      DesiredStateProvider
 }
 
 type uiStateStorageLogger struct{}
@@ -199,13 +202,25 @@ func NewService(
 	chatwoot ChatwootConfig,
 	agentVersion string,
 	publisher SupportContextPublisher,
+	desired DesiredStateProvider,
 ) *Service {
 	return &Service{
 		stateDir:     stateDir,
 		chatwoot:     chatwoot,
 		agentVersion: strings.TrimSpace(agentVersion),
 		publisher:    publisher,
+		desired:      desired,
 	}
+}
+
+func (s *Service) loadDesiredState(ctx context.Context) (domain.DesiredState, error) {
+	if s.desired != nil {
+		if desired, err := s.desired.GetLast(ctx); err == nil {
+			return desired, nil
+		}
+	}
+
+	return loadJSON[domain.DesiredState](filepath.Join(s.stateDir, "desired_state.json"))
 }
 
 func (s *Service) Snapshot(ctx context.Context) (Summary, error) {

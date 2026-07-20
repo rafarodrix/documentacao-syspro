@@ -16,6 +16,15 @@ type noopLogger struct{}
 
 func (noopLogger) Warn(string, ...any) {}
 
+type stubDesiredStateProvider struct {
+	state domain.DesiredState
+	err   error
+}
+
+func (s stubDesiredStateProvider) GetLast(context.Context) (domain.DesiredState, error) {
+	return s.state, s.err
+}
+
 func TestAgentSetupViewPrioritizesPortalLinkBeforeRustDesk(t *testing.T) {
 	store, localStore, stateDir := newTestStateStore(t)
 
@@ -45,7 +54,7 @@ func TestAgentSetupViewPrioritizesPortalLinkBeforeRustDesk(t *testing.T) {
 		t.Fatalf("save remote state: %v", err)
 	}
 
-	service := NewService(stateDir, ChatwootConfig{}, "1.0.64", nil)
+	service := NewService(stateDir, ChatwootConfig{}, "1.0.64", nil, nil)
 
 	view, err := service.AgentSetupView(context.Background())
 	if err != nil {
@@ -111,7 +120,7 @@ func TestAgentSetupViewMarksTechnicalBootstrapAsCompleteWhileAwaitingLink(t *tes
 		t.Fatalf("save remote state: %v", err)
 	}
 
-	service := NewService(stateDir, ChatwootConfig{}, "1.0.64", nil)
+	service := NewService(stateDir, ChatwootConfig{}, "1.0.64", nil, nil)
 
 	view, err := service.AgentSetupView(context.Background())
 	if err != nil {
@@ -126,6 +135,55 @@ func TestAgentSetupViewMarksTechnicalBootstrapAsCompleteWhileAwaitingLink(t *tes
 	}
 	if !strings.Contains(strings.ToLower(view.Summary), "vincular") {
 		t.Fatalf("expected summary to mention pending link, got %q", view.Summary)
+	}
+}
+
+func TestAgentSetupViewUsesDesiredStateProviderWhenDiskStateIsMissing(t *testing.T) {
+	store, localStore, stateDir := newTestStateStore(t)
+
+	if err := localStore.SaveJSON(context.Background(), "identity.json", domain.DeviceIdentity{
+		DeviceID: "device-provider",
+		Hostname: "SERVIDOR",
+		OS:       "windows",
+	}); err != nil {
+		t.Fatalf("save identity: %v", err)
+	}
+
+	if err := localStore.SaveJSON(context.Background(), "current_state.json", domain.CurrentState{}); err != nil {
+		t.Fatalf("save current state: %v", err)
+	}
+
+	if err := store.SaveJSON(context.Background(), "remote_state.json", domain.PersistedRemoteState{
+		MachineName:       "SERVIDOR",
+		LastBootstrapFlow: "pending_link",
+	}); err != nil {
+		t.Fatalf("save remote state: %v", err)
+	}
+
+	service := NewService(
+		stateDir,
+		ChatwootConfig{},
+		"1.0.79",
+		nil,
+		stubDesiredStateProvider{state: domain.DesiredState{
+			Version:   1,
+			UpdatedAt: time.Now().UTC(),
+		}},
+	)
+
+	view, err := service.AgentSetupView(context.Background())
+	if err != nil {
+		t.Fatalf("AgentSetupView returned error: %v", err)
+	}
+
+	if view.ProgressPct <= 16 {
+		t.Fatalf("expected provider-backed desired state to advance progress, got %d", view.ProgressPct)
+	}
+	if len(view.Steps) < 2 {
+		t.Fatalf("expected setup steps to be populated, got %d", len(view.Steps))
+	}
+	if view.Steps[1].Status != "complete" {
+		t.Fatalf("expected portal step complete from provider, got %q", view.Steps[1].Status)
 	}
 }
 
@@ -205,7 +263,7 @@ func TestResolveRustDeskExecutablePrefersConfiguredPath(t *testing.T) {
 		t.Fatalf("save remote state: %v", err)
 	}
 
-	service := NewService(stateDir, ChatwootConfig{}, "1.0.71", nil)
+	service := NewService(stateDir, ChatwootConfig{}, "1.0.71", nil, nil)
 
 	got := service.resolveRustDeskExecutable()
 	if got != exePath {
@@ -227,7 +285,7 @@ func TestOpenRemoteClientRejectsUntrustedExecutablePath(t *testing.T) {
 		t.Fatalf("save remote state: %v", err)
 	}
 
-	service := NewService(stateDir, ChatwootConfig{}, "1.0.71", nil)
+	service := NewService(stateDir, ChatwootConfig{}, "1.0.71", nil, nil)
 
 	result, err := service.OpenRemoteClient(context.Background())
 	if err != nil {
