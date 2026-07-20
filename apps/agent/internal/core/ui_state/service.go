@@ -140,10 +140,12 @@ func (s *Service) AgentSetupView(ctx context.Context) (AgentSetupView, error) {
 	}
 
 	if isPendingLinkReady(remoteState) {
-		complete = true
-		stage = "Instalacao concluida"
-		summary = "Agente instalado e acesso remoto preparado. Falta apenas vincular esta maquina no portal."
-		progress = 100
+		complete = false
+		stage = "Vinculo com a empresa"
+		summary = "Acesso remoto preparado nesta maquina. Falta apenas associar esta maquina a uma empresa no portal para liberar a validacao final."
+		if progress < 50 {
+			progress = 50
+		}
 	}
 
 	if !complete && lastError == "" {

@@ -89,7 +89,7 @@ func TestDescribeBootstrapFlowPendingLinkIsHumanReadable(t *testing.T) {
 	}
 }
 
-func TestAgentSetupViewMarksTechnicalBootstrapAsCompleteWhileAwaitingLink(t *testing.T) {
+func TestAgentSetupViewKeepsTechnicalBootstrapRunningWhileAwaitingLink(t *testing.T) {
 	store, localStore, stateDir := newTestStateStore(t)
 
 	if err := localStore.SaveJSON(context.Background(), "identity.json", domain.DeviceIdentity{
@@ -127,14 +127,18 @@ func TestAgentSetupViewMarksTechnicalBootstrapAsCompleteWhileAwaitingLink(t *tes
 		t.Fatalf("AgentSetupView returned error: %v", err)
 	}
 
-	if !view.Complete {
-		t.Fatalf("expected technical bootstrap to mark setup as complete")
+	if view.Complete {
+		t.Fatalf("expected technical bootstrap to keep setup running until business link finishes")
 	}
-	if view.ProgressPct != 100 {
-		t.Fatalf("expected progress to be 100, got %d", view.ProgressPct)
+	if view.Stage != "Vinculo com a empresa" {
+		t.Fatalf("expected stage %q, got %q", "Vinculo com a empresa", view.Stage)
 	}
-	if !strings.Contains(strings.ToLower(view.Summary), "vincular") {
-		t.Fatalf("expected summary to mention pending link, got %q", view.Summary)
+	if view.ProgressPct < 50 || view.ProgressPct >= 100 {
+		t.Fatalf("expected progress to reflect partial completion, got %d", view.ProgressPct)
+	}
+	summary := strings.ToLower(view.Summary)
+	if !strings.Contains(summary, "associar") && !strings.Contains(summary, "vinculo") {
+		t.Fatalf("expected summary to mention pending business link, got %q", view.Summary)
 	}
 }
 

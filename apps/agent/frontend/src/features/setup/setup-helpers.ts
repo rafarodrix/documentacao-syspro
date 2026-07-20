@@ -75,8 +75,12 @@ export function getSetupHint(
     .join(" ")
     .toLowerCase();
 
-  if (combined.includes("pending_link_bootstrapped")) {
-    return "O acesso remoto ja foi preparado. Falta apenas concluir o vinculo empresarial no portal.";
+  if (
+    combined.includes("pending_link_bootstrapped") ||
+    combined.includes("acesso remoto preparado nesta maquina") ||
+    combined.includes("instalacao concluida. falta apenas associar")
+  ) {
+    return "O acesso remoto ja foi preparado nesta maquina. Falta apenas concluir o vinculo empresarial no portal para liberar a validacao final.";
   }
   if (activeStep?.key === "link" || combined.includes("pending_link") || combined.includes("aguardando vincul")) {
     return "O agente ja pode preparar o acesso remoto antes do vinculo. O portal ainda precisa associar esta maquina a uma empresa.";
