@@ -64,3 +64,24 @@ func TestReadSysproUpdateInformationUsesManifestWhenItIsNewest(t *testing.T) {
 		t.Fatalf("expected updatedAt from manifest, got %s", info.UpdatedAt)
 	}
 }
+
+func TestBuildSysproCandidateRootsDoesNotDuplicateServerDirectoryHint(t *testing.T) {
+	candidates := buildSysproCandidateRoots([]SysproInstallationHint{{
+		CompanyID:   "company-1",
+		CompanyName: "Empresa A",
+		Path:        `C:\Syspro\Server`,
+	}})
+
+	count := 0
+	for _, candidate := range candidates {
+		if normalizeSysproPath(candidate.rootPath) == normalizeSysproPath(`C:\Syspro`) {
+			count++
+		}
+		if normalizeSysproPath(candidate.rootPath) == normalizeSysproPath(`C:\Syspro\Server`) {
+			t.Fatalf("server directory must be normalized to its installation root")
+		}
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly one C:\\Syspro candidate, got %d", count)
+	}
+}

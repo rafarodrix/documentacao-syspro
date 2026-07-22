@@ -56,7 +56,7 @@ export function canonicalizeWindowsPath(rawPath?: string | null): string {
   if (cleaned.length > 3 && cleaned.endsWith("\\")) {
     cleaned = cleaned.slice(0, -1);
   }
-  return cleaned;
+  return cleaned.toLowerCase();
 }
 
 export function computeInstallationFingerprint(
@@ -274,9 +274,80 @@ export type NormalizedErpInstallationPayload = {
   companies?: Array<{
     code: string;
     name: string;
+    companyId?: string | null;
     role?: "PRIMARY" | "SECONDARY";
   }>;
 };
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function readRecords(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.map(readRecord).filter((value): value is Record<string, unknown> => !!value) : [];
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+/**
+ * Projects the agent's topology snapshot into the installation domain. The
+ * snapshot remains useful as raw telemetry; this is the single boundary that
+ * turns its validated server evidence into durable ERP installations.
+ */
+export function buildErpInstallationsFromSysproSnapshot(snapshot: unknown): NormalizedErpInstallationPayload[] {
+  const installationGroups = readRecords(readRecord(snapshot)?.installationGroups);
+  const candidates: NormalizedErpInstallationPayload[] = [];
+
+  for (const group of installationGroups) {
+    const rootPath = readString(group.rootPath);
+    if (!rootPath) continue;
+    const sources = Array.isArray(group.discoveryEvidence)
+      ? group.discoveryEvidence.filter((value): value is string => typeof value === "string" && !!value.trim())
+      : [];
+    const servers = readRecords(group.serverInstances);
+
+    if (!servers.length) {
+      candidates.push({ rootPath, sources });
+      continue;
+    }
+
+    for (const server of servers) {
+      const validation = readRecord(server.validation);
+      if (readString(validation?.status)?.toUpperCase() !== "VALIDATED") continue;
+
+      const version = readRecord(server.version);
+      const execution = readRecord(server.execution);
+      const dataPath = readString(readRecord(readRecords(server.dataDirectories)[0])?.path);
+      const companies = readRecords(server.companyHints)
+        .map((hint, index) => {
+          const companyId = readString(hint.companyId);
+          const name = readString(hint.companyName);
+          const code = companyId ?? name;
+          return code && name
+            ? { code, name, companyId, role: index === 0 ? "PRIMARY" as const : "SECONDARY" as const }
+            : null;
+        })
+        .filter((company): company is NonNullable<typeof company> => !!company);
+
+      candidates.push({
+        rootPath,
+        serverPath: readString(server.rootPath),
+        executablePath: readString(server.executablePath),
+        configPath: readString(server.configurationPath),
+        dataPath,
+        version: readString(version?.productVersion) ?? readString(version?.fileVersion),
+        serviceStatus: readString(execution?.serviceStatus),
+        processPid: typeof execution?.pid === "number" && Number.isInteger(execution.pid) ? execution.pid : null,
+        sources,
+        companies,
+      });
+    }
+  }
+
+  return candidates;
+}
 
 export async function syncErpInstallations(
   tx: Prisma.TransactionClient,
@@ -293,7 +364,25 @@ export async function syncErpInstallations(
     select: { id: true, nomeFantasia: true, razaoSocial: true },
   });
 
+  const installationsByFingerprint = new Map<string, NormalizedErpInstallationPayload>();
   for (const item of input.installations) {
+    if (!item.rootPath) continue;
+
+    const fingerprint = computeInstallationFingerprint(
+      input.hostId,
+      item.executablePath ?? item.rootPath,
+      item.configPath ?? item.dataPath,
+    );
+    const previous = installationsByFingerprint.get(fingerprint);
+    if (previous) {
+      previous.sources = Array.from(new Set([...(previous.sources ?? []), ...(item.sources ?? [])]));
+      previous.companies = [...(previous.companies ?? []), ...(item.companies ?? [])];
+      continue;
+    }
+    installationsByFingerprint.set(fingerprint, { ...item });
+  }
+
+  for (const item of installationsByFingerprint.values()) {
     if (!item.rootPath) continue;
 
     const canonicalRootPath = canonicalizeWindowsPath(item.rootPath);
@@ -305,45 +394,39 @@ export async function syncErpInstallations(
     const dataPath = item.dataPath ? canonicalizeWindowsPath(item.dataPath) : null;
 
     const fingerprint = computeInstallationFingerprint(input.hostId, executablePath ?? canonicalRootPath, configPath ?? dataPath);
-
-    const installation = await tx.erpInstallation.upsert({
+    const existingInstallation = await tx.erpInstallation.findFirst({
       where: {
-        deviceId_canonicalRootPath: {
-          deviceId: input.hostId,
-          canonicalRootPath,
-        },
-      },
-      create: {
         deviceId: input.hostId,
-        rootPath: item.rootPath,
-        canonicalRootPath,
-        serverPath,
-        executablePath,
-        configPath,
-        dataPath,
-        version: item.version ?? null,
-        serviceName: item.serviceName ?? null,
-        serviceStatus: item.serviceStatus ?? null,
-        processPid: item.processPid ?? null,
-        installationFingerprint: fingerprint,
-        discoverySources: item.sources ?? ["FILESYSTEM"],
-        lastSeenAt: input.heartbeatAt,
+        OR: [
+          { installationFingerprint: fingerprint },
+          { canonicalRootPath: { equals: canonicalRootPath, mode: "insensitive" } },
+        ],
       },
-      update: {
-        rootPath: item.rootPath,
-        serverPath,
-        executablePath,
-        configPath,
-        dataPath,
-        version: item.version ?? null,
-        serviceName: item.serviceName ?? null,
-        serviceStatus: item.serviceStatus ?? null,
-        processPid: item.processPid ?? null,
-        installationFingerprint: fingerprint,
-        discoverySources: item.sources ?? ["FILESYSTEM"],
-        lastSeenAt: input.heartbeatAt,
-      },
+      select: { id: true },
     });
+    const data = {
+      rootPath: item.rootPath,
+      canonicalRootPath,
+      serverPath,
+      executablePath,
+      configPath,
+      dataPath,
+      version: item.version ?? null,
+      serviceName: item.serviceName ?? null,
+      serviceStatus: item.serviceStatus ?? null,
+      processPid: item.processPid ?? null,
+      installationFingerprint: fingerprint,
+      discoverySources: Array.from(new Set(item.sources ?? ["FILESYSTEM"])),
+      lastSeenAt: input.heartbeatAt,
+    };
+    const installation = existingInstallation
+      ? await tx.erpInstallation.update({ where: { id: existingInstallation.id }, data })
+      : await tx.erpInstallation.create({
+        data: {
+        deviceId: input.hostId,
+          ...data,
+        },
+      });
 
     if (item.companies && Array.isArray(item.companies)) {
       for (const compHint of item.companies) {
@@ -353,6 +436,7 @@ export async function syncErpInstallations(
 
         const matchedCompany = candidateCompanies.find(
           (c) =>
+            c.id === compHint.companyId ||
             normalizeCompareValue(c.nomeFantasia) === normName ||
             normalizeCompareValue(c.razaoSocial) === normName
         );

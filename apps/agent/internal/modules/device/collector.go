@@ -154,8 +154,10 @@ func buildSysproCandidateRoots(hints []SysproInstallationHint) []sysproCandidate
 		if resolvedPath == "" {
 			continue
 		}
+		// Hints can point to the server directory or the executable itself.
+		// Keep only the installation root: adding both creates a second group
+		// that discovers the same SysproServer.exe through two paths.
 		appendCandidate(deriveSysproGroupRoot(resolvedPath), "PORTAL_HINT", &hint)
-		appendCandidate(resolvedPath, "PORTAL_HINT_PATH", &hint)
 	}
 
 	return candidates

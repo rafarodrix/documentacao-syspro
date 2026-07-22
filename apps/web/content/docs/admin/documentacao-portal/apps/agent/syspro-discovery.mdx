@@ -1,7 +1,7 @@
 ---
 title: Agent - Descoberta Syspro
 description: Modelo de descoberta Syspro do agente, baseado em pistas do portal e validacao fisica da instalacao no host.
-lastUpdated: 2026-07-17
+lastUpdated: 2026-07-22
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -12,7 +12,7 @@ tags:
 
 # Descoberta Syspro no Agent
 
-Atualizado em 17/07/2026.
+Atualizado em 22/07/2026.
 
 ## Resumo
 
@@ -24,6 +24,11 @@ essas pistas em:
 - `machineRole`
 - `validatedServerCount`
 - `installationGroups[]`
+
+No heartbeat, o backend mantém o snapshot bruto para auditoria e também projeta
+cada servidor validado em uma `ErpInstallation` persistida. A tela de ERP lê
+essa projeção, incluindo empresas vinculadas, e não trata caminhos ou rótulos
+de telemetria como entidades independentes.
 
 ## Hints enviados pelo portal
 
@@ -77,4 +82,17 @@ Cada `serverInstance` separa:
 
 - O portal nao deve interpretar `syspro_installation_hints` como instalacao validada.
 - O agent so deve expor diagnostico profundo quando existir `SysproServer.exe` validado.
-- Mais de uma instancia de `SysproServer.exe` no mesmo host deve gerar mais de um `serverInstance`.
+- Um hint para `C:\Syspro\Server` ou `C:\Syspro\Server\SysproServer.exe` e
+  normalizado para a raiz `C:\Syspro`; ele nao pode criar um segundo grupo para
+  o mesmo executavel.
+- A identidade persistida usa dispositivo, executável e configuração (ou dados
+  quando não houver configuração), com caminhos Windows normalizados sem
+  distinção de maiúsculas/minúsculas.
+- Empresas são vinculadas pelo ID da instalação; o caminho exibido pode mudar
+  sem quebrar o vínculo.
+
+## Rollout da projeção persistida
+
+Depois de aplicar a migration Prisma, execute uma vez
+`npm run db:migrate:legacy-erp` para projetar as leituras legadas. Os próximos
+heartbeats mantêm a projeção atualizada de forma idempotente.

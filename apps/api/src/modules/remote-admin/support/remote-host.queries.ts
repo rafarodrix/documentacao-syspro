@@ -616,6 +616,10 @@ function toRecordArray(value: unknown): Array<Record<string, unknown>> {
   return list;
 }
 
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string" && !!entry.trim()) : [];
+}
+
 function readBooleanRecordValue(record: Record<string, unknown> | null, key: string): boolean | null {
   if (!record) return null;
   const value = record[key];
@@ -1438,6 +1442,14 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
           path: true,
         },
       },
+      erpInstallations: {
+        include: {
+          companies: {
+            orderBy: [{ role: "asc" }, { companyName: "asc" }],
+          },
+        },
+        orderBy: [{ rootPath: "asc" }],
+      },
     },
   });
 
@@ -1734,6 +1746,27 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
         company: belongsToPrimaryCompany ? primaryCompanyContext : null,
       };
     }),
+    erpInstallations: host.erpInstallations.map((installation) => ({
+      id: installation.id,
+      rootPath: installation.rootPath,
+      serverPath: installation.serverPath,
+      executablePath: installation.executablePath,
+      configPath: installation.configPath,
+      dataPath: installation.dataPath,
+      version: installation.version,
+      serviceStatus: installation.serviceStatus,
+      processPid: installation.processPid,
+      discoverySources: toStringArray(installation.discoverySources),
+      lastSeenAt: installation.lastSeenAt.toISOString(),
+      companies: installation.companies.map((company) => ({
+        id: company.id,
+        companyId: company.companyId,
+        code: company.companyCode,
+        name: company.companyName,
+        role: company.role,
+        active: company.active,
+      })),
+    })),
     linkedUsers: host.company.memberships.map((membership) => ({
       id: membership.user.id,
       name: membership.user.name,

@@ -1,45 +1,33 @@
 "use client";
 
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
-import { formatDateTime, readSysproInstallationGroups } from "@/features/remote/interface/host-details/host-details.helpers";
+import { formatDateTime } from "@/features/remote/interface/host-details/host-details.helpers";
 
 type Props = {
   details: RemoteHostDetails;
 };
 
 export function ErpOverviewView({ details }: Props) {
-  const groups = readSysproInstallationGroups(details.agentTelemetry.sysproVersionSnapshot);
-  const serverInstances = groups.flatMap((group) => group.serverInstances);
-  const installationsCount = groups.length;
-  const instancesCount = serverInstances.length;
-  const operationalInstances = serverInstances.filter(
-    (server) => server.execution.processRunning || server.execution.serviceStatus === "running",
-  ).length;
-  const attentionInstances = Math.max(instancesCount - operationalInstances, 0);
-  const versionSource = serverInstances.find((server) => server.productVersion || server.fileVersion);
-  const mainVersion = versionSource?.productVersion ?? versionSource?.fileVersion ?? "Sem leitura";
-  const latestSnapshotAt = details.agentTelemetry.sysproVersionSnapshotAt
-    ? formatDateTime(details.agentTelemetry.sysproVersionSnapshotAt)
-    : "Sem leitura";
-  const companiesCount = new Set(
-    details.installationContexts
-      .map((context) => context.company?.id ?? context.update.companyLabel)
-      .filter((value): value is string => Boolean(value)),
-  ).size;
-  const firebirdRunning = details.installationContexts.filter((context) => !!context.update.firebirdVersion).length;
-  const firebirdStopped = Math.max(details.installationContexts.length - firebirdRunning, 0);
+  const installations = details.erpInstallations;
+  const installationsCount = installations.length;
+  const operationalInstallations = installations.filter((installation) => installation.serviceStatus === "running").length;
+  const attentionInstallations = installationsCount - operationalInstallations;
+  const mainVersion = installations.find((installation) => installation.version)?.version ?? "Sem leitura";
+  const latestCollection = installations.length ? formatDateTime(installations.reduce((latest, installation) => installation.lastSeenAt > latest ? installation.lastSeenAt : latest, installations[0].lastSeenAt)) : "Sem leitura";
+  const companiesCount = new Set(installations.flatMap((installation) => installation.companies.filter((company) => company.active).map((company) => company.companyId ?? company.code))).size;
+  const firebirdCount = new Set(details.installationContexts.filter((context) => context.update.firebirdPath || context.update.firebirdVersion).map((context) => context.update.firebirdPath ?? context.update.firebirdVersion)).size;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
-          <h4 className="text-sm font-medium text-muted-foreground">Instalacoes e instancias</h4>
+          <h4 className="text-sm font-medium text-muted-foreground">Instalações</h4>
           <div className="mt-3 flex flex-col gap-1">
             <span className="text-2xl font-bold">{installationsCount} instalacoes</span>
-            <span className="text-sm text-muted-foreground">{instancesCount} instancias de servidor</span>
+            <span className="text-sm text-muted-foreground">Estado técnico consolidado</span>
             <div className="mt-2 flex gap-2 text-xs">
-              <span className="font-medium text-emerald-500">{operationalInstances} operacional</span>
-              <span className="font-medium text-amber-500">{attentionInstances} requer atencao</span>
+              <span className="font-medium text-emerald-500">{operationalInstallations} em execução</span>
+              <span className="font-medium text-amber-500">{attentionInstallations} sem execução confirmada</span>
             </div>
           </div>
         </div>
@@ -48,18 +36,15 @@ export function ErpOverviewView({ details }: Props) {
           <h4 className="text-sm font-medium text-muted-foreground">Versao principal</h4>
           <div className="mt-3 flex flex-col gap-1">
             <span className="text-2xl font-bold">{mainVersion}</span>
-            <span className="text-sm text-muted-foreground">Ultima coleta: {latestSnapshotAt}</span>
+            <span className="text-sm text-muted-foreground">Última coleta: {latestCollection}</span>
           </div>
         </div>
 
         <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
           <h4 className="text-sm font-medium text-muted-foreground">Firebird</h4>
           <div className="mt-3 flex flex-col gap-1">
-            <span className="text-2xl font-bold">{firebirdRunning + firebirdStopped} detectados</span>
-            <div className="mt-2 flex gap-2 text-xs">
-              <span className="font-medium text-emerald-500">{firebirdRunning} operacional</span>
-              <span className="font-medium text-amber-500">{firebirdStopped} parado</span>
-            </div>
+            <span className="text-2xl font-bold">{firebirdCount} detectado{firebirdCount === 1 ? "" : "s"}</span>
+            <span className="mt-2 text-xs text-muted-foreground">Somente leituras confirmadas pelo agente.</span>
           </div>
         </div>
 

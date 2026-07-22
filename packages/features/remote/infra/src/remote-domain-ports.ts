@@ -1,10 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import {
+  buildErpInstallationsFromSysproSnapshot,
   normalizeCompareValue,
   normalizeSysproUpdates,
   prisma,
   serializeSysproUpdatesSnapshot,
+  syncErpInstallations,
   syncRemoteHostSysproUpdates,
 } from "@dosc-syspro/database";
 import { getRemoteAgentTokenExpiresAt, isRemoteAgentTokenExpired } from "@dosc-syspro/remote-domain";
@@ -789,6 +791,12 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
               firebirdVersion: u.firebirdVersion ?? null,
               firebirdPath: u.firebirdPath ?? null,
             })),
+          });
+
+          await syncErpInstallations(tx, {
+            hostId: record.context.hostId,
+            heartbeatAt: record.heartbeatAt,
+            installations: buildErpInstallationsFromSysproSnapshot(record.sysproVersions),
           });
 
           if (record.criticalEvents.length > 0) {

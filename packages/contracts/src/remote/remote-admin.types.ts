@@ -508,6 +508,27 @@ export type RemoteHostDetails = {
     update: RemoteHostSysproUpdateItem;
     company: RemoteCompanyContextItem | null;
   }>;
+  erpInstallations: Array<{
+    id: string;
+    rootPath: string;
+    serverPath: string | null;
+    executablePath: string | null;
+    configPath: string | null;
+    dataPath: string | null;
+    version: string | null;
+    serviceStatus: string | null;
+    processPid: number | null;
+    discoverySources: string[];
+    lastSeenAt: string;
+    companies: Array<{
+      id: string;
+      companyId: string | null;
+      code: string;
+      name: string;
+      role: "PRIMARY" | "SECONDARY";
+      active: boolean;
+    }>;
+  }>;
   linkedUsers: Array<{
     id: string;
     name: string | null;
@@ -1038,6 +1059,29 @@ export const remoteHostDetailsSchema = z.object({
     z.object({
       update: remoteHostSysproUpdateItemSchema,
       company: remoteCompanyContextItemSchema.nullable(),
+    }),
+  ),
+  erpInstallations: z.array(
+    z.object({
+      id: z.string(),
+      rootPath: z.string(),
+      serverPath: remoteStringOrNullSchema,
+      executablePath: remoteStringOrNullSchema,
+      configPath: remoteStringOrNullSchema,
+      dataPath: remoteStringOrNullSchema,
+      version: remoteStringOrNullSchema,
+      serviceStatus: remoteStringOrNullSchema,
+      processPid: z.number().int().nullable(),
+      discoverySources: z.array(z.string()),
+      lastSeenAt: z.string(),
+      companies: z.array(z.object({
+        id: z.string(),
+        companyId: remoteStringOrNullSchema,
+        code: z.string(),
+        name: z.string(),
+        role: z.enum(["PRIMARY", "SECONDARY"]),
+        active: z.boolean(),
+      })),
     }),
   ),
   linkedUsers: z.array(
