@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "agent-updater.v1",
+  "channel": "stable",
+  "components": {
+    "service": {
+      "version": "1.0.85",
+      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.85/agent-service.exe",
+      "sha256": "99a1c839b93a9c0ba078bc98f6ba1d04844b9b7a1ca98207e6568dfa70e6f4aa"
+    }
+  }
+}
