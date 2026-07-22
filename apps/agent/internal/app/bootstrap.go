@@ -85,6 +85,7 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 		eventBus,
 		modules,
 	)
+	deviceMod.SetReconcileTrigger(reconcileService.Trigger)
 
 	agentService := agent.NewService(
 		identityService,

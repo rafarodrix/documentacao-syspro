@@ -26,7 +26,7 @@ heartbeat leve e frequente
 
 O heartbeat base publica apenas identidade e versao a cada 30 segundos. O primeiro corte desta politica tambem ja esta ativo no modulo `device`: cada snapshot possui frequencia propria, hash persistido, estado pendente e confirmacao somente depois de um sync remoto bem-sucedido. A fila persistida publica primeiro metricas, servicos criticos e discos; rede e inventarios so seguem depois da confirmacao do lote mais prioritario. O modulo executa uma coleta por vez e persiste backoff exponencial por coletor quando houver falha. Software, hardware, updates, servicos completos e descoberta Syspro nao acompanham mais cada reconcile.
 
-Ainda faltam os watchers nativos de eventos Windows, comandos de coleta sob demanda e os perfis configuraveis pelo portal. Enquanto eles nao existem, a coleta periodica continua sendo a protecao contra perda de eventos.
+O watcher operacional de servicos criticos consulta o SCM nativo do Windows a cada 10 segundos e dispara reconcile imediato apenas em transicoes de Firebird, Syspro, IIS/W3SVC ou RustDesk. No mesmo intervalo, o agente observa `fbguard.exe`, `fbserver.exe`, `SysproServer.exe`, `w3wp.exe` e `RustDesk.exe` pela API nativa do Windows; mudancas de PID ou presenca atualizam o snapshot de servicos e antecipam a sincronizacao. O polling programado continua como contingencia. Ainda faltam watcher de Event Log, comandos de coleta sob demanda e perfis configuraveis pelo portal.
 
 ## Classes de coleta
 
@@ -144,9 +144,11 @@ Cada card deve mostrar sua propria freshness (`collectedAt`), nunca apenas uma d
 2. Concluido: separar no sync remoto os blocos pendentes do inventario ja confirmado.
 3. Concluido: publicar lotes persistidos por prioridade e manter o lote em replay ate a confirmacao.
 4. Concluido: limitar a uma coleta local por vez e persistir backoff exponencial por coletor.
-5. Adicionar watcher nativo de servicos/processos e prioridade para eventos criticos.
-6. Expor coleta sob demanda idempotente pelo portal.
-7. Adicionar freshness por bloco e perfis de dispositivo ao portal.
+5. Concluido: watcher SCM para transicoes de servicos criticos e reconcile imediato deduplicado.
+6. Concluido: watcher de processos criticos nativo e reconcile imediato deduplicado.
+7. Adicionar watcher de Event Log e prioridade para eventos criticos adicionais.
+8. Expor coleta sob demanda idempotente pelo portal.
+9. Adicionar freshness por bloco e perfis de dispositivo ao portal.
 
 ## Criterios de aceite
 

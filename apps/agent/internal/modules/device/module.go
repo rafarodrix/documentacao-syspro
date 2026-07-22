@@ -18,6 +18,10 @@ type Module struct {
 	snapshots  *snapshotTracker
 	mu         sync.RWMutex
 	collectMu  sync.Mutex
+	watchOnce  sync.Once
+	watchMu    sync.RWMutex
+	watchOn    bool
+	trigger    func()
 	cycleCount uint64
 
 	lastMetrics       *AgentMetricsSnapshot
@@ -44,6 +48,12 @@ func New(logger Logger, store StateStore) *Module {
 
 func (m *Module) Name() string { return "device" }
 
+func (m *Module) SetReconcileTrigger(trigger func()) {
+	m.watchMu.Lock()
+	defer m.watchMu.Unlock()
+	m.trigger = trigger
+}
+
 func (m *Module) Inspect(_ context.Context) (domain.CurrentModuleState, error) {
 	return domain.CurrentModuleState{
 		Enabled: true,
@@ -68,6 +78,13 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 	}
 	m.collectMu.Lock()
 	defer m.collectMu.Unlock()
+	m.watchMu.Lock()
+	m.watchOn = desired.Device.CollectMetrics
+	m.watchMu.Unlock()
+	m.watchOnce.Do(func() {
+		go m.watchCriticalServices(ctx)
+		go m.watchCriticalProcesses(ctx)
+	})
 
 	m.cycleCount++
 	now := time.Now().UTC()

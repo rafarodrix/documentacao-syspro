@@ -13,6 +13,7 @@ type Service struct {
 	logger  Logger
 	events  EventBus
 	modules []Module
+	trigger chan struct{}
 }
 
 func NewService(
@@ -28,6 +29,14 @@ func NewService(
 		logger:  logger,
 		events:  events,
 		modules: modules,
+		trigger: make(chan struct{}, 1),
+	}
+}
+
+func (s *Service) Trigger() {
+	select {
+	case s.trigger <- struct{}{}:
+	default:
 	}
 }
 
@@ -44,6 +53,8 @@ func (s *Service) Start(ctx context.Context) error {
 			return nil
 
 		case <-ticker.C:
+			s.runOnce(ctx)
+		case <-s.trigger:
 			s.runOnce(ctx)
 		}
 	}
