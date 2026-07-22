@@ -9,6 +9,9 @@ import type { ContactCompanyEntry, ContactLookupEntry, FeedbackState } from "../
 interface UseContactBindingParams {
   customerPhone: string;
   customerEmail: string;
+  conversationId: string;
+  accountId: string;
+  chatwootContactId: string;
   companyId: string;
   companyName: string;
   contactName: string;
@@ -20,6 +23,9 @@ interface UseContactBindingParams {
 export function useChatwootContactBinding({
   customerPhone,
   customerEmail,
+  conversationId,
+  accountId,
+  chatwootContactId,
   companyId,
   companyName,
   contactName,
@@ -220,9 +226,30 @@ export function useChatwootContactBinding({
 
       setPortalContactMatch(updatedContact?.id ? updatedContact : portalContactMatch);
       setManualLinkedCompany(selectedCompanyOption);
+      const portalContactId = updatedContact?.id ?? portalContactMatch?.id;
+      if (!portalContactId || !conversationId || !accountId) {
+        throw new Error("Nao foi possivel registrar o contexto da conversa.");
+      }
+      const contextResponse = await fetch(
+        `/api/chatwoot/conversations/${encodeURIComponent(conversationId)}/company-context`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            companyId: selectedCompanyOption.id,
+            accountId,
+            contactId: chatwootContactId || null,
+            portalContactId,
+            linkSource: "MANUAL",
+          }),
+        },
+      );
+      if (!contextResponse.ok) {
+        throw new Error("Nao foi possivel registrar o contexto da conversa.");
+      }
       setCompanyBindingFeedback({
         tone: "success",
-        message: `Contato vinculado a ${getCompanyLabel(selectedCompanyOption)}. Agora o painel ja pode abrir ticket e infraestrutura sem sair do Chatwoot.`,
+        message: `Contato vinculado a ${getCompanyLabel(selectedCompanyOption)}. A sincronizacao com o Chatwoot foi colocada na fila.`,
       });
       onBindSuccess?.();
     } catch {

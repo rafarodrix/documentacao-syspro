@@ -358,6 +358,20 @@ enum AgentCapabilityStatus {
   REVOKED
 }
 
+enum ChatwootCompanyContextLinkSource {
+  MANUAL
+  CONTACT
+  PHONE
+  CNPJ
+}
+
+enum ChatwootCompanyContextSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  OUTDATED
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -429,6 +443,7 @@ model Company {
   remoteAddressBookCredentials RemoteAddressBookCredential[]
   integrationConnections       IntegrationConnection[]
   conversationLinks            ConversationLink[]
+  chatwootConversationContexts ChatwootConversationContext[]
   messageLinks                 MessageLink[]
   userAccessProfiles           UserAccessProfile[]
   convertedCrmLeads            CrmLead[]                     @relation("CrmLeadConvertedCompany")
@@ -474,6 +489,7 @@ model CompanyContact {
   userLinks                    UserContactLink[]
   users                        User[]
   companyLinks                 CompanyContactCompanyLink[]
+  chatwootConversationContexts ChatwootConversationContext[]
   taskClientConfigs               TaskConfig[] @relation("TaskClientContact")
   taskAccountingConfigs           TaskConfig[] @relation("TaskAccountingContact")
   taskRequests                    TaskRequest[]
@@ -2006,6 +2022,60 @@ model ConversationLink {
   @@index([connectionKey])
   @@index([whatsappNumber])
   @@index([chatwootConversationId])
+}
+
+model ChatwootConversationContext {
+  id String @id @default(cuid())
+
+  chatwootAccountId      String
+  chatwootConversationId String
+  chatwootContactId      String?
+
+  portalContactId String?
+  portalContact   CompanyContact? @relation(fields: [portalContactId], references: [id], onDelete: SetNull)
+
+  activeCompanyId String
+  activeCompany   Company @relation(fields: [activeCompanyId], references: [id], onDelete: Restrict)
+
+  linkedByUserId String?
+  linkSource     ChatwootCompanyContextLinkSource @default(MANUAL)
+  linkedAt       DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  outbox ChatwootConversationContextOutbox?
+
+  @@unique([chatwootAccountId, chatwootConversationId])
+  @@index([chatwootContactId])
+  @@index([activeCompanyId])
+  @@index([portalContactId])
+  @@map("chatwoot_conversation_context")
+}
+
+model ChatwootConversationContextOutbox {
+  id String @id @default(cuid())
+
+  contextId String @unique
+  context   ChatwootConversationContext @relation(fields: [contextId], references: [id], onDelete: Cascade)
+
+  eventType String @default("conversation.company-context.changed")
+  payload   Json
+  revision  Int @default(1)
+  status    ChatwootCompanyContextSyncStatus @default(PENDING)
+  attempts  Int @default(0)
+
+  nextAttemptAt DateTime @default(now())
+  lockedAt      DateTime?
+  lastAttemptAt DateTime?
+  lastSuccessAt DateTime?
+  errorCode     String?
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([lockedAt])
+  @@map("chatwoot_conversation_context_outbox")
 }
 
 model MessageLink {

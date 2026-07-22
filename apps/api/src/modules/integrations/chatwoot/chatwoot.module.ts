@@ -1,6 +1,8 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ChatwootWebhookController } from './chatwoot-webhook.controller';
 import { ChatwootAgentContextController } from './chatwoot-agent-context.controller';
+import { ChatwootConversationContextController } from './chatwoot-conversation-context.controller';
+import { ChatwootConversationContextService } from './chatwoot-conversation-context.service';
 import { ChatwootClient } from './chatwoot.client';
 import { ChatwootPlatformClient } from './chatwoot-platform.client';
 import { ChatwootAttachmentResolver } from './chatwoot-attachment.resolver';
@@ -14,7 +16,7 @@ import { SettingsModule } from '../../settings/settings.module';
 
 @Module({
   imports: [forwardRef(() => MessagingModule), PrismaModule, forwardRef(() => EvolutionModule), forwardRef(() => SettingsModule)],
-  controllers: [ChatwootWebhookController, ChatwootAgentContextController],
+  controllers: [ChatwootWebhookController, ChatwootAgentContextController, ChatwootConversationContextController],
   providers: [
     ChatwootAttachmentResolver,
     ChatwootPlatformClient,
@@ -22,6 +24,7 @@ import { SettingsModule } from '../../settings/settings.module';
     ChatwootSettingsService,
     ChatwootBehaviorService,
     ChatwootCsatService,
+    ChatwootConversationContextService,
   ],
   exports: [ChatwootClient],
 })

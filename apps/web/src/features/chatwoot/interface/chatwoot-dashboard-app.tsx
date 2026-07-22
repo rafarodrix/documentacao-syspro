@@ -154,6 +154,9 @@ export function ChatwootDashboardApp() {
   const contactBinding = useChatwootContactBinding({
     customerPhone: resolved.customerPhone,
     customerEmail: resolved.customerEmail,
+    conversationId: resolved.conversationId,
+    accountId: resolved.accountId,
+    chatwootContactId: resolved.contactId,
     companyId: resolved.companyId,
     companyName: resolved.companyName,
     contactName: resolved.contactName,

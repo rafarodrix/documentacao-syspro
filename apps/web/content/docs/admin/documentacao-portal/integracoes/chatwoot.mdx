@@ -1,7 +1,7 @@
 ---
 title: "Integração: Chatwoot"
 description: Superfície real da integração Chatwoot no portal, com fluxo operacional, pontos de validação e gaps atuais após as melhorias recentes do Chatwoot Community.
-lastUpdated: 2026-07-11
+lastUpdated: 2026-07-22
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -14,7 +14,7 @@ tags:
 # Integração: Chatwoot
 
 > Página canônica para validar a integração Chatwoot no estado atual do repositório.
-> Atualizado em: 2026-07-11
+> Atualizado em: 2026-07-22
 
 ## O que olhar primeiro
 
@@ -195,6 +195,22 @@ Arquivos para inspeção:
 - `apps/api/src/modules/settings/integration-connections.service.ts`
 - `apps/api/src/modules/settings/integration-connections-validator.service.ts`
 - `apps/api/src/modules/settings/integration-context.service.ts`
+
+## Contexto de empresa por conversa
+
+O portal e a fonte oficial do contexto operacional. Ao vincular uma empresa no Dashboard App, o backend persiste uma linha em `chatwoot_conversation_context`, reaproveita o vinculo contato-empresa existente e grava uma outbox em `chatwoot_conversation_context_outbox`.
+
+- `PUT /chatwoot/conversations/:conversationId/company-context` grava o contexto e responde sem esperar o Chatwoot.
+- O consumidor persistido aplica `portal_company_*` na conversa, `portal_contact_*` no contato e a etiqueta `cliente_vinculado`.
+- O processamento tem claim atomico, revisao para evitar que uma sincronizacao antiga sobrescreva uma troca recente e retry com backoff.
+- Os estados sao `PENDING`, `SYNCED`, `FAILED` e `OUTDATED`. Uma falha externa nao desfaz o vinculo interno.
+- O frontend nativo do Chatwoot continua fora deste fluxo; a primeira etapa usa atributos e etiquetas.
+
+Arquivos principais:
+
+- `apps/api/src/modules/integrations/chatwoot/chatwoot-conversation-context.service.ts`
+- `apps/api/src/modules/integrations/chatwoot/chatwoot-conversation-context.controller.ts`
+- `apps/web/src/app/api/chatwoot/conversations/[conversationId]/company-context/route.ts`
 
 ## Gaps confirmados no app hoje
 
