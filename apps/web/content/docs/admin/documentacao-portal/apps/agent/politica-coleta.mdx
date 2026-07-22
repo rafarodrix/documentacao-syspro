@@ -24,9 +24,9 @@ heartbeat leve e frequente
 
 ## Estado atual e limite conhecido
 
-Hoje o heartbeat base ja publica apenas identidade e versao a cada 30 segundos. Porem, o reconcile do modulo `device` ainda executa em ciclos de 45 segundos, descobre instalacoes Syspro a cada ciclo e faz coleta de sistema, rede, software, hardware, updates, discos e todos os servicos a cada quatro ciclos. O sync remoto ainda carrega os snapshots disponiveis sem detector de delta persistido.
+O heartbeat base publica apenas identidade e versao a cada 30 segundos. O primeiro corte desta politica tambem ja esta ativo no modulo `device`: cada snapshot possui frequencia propria, hash persistido, estado pendente e confirmacao somente depois de um sync remoto bem-sucedido. O sync envia apenas os blocos pendentes; software, hardware, rede, updates, servicos completos e descoberta Syspro nao acompanham mais cada reconcile.
 
-Portanto, esta politica e normativa para as proximas extracoes; ela nao descreve essas otimizações como ja implementadas.
+Ainda faltam os watchers nativos de eventos Windows, filas por prioridade para snapshots, comandos de coleta sob demanda e os perfis configuraveis pelo portal. Enquanto eles nao existem, a coleta periodica continua sendo a protecao contra perda de eventos.
 
 ## Classes de coleta
 
@@ -140,13 +140,12 @@ Cada card deve mostrar sua propria freshness (`collectedAt`), nunca apenas uma d
 
 ## Plano de implementacao
 
-1. Extrair `CollectorRegistry` e scheduler do ciclo unico do modulo `device`.
-2. Introduzir `SnapshotStore`, hash deterministico, detector de mudanca e ACK de publicacao.
-3. Separar payload operacional do inventario no contrato de sync remoto.
-4. Adicionar jitter, limite de concorrencia e backoff por coletor.
-5. Priorizar eventos criticos e fila local persistida por prioridade.
-6. Expor coleta sob demanda idempotente pelo portal.
-7. Adicionar freshness por bloco e perfis de dispositivo ao portal.
+1. Concluido: extrair agenda por coletor, `SnapshotStore`, hash, delta e confirmacao apos sync.
+2. Concluido: separar no sync remoto os blocos pendentes do inventario ja confirmado.
+3. Adicionar jitter completo por dispositivo, limite de concorrencia e backoff por coletor.
+4. Priorizar eventos criticos e fila local persistida por prioridade.
+5. Expor coleta sob demanda idempotente pelo portal.
+6. Adicionar freshness por bloco e perfis de dispositivo ao portal.
 
 ## Criterios de aceite
 

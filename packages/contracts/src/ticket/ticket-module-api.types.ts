@@ -308,3 +308,18 @@ export type TicketModuleListResponse = z.infer<typeof ticketModuleListResponseSc
 export type TicketModuleDetailsResponse = z.infer<typeof ticketModuleDetailsResponseSchema>;
 export type TicketModuleLinkedCompany = z.infer<typeof ticketModuleLinkedCompanySchema>;
 export type TicketModuleLinkedCompaniesResponse = z.infer<typeof ticketModuleLinkedCompaniesResponseSchema>;
+
+export const CLOSED_TICKETS_WINDOW_VALUES = ["30d", "60d", "90d", "180d", "365d", "all"] as const;
+export const TICKET_TEAM_FILTER_VALUES = ["all", "SUPORTE", "DESENVOLVIMENTO"] as const;
+export const TICKET_SORT_BY_VALUES = ["updatedAt", "subject", "customer"] as const;
+export const TICKET_SORT_ORDER_VALUES = ["asc", "desc"] as const;
+
+export const closedTicketsWindowSchema = z.enum(CLOSED_TICKETS_WINDOW_VALUES);
+export const ticketTeamFilterSchema = z.enum(TICKET_TEAM_FILTER_VALUES);
+export const ticketSortBySchema = z.enum(TICKET_SORT_BY_VALUES);
+export const ticketSortOrderSchema = z.enum(TICKET_SORT_ORDER_VALUES);
+
+export type ClosedTicketsWindow = z.infer<typeof closedTicketsWindowSchema>;
+export type TicketTeamFilter = z.infer<typeof ticketTeamFilterSchema>;
+export type TicketSortBy = z.infer<typeof ticketSortBySchema>;
+export type TicketSortOrder = z.infer<typeof ticketSortOrderSchema>;

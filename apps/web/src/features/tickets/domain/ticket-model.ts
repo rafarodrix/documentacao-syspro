@@ -1,5 +1,21 @@
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
-import type { TicketModulePriority, TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
+import type {
+  TicketModulePriority,
+  TicketModuleStatus,
+  ClosedTicketsWindow,
+  TicketTeamFilter,
+  TicketSortBy,
+  TicketSortOrder,
+  TicketModuleStatusCounts as TicketStatusCounts,
+} from "@dosc-syspro/contracts/ticket";
+
+export type {
+  ClosedTicketsWindow,
+  TicketTeamFilter,
+  TicketSortBy,
+  TicketSortOrder,
+  TicketStatusCounts,
+};
 
 export interface ActivityPoint {
     label: string;
@@ -42,18 +58,6 @@ export interface TicketsPagination {
     hasPreviousPage: boolean;
     hasNextPage: boolean;
     total: number | null;
-}
-
-export type ClosedTicketsWindow = "30d" | "60d" | "90d" | "180d" | "365d" | "all";
-export type TicketTeamFilter = "all" | "SUPORTE" | "DESENVOLVIMENTO";
-export type TicketSortBy = "updatedAt" | "subject" | "customer";
-export type TicketSortOrder = "asc" | "desc";
-
-export interface TicketStatusCounts {
-    open: number;
-    development: number;
-    testing: number;
-    closed: number;
 }
 
 export interface TicketQueryParams {
