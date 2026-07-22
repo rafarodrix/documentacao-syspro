@@ -65,7 +65,7 @@ export function CompanyCell({ item, onLinkCompany }: CompanyCellProps) {
       </span>
 
       {/* Line 2: Legal name • CNPJ */}
-      <span className="truncate text-[11px] text-muted-foreground">
+      <span className="truncate text-[11px] font-mono tabular-nums text-muted-foreground">
         {line2Text}
       </span>
     </div>

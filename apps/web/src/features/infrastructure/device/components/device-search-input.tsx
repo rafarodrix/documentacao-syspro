@@ -15,7 +15,7 @@ type DeviceSearchInputProps = {
 export function DeviceSearchInput({
   value: externalValue,
   onChange,
-  placeholderDesktop = "Buscar por dispositivo, empresa, CNPJ, hostname, IP ou ID RustDesk...",
+  placeholderDesktop = "Buscar dispositivo, empresa, CNPJ, IP ou RustDesk...",
   placeholderMobile = "Buscar dispositivos...",
   debounceMs = 300,
 }: DeviceSearchInputProps) {
@@ -41,12 +41,12 @@ export function DeviceSearchInput({
   };
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full md:w-[520px] max-w-[620px]">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors peer-focus:text-primary" />
       <Input
         className="peer h-10 w-full rounded-md border-border/60 bg-background pl-10 pr-9 text-sm shadow-xs transition-colors focus-visible:ring-primary/20"
         placeholder={placeholderDesktop}
-        aria-label="Buscar por dispositivo, empresa, CNPJ, hostname, IP ou ID RustDesk"
+        aria-label="Buscar dispositivo, empresa, CNPJ, IP ou RustDesk"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
       />

@@ -14,7 +14,7 @@ export function useDeviceSearchParams() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const queryParams: DeviceListQueryParams = useMemo(() => {
+  const queryParams = useMemo(() => {
     const rawQuery = searchParams.get("query") ?? searchParams.get("q") ?? "";
     const rawLifecycle = (searchParams.get("lifecycle") ?? searchParams.get("tab") ?? "MANAGED").toUpperCase();
     const rawConnectivity = (searchParams.get("connectivity") ?? "ALL").toUpperCase();
@@ -23,6 +23,9 @@ export function useDeviceSearchParams() {
     const rawPage = Math.max(1, Number(searchParams.get("page")) || 1);
     const rawPageSize = Math.max(1, Number(searchParams.get("pageSize")) || 25);
     const rawSort = searchParams.get("sort") ?? undefined;
+    const rawCapabilities = searchParams.get("capabilities")
+      ? searchParams.get("capabilities")!.split(",").filter(Boolean)
+      : [];
 
     const lifecycleMap: Record<string, DeviceLifecycleStatus | "ALL"> = {
       MANAGED: "MANAGED",
@@ -50,8 +53,18 @@ export function useDeviceSearchParams() {
       page: rawPage,
       pageSize: rawPageSize,
       sort: rawSort,
+      capabilities: rawCapabilities,
     };
   }, [searchParams]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (queryParams.connectivity !== "ALL") count++;
+    if (queryParams.health !== "ALL") count++;
+    if (queryParams.companyId) count++;
+    if (queryParams.capabilities && queryParams.capabilities.length > 0) count += queryParams.capabilities.length;
+    return count;
+  }, [queryParams]);
 
   const updateParams = useCallback(
     (updates: Partial<Record<string, string | number | null | undefined>>, resetPage = true) => {
@@ -76,6 +89,7 @@ export function useDeviceSearchParams() {
 
   return {
     queryParams,
+    activeFilterCount,
     updateParams,
   };
 }

@@ -12,6 +12,11 @@ import (
 
 const collectorStateFile = "collectors/snapshots.json"
 
+const (
+	collectorRetryBaseDelay = 30 * time.Second
+	collectorRetryMaxDelay  = 30 * time.Minute
+)
+
 type StateStore interface {
 	SaveJSON(ctx context.Context, name string, value any) error
 	LoadJSON(ctx context.Context, name string, dest any) error
@@ -20,19 +25,20 @@ type StateStore interface {
 type collectorSchedule struct {
 	interval time.Duration
 	jitter   time.Duration
+	priority int
 }
 
 var collectionSchedules = map[string]collectorSchedule{
-	"metrics":           {interval: time.Minute},
-	"critical_services": {interval: 2 * time.Minute},
-	"disks":             {interval: 5 * time.Minute, jitter: 30 * time.Second},
-	"network":           {interval: 15 * time.Minute, jitter: 2 * time.Minute},
-	"system":            {interval: 12 * time.Hour, jitter: time.Hour},
-	"software":          {interval: 24 * time.Hour, jitter: 90 * time.Minute},
-	"hardware":          {interval: 24 * time.Hour, jitter: 90 * time.Minute},
-	"windows_update":    {interval: 6 * time.Hour, jitter: 30 * time.Minute},
-	"all_services":      {interval: 12 * time.Hour, jitter: time.Hour},
-	"syspro_versions":   {interval: 24 * time.Hour, jitter: 90 * time.Minute},
+	"metrics":           {interval: time.Minute, priority: 1},
+	"critical_services": {interval: 2 * time.Minute, priority: 1},
+	"disks":             {interval: 5 * time.Minute, jitter: 30 * time.Second, priority: 1},
+	"network":           {interval: 15 * time.Minute, jitter: 2 * time.Minute, priority: 2},
+	"system":            {interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
+	"software":          {interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+	"hardware":          {interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+	"windows_update":    {interval: 6 * time.Hour, jitter: 30 * time.Minute, priority: 3},
+	"all_services":      {interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
+	"syspro_versions":   {interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
 }
 
 type collectorSnapshotState struct {
@@ -41,6 +47,8 @@ type collectorSnapshotState struct {
 	LastConfirmedAt time.Time `json:"lastConfirmedAt,omitempty"`
 	NextDueAt       time.Time `json:"nextDueAt"`
 	Pending         bool      `json:"pending"`
+	FailureCount    int       `json:"failureCount,omitempty"`
+	LastError       string    `json:"lastError,omitempty"`
 }
 
 type snapshotTracker struct {
@@ -78,8 +86,22 @@ func (t *snapshotTracker) observe(ctx context.Context, collector string, value a
 	entry.LastCollectedAt = now.UTC()
 	entry.NextDueAt = now.UTC().Add(t.nextInterval(collector))
 	entry.Pending = entry.Pending || changed || entry.LastConfirmedAt.IsZero()
+	entry.FailureCount = 0
+	entry.LastError = ""
 	t.entries[collector] = entry
 	return entry.Pending, t.saveLocked(ctx)
+}
+
+func (t *snapshotTracker) recordFailure(ctx context.Context, collector string, err error, now time.Time) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.loadLocked(ctx)
+	entry := t.entries[collector]
+	entry.FailureCount++
+	entry.LastError = err.Error()
+	entry.NextDueAt = now.UTC().Add(retryDelay(entry.FailureCount))
+	t.entries[collector] = entry
+	return t.saveLocked(ctx)
 }
 
 func (t *snapshotTracker) pending(ctx context.Context, collector string) bool {
@@ -89,13 +111,36 @@ func (t *snapshotTracker) pending(ctx context.Context, collector string) bool {
 	return t.entries[collector].Pending
 }
 
-func (t *snapshotTracker) markPublished(ctx context.Context) error {
+func (t *snapshotTracker) nextPublishBatch(ctx context.Context) map[string]struct{} {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.loadLocked(ctx)
+	priority := 0
+	for collector, entry := range t.entries {
+		if !entry.Pending {
+			continue
+		}
+		candidate := collectionSchedules[collector].priority
+		if priority == 0 || candidate < priority {
+			priority = candidate
+		}
+	}
+	batch := map[string]struct{}{}
+	for collector, entry := range t.entries {
+		if entry.Pending && priority > 0 && collectionSchedules[collector].priority == priority {
+			batch[collector] = struct{}{}
+		}
+	}
+	return batch
+}
+
+func (t *snapshotTracker) markPublished(ctx context.Context, collectors map[string]struct{}) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.loadLocked(ctx)
 	now := time.Now().UTC()
 	for collector, entry := range t.entries {
-		if entry.Pending {
+		if _, published := collectors[collector]; published && entry.Pending {
 			entry.Pending = false
 			entry.LastConfirmedAt = now
 			t.entries[collector] = entry
@@ -134,4 +179,18 @@ func (t *snapshotTracker) nextInterval(collector string) time.Duration {
 	}
 	jitter := time.Duration(int(bytes[0])<<8|int(bytes[1])) % (schedule.jitter + 1)
 	return schedule.interval + jitter
+}
+
+func retryDelay(failureCount int) time.Duration {
+	if failureCount < 1 {
+		return collectorRetryBaseDelay
+	}
+	delay := collectorRetryBaseDelay
+	for attempt := 1; attempt < failureCount && delay < collectorRetryMaxDelay; attempt++ {
+		delay *= 2
+	}
+	if delay > collectorRetryMaxDelay {
+		return collectorRetryMaxDelay
+	}
+	return delay
 }

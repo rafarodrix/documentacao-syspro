@@ -9,15 +9,15 @@ type ConnectivityCellProps = {
 
 function formatHeartbeatSubtitle(info: DeviceConnectivityInfo): string {
   if (!info.lastHeartbeatAt || info.lastHeartbeatDiffMinutes == null) {
-    return "Nenhum heartbeat recebido";
+    return "Sem heartbeat";
   }
   const diffMin = info.lastHeartbeatDiffMinutes;
-  if (diffMin < 1) return "Heartbeat agora";
-  if (diffMin < 60) return `Heartbeat há ${diffMin} min`;
+  if (diffMin < 1) return "Agora";
+  if (diffMin < 60) return `Há ${diffMin} min`;
   const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return `Heartbeat há ${diffH} h`;
+  if (diffH < 24) return `Há ${diffH} h`;
   const diffDays = Math.floor(diffH / 24);
-  return `Heartbeat há ${diffDays} dia${diffDays === 1 ? "" : "s"}`;
+  return `Há ${diffDays} dia${diffDays === 1 ? "" : "s"}`;
 }
 
 export function ConnectivityCell({ connectivity }: ConnectivityCellProps) {

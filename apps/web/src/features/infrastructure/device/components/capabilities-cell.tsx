@@ -44,9 +44,13 @@ export function CapabilitiesCell({ item }: CapabilitiesCellProps) {
     return CAPABILITY_LABEL_MAP[cap];
   };
 
+  const visibleCapabilities = activeCapabilities.slice(0, 3);
+  const hiddenCapabilities = activeCapabilities.slice(3);
+  const overflowTooltip = hiddenCapabilities.map((cap) => CAPABILITY_LABEL_MAP[cap]).join(", ");
+
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {activeCapabilities.map((cap) => (
+      {visibleCapabilities.map((cap) => (
         <Badge
           key={cap}
           variant="outline"
@@ -61,6 +65,16 @@ export function CapabilitiesCell({ item }: CapabilitiesCellProps) {
           {CAPABILITY_LABEL_MAP[cap]}
         </Badge>
       ))}
+
+      {hiddenCapabilities.length > 0 && (
+        <Badge
+          variant="outline"
+          className="h-5 px-1.5 text-[9px] font-bold tracking-tight border-border/60 bg-muted/50 text-muted-foreground cursor-help"
+          title={`Outras capacidades: ${overflowTooltip}`}
+        >
+          +{hiddenCapabilities.length}
+        </Badge>
+      )}
     </div>
   );
 }

@@ -11,10 +11,17 @@ type DeviceCellProps = {
 
 export function DeviceCell({ item, isAdmin = false }: DeviceCellProps) {
   const line1Text = item.displayName || item.hostname || "DISPOSITIVO";
+  const isSameName = (item.displayName || "").trim().toLowerCase() === (item.hostname || "").trim().toLowerCase();
+
   const hasValidIp = !!item.network.primaryIp;
-  const line2Text = hasValidIp
-    ? `${item.hostname} • ${item.network.primaryIp}`
-    : `Hostname: ${item.hostname}`;
+  let line2Text = "";
+  if (isSameName) {
+    line2Text = hasValidIp ? item.network.primaryIp! : "IP não registrado";
+  } else {
+    line2Text = hasValidIp
+      ? `${item.hostname} • ${item.network.primaryIp}`
+      : `Hostname: ${item.hostname}`;
+  }
 
   const tooltipLines = [
     `Nome no portal: ${item.displayName}`,
