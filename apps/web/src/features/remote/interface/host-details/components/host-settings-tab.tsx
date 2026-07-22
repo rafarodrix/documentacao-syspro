@@ -9,6 +9,7 @@ import { AgentLinkSection } from "./agent-link-section";
 import { DeviceIdentityForm } from "./device-identity-form";
 import { SettingsInstallationsView, type SettingsInstallationsViewProps } from "./settings-installations-view";
 import { SettingsAgentView, type SettingsAgentViewProps } from "./settings-agent-view";
+import type { RemoteHostManualAction } from "../host-details.constants";
 
 type Props = SettingsInstallationsViewProps & Omit<SettingsAgentViewProps, "host"> & {
   host: RemoteHostDetails["host"];
@@ -30,10 +31,12 @@ type Props = SettingsInstallationsViewProps & Omit<SettingsAgentViewProps, "host
   onRotateAgentToken: () => void;
   isRequestingResendConfig: boolean;
   isRequestingSelfHeal: boolean;
-  onRequestRemoteAction: (action: "RESEND_CONFIG" | "REAPPLY_ALIAS" | "UPGRADE_CLIENT") => void;
+  onRequestRemoteAction: (action: RemoteHostManualAction) => void;
   onDeleteHost: () => void;
   isDeletingHost: boolean;
   isRequestingUpgrade: boolean;
+  isRequestingAgentUpgrade: boolean;
+  canRequestAgentUpgrade: boolean;
   onRevokeAgentToken: () => void;
 };
 
@@ -62,6 +65,8 @@ export function HostSettingsTab(props: Props) {
     onDeleteHost,
     isDeletingHost,
     isRequestingUpgrade,
+    isRequestingAgentUpgrade,
+    canRequestAgentUpgrade,
     onRevokeAgentToken,
   } = props;
   
@@ -337,6 +342,16 @@ export function HostSettingsTab(props: Props) {
                 >
                   <ArrowUpCircle className="h-4 w-4" />
                   {isRequestingUpgrade ? "Solicitando..." : "Atualizar Cliente RustDesk"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => onRequestRemoteAction("UPGRADE_AGENT")}
+                  disabled={isRequestingAgentUpgrade || !canRequestAgentUpgrade}
+                  className="gap-2"
+                  title={canRequestAgentUpgrade ? undefined : "Requer agente 1.0.85 ou superior"}
+                >
+                  <ArrowUpCircle className="h-4 w-4" />
+                  {isRequestingAgentUpgrade ? "Agendando..." : "Atualizar agente"}
                 </Button>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">

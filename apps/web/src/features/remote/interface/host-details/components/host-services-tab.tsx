@@ -5,6 +5,7 @@ import { Button } from "@dosc-syspro/ui";
 import { Copy, Terminal, ShieldAlert, MonitorSmartphone, RefreshCw, Globe } from "lucide-react";
 import { differenceInMinutes } from "@/lib/date";
 import { ReactNode } from "react";
+import type { RemoteHostManualAction } from "../host-details.constants";
 
 type HostServicesTabProps = {
   host: RemoteHostDetails["host"];
@@ -13,7 +14,9 @@ type HostServicesTabProps = {
   firebirdData: { name: string | null; version: string | null; processRunning: boolean | null };
   sysproVersionSnapshot: Record<string, unknown> | null;
   rustDeskCompliance: { items: { match: boolean }[] } | null;
-  onRequestRemoteAction: (cmd: "RESEND_CONFIG" | "REAPPLY_ALIAS" | "UPGRADE_CLIENT") => void;
+  onRequestRemoteAction: (cmd: RemoteHostManualAction) => void;
+  isRequestingAgentUpgrade: boolean;
+  canRequestAgentUpgrade: boolean;
   onCopyRustDeskId: (value: string | null) => void;
   onConnectRustDesk: () => void;
 };
@@ -46,6 +49,8 @@ export function HostServicesTab({
   sysproVersionSnapshot,
   rustDeskCompliance,
   onRequestRemoteAction,
+  isRequestingAgentUpgrade,
+  canRequestAgentUpgrade,
   onCopyRustDeskId,
   onConnectRustDesk,
 }: HostServicesTabProps) {
@@ -85,10 +90,16 @@ export function HostServicesTab({
       ...(agentStatus === "failed" ? [{ label: "Atenção", value: "O agente parou de enviar sinais de vida." }] : []),
     ],
     actions: (
-      <Button variant="outline" size="sm" className="h-8 text-xs">
-        <Terminal className="mr-2 h-3.5 w-3.5" />
-        Executar diagnóstico
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => onRequestRemoteAction("UPGRADE_AGENT")} disabled={isRequestingAgentUpgrade || !canRequestAgentUpgrade} title={canRequestAgentUpgrade ? undefined : "Requer agente 1.0.85 ou superior"}>
+          <RefreshCw className="mr-2 h-3.5 w-3.5" />
+          {isRequestingAgentUpgrade ? "Agendando..." : "Atualizar agente"}
+        </Button>
+        <Button variant="outline" size="sm" className="h-8 text-xs">
+          <Terminal className="mr-2 h-3.5 w-3.5" />
+          Executar diagnóstico
+        </Button>
+      </div>
     ),
     orderWeight: getStatusWeight(agentStatus)
   });

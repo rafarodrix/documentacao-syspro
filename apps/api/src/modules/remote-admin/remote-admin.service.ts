@@ -1,4 +1,4 @@
-import { ForbiddenException, HttpException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, Injectable, Logger } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { hashAddressBookToken, prisma } from '@dosc-syspro/database';
 import { resolveScopedCompanyContext } from '@dosc-syspro/remote-infra';
@@ -21,6 +21,15 @@ import type { RemoteSessionStatus, RemoteTenantScope } from './support/remote-ad
 type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS' | 'UPGRADE_CLIENT' | 'UPGRADE_RUSTDESK' | 'UPGRADE_AGENT';
 const DEFAULT_INSTALLATION_DIRECTORY = 'C:\\Syspro\\Server\\SysproServer.exe';
 const AGENT_UPDATE_MANIFEST_URL = 'https://ajuda.trilinksoftware.com.br/agent/manifest.json';
+const AGENT_UPDATE_TARGET_VERSION = '1.0.86';
+
+function supportsManagedAgentUpgrade(agentVersion: string | null) {
+  const match = agentVersion?.trim().match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) return false;
+
+  const [, major, minor, patch] = match.map(Number);
+  return major > 1 || (major === 1 && (minor > 0 || (minor === 0 && patch >= 85)));
+}
 
 function normalizeCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
   const nomeFantasia = input.nomeFantasia?.trim() ?? '';
@@ -298,11 +307,15 @@ export class RemoteAdminService {
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     const host = await prisma.remoteHost.findFirst({
       where: buildScopedHostWhere(tenantScope, hostId),
-      select: { id: true, name: true },
+      select: { id: true, name: true, agentVersion: true },
     });
 
     if (!host) {
       throw new ForbiddenException('Host remoto nao encontrado no escopo.');
+    }
+
+    if (action === 'UPGRADE_AGENT' && !supportsManagedAgentUpgrade(host.agentVersion)) {
+      throw new BadRequestException('Este host ainda usa um agente legado. Atualize-o uma vez pelo instalador ou agent-updater antes de usar o upgrade gerenciado pelo portal.');
     }
 
     if (action === 'REBOOTSTRAP') {
@@ -369,7 +382,7 @@ export class RemoteAdminService {
           requestedByUserId: requester.userId,
           requestedAt: new Date().toISOString(),
           action,
-          ...(action === 'UPGRADE_AGENT' ? { manifestUrl: AGENT_UPDATE_MANIFEST_URL, targetVersion: '1.0.85' } : {}),
+          ...(action === 'UPGRADE_AGENT' ? { manifestUrl: AGENT_UPDATE_MANIFEST_URL, targetVersion: AGENT_UPDATE_TARGET_VERSION } : {}),
         },
       },
       select: {

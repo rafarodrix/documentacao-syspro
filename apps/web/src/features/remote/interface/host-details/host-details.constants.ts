@@ -15,6 +15,16 @@ export const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string>
 export const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\SysproServer.exe";
 export const UNLINKED_COMPANY_VALUE = "__unlinked__";
 
+export type RemoteHostManualAction = "RESEND_CONFIG" | "REAPPLY_ALIAS" | "UPGRADE_CLIENT" | "UPGRADE_AGENT";
+
+export function supportsManagedAgentUpgrade(agentVersion: string | null | undefined) {
+  const match = agentVersion?.trim().match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) return false;
+
+  const [, major, minor, patch] = match.map(Number);
+  return major > 1 || (major === 1 && (minor > 0 || (minor === 0 && patch >= 85)));
+}
+
 export const MACHINE_PROFILE_LABEL: Record<RemoteMachineProfile, string> = {
   SERVER: "Servidor",
   WORKSTATION: "Estacao",

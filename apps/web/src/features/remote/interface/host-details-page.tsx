@@ -9,7 +9,7 @@ import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.typ
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 import { copyTextWithFallback } from "./host-details/host-details.helpers";
-import { DEFAULT_INSTALLATION_DIRECTORY, UNLINKED_COMPANY_VALUE } from "./host-details/host-details.constants";
+import { DEFAULT_INSTALLATION_DIRECTORY, UNLINKED_COMPANY_VALUE, supportsManagedAgentUpgrade, type RemoteHostManualAction } from "./host-details/host-details.constants";
 import { useHostComputedValues } from "./host-details/hooks/use-host-computed-values";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import {
@@ -81,6 +81,7 @@ export function RemoteHostDetailsPanel({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingHost, startDeletingHost] = useTransition();
   const [isRequestingUpgrade, startRequestingUpgrade] = useTransition();
+  const [isRequestingAgentUpgrade, startRequestingAgentUpgrade] = useTransition();
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
   const [showCompanyChangeConfirm, setShowCompanyChangeConfirm] = useState(false);
 
@@ -121,6 +122,7 @@ export function RemoteHostDetailsPanel({
 
   const normalizedProjectedHostName = projectedHostName.trim();
   const normalizedProjectedNotes = projectedNotes.trim();
+  const canRequestAgentUpgrade = supportsManagedAgentUpgrade(agent.agentVersion);
   const canSaveProjectedHostName =
     (normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim()) ||
     projectedCompanyId !== host.companyId ||
@@ -314,7 +316,7 @@ export function RemoteHostDetailsPanel({
     });
   }
 
-  function handleRequestRemoteAction(action: "RESEND_CONFIG" | "REAPPLY_ALIAS" | "UPGRADE_CLIENT") {
+  function handleRequestRemoteAction(action: RemoteHostManualAction) {
     const run = async () => {
       try {
         const result = await requestRemoteMutation<Record<string, unknown>>({
@@ -322,7 +324,12 @@ export function RemoteHostDetailsPanel({
           method: "POST",
           body: { action },
         });
-        toast.success(result.message ?? "Ação manual do agente enfileirada.");
+        toast.success(
+          result.message ??
+            (action === "UPGRADE_AGENT"
+              ? "Atualização do agente agendada. Confirme a nova versão no próximo heartbeat."
+              : "Ação manual do agente enfileirada."),
+        );
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -330,6 +337,7 @@ export function RemoteHostDetailsPanel({
     };
     if (action === "RESEND_CONFIG") { startRequestingResendConfig(run); return; }
     if (action === "UPGRADE_CLIENT") { startRequestingUpgrade(run); return; }
+    if (action === "UPGRADE_AGENT") { startRequestingAgentUpgrade(run); return; }
     startRequestingSelfHeal(run);
   }
 
@@ -537,6 +545,8 @@ export function RemoteHostDetailsPanel({
             sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
             rustDeskCompliance={rustDeskCompliance}
             onRequestRemoteAction={handleRequestRemoteAction}
+            isRequestingAgentUpgrade={isRequestingAgentUpgrade}
+            canRequestAgentUpgrade={canRequestAgentUpgrade}
             onCopyRustDeskId={(val: string | null) => handleCopy(val, "ID do RustDesk")}
             onConnectRustDesk={handleStartOrchestratedSession}
           />
@@ -579,6 +589,8 @@ export function RemoteHostDetailsPanel({
             onDeleteHost={() => setShowDeleteConfirm(true)}
             isDeletingHost={isDeletingHost}
             isRequestingUpgrade={isRequestingUpgrade}
+            isRequestingAgentUpgrade={isRequestingAgentUpgrade}
+            canRequestAgentUpgrade={canRequestAgentUpgrade}
             onRevokeAgentToken={() => setShowRevokeConfirm(true)}
             
             // From installations tab
