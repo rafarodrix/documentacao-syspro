@@ -2,6 +2,7 @@ package device
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 type Module struct {
 	collector  *Collector
 	logger     Logger
+	store      StateStore
 	snapshots  *snapshotTracker
 	events     *criticalEventQueue
 	mu         sync.RWMutex
@@ -40,12 +42,15 @@ type Module struct {
 
 // New cria um DeviceModule pronto para uso.
 func New(logger Logger, store StateStore) *Module {
-	return &Module{
+	module := &Module{
 		collector: NewCollector(logger),
 		logger:    logger,
+		store:     store,
 		snapshots: newSnapshotTracker(store),
 		events:    newCriticalEventQueue(store),
 	}
+	module.restoreLastMetrics(context.Background())
+	return module
 }
 
 func (m *Module) Name() string { return "device" }
@@ -112,6 +117,7 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 			m.mu.Lock()
 			m.lastMetrics = metrics
 			m.mu.Unlock()
+			m.persistLastMetrics(ctx, metrics)
 			m.observeSnapshot(ctx, "metrics", metrics, now)
 		}
 	}
@@ -213,6 +219,32 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 	}
 
 	return domain.ApplyResult{Module: "device", Changed: true, Message: "device snapshot collected"}
+}
+
+const lastMetricsSnapshotFile = "collectors/last-metrics.json"
+
+func (m *Module) restoreLastMetrics(ctx context.Context) {
+	if m.store == nil {
+		return
+	}
+
+	var metrics AgentMetricsSnapshot
+	if err := m.store.LoadJSON(ctx, lastMetricsSnapshotFile, &metrics); err != nil {
+		return
+	}
+	if strings.TrimSpace(metrics.CollectedAt) == "" || metrics.MemoryTotalMB == 0 {
+		return
+	}
+	m.lastMetrics = &metrics
+}
+
+func (m *Module) persistLastMetrics(ctx context.Context, metrics *AgentMetricsSnapshot) {
+	if m.store == nil || metrics == nil {
+		return
+	}
+	if err := m.store.SaveJSON(ctx, lastMetricsSnapshotFile, metrics); err != nil {
+		m.logger.Warn("device: persist last metrics failed", "error", err)
+	}
 }
 
 func (m *Module) observeSnapshot(ctx context.Context, collector string, value any, now time.Time) {

@@ -826,6 +826,7 @@ model RemoteHost {
   agentCommands   RemoteAgentCommand[]
   agentCapabilities AgentCapability[]
   criticalEvents    RemoteHostCriticalEvent[]
+  metricSamples     RemoteHostMetricSample[]
 
   @@index([companyId, status])
   @@index([installToken])
@@ -854,6 +855,23 @@ model RemoteHostCriticalEvent {
   @@unique([hostId, eventId])
   @@index([hostId, occurredAt])
   @@map("remote_host_critical_event")
+}
+
+model RemoteHostMetricSample {
+  id String @id @default(cuid())
+
+  hostId String
+  host   RemoteHost @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  collectedAt   DateTime
+  cpuLoadPct    Float?
+  memoryUsedPct Float?
+  memoryUsedMB  Int?
+  memoryTotalMB Int?
+
+  @@unique([hostId, collectedAt])
+  @@index([hostId, collectedAt])
+  @@map("remote_host_metric_sample")
 }
 
 model RemoteAgentCommand {

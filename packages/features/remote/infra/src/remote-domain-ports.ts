@@ -77,6 +77,42 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value));
 }
 
+type RemoteMetricSample = {
+  collectedAt: Date;
+  cpuLoadPct: number | null;
+  memoryUsedPct: number | null;
+  memoryUsedMB: number | null;
+  memoryTotalMB: number | null;
+};
+
+function readFiniteMetricValue(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function buildRemoteMetricSample(metrics: Record<string, unknown> | null, heartbeatAt: Date): RemoteMetricSample | null {
+  if (!metrics) return null;
+
+  const cpuLoadPct = readFiniteMetricValue(metrics, "cpuLoadPct");
+  const memoryUsedPct = readFiniteMetricValue(metrics, "memoryUsedPct");
+  if (cpuLoadPct === null && memoryUsedPct === null) return null;
+
+  const collectedAtRaw = typeof metrics.collectedAt === "string" ? new Date(metrics.collectedAt) : null;
+  const collectedAt = collectedAtRaw && !Number.isNaN(collectedAtRaw.getTime()) ? collectedAtRaw : heartbeatAt;
+  const normalizeMegabytes = (key: string) => {
+    const value = readFiniteMetricValue(metrics, key);
+    return value === null || value < 0 || value > 2_000_000_000 ? null : Math.round(value);
+  };
+
+  return {
+    collectedAt,
+    cpuLoadPct: cpuLoadPct === null ? null : Math.max(0, Math.min(100, cpuLoadPct)),
+    memoryUsedPct: memoryUsedPct === null ? null : Math.max(0, Math.min(100, memoryUsedPct)),
+    memoryUsedMB: normalizeMegabytes("memoryUsedMb"),
+    memoryTotalMB: normalizeMegabytes("memoryTotalMb"),
+  };
+}
+
 function buildDiscoverIdentityWhere(input: { rustdeskId: string | null; machineName: string | null }) {
   if (input.rustdeskId) {
     return {
@@ -650,6 +686,7 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
       });
 
       const nextAgentExternalId = record.rustdeskId || record.context.agentExternalId;
+      const metricSample = buildRemoteMetricSample(record.agentMetrics, record.heartbeatAt);
       if (nextAgentExternalId) {
         await assertRemoteHostAgentExternalIdAvailable({
           agentExternalId: nextAgentExternalId,
@@ -699,8 +736,8 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
               lastAllServicesSnapshotAt: record.allServicesSnapshot.length ? record.heartbeatAt : undefined,
               lastRebootPending: typeof record.rebootPending === "boolean" ? record.rebootPending : undefined,
               lastRebootPendingAt: typeof record.rebootPending === "boolean" ? record.heartbeatAt : undefined,
-              lastAgentMetrics: record.agentMetrics ? toJsonValue(record.agentMetrics) : undefined,
-              lastAgentMetricsAt: record.agentMetrics ? record.heartbeatAt : undefined,
+              lastAgentMetrics: metricSample ? toJsonValue(record.agentMetrics!) : undefined,
+              lastAgentMetricsAt: metricSample ? record.heartbeatAt : undefined,
               status: "ACTIVE",
             } as any,
             select: {
@@ -719,6 +756,25 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
               lastRustDeskConfigSyncAt: true,
             },
           });
+
+          if (metricSample) {
+            await tx.remoteHostMetricSample.upsert({
+              where: {
+                hostId_collectedAt: {
+                  hostId: record.context.hostId,
+                  collectedAt: metricSample.collectedAt,
+                },
+              },
+              create: { hostId: record.context.hostId, ...metricSample },
+              update: metricSample,
+            });
+            await tx.remoteHostMetricSample.deleteMany({
+              where: {
+                hostId: record.context.hostId,
+                collectedAt: { lt: new Date(record.heartbeatAt.getTime() - 24 * 60 * 60 * 1000) },
+              },
+            });
+          }
 
           await syncRemoteHostSysproUpdates(tx, {
             hostId: record.context.hostId,

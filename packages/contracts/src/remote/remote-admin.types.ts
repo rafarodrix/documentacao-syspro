@@ -478,6 +478,13 @@ export type RemoteHostDetails = {
     rebootPendingAt: string | null;
     agentMetrics: Record<string, unknown> | null;
     agentMetricsAt: string | null;
+    metricsHistory: Array<{
+      collectedAt: string;
+      cpuLoadPct: number | null;
+      memoryUsedPct: number | null;
+      memoryUsedMB: number | null;
+      memoryTotalMB: number | null;
+    }>;
   };
   moduleSettings: RemoteHostDetailsModuleSettings;
   companyOptions: Array<{
@@ -1001,6 +1008,15 @@ export const remoteHostDetailsSchema = z.object({
     rebootPendingAt: remoteStringOrNullSchema,
     agentMetrics: remoteUnknownRecordSchema.nullable(),
     agentMetricsAt: remoteStringOrNullSchema,
+    metricsHistory: z.array(
+      z.object({
+        collectedAt: z.string(),
+        cpuLoadPct: z.number().nullable(),
+        memoryUsedPct: z.number().nullable(),
+        memoryUsedMB: z.number().nullable(),
+        memoryTotalMB: z.number().nullable(),
+      }),
+    ),
   }),
   moduleSettings: remoteHostDetailsModuleSettingsSchema,
   companyOptions: z.array(remoteCompanyOptionSchema),

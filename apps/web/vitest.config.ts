@@ -48,7 +48,7 @@ export default defineConfig({
       "@dosc-syspro/contracts/documento": path.resolve(__dirname, "../../packages/contracts/src/documento/documento.types.ts"),
       "@dosc-syspro/contracts/documento-config": path.resolve(__dirname, "../../packages/contracts/src/documento/documento-config.types.ts"),
       "@dosc-syspro/contracts/user": path.resolve(__dirname, "../../packages/contracts/src/user/index.ts"),
-      "@dosc-syspro/contracts/trpc": path.resolve(__dirname, "../../apps/api/src/exports.ts"),
+      "@dosc-syspro/contracts/trpc": path.resolve(__dirname, "../../packages/contracts/src/trpc/index.ts"),
       "@dosc-syspro/contracts": path.resolve(__dirname, "../../packages/contracts/src/index.ts"),
       "@dosc-syspro/database": path.resolve(__dirname, "../../packages/database/src/index.ts"),
     },

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@dosc-syspro/ui";
 import { formatRelativeHeartbeat } from "../../host-details.helpers";
@@ -9,6 +10,7 @@ import { Activity, HardDrive, Cpu } from "lucide-react";
 type DiagnosticsPerformanceViewProps = {
   host: RemoteHostDetails["host"];
   diskSnapshot: RemoteHostDetails["agentTelemetry"]["diskSnapshot"];
+  metricsHistory: RemoteHostDetails["agentTelemetry"]["metricsHistory"];
 };
 
 type LiveMetrics = {
@@ -36,7 +38,30 @@ function selectPrimaryDisk(snapshot: RemoteHostDetails["agentTelemetry"]["diskSn
   })[0] ?? null;
 }
 
-export function DiagnosticsPerformanceView({ host, diskSnapshot }: DiagnosticsPerformanceViewProps) {
+function buildHistoryPath(samples: DiagnosticsPerformanceViewProps["metricsHistory"], key: "cpuLoadPct" | "memoryUsedPct") {
+  const values = samples.map((sample) => sample[key]);
+  if (values.filter((value) => typeof value === "number").length < 2) return null;
+
+  return values
+    .map((value, index) => {
+      if (typeof value !== "number") return null;
+      const x = values.length === 1 ? 0 : (index / (values.length - 1)) * 100;
+      return `${x},${100 - Math.max(0, Math.min(100, value))}`;
+    })
+    .filter((value): value is string => value !== null)
+    .join(" ");
+}
+
+function summarizeMetric(samples: DiagnosticsPerformanceViewProps["metricsHistory"], key: "cpuLoadPct" | "memoryUsedPct") {
+  const values = samples.map((sample) => sample[key]).filter((value): value is number => typeof value === "number");
+  if (!values.length) return null;
+  return {
+    average: values.reduce((sum, value) => sum + value, 0) / values.length,
+    peak: Math.max(...values),
+  };
+}
+
+export function DiagnosticsPerformanceView({ host, diskSnapshot, metricsHistory }: DiagnosticsPerformanceViewProps) {
   const { lastTelemetry, isConnected } = useAckStream(host.id);
   const agent = host.agent;
 
@@ -53,6 +78,10 @@ export function DiagnosticsPerformanceView({ host, diskSnapshot }: DiagnosticsPe
   const diskFreeGb = diskFree !== null ? formatNumber(diskFree / (1024 * 1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
   const diskTotalGb = diskTotal !== null ? formatNumber(diskTotal / (1024 * 1024 * 1024), { maximumFractionDigits: 0 }) : null;
   const diskUsedPc = diskFree !== null && diskTotal !== null && diskTotal > 0 ? Math.round((1 - diskFree / diskTotal) * 100) : null;
+  const cpuHistory = useMemo(() => summarizeMetric(metricsHistory, "cpuLoadPct"), [metricsHistory]);
+  const memoryHistory = useMemo(() => summarizeMetric(metricsHistory, "memoryUsedPct"), [metricsHistory]);
+  const cpuHistoryPath = useMemo(() => buildHistoryPath(metricsHistory, "cpuLoadPct"), [metricsHistory]);
+  const memoryHistoryPath = useMemo(() => buildHistoryPath(metricsHistory, "memoryUsedPct"), [metricsHistory]);
 
   return (
     <Card className="border-border/50">
@@ -72,6 +101,9 @@ export function DiagnosticsPerformanceView({ host, diskSnapshot }: DiagnosticsPe
           </div>
           {agent.lastHeartbeatAt && !isConnected && (
             <span className="text-[10px] text-muted-foreground">Último contato {formatRelativeHeartbeat(agent.lastHeartbeatAt)}</span>
+          )}
+          {host.lastAgentMetricsAt && (
+            <span className="text-[10px] text-muted-foreground">Métricas coletadas {formatRelativeHeartbeat(host.lastAgentMetricsAt)}</span>
           )}
         </div>
       </CardHeader>
@@ -135,6 +167,27 @@ export function DiagnosticsPerformanceView({ host, diskSnapshot }: DiagnosticsPe
             </CardContent>
           </Card>
         </div>
+
+        <Card className="border-border/40 bg-muted/10">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Histórico das últimas 24 horas</CardTitle>
+            <CardDescription>{metricsHistory.length ? `${metricsHistory.length} amostras preservadas para investigar picos e travamentos.` : "As amostras aparecerão após o próximo ciclo de métricas."}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between text-sm"><span className="font-medium">CPU</span><span className="text-muted-foreground">média {cpuHistory ? `${formatNumber(cpuHistory.average, { maximumFractionDigits: 1 })}%` : "--"} · pico {cpuHistory ? `${formatNumber(cpuHistory.peak, { maximumFractionDigits: 1 })}%` : "--"}</span></div>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-20 w-full overflow-visible rounded bg-background/50" aria-label="Histórico de CPU das últimas 24 horas">
+                <polyline points={cpuHistoryPath ?? ""} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" className="text-primary" />
+              </svg>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between text-sm"><span className="font-medium">Memória</span><span className="text-muted-foreground">média {memoryHistory ? `${formatNumber(memoryHistory.average, { maximumFractionDigits: 1 })}%` : "--"} · pico {memoryHistory ? `${formatNumber(memoryHistory.peak, { maximumFractionDigits: 1 })}%` : "--"}</span></div>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-20 w-full overflow-visible rounded bg-background/50" aria-label="Histórico de memória das últimas 24 horas">
+                <polyline points={memoryHistoryPath ?? ""} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" className="text-violet-500" />
+              </svg>
+            </div>
+          </CardContent>
+        </Card>
       </CardContent>
     </Card>
   );

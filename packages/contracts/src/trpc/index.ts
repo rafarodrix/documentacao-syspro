@@ -1,7 +1,5 @@
-import type { AnyRouter } from "@trpc/server";
-
 /**
- * Interface/tipo para o contrato do router tRPC entre cliente web e backend.
- * Permite que a aplicacao web consuma procedimentos tRPC sem importar diretamente o workspace apps/api.
+ * Contrato de tipos do router tRPC exportado apenas para inferencia de compilação (type-only).
+ * Nao produz codigo JavaScript em runtime e nao adiciona dependencias no package.json.
  */
-export type AppRouter = AnyRouter;
+export type { AppRouter } from "../../../../apps/api/src/exports";

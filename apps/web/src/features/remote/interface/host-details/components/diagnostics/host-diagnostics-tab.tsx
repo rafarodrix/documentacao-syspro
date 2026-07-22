@@ -38,7 +38,7 @@ export function HostDiagnosticsTab({ details }: Props) {
       </TabsContent>
 
       <TabsContent value="desempenho" className="m-0 space-y-6">
-        <DiagnosticsPerformanceView host={details.host} diskSnapshot={telemetry.diskSnapshot} />
+        <DiagnosticsPerformanceView host={details.host} diskSnapshot={telemetry.diskSnapshot} metricsHistory={telemetry.metricsHistory} />
       </TabsContent>
 
       <TabsContent value="hardware" className="m-0 space-y-6">

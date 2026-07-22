@@ -578,7 +578,9 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		syncReq.WindowsUpdateStatus = devWindowsUpdate
 		syncReq.AllServicesSnapshot = devAllServices
 		syncReq.RebootPending = devReboot
-		syncReq.AgentMetrics = enrichAgentMetrics(devMetrics, devSystem, devDisks, st, flushStats)
+		if devMetrics != nil {
+			syncReq.AgentMetrics = enrichAgentMetrics(devMetrics, devSystem, devDisks, st, flushStats)
+		}
 		syncReq.CriticalEvents = m.device.GetCriticalEvents(ctx)
 	}
 

@@ -39,7 +39,7 @@ O binario da UI deve sair em `apps/agent/build/bin`.
 
 ```powershell
 cd .\apps\agent
-$releaseVersion = "1.0.86"
+$releaseVersion = "1.0.87"
 go build -ldflags "-X trilink/agent/internal/buildinfo.Version=$releaseVersion" -o .\build\bin\agent-service.exe .\cmd\agent-service
 ```
 

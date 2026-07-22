@@ -1344,6 +1344,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
   
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildRemoteScopedWhere(tenantScope);
+  const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const host = await prisma.remoteHost.findFirst({
     where: {
@@ -1351,6 +1352,17 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       ...scopedWhere,
     },
     include: {
+      metricSamples: {
+        where: { collectedAt: { gte: last24h } },
+        orderBy: { collectedAt: "asc" },
+        select: {
+          collectedAt: true,
+          cpuLoadPct: true,
+          memoryUsedPct: true,
+          memoryUsedMB: true,
+          memoryTotalMB: true,
+        },
+      },
       criticalEvents: {
         orderBy: { occurredAt: "desc" },
         take: 50,
@@ -1431,7 +1443,6 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
 
   if (!host) return null;
   const companyOptions = await loadScopedCompanyOptions(tenantScope);
-  const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const last30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -1669,6 +1680,13 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       rebootPendingAt: host.lastRebootPendingAt?.toISOString() ?? null,
       agentMetrics: toRecord(host.lastAgentMetrics),
       agentMetricsAt: host.lastAgentMetricsAt?.toISOString() ?? null,
+      metricsHistory: host.metricSamples.map((sample) => ({
+        collectedAt: sample.collectedAt.toISOString(),
+        cpuLoadPct: sample.cpuLoadPct,
+        memoryUsedPct: sample.memoryUsedPct,
+        memoryUsedMB: sample.memoryUsedMB,
+        memoryTotalMB: sample.memoryTotalMB,
+      })),
     },
     moduleSettings: buildRemoteModuleSettingsView(moduleSettings),
     companyOptions,
