@@ -3,6 +3,7 @@ package device
 import (
 	"context"
 	"sync"
+	"time"
 
 	"trilink/agent/internal/domain"
 )
@@ -14,6 +15,7 @@ import (
 type Module struct {
 	collector  *Collector
 	logger     Logger
+	snapshots  *snapshotTracker
 	mu         sync.RWMutex
 	cycleCount uint64
 
@@ -30,10 +32,11 @@ type Module struct {
 }
 
 // New cria um DeviceModule pronto para uso.
-func New(logger Logger) *Module {
+func New(logger Logger, store StateStore) *Module {
 	return &Module{
 		collector: NewCollector(logger),
 		logger:    logger,
+		snapshots: newSnapshotTracker(store),
 	}
 }
 
@@ -63,91 +66,126 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 	}
 
 	m.cycleCount++
-	sysproHints := toCollectorHints(desired.Device.SysproInstallationHints)
-	sysproSnapshot := m.collector.CollectSysproInstallations(ctx, sysproHints)
-	m.mu.Lock()
-	m.lastVersions = sysproSnapshot
-	m.mu.Unlock()
+	now := time.Now().UTC()
+	var sysproSnapshot *SysproVersionSnapshot
+	m.mu.RLock()
+	sysproSnapshot = m.lastVersions
+	m.mu.RUnlock()
+	if desired.Device.CollectInventory && (sysproSnapshot == nil || m.snapshots.due(ctx, "syspro_versions", now)) {
+		sysproHints := toCollectorHints(desired.Device.SysproInstallationHints)
+		sysproSnapshot = m.collector.CollectSysproInstallations(ctx, sysproHints)
+		m.mu.Lock()
+		m.lastVersions = sysproSnapshot
+		m.mu.Unlock()
+		m.observeSnapshot(ctx, "syspro_versions", sysproSnapshot, now)
+	}
 
-	// Metricas e servicos: todo ciclo (~45s)
-	if desired.Device.CollectMetrics {
+	if desired.Device.CollectMetrics && m.snapshots.due(ctx, "metrics", now) {
 		if metrics, err := m.collector.CollectMetrics(ctx); err != nil {
 			m.logger.Warn("device: collect metrics failed", "error", err)
 		} else {
 			m.mu.Lock()
 			m.lastMetrics = metrics
 			m.mu.Unlock()
+			m.observeSnapshot(ctx, "metrics", metrics, now)
 		}
+	}
 
+	if desired.Device.CollectMetrics && m.snapshots.due(ctx, "critical_services", now) {
 		if services, err := m.collector.CollectServices(sysproSnapshot); err != nil {
 			m.logger.Warn("device: collect services failed", "error", err)
 		} else {
 			m.mu.Lock()
 			m.lastServices = services
 			m.mu.Unlock()
+			m.observeSnapshot(ctx, "critical_services", services, now)
 		}
 	}
 
-	// Disco: a cada 4 ciclos (~3 min)
-	if desired.Device.CollectInventory && (m.cycleCount == 1 || m.cycleCount%4 == 0) {
+	if desired.Device.CollectInventory && m.snapshots.due(ctx, "system", now) {
 		if system, err := m.collector.CollectSystemSnapshot(ctx); err != nil {
 			m.logger.Warn("device: collect system snapshot failed", "error", err)
 		} else {
 			m.mu.Lock()
 			m.lastSystem = system
 			m.mu.Unlock()
+			m.observeSnapshot(ctx, "system", system, now)
 		}
+	}
 
+	if desired.Device.CollectInventory && m.snapshots.due(ctx, "network", now) {
 		if network, err := m.collector.CollectNetworkSnapshot(ctx); err != nil {
 			m.logger.Warn("device: collect network snapshot failed", "error", err)
 		} else {
 			m.mu.Lock()
 			m.lastNetwork = network
 			m.mu.Unlock()
+			m.observeSnapshot(ctx, "network", network, now)
 		}
+	}
 
+	if desired.Device.CollectInventory && m.snapshots.due(ctx, "software", now) {
 		if software, err := m.collector.CollectSoftwareSnapshot(ctx); err != nil {
 			m.logger.Warn("device: collect software snapshot failed", "error", err)
 		} else {
 			m.mu.Lock()
 			m.lastSoftware = software
 			m.mu.Unlock()
+			m.observeSnapshot(ctx, "software", software, now)
 		}
+	}
 
+	if desired.Device.CollectInventory && m.snapshots.due(ctx, "hardware", now) {
 		if hardware, err := m.collector.CollectHardwareIdentity(ctx); err != nil {
 			m.logger.Warn("device: collect hardware identity failed", "error", err)
 		} else {
 			m.mu.Lock()
 			m.lastHardware = hardware
 			m.mu.Unlock()
+			m.observeSnapshot(ctx, "hardware", hardware, now)
 		}
+	}
 
+	if desired.Device.CollectInventory && m.snapshots.due(ctx, "windows_update", now) {
 		if updates, err := m.collector.CollectWindowsUpdateStatus(ctx); err != nil {
 			m.logger.Warn("device: collect windows update status failed", "error", err)
 		} else {
 			m.mu.Lock()
 			m.lastWindowsUpdate = updates
 			m.mu.Unlock()
+			m.observeSnapshot(ctx, "windows_update", updates, now)
 		}
+	}
 
+	if desired.Device.CollectInventory && m.snapshots.due(ctx, "disks", now) {
 		if disks, err := m.collector.CollectDisks(ctx); err != nil {
 			m.logger.Warn("device: collect disks failed", "error", err)
 		} else {
 			m.mu.Lock()
 			m.lastDisks = disks
 			m.mu.Unlock()
+			m.observeSnapshot(ctx, "disks", disks, now)
 		}
+	}
 
+	if desired.Device.CollectInventory && m.snapshots.due(ctx, "all_services", now) {
 		if allSvc, err := m.collector.CollectAllServices(); err != nil {
 			m.logger.Warn("device: collect all services failed", "error", err)
 		} else {
 			m.mu.Lock()
 			m.lastAllServices = allSvc
 			m.mu.Unlock()
+			m.observeSnapshot(ctx, "all_services", allSvc, now)
 		}
 	}
 
 	return domain.ApplyResult{Module: "device", Changed: true, Message: "device snapshot collected"}
+}
+
+func (m *Module) observeSnapshot(ctx context.Context, collector string, value any, now time.Time) {
+	if _, err := m.snapshots.observe(ctx, collector, value, now); err != nil {
+		m.logger.Warn("device: persist collector snapshot failed", "collector", collector, "error", err)
+	}
 }
 
 // GetLastSnapshot retorna os ultimos snapshots coletados com tipos concretos.
@@ -175,39 +213,45 @@ func (m *Module) GetLastSnapshot() (
 func (m *Module) GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate, allServices any, rebootPending *bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	if m.lastMetrics != nil {
+	if m.lastMetrics != nil && m.snapshots.pending(context.Background(), "metrics") {
 		metrics = m.lastMetrics // objeto: collectedAt, memoryTotalMb, cpuLoadPct, ...
 		rb := m.lastMetrics.RebootPending
 		rebootPending = &rb
 	}
-	if m.lastSystem != nil {
+	if m.lastSystem != nil && m.snapshots.pending(context.Background(), "system") {
 		system = m.lastSystem
 	}
-	if m.lastNetwork != nil {
+	if m.lastNetwork != nil && m.snapshots.pending(context.Background(), "network") {
 		network = m.lastNetwork
 	}
-	if len(m.lastSoftware) > 0 {
+	if len(m.lastSoftware) > 0 && m.snapshots.pending(context.Background(), "software") {
 		software = m.lastSoftware
 	}
-	if m.lastHardware != nil {
+	if m.lastHardware != nil && m.snapshots.pending(context.Background(), "hardware") {
 		hardware = m.lastHardware
 	}
-	if m.lastDisks != nil {
+	if m.lastDisks != nil && m.snapshots.pending(context.Background(), "disks") {
 		disks = m.lastDisks.Volumes // array de DiskVolume: [{letter, label, fsType, ...}]
 	}
-	if m.lastServices != nil {
+	if m.lastServices != nil && m.snapshots.pending(context.Background(), "critical_services") {
 		services = m.lastServices.Services // array de ServiceStatus: [{name, status, pid, ...}]
 	}
-	if m.lastVersions != nil {
+	if m.lastVersions != nil && m.snapshots.pending(context.Background(), "syspro_versions") {
 		versions = m.lastVersions // objeto: collectedAt, installations: [...]
 	}
-	if m.lastWindowsUpdate != nil {
+	if m.lastWindowsUpdate != nil && m.snapshots.pending(context.Background(), "windows_update") {
 		windowsUpdate = m.lastWindowsUpdate
 	}
-	if m.lastAllServices != nil {
+	if m.lastAllServices != nil && m.snapshots.pending(context.Background(), "all_services") {
 		allServices = m.lastAllServices.Services // array completo de ServiceStatus
 	}
 	return
+}
+
+func (m *Module) MarkSyncSnapshotsPublished(ctx context.Context) {
+	if err := m.snapshots.markPublished(ctx); err != nil {
+		m.logger.Warn("device: confirm published snapshots failed", "error", err)
+	}
 }
 
 // toCollectorHints converte domain.SysproInstallationHint para o tipo interno do collector.

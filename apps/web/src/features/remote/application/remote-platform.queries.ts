@@ -11,10 +11,6 @@ export async function getRemotePlatformOverview(_tenantScope: RemoteTenantScope)
   return trpc.remote.overview.query() as Promise<RemotePlatformOverview>;
 }
 
-export async function getRemotePlatformDirectory(_tenantScope: RemoteTenantScope): Promise<RemotePlatformDirectory> {
-  return trpc.remote.directory.query() as Promise<RemotePlatformDirectory>;
-}
-
 export async function getRemoteHostDetails(
   _tenantScope: RemoteTenantScope,
   hostId: string,
@@ -27,4 +23,12 @@ export async function getRemoteDiscoveredHostDetails(
   discoveredHostId: string,
 ): Promise<RemoteDiscoveredHostDetails | null> {
   return trpc.remote.discoveredHostDetails.query({ discoveredHostId }) as Promise<RemoteDiscoveredHostDetails | null>;
+}
+
+export async function searchRemoteCompanies(_tenantScope: RemoteTenantScope, query = "") {
+  const result = (await trpc.remote.searchCompanies.query({ q: query })) as {
+    success: boolean;
+    data: { options: Array<{ id: string; label: string; searchText: string }> };
+  };
+  return result.data?.options ?? [];
 }

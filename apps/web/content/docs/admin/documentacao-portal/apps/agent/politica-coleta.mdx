@@ -1,0 +1,158 @@
+---
+title: Agent - Politica de coleta
+description: Contrato operacional para frequencia, deltas, prioridade e confiabilidade das coletas do agente Windows.
+lastUpdated: 2026-07-22
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - agent
+  - telemetry
+  - inventory
+  - reliability
+---
+
+# Politica de coleta do agente
+
+O agente deve separar presenca, telemetria operacional, inventario e diagnostico. Um heartbeat nunca deve transportar inventario completo.
+
+```text
+heartbeat leve e frequente
+  + coletas por categoria e frequencia propria
+  + delta imediato quando um estado relevante mudar
+  + diagnostico profundo sob demanda ou em janela controlada
+```
+
+## Estado atual e limite conhecido
+
+Hoje o heartbeat base ja publica apenas identidade e versao a cada 30 segundos. Porem, o reconcile do modulo `device` ainda executa em ciclos de 45 segundos, descobre instalacoes Syspro a cada ciclo e faz coleta de sistema, rede, software, hardware, updates, discos e todos os servicos a cada quatro ciclos. O sync remoto ainda carrega os snapshots disponiveis sem detector de delta persistido.
+
+Portanto, esta politica e normativa para as proximas extracoes; ela nao descreve essas otimizações como ja implementadas.
+
+## Classes de coleta
+
+| Classe | Frequencia base | Conteudo | Regra de envio |
+| --- | --- | --- | --- |
+| Heartbeat | 30 s servidor; 60-120 s estacao | identidade, versao, estado do agente | sempre, payload minimo |
+| Operacional | 1-5 min | CPU/RAM agregados, discos, processos e servicos criticos | valor atual ou mudanca relevante |
+| Verificacao | 15-30 min | portas, endpoint Syspro/IIS, Firebird, compliance RustDesk | resultado resumido |
+| Inventario | diario, com jitter | hardware, software, rede, servicos completos, instalacoes | somente delta |
+| Diagnostico | semanal ou sob demanda | varreduras, hashes, eventos e performance profunda | somente mediante politica ou comando |
+
+Nenhuma coleta cara pode ser derivada diretamente do ticker de heartbeat.
+
+## Contrato por coletor
+
+Todo coletor novo deve declarar:
+
+```text
+id                 ex.: software.inventory
+versao             versao do formato coletado
+classe             heartbeat | operacional | verificacao | inventario | diagnostico
+intervalo          minimo entre execucoes
+jitter             deslocamento maximo para execucoes agendadas
+timeout            limite local da coleta
+perfil             servidor_syspro | estacao | nao_vinculado
+modo_de_envio      sempre | delta | sob_demanda
+prioridade         critica | normal | baixa
+```
+
+Cada payload deve carregar `collectedAt`, `source`, `collectorVersion` e, quando houver inferencia, `confidence`.
+
+## Frequencias normativas
+
+### Servidor Syspro
+
+| Coletor | Frequencia |
+| --- | ---: |
+| heartbeat | 30 s |
+| CPU/RAM e servicos criticos | 1-2 min |
+| discos e conectividade | 3-5 min |
+| Firebird, Syspro e IIS | 5-15 min |
+| inventario por delta | diario com jitter |
+| inventario profundo | semanal ou comando autorizado |
+
+### Estacao ou cliente Syspro
+
+| Coletor | Frequencia |
+| --- | ---: |
+| heartbeat | 60-120 s |
+| CPU/RAM | 5 min |
+| discos e RustDesk | 5-10 min |
+| inventario por delta | diario com jitter |
+
+### Dispositivo nao vinculado
+
+Manteem-se heartbeat, inventario minimo no onboarding, RustDesk e atualizacao do agente. Descobertas profundas, backup e varreduras de ERP ficam desativados ate haver vinculo e politica autorizada.
+
+## Delta, snapshot e reenvio
+
+O runtime deve persistir o ultimo estado confirmado por coletor em `state/collectors/<collector>.json`.
+
+```text
+coletar localmente
+  -> normalizar campos ordenaveis
+  -> calcular hash do snapshot
+  -> comparar com o ultimo hash confirmado
+  -> publicar somente se mudou, expirou ou foi solicitado
+  -> confirmar o novo snapshot somente apos ACK do portal
+```
+
+Um snapshot deve conter, no minimo:
+
+```json
+{
+  "collector": "software.inventory",
+  "collectorVersion": "v1",
+  "collectedAt": "2026-07-22T02:18:00Z",
+  "snapshotHash": "sha256:...",
+  "changed": false,
+  "source": "windows-registry"
+}
+```
+
+Se `changed` for falso, inventario volumoso nao pode ser reenviado. Uma expiracao maxima deve forcar reconciliacao completa mesmo sem mudanca: 24 h para inventario diario e 7 dias para inventario profundo.
+
+## Eventos e protecao contra perda
+
+Eventos de alta prioridade devem disparar coleta e delta imediato: parada de servico critico, inicio/fim de Syspro ou Firebird, disco abaixo do limite, mudanca de IP ou RustDesk ID, nova instalacao Syspro, fim de backup, atualizacao do agente, certificado proximo do vencimento e reboot pendente.
+
+O evento nao substitui a verificacao periodica: servicos e processos criticos mantem uma coleta de seguranca. A fila local deve ser limitada, persistida, ordenada por prioridade e ter backoff exponencial observavel. Eventos criticos nunca podem ser descartados em favor de inventario; quando a fila estiver cheia, descarta-se primeiro a telemetria de baixa prioridade com log estruturado.
+
+## Jitter, concorrencia e sob demanda
+
+Inventarios diarios devem aplicar jitter de ate 90 minutos. O scheduler nao pode executar dois coletores caros simultaneamente no mesmo host e deve respeitar cancelamento, timeout e janela autorizada.
+
+O portal pode solicitar diagnostico sob demanda com `collectorId`, escopo, motivo, prazo e idempotency key. O agente deve responder com ACK, estado (`queued`, `running`, `completed` ou `failed`) e timestamps; pedido repetido com a mesma chave nao inicia uma nova coleta.
+
+## Fonte oficial no portal
+
+O portal pode exibir resumos na Visao geral, mas o detalhe tecnico fica em uma unica aba:
+
+| Dado | Fonte oficial | Resumo permitido |
+| --- | --- | --- |
+| CPU, RAM e disco | Diagnostico | valor atual |
+| RustDesk e agente | Servicos | estado e identificador |
+| Syspro e Firebird | ERP | quantidade e pior estado |
+| Backup | Backup | ultimo resultado |
+| Windows Update | Diagnostico do sistema | alerta |
+
+Cada card deve mostrar sua propria freshness (`collectedAt`), nunca apenas uma data geral do host.
+
+## Plano de implementacao
+
+1. Extrair `CollectorRegistry` e scheduler do ciclo unico do modulo `device`.
+2. Introduzir `SnapshotStore`, hash deterministico, detector de mudanca e ACK de publicacao.
+3. Separar payload operacional do inventario no contrato de sync remoto.
+4. Adicionar jitter, limite de concorrencia e backoff por coletor.
+5. Priorizar eventos criticos e fila local persistida por prioridade.
+6. Expor coleta sob demanda idempotente pelo portal.
+7. Adicionar freshness por bloco e perfis de dispositivo ao portal.
+
+## Criterios de aceite
+
+- Heartbeat nao dispara nem transporta inventario.
+- Cada coletor tem frequencia, timeout, perfil e modo de envio declarados.
+- Inventario completo e enviado apenas em onboarding, expiracao ou delta confirmado.
+- Falha transitoria nao perde eventos criticos e pode ser explicada por logs e estado persistido.
+- Coleta profunda nao ocorre em massa durante horario comercial.
+- O portal mostra origem e freshness individual de cada dado.

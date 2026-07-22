@@ -6,7 +6,6 @@ import { Button } from "@dosc-syspro/ui";
 import { requireSession } from "@/lib/auth-helpers";
 import { PageHeader, PageShell } from "@/components/patterns";
 import { cn } from "@/lib/utils";
-import { getRemotePlatformDirectory } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteSessions } from "@/features/remote/application/session-queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import type { RemoteSessionStatus } from "@/features/remote/domain/remote-host.types";
@@ -148,8 +147,6 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
   let actions: ReactNode = null;
 
   if (activeTab === "dispositivos") {
-    const tenantScope = await getRemoteTenantScope();
-    const directory = await getRemotePlatformDirectory(tenantScope);
     const canManageRemote = await currentUserHasAnyPermission(["remote:manage", "tools:all"], {
       acceptCompanyScope: true,
     });

@@ -57,7 +57,7 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 		WebsiteToken: cfg.Support.ChatwootWebsiteToken,
 	}, cfg.Agent.Version, portalClient, desiredStateService)
 
-	deviceMod := devicemodule.New(logger)
+	deviceMod := devicemodule.New(logger, stateStore)
 
 	// deviceMod must run before remotemodule so that GetSyncSnapshots returns
 	// populated data on the very first reconcile cycle.

@@ -3,8 +3,10 @@ import { requireSession } from "@/lib/auth-helpers";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { fetchAgentInstallation } from "@/features/agents/application/agent.queries";
 import { AgentInstallationDetailPanel } from "@/features/agents/interface/installation-detail-page";
-import { getRemotePlatformDirectory } from "@/features/remote/application/remote-platform.queries";
+import { searchRemoteCompanies } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { trpc } from "@/lib/api/trpc-client";
+import type { DeviceListResponse } from "@dosc-syspro/contracts";
 
 function normalizeMachineName(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? "";
@@ -41,32 +43,31 @@ export default async function AgentInstallationDetailPage({
   }
 
   const tenantScope = await getRemoteTenantScope();
-  const remoteDirectory = await getRemotePlatformDirectory(tenantScope).catch(() => null);
-  const matchedPendingHost =
-    device.hostname && remoteDirectory
-      ? remoteDirectory.pendingItems
-          .filter((item) => normalizeMachineName(item.machineName) === normalizeMachineName(device.hostname))
-          .sort((a, b) => {
-            const timeA = a.lastHeartbeatAt ? new Date(a.lastHeartbeatAt).getTime() : 0;
-            const timeB = b.lastHeartbeatAt ? new Date(b.lastHeartbeatAt).getTime() : 0;
-            return timeB - timeA;
-          })[0] ?? null
-      : null;
-  const matchedPendingHostForPanel =
-    matchedPendingHost && (matchedPendingHost.status === "PENDING_LINK" || matchedPendingHost.status === "IGNORED")
-      ? {
-          id: matchedPendingHost.id,
-          machineName: matchedPendingHost.machineName,
-          status: matchedPendingHost.status,
-        }
-      : null;
+  const [companyOptions, discoveredResult] = await Promise.all([
+    searchRemoteCompanies(tenantScope).catch(() => []),
+    device.hostname
+      ? (trpc.remote.devices.query({ lifecycle: "DISCOVERED", query: device.hostname }).catch(() => null) as Promise<DeviceListResponse | null>)
+      : Promise.resolve(null),
+  ]);
+
+  const matchedDiscoveredItem = discoveredResult?.items.find(
+    (item) => normalizeMachineName(item.hostname) === normalizeMachineName(device.hostname),
+  );
+
+  const matchedPendingHostForPanel = matchedDiscoveredItem
+    ? {
+        id: matchedDiscoveredItem.id,
+        machineName: matchedDiscoveredItem.hostname,
+        status: (matchedDiscoveredItem.statusLabel === "Bloqueado" ? "IGNORED" : "PENDING_LINK") as "IGNORED" | "PENDING_LINK",
+      }
+    : null;
 
   return (
     <AgentInstallationDetailPanel
       device={device}
       canManage={canManage}
       canManageRemote={canManageRemote}
-      companyOptions={remoteDirectory?.companyOptions ?? []}
+      companyOptions={companyOptions}
       matchedPendingHost={matchedPendingHostForPanel}
     />
   );

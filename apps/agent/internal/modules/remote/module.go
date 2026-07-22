@@ -128,6 +128,7 @@ type remoteDesiredIntent struct {
 // rebootPending e separado pois o portal persiste como Boolean no schema.
 type DeviceSnapshotProvider interface {
 	GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate, allServices any, rebootPending *bool)
+	MarkSyncSnapshotsPublished(ctx context.Context)
 }
 
 type namedServiceController interface {
@@ -590,13 +591,13 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 				"error_code", failure.Code,
 				"error", err,
 			)
-		st.AgentToken = ""
-		st.AgentTokenIssuedAt = time.Time{}
-		st.HostID = ""
-		st.CompanyID = ""
-		st.CompanyName = ""
-		st.PendingLinkReady = false
-		st.RebootstrapRequired = true
+			st.AgentToken = ""
+			st.AgentTokenIssuedAt = time.Time{}
+			st.HostID = ""
+			st.CompanyID = ""
+			st.CompanyName = ""
+			st.PendingLinkReady = false
+			st.RebootstrapRequired = true
 			m.rememberFailure(st, runtimePhaseSync, err)
 			_ = m.saveState(ctx, st)
 			if intent.bootstrapEnabled && m.discoveryToken != "" {
@@ -620,6 +621,9 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		m.rememberFailure(st, runtimePhaseSync, err)
 		_ = m.saveState(ctx, st)
 		return m.fail("sync failed", err)
+	}
+	if m.device != nil {
+		m.device.MarkSyncSnapshotsPublished(ctx)
 	}
 
 	st.HostID = firstNonEmpty(syncResp.HostID, st.HostID)

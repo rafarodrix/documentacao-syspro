@@ -68,7 +68,7 @@ async function ensureStartedSession(sessionId: string) {
 
 export async function requestRemoteSessionAction(input: {
   hostId: string;
-  companyId: string;
+  companyId?: string | null;
   ticketId?: string | null;
   ticketNumber?: string | null;
   reason?: string | null;
