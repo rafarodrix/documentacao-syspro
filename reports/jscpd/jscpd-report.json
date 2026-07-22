@@ -1694,36 +1694,36 @@
     },
     {
       "firstFile": {
-        "end": 759,
+        "end": 761,
         "endLoc": {
           "column": 28,
-          "line": 759,
-          "position": 27469
+          "line": 761,
+          "position": 27499
         },
         "name": "agent\\internal\\modules\\remote\\module.go",
-        "start": 753,
+        "start": 755,
         "startLoc": {
           "column": 2,
-          "line": 753,
-          "position": 27198
+          "line": 755,
+          "position": 27228
         }
       },
       "format": "go",
       "fragment": "",
       "lines": 7,
       "secondFile": {
-        "end": 789,
+        "end": 791,
         "endLoc": {
           "column": 28,
-          "line": 789,
-          "position": 28478
+          "line": 791,
+          "position": 28508
         },
         "name": "agent\\internal\\modules\\remote\\module.go",
-        "start": 783,
+        "start": 785,
         "startLoc": {
           "column": 2,
-          "line": 783,
-          "position": 28207
+          "line": 785,
+          "position": 28237
         }
       },
       "tokens": 53
@@ -5960,18 +5960,18 @@
       "fragment": "",
       "lines": 7,
       "secondFile": {
-        "end": 1419,
+        "end": 1431,
         "endLoc": {
           "column": 13,
-          "line": 1419,
-          "position": 52692
+          "line": 1431,
+          "position": 53055
         },
         "name": "api\\src\\modules\\remote-admin\\support\\remote-host.queries.ts",
-        "start": 1413,
+        "start": 1425,
         "startLoc": {
           "column": 8,
-          "line": 1413,
-          "position": 52442
+          "line": 1425,
+          "position": 52805
         }
       },
       "tokens": 57
@@ -5996,18 +5996,18 @@
       "fragment": "",
       "lines": 16,
       "secondFile": {
-        "end": 1740,
+        "end": 1758,
         "endLoc": {
           "column": 8,
-          "line": 1740,
-          "position": 65266
+          "line": 1758,
+          "position": 65865
         },
         "name": "api\\src\\modules\\remote-admin\\support\\remote-host.queries.ts",
-        "start": 1725,
+        "start": 1743,
         "startLoc": {
           "column": 33,
-          "line": 1725,
-          "position": 64611
+          "line": 1743,
+          "position": 65210
         }
       },
       "tokens": 125
@@ -6050,42 +6050,6 @@
     },
     {
       "firstFile": {
-        "end": 1040,
-        "endLoc": {
-          "column": 7,
-          "line": 1040,
-          "position": 40542
-        },
-        "name": "api\\src\\modules\\remote-admin\\support\\remote-host.queries.ts",
-        "start": 1035,
-        "startLoc": {
-          "column": 44,
-          "line": 1035,
-          "position": 40325
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 6,
-      "secondFile": {
-        "end": 1438,
-        "endLoc": {
-          "column": 7,
-          "line": 1438,
-          "position": 53178
-        },
-        "name": "api\\src\\modules\\remote-admin\\support\\remote-host.queries.ts",
-        "start": 1433,
-        "startLoc": {
-          "column": 55,
-          "line": 1433,
-          "position": 52961
-        }
-      },
-      "tokens": 72
-    },
-    {
-      "firstFile": {
         "end": 1068,
         "endLoc": {
           "column": 72,
@@ -6104,36 +6068,36 @@
       "fragment": "",
       "lines": 6,
       "secondFile": {
-        "end": 1868,
+        "end": 1886,
         "endLoc": {
           "column": 72,
-          "line": 1868,
-          "position": 70219
+          "line": 1886,
+          "position": 70818
         },
         "name": "api\\src\\modules\\remote-admin\\support\\remote-host.queries.ts",
-        "start": 1863,
+        "start": 1881,
         "startLoc": {
           "column": 69,
-          "line": 1863,
-          "position": 69942
+          "line": 1881,
+          "position": 70541
         }
       },
       "tokens": 57
     },
     {
       "firstFile": {
-        "end": 1733,
+        "end": 1751,
         "endLoc": {
           "column": 28,
-          "line": 1733,
-          "position": 64924
+          "line": 1751,
+          "position": 65523
         },
         "name": "api\\src\\modules\\remote-admin\\support\\remote-host.queries.ts",
-        "start": 1725,
+        "start": 1743,
         "startLoc": {
           "column": 25,
-          "line": 1725,
-          "position": 64603
+          "line": 1743,
+          "position": 65202
         }
       },
       "format": "typescript",
@@ -6158,36 +6122,36 @@
     },
     {
       "firstFile": {
-        "end": 1902,
+        "end": 1920,
         "endLoc": {
           "column": 5,
-          "line": 1902,
-          "position": 71330
+          "line": 1920,
+          "position": 71929
         },
         "name": "api\\src\\modules\\remote-admin\\support\\remote-host.queries.ts",
-        "start": 1894,
+        "start": 1912,
         "startLoc": {
           "column": 30,
-          "line": 1894,
-          "position": 70903
+          "line": 1912,
+          "position": 71502
         }
       },
       "format": "typescript",
       "fragment": "",
       "lines": 9,
       "secondFile": {
-        "end": 1998,
+        "end": 2016,
         "endLoc": {
           "column": 5,
-          "line": 1998,
-          "position": 75284
+          "line": 2016,
+          "position": 75883
         },
         "name": "api\\src\\modules\\remote-admin\\support\\remote-host.queries.ts",
-        "start": 1990,
+        "start": 2008,
         "startLoc": {
           "column": 30,
-          "line": 1990,
-          "position": 74857
+          "line": 2008,
+          "position": 75456
         }
       },
       "tokens": 74
@@ -9287,330 +9251,6 @@
         }
       },
       "tokens": 69
-    },
-    {
-      "firstFile": {
-        "end": 20,
-        "endLoc": {
-          "column": 37,
-          "line": 20,
-          "position": 658
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-behavior-settings.ts",
-        "start": 10,
-        "startLoc": {
-          "column": 103,
-          "line": 10,
-          "position": 394
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 11,
-      "secondFile": {
-        "end": 22,
-        "endLoc": {
-          "column": 37,
-          "line": 22,
-          "position": 709
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-integration-settings.ts",
-        "start": 12,
-        "startLoc": {
-          "column": 2,
-          "line": 12,
-          "position": 445
-        }
-      },
-      "tokens": 56
-    },
-    {
-      "firstFile": {
-        "end": 20,
-        "endLoc": {
-          "column": 37,
-          "line": 20,
-          "position": 658
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-behavior-settings.ts",
-        "start": 10,
-        "startLoc": {
-          "column": 103,
-          "line": 10,
-          "position": 394
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 11,
-      "secondFile": {
-        "end": 20,
-        "endLoc": {
-          "column": 37,
-          "line": 20,
-          "position": 646
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-google-calendar-settings.ts",
-        "start": 10,
-        "startLoc": {
-          "column": 99,
-          "line": 10,
-          "position": 382
-        }
-      },
-      "tokens": 56
-    },
-    {
-      "firstFile": {
-        "end": 20,
-        "endLoc": {
-          "column": 37,
-          "line": 20,
-          "position": 658
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-behavior-settings.ts",
-        "start": 10,
-        "startLoc": {
-          "column": 103,
-          "line": 10,
-          "position": 394
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 11,
-      "secondFile": {
-        "end": 20,
-        "endLoc": {
-          "column": 37,
-          "line": 20,
-          "position": 614
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-storage-settings.ts",
-        "start": 10,
-        "startLoc": {
-          "column": 89,
-          "line": 10,
-          "position": 350
-        }
-      },
-      "tokens": 56
-    },
-    {
-      "firstFile": {
-        "end": 43,
-        "endLoc": {
-          "column": 18,
-          "line": 43,
-          "position": 1349
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-behavior-settings.ts",
-        "start": 28,
-        "startLoc": {
-          "column": 56,
-          "line": 28,
-          "position": 1104
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 16,
-      "secondFile": {
-        "end": 45,
-        "endLoc": {
-          "column": 18,
-          "line": 45,
-          "position": 1429
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-integration-settings.ts",
-        "start": 30,
-        "startLoc": {
-          "column": 70,
-          "line": 30,
-          "position": 1184
-        }
-      },
-      "tokens": 53
-    },
-    {
-      "firstFile": {
-        "end": 43,
-        "endLoc": {
-          "column": 18,
-          "line": 43,
-          "position": 1349
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-behavior-settings.ts",
-        "start": 28,
-        "startLoc": {
-          "column": 56,
-          "line": 28,
-          "position": 1104
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 16,
-      "secondFile": {
-        "end": 43,
-        "endLoc": {
-          "column": 18,
-          "line": 43,
-          "position": 1336
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-google-calendar-settings.ts",
-        "start": 28,
-        "startLoc": {
-          "column": 54,
-          "line": 28,
-          "position": 1091
-        }
-      },
-      "tokens": 53
-    },
-    {
-      "firstFile": {
-        "end": 43,
-        "endLoc": {
-          "column": 18,
-          "line": 43,
-          "position": 1349
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-behavior-settings.ts",
-        "start": 28,
-        "startLoc": {
-          "column": 56,
-          "line": 28,
-          "position": 1104
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 16,
-      "secondFile": {
-        "end": 43,
-        "endLoc": {
-          "column": 18,
-          "line": 43,
-          "position": 1281
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-storage-settings.ts",
-        "start": 28,
-        "startLoc": {
-          "column": 49,
-          "line": 28,
-          "position": 1036
-        }
-      },
-      "tokens": 53
-    },
-    {
-      "firstFile": {
-        "end": 58,
-        "endLoc": {
-          "column": 34,
-          "line": 58,
-          "position": 1912
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-behavior-settings.ts",
-        "start": 51,
-        "startLoc": {
-          "column": 77,
-          "line": 51,
-          "position": 1630
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 8,
-      "secondFile": {
-        "end": 60,
-        "endLoc": {
-          "column": 34,
-          "line": 60,
-          "position": 2012
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-integration-settings.ts",
-        "start": 53,
-        "startLoc": {
-          "column": 75,
-          "line": 53,
-          "position": 1730
-        }
-      },
-      "tokens": 70
-    },
-    {
-      "firstFile": {
-        "end": 58,
-        "endLoc": {
-          "column": 34,
-          "line": 58,
-          "position": 1912
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-behavior-settings.ts",
-        "start": 51,
-        "startLoc": {
-          "column": 77,
-          "line": 51,
-          "position": 1630
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 8,
-      "secondFile": {
-        "end": 58,
-        "endLoc": {
-          "column": 34,
-          "line": 58,
-          "position": 1905
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-google-calendar-settings.ts",
-        "start": 51,
-        "startLoc": {
-          "column": 82,
-          "line": 51,
-          "position": 1623
-        }
-      },
-      "tokens": 70
-    },
-    {
-      "firstFile": {
-        "end": 58,
-        "endLoc": {
-          "column": 34,
-          "line": 58,
-          "position": 1912
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-chatwoot-behavior-settings.ts",
-        "start": 51,
-        "startLoc": {
-          "column": 77,
-          "line": 51,
-          "position": 1630
-        }
-      },
-      "format": "typescript",
-      "fragment": "",
-      "lines": 8,
-      "secondFile": {
-        "end": 58,
-        "endLoc": {
-          "column": 34,
-          "line": 58,
-          "position": 1831
-        },
-        "name": "web\\src\\app\\(platform)\\portal\\configuracoes\\integrations\\hooks\\use-storage-settings.ts",
-        "start": 51,
-        "startLoc": {
-          "column": 74,
-          "line": 51,
-          "position": 1549
-        }
-      },
-      "tokens": 70
     },
     {
       "firstFile": {
@@ -12782,36 +12422,36 @@
     },
     {
       "firstFile": {
-        "end": 102,
+        "end": 134,
         "endLoc": {
           "column": 19,
-          "line": 102,
-          "position": 5459
+          "line": 134,
+          "position": 7176
         },
         "name": "web\\src\\features\\remote\\interface\\host-details\\components\\diagnostics\\diagnostics-performance-view.tsx",
-        "start": 92,
+        "start": 124,
         "startLoc": {
           "column": 45,
-          "line": 92,
-          "position": 5092
+          "line": 124,
+          "position": 6809
         }
       },
       "format": "tsx",
       "fragment": "",
       "lines": 11,
       "secondFile": {
-        "end": 120,
+        "end": 152,
         "endLoc": {
           "column": 19,
-          "line": 120,
-          "position": 6515
+          "line": 152,
+          "position": 8232
         },
         "name": "web\\src\\features\\remote\\interface\\host-details\\components\\diagnostics\\diagnostics-performance-view.tsx",
-        "start": 110,
+        "start": 142,
         "startLoc": {
           "column": 47,
-          "line": 110,
-          "position": 6148
+          "line": 142,
+          "position": 7865
         }
       },
       "tokens": 52
@@ -16346,36 +15986,36 @@
     },
     {
       "firstFile": {
-        "end": 888,
+        "end": 895,
         "endLoc": {
           "column": 6,
-          "line": 888,
-          "position": 26223
+          "line": 895,
+          "position": 26426
         },
         "name": "contracts\\src\\remote\\remote-admin.types.ts",
-        "start": 876,
+        "start": 883,
         "startLoc": {
           "column": 47,
-          "line": 876,
-          "position": 25882
+          "line": 883,
+          "position": 26085
         }
       },
       "format": "typescript",
       "fragment": "",
       "lines": 13,
       "secondFile": {
-        "end": 1044,
+        "end": 1060,
         "endLoc": {
           "column": 4,
-          "line": 1044,
-          "position": 31339
+          "line": 1060,
+          "position": 31818
         },
         "name": "contracts\\src\\remote\\remote-admin.types.ts",
-        "start": 1032,
+        "start": 1048,
         "startLoc": {
           "column": 86,
-          "line": 1032,
-          "position": 31010
+          "line": 1048,
+          "position": 31489
         }
       },
       "tokens": 54
@@ -17660,18 +17300,18 @@
       "fragment": "",
       "lines": 14,
       "secondFile": {
-        "end": 614,
+        "end": 650,
         "endLoc": {
           "column": 65,
-          "line": 614,
-          "position": 21115
+          "line": 650,
+          "position": 22582
         },
         "name": "features\\remote\\infra\\src\\remote-domain-ports.ts",
-        "start": 601,
+        "start": 637,
         "startLoc": {
           "column": 50,
-          "line": 601,
-          "position": 20322
+          "line": 637,
+          "position": 21789
         }
       },
       "tokens": 79
@@ -17768,18 +17408,18 @@
       "fragment": "",
       "lines": 6,
       "secondFile": {
-        "end": 550,
+        "end": 586,
         "endLoc": {
           "column": 3,
-          "line": 550,
-          "position": 18239
+          "line": 586,
+          "position": 19706
         },
         "name": "features\\remote\\infra\\src\\remote-domain-ports.ts",
-        "start": 545,
+        "start": 581,
         "startLoc": {
           "column": 26,
-          "line": 545,
-          "position": 17898
+          "line": 581,
+          "position": 19365
         }
       },
       "tokens": 81
@@ -17804,18 +17444,18 @@
       "fragment": "",
       "lines": 10,
       "secondFile": {
-        "end": 604,
+        "end": 640,
         "endLoc": {
           "column": 48,
-          "line": 604,
-          "position": 20468
+          "line": 640,
+          "position": 21935
         },
         "name": "features\\remote\\infra\\src\\remote-domain-ports.ts",
-        "start": 595,
+        "start": 631,
         "startLoc": {
           "column": 13,
-          "line": 595,
-          "position": 20038
+          "line": 631,
+          "position": 21505
         }
       },
       "tokens": 54
@@ -17984,18 +17624,18 @@
       "fragment": "",
       "lines": 13,
       "secondFile": {
-        "end": 503,
+        "end": 539,
         "endLoc": {
           "column": 33,
-          "line": 503,
-          "position": 16363
+          "line": 539,
+          "position": 17830
         },
         "name": "features\\remote\\infra\\src\\remote-domain-ports.ts",
-        "start": 491,
+        "start": 527,
         "startLoc": {
           "column": 24,
-          "line": 491,
-          "position": 15777
+          "line": 527,
+          "position": 17244
         }
       },
       "tokens": 67
@@ -18362,36 +18002,36 @@
     },
     {
       "firstFile": {
-        "end": 301,
+        "end": 337,
         "endLoc": {
           "column": 39,
-          "line": 301,
-          "position": 9539
+          "line": 337,
+          "position": 11006
         },
         "name": "features\\remote\\infra\\src\\remote-domain-ports.ts",
-        "start": 291,
+        "start": 327,
         "startLoc": {
           "column": 8,
-          "line": 291,
-          "position": 9047
+          "line": 327,
+          "position": 10514
         }
       },
       "format": "typescript",
       "fragment": "",
       "lines": 11,
       "secondFile": {
-        "end": 321,
+        "end": 357,
         "endLoc": {
           "column": 39,
-          "line": 321,
-          "position": 10365
+          "line": 357,
+          "position": 11832
         },
         "name": "features\\remote\\infra\\src\\remote-domain-ports.ts",
-        "start": 311,
+        "start": 347,
         "startLoc": {
           "column": 8,
-          "line": 311,
-          "position": 9873
+          "line": 347,
+          "position": 11340
         }
       },
       "tokens": 66
@@ -18974,7 +18614,7 @@
     }
   ],
   "statistics": {
-    "detectionDate": "2026-07-22T15:46:58.731Z",
+    "detectionDate": "2026-07-22T16:10:49.326Z",
     "formats": {
       "bash": {
         "clones": 0,
@@ -19004,13 +18644,13 @@
         "clones": 65,
         "duplicatedLines": 829,
         "duplicatedTokens": 5158,
-        "lines": 18862,
+        "lines": 18896,
         "newClones": 0,
         "newDuplicatedLines": 0,
-        "percentage": 4.3950800551373135,
-        "percentageTokens": 5.053493749265195,
+        "percentage": 4.387171888230313,
+        "percentageTokens": 5.044005476237043,
         "sources": 120,
-        "tokens": 102068
+        "tokens": 102260
       },
       "javascript": {
         "clones": 2,
@@ -19076,13 +18716,13 @@
         "clones": 2,
         "duplicatedLines": 30,
         "duplicatedTokens": 132,
-        "lines": 3215,
+        "lines": 3236,
         "newClones": 0,
         "newDuplicatedLines": 0,
-        "percentage": 0.9331259720062209,
-        "percentageTokens": 0.8295104631433419,
-        "sources": 64,
-        "tokens": 15913
+        "percentage": 0.9270704573547589,
+        "percentageTokens": 0.8247938015496127,
+        "sources": 65,
+        "tokens": 16004
       },
       "text": {
         "clones": 0,
@@ -19100,25 +18740,25 @@
         "clones": 149,
         "duplicatedLines": 2143,
         "duplicatedTokens": 12950,
-        "lines": 67031,
+        "lines": 67084,
         "newClones": 0,
         "newDuplicatedLines": 0,
-        "percentage": 3.1970282406647668,
-        "percentageTokens": 3.26564990215659,
+        "percentage": 3.1945024148828334,
+        "percentageTokens": 3.2597313679292776,
         "sources": 412,
-        "tokens": 396552
+        "tokens": 397272
       },
       "typescript": {
-        "clones": 302,
-        "duplicatedLines": 3462,
-        "duplicatedTokens": 23916,
-        "lines": 75473,
+        "clones": 292,
+        "duplicatedLines": 3361,
+        "duplicatedTokens": 23307,
+        "lines": 75449,
         "newClones": 0,
         "newDuplicatedLines": 0,
-        "percentage": 4.58707087302744,
-        "percentageTokens": 5.182636131962623,
-        "sources": 514,
-        "tokens": 461464
+        "percentage": 4.454664740420681,
+        "percentageTokens": 5.053128638298149,
+        "sources": 515,
+        "tokens": 461239
       },
       "yaml": {
         "clones": 0,
@@ -19134,16 +18774,16 @@
       }
     },
     "total": {
-      "clones": 527,
-      "duplicatedLines": 6556,
-      "duplicatedTokens": 42934,
-      "lines": 178763,
+      "clones": 517,
+      "duplicatedLines": 6455,
+      "duplicatedTokens": 42325,
+      "lines": 178847,
       "newClones": 0,
       "newDuplicatedLines": 0,
-      "percentage": 3.66742558583152,
-      "percentageTokens": 4.176065098915764,
-      "sources": 1179,
-      "tokens": 1028097
+      "percentage": 3.6092302358999593,
+      "percentageTokens": 4.1137164378568825,
+      "sources": 1181,
+      "tokens": 1028875
     }
   }
 }
