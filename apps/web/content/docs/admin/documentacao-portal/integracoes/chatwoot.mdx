@@ -201,6 +201,7 @@ Arquivos para inspeção:
 O portal e a fonte oficial do contexto operacional. Ao vincular uma empresa no Dashboard App, o backend persiste uma linha em `chatwoot_conversation_context`, reaproveita o vinculo contato-empresa existente e grava uma outbox em `chatwoot_conversation_context_outbox`.
 
 - `PUT /chatwoot/conversations/:conversationId/company-context` grava o contexto e responde sem esperar o Chatwoot.
+- `GET /chatwoot/conversations/:conversationId/workspace?accountId=:accountId` devolve o contexto persistido, o estado de sincronizacao e contadores de tickets, hosts e tarefas para o Dashboard App.
 - O consumidor persistido aplica `portal_company_*` na conversa, `portal_contact_*` no contato e a etiqueta `cliente_vinculado`.
 - O processamento tem claim atomico, revisao para evitar que uma sincronizacao antiga sobrescreva uma troca recente e retry com backoff.
 - Os estados sao `PENDING`, `SYNCED`, `FAILED` e `OUTDATED`. Uma falha externa nao desfaz o vinculo interno.

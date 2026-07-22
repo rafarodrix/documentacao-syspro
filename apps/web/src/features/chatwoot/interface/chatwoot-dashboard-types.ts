@@ -66,6 +66,13 @@ export type FeedbackState = {
   message: string;
 } | null;
 
+export type ConversationWorkspace = {
+  activeCompanyId: string;
+  company: { id: string; name: string; cnpj: string };
+  summary: { openTickets: number; hosts: number; pendingTasks: number };
+  synchronization: { status: "PENDING" | "SYNCED" | "FAILED" | "OUTDATED"; lastSyncedAt: string | null; errorCode: string | null; errorMessage: string | null };
+} | null;
+
 // ──────────────────────────────────────────────────────
 // Resolved context (derived from ChatwootAppContext)
 // ──────────────────────────────────────────────────────
@@ -97,6 +104,7 @@ export type ChatwootDashboardState = {
   resolved: ResolvedDashboardContext;
   effectiveContactName: string;
   ticketSettings: TicketModuleSettings;
+  workspace: ConversationWorkspace;
 
   // Tickets
   latestTickets: TicketListEntry[];

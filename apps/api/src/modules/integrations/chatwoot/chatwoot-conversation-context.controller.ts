@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post, Put, Query } from '@nestjs/common';
 import type { IncomingHttpHeaders } from 'node:http';
 import { ChatwootCompanyContextLinkSource } from '@prisma/client';
 import { ChatwootConversationContextService } from './chatwoot-conversation-context.service';
@@ -41,5 +41,14 @@ export class ChatwootConversationContextController {
       chatwootConversationId: conversationId,
       chatwootAccountId: String(body?.accountId ?? ''),
     }, headers);
+  }
+
+  @Get(':conversationId/workspace')
+  async workspace(
+    @Param('conversationId') conversationId: string,
+    @Query('accountId') accountId: string,
+    @Headers() headers: IncomingHttpHeaders,
+  ) {
+    return this.contexts.getWorkspace({ chatwootConversationId: conversationId, chatwootAccountId: String(accountId ?? '') }, headers);
   }
 }

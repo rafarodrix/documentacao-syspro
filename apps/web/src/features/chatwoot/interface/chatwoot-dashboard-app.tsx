@@ -14,7 +14,7 @@ import { ChatwootOverviewTab } from "./tabs/chatwoot-overview-tab";
 import { ChatwootTicketsTab } from "./tabs/chatwoot-tickets-tab";
 import { ChatwootInfrastructureTab } from "./tabs/chatwoot-infrastructure-tab";
 import { ChatwootTarefasTab } from "./tabs/chatwoot-tarefas-tab";
-import type { ChatwootAppContext } from "./chatwoot-dashboard-types";
+import type { ChatwootAppContext, ConversationWorkspace } from "./chatwoot-dashboard-types";
 import { pickFirstValue } from "./chatwoot-dashboard-ui";
 import { buildChatwootTicketDescription, parseChatwootContext, requestChatwootContext } from "./chatwoot-dashboard-app.helpers";
 import { useChatwootTickets } from "./hooks/use-chatwoot-tickets";
@@ -31,6 +31,7 @@ export function ChatwootDashboardApp() {
   const [status, setStatus] = useState<"loading" | "ready" | "empty">("loading");
   const [activeTab, setActiveTab] = useState("overview");
   const [manualLinkedCompany, setManualLinkedCompany] = useState<CompanyOption | null>(null);
+  const [workspace, setWorkspace] = useState<ConversationWorkspace>(null);
 
   // Chatwoot postMessage listener
   useEffect(() => {
@@ -144,6 +145,28 @@ export function ChatwootDashboardApp() {
     setManualLinkedCompany(null);
   }, [resolved.conversationId]);
 
+  useEffect(() => {
+    if (!resolved.conversationId || !resolved.accountId) {
+      setWorkspace(null);
+      return;
+    }
+    let cancelled = false;
+    let timer: number | undefined;
+    const load = async () => {
+      try {
+        const response = await fetch(`/api/chatwoot/conversations/${encodeURIComponent(resolved.conversationId)}/company-context?accountId=${encodeURIComponent(resolved.accountId)}`, { cache: "no-store" });
+        const next = response.ok ? await response.json() as ConversationWorkspace : null;
+        if (cancelled) return;
+        setWorkspace(next);
+        if (next?.synchronization.status === "PENDING") timer = window.setTimeout(() => void load(), 8_000);
+      } catch {
+        if (!cancelled) setWorkspace(null);
+      }
+    };
+    void load();
+    return () => { cancelled = true; if (timer) window.clearTimeout(timer); };
+  }, [resolved.accountId, resolved.conversationId]);
+
   const canCreateTicket = Boolean(resolved.companyId);
   const canOpenInfrastructureHosts = Boolean(resolved.companyId);
 
@@ -249,6 +272,7 @@ export function ChatwootDashboardApp() {
         resolved,
         effectiveContactName,
         ticketSettings,
+        workspace,
         latestTickets: tickets.latestTickets,
         isLoadingTickets: tickets.isLoadingTickets,
         ticketError: tickets.ticketError,

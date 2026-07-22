@@ -228,6 +228,33 @@ export class ChatwootConversationContextService implements OnModuleInit, OnModul
     return this.toPublicContext(context, outbox);
   }
 
+  async getWorkspace(input: Pick<BindCompanyContextInput, 'chatwootAccountId' | 'chatwootConversationId'>, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const context = await this.prisma.chatwootConversationContext.findUnique({
+      where: { chatwootAccountId_chatwootConversationId: input },
+      include: { outbox: true, activeCompany: { select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true } } },
+    });
+    if (!context?.outbox) return null;
+    if (!this.authorizationService.isSystemRole(requester.role)) {
+      const allowedCompanyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
+      if (!allowedCompanyIds.includes(context.activeCompanyId)) throw new ForbiddenException('Empresa fora do seu escopo.');
+    }
+    const [openTickets, hosts, pendingTasks] = await Promise.all([
+      this.prisma.ticket.count({ where: { companyId: context.activeCompanyId, status: { notIn: ['RESOLVED', 'ARCHIVED'] } } }),
+      this.prisma.remoteHost.count({ where: { companyId: context.activeCompanyId } }),
+      this.prisma.task.count({ where: { companyId: context.activeCompanyId, status: { notIn: ['COMPLETED', 'CANCELED'] } } }),
+    ]);
+    return {
+      ...this.toPublicContext(context, context.outbox),
+      company: {
+        id: context.activeCompany.id,
+        name: context.activeCompany.nomeFantasia?.trim() || context.activeCompany.razaoSocial,
+        cnpj: context.activeCompany.cnpj,
+      },
+      summary: { openTickets, hosts, pendingTasks },
+    };
+  }
+
   async flushPending(limit = 20) {
     if (this.flushing) return;
     this.flushing = true;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { buildChatwootContactDisplayName } from "@dosc-syspro/shared/chatwoot-contact-presentation";
-import { Loader2, MessageSquare, RefreshCw } from "lucide-react";
+import { CheckCircle2, Clock3, Loader2, MessageSquare, RefreshCw, TriangleAlert } from "lucide-react";
 import { Button } from "@dosc-syspro/ui";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import { getCompanyLabel } from "../chatwoot-dashboard-ui";
@@ -16,6 +16,7 @@ export function ChatwootAppHeader() {
     contactEditHref,
     requestRefresh,
     handleSelectContextCompany,
+    workspace,
   } = useChatwootDashboard();
 
   const hasResolvedContext = Boolean(resolved.companyName || effectiveContactName || resolved.contactName);
@@ -27,6 +28,7 @@ export function ChatwootAppHeader() {
     : linkedCompanies.length > 1
       ? "Selecionar empresa em contexto"
       : "Sem empresa em contexto";
+  const sync = workspace?.synchronization;
 
   return (
     <div className="border-b border-border/60 bg-background/85 backdrop-blur">
@@ -84,6 +86,12 @@ export function ChatwootAppHeader() {
                 </button>
               );
             })}
+          </div>
+        ) : null}
+        {sync ? (
+          <div className={`flex items-center gap-1.5 text-xs ${sync.status === "SYNCED" ? "text-emerald-600" : sync.status === "FAILED" ? "text-amber-600" : "text-muted-foreground"}`}>
+            {sync.status === "SYNCED" ? <CheckCircle2 className="h-3.5 w-3.5" /> : sync.status === "FAILED" ? <TriangleAlert className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
+            {sync.status === "SYNCED" ? "Sincronizado com Chatwoot" : sync.status === "FAILED" ? "Sincronização pendente de nova tentativa" : "Sincronização com Chatwoot pendente"}
           </div>
         ) : null}
       </div>
