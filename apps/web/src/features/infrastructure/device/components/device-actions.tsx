@@ -13,6 +13,7 @@ import {
   Edit,
   Activity,
 } from "lucide-react";
+import { useTransition } from "react";
 import { toast } from "sonner";
 import type { DeviceListItem } from "@dosc-syspro/contracts";
 import {
@@ -23,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@dosc-syspro/ui";
+import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 
 type DeviceActionsProps = {
   item: DeviceListItem;
@@ -43,6 +45,7 @@ export function DeviceActions({
 }: DeviceActionsProps) {
   const detailsHref = `/portal/infraestrutura/dispositivos/${item.id}`;
   const isConnectable = item.remote.isOperational && !!item.remote.externalId;
+  const [isRequestingAgentUpgrade, startRequestingAgentUpgrade] = useTransition();
 
   const handleCopyId = () => {
     if (!item.remote.externalId) {
@@ -55,6 +58,21 @@ export function DeviceActions({
       navigator.clipboard.writeText(item.remote.externalId);
       toast.success("ID remoto copiado.");
     }
+  };
+
+  const handleRequestAgentUpgrade = () => {
+    startRequestingAgentUpgrade(async () => {
+      try {
+        const result = await requestRemoteMutation<Record<string, unknown>>({
+          url: `/api/remote/hosts/${item.id}/actions`,
+          method: "POST",
+          body: { action: "UPGRADE_AGENT" },
+        });
+        toast.success(result.message ?? "Atualizacao incremental do agente enfileirada. Acompanhe o status no dispositivo.");
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
   };
 
   return (
@@ -140,11 +158,13 @@ export function DeviceActions({
                 </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem asChild>
-                <Link href={`${detailsHref}?action=upgrade`} className="flex items-center gap-2 cursor-pointer">
-                  <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
-                  Atualizar agente
-                </Link>
+              <DropdownMenuItem
+                onClick={handleRequestAgentUpgrade}
+                disabled={isRequestingAgentUpgrade}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+                {isRequestingAgentUpgrade ? "Agendando atualizacao..." : "Atualizar agente"}
               </DropdownMenuItem>
 
               {!item.company.id && onLinkCompany && (

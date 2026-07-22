@@ -839,7 +839,7 @@ func (m *Module) executeCommand(ctx context.Context, st *remoteState, cmd domain
 		if payload.ManifestURL == "" {
 			return commandAck{status: domain.RemoteAckStatusFailed, reasonCode: domain.RemoteAckReasonCommandExecutionFailed, message: "agent upgrade failed: missing manifestUrl"}
 		}
-		if err := launchAgentUpdater(payload.ManifestURL); err != nil {
+		if err := m.launchAgentUpdater(payload.ManifestURL); err != nil {
 			return commandAck{status: domain.RemoteAckStatusFailed, reasonCode: domain.RemoteAckReasonCommandExecutionFailed, message: fmt.Sprintf("agent upgrade failed: %v", err)}
 		}
 		return commandAck{
@@ -1109,15 +1109,28 @@ func parseAgentUpgradeCommandPayload(raw json.RawMessage) agentUpgradeCommandPay
 	return payload
 }
 
-func launchAgentUpdater(manifestURL string) error {
+func (m *Module) launchAgentUpdater(manifestURL string) error {
 	executable, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("resolve agent executable: %w", err)
 	}
 	updater := filepath.Join(filepath.Dir(executable), "agent-updater.exe")
+	if _, err := os.Stat(updater); err != nil {
+		return fmt.Errorf("locate updater %s: %w", updater, err)
+	}
 	// The updater compares manifest versions and downloads only changed components.
 	// Do not include itself: a running executable cannot safely replace itself.
-	command := exec.Command(updater, "apply-remote", "--manifest-url", manifestURL, "--components", "service,ui")
+	// The service version is known from the running binary. The UI version is not
+	// reported by its executable yet, so it is intentionally left to the updater
+	// to refresh when this command is explicitly requested.
+	installedVersion := strings.TrimSpace(m.agentVersion)
+	command := exec.Command(
+		updater,
+		"apply-remote",
+		"--manifest-url", manifestURL,
+		"--components", "service,ui",
+		"--service-version", installedVersion,
+	)
 	if err := command.Start(); err != nil {
 		return fmt.Errorf("start updater: %w", err)
 	}

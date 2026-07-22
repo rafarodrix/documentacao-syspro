@@ -21,7 +21,7 @@ import type { RemoteSessionStatus, RemoteTenantScope } from './support/remote-ad
 type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS' | 'UPGRADE_CLIENT' | 'UPGRADE_RUSTDESK' | 'UPGRADE_AGENT';
 const DEFAULT_INSTALLATION_DIRECTORY = 'C:\\Syspro\\Server\\SysproServer.exe';
 const AGENT_UPDATE_MANIFEST_URL = 'https://ajuda.trilinksoftware.com.br/agent/manifest.json';
-const AGENT_UPDATE_TARGET_VERSION = '1.0.88';
+const AGENT_UPDATE_TARGET_VERSION = '1.0.89';
 
 function supportsManagedAgentUpgrade(agentVersion: string | null) {
   const match = agentVersion?.trim().match(/^(\d+)\.(\d+)\.(\d+)$/);
