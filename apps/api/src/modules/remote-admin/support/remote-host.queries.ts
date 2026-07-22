@@ -1,6 +1,22 @@
 import { prisma } from "@dosc-syspro/database";
 import { hashRustDeskPublicKey } from "@dosc-syspro/remote-infra/rustdesk-helpers";
-import { normalizeSearchText } from "@dosc-syspro/shared";
+import {
+  normalizeSearchText,
+  normalizeDigits,
+  formatCnpj,
+  formatRustDeskDisplay,
+  normalizeCnpjDigits,
+  normalizeRustDeskIdDigits,
+} from "@dosc-syspro/shared";
+import type {
+  DeviceListQueryParams,
+  DeviceListResponse,
+  DeviceListItem,
+  DeviceCapability,
+  DeviceConnectivityStatus,
+  DeviceHealthStatus,
+  DeviceLifecycleStatus,
+} from "@dosc-syspro/contracts";
 import type { RemoteTenantScope } from "./remote-admin.types";
 import { getRemoteModuleSettingsSnapshot } from "../../../common/system-settings/remote-module-settings-snapshot";
 import { resolveRemoteOperationalStatus } from "./operational-status";
@@ -1740,5 +1756,331 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
         failedAt: command.failedAt,
       }),
     })),
+  };
+}
+
+function isValidIp(ip: string | null | undefined): boolean {
+  if (!ip) return false;
+  const trimmed = ip.trim();
+  if (trimmed === "127.0.0.1" || trimmed === "0.0.0.0" || trimmed.startsWith("169.254.")) return false;
+  return /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(trimmed);
+}
+
+export async function getRemoteDevicesPaginated(
+  tenantScope: RemoteTenantScope,
+  params: DeviceListQueryParams,
+): Promise<DeviceListResponse> {
+  const page = Math.max(1, params.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 25));
+  const rawQuery = (params.query ?? "").trim();
+  const queryNormalized = normalizeSearchText(rawQuery, { preserveSeparators: false });
+  const queryDigits = normalizeDigits(rawQuery);
+  const lifecycleFilter = params.lifecycle ?? "MANAGED";
+  const connectivityFilter = params.connectivity ?? "ALL";
+  const healthFilter = params.health ?? "ALL";
+  const companyIdFilter = params.companyId;
+
+  const scopedWhere = buildRemoteScopedWhere(tenantScope);
+
+  const [hosts, discoveredHosts] = await Promise.all([
+    prisma.remoteHost.findMany({
+      where: scopedWhere,
+      include: {
+        company: {
+          select: {
+            id: true,
+            nomeFantasia: true,
+            razaoSocial: true,
+            cnpj: true,
+          },
+        },
+        sessions: {
+          select: { createdAt: true, status: true, ticketNumber: true },
+          orderBy: [{ createdAt: "desc" }],
+          take: 1,
+        },
+        discoveryRecord: {
+          select: { id: true, status: true },
+        },
+        sysproUpdates: {
+          select: {
+            path: true,
+            companyLabel: true,
+            firebirdVersion: true,
+          },
+          take: 1,
+        },
+      },
+      orderBy: [{ company: { razaoSocial: "asc" } }, { name: "asc" }],
+    }),
+    tenantScope.isGlobalView || tenantScope.companyIds.length
+      ? prisma.remoteDiscoveredHost.findMany({
+          where: { status: { in: ["PENDING_LINK", "IGNORED"] }, linkedHostId: null },
+          orderBy: [{ lastHeartbeatAt: "desc" }, { updatedAt: "desc" }],
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const now = Date.now();
+
+  const allMappedItems: DeviceListItem[] = [];
+
+  for (const host of hosts) {
+    const isArchived = host.status === "INACTIVE" || host.status === "MAINTENANCE";
+    const isAwaitingLink = host.discoveryRecord?.status === "PENDING_LINK";
+    const lifecycle: DeviceLifecycleStatus = isArchived
+      ? "ARCHIVED"
+      : isAwaitingLink
+        ? "AWAITING_LINK"
+        : "MANAGED";
+
+    const statusLabel = isArchived
+      ? "Arquivado"
+      : isAwaitingLink
+        ? "Aguardando vínculo"
+        : host.agentTokenHash
+          ? "Gerenciado"
+          : "Provisionando";
+
+    const lastHeartbeat = host.lastHeartbeatAt;
+    const diffMinutes = lastHeartbeat ? Math.floor((now - lastHeartbeat.getTime()) / 60000) : null;
+
+    let connectivityStatus: DeviceConnectivityStatus = "MISSING";
+    if (lastHeartbeat) {
+      if (diffMinutes != null && diffMinutes <= 5) connectivityStatus = "ONLINE";
+      else if (diffMinutes != null && diffMinutes <= 30) connectivityStatus = "STALE";
+      else connectivityStatus = "OFFLINE";
+    }
+
+    const alertsList: string[] = [];
+    if (host.lastRebootPending) alertsList.push("Reinicialização pendente");
+    if (host.serviceStatus === "stopped") alertsList.push("Syspro Server parado");
+    if (connectivityStatus === "OFFLINE") alertsList.push("Agente offline");
+    if (connectivityStatus === "STALE") alertsList.push("Comunicação atrasada");
+    if (isAwaitingLink) alertsList.push("Dispositivo em configuração");
+
+    let healthStatus: DeviceHealthStatus = "HEALTHY";
+    if (connectivityStatus === "MISSING") healthStatus = "UNEVALUATED";
+    else if (connectivityStatus === "OFFLINE" || alertsList.length >= 2) healthStatus = "CRITICAL";
+    else if (alertsList.length >= 1 || connectivityStatus === "STALE") healthStatus = "WARNING";
+
+    const primaryReason = alertsList.length > 0 ? alertsList[0] : "Sem alertas ativos";
+
+    const companyCnpj = host.company?.cnpj ?? null;
+
+    const companyInfo = {
+      id: host.companyId ?? null,
+      tradeName: host.company?.nomeFantasia ?? null,
+      legalName: host.company?.razaoSocial ?? null,
+      document: companyCnpj ? formatCnpj(companyCnpj) : null,
+      documentDigits: companyCnpj ? normalizeDigits(companyCnpj) : null,
+    };
+
+    const primaryIp = isValidIp(host.lastKnownIp) ? host.lastKnownIp! : null;
+
+    const isOperational = !!(host.agentExternalId && host.status === "ACTIVE");
+
+    const capabilities: DeviceCapability[] = ["AGENT", "REMOTE"];
+    if (host.sysproUpdates && host.sysproUpdates.length > 0) capabilities.push("ERP");
+    if (host.lastDiskSnapshot) capabilities.push("BACKUP");
+
+    const sysproUpdate = host.sysproUpdates?.[0]
+      ? {
+          installationPath: host.sysproUpdates[0].path ?? null,
+          instanceName: host.sysproUpdates[0].companyLabel ?? null,
+          environment: null,
+          sysproVersion: null,
+          databaseName: host.sysproUpdates[0].firebirdVersion ?? null,
+        }
+      : null;
+
+    allMappedItems.push({
+      id: host.id,
+      displayName: (host.name ?? host.machineName ?? "DISPOSITIVO").toUpperCase(),
+      hostname: (host.machineName ?? host.name ?? "SERVIDOR").toUpperCase(),
+      lifecycle,
+      statusLabel,
+      connectivity: {
+        status: connectivityStatus,
+        lastHeartbeatAt: lastHeartbeat ? lastHeartbeat.toISOString() : null,
+        lastHeartbeatDiffMinutes: diffMinutes,
+      },
+      health: {
+        status: healthStatus,
+        primaryReason,
+        activeAlerts: alertsList.length,
+        alertsList,
+      },
+      company: companyInfo,
+      network: {
+        primaryIp,
+        publicIp: host.lastKnownIp ?? null,
+        localIp: primaryIp,
+      },
+      remote: {
+        provider: "RUSTDESK",
+        externalId: host.agentExternalId ?? null,
+        externalIdFormatted: host.agentExternalId ? formatRustDeskDisplay(host.agentExternalId) : null,
+        alias: host.lastKnownRustDeskAlias ?? null,
+        status: isOperational ? "OPERATIONAL" : "UNAVAILABLE",
+        isOperational,
+      },
+      capabilities,
+      agentVersion: host.agentVersion ?? null,
+      agentInstallationId: host.installToken ?? host.id,
+      tags: host.environment ? [host.environment] : [],
+      notes: host.description ?? host.notes ?? null,
+      lastTicketNumber: host.sessions[0]?.ticketNumber ?? null,
+      sysproUpdate,
+    });
+  }
+
+  for (const disc of discoveredHosts) {
+    const isIgnored = disc.status === "IGNORED";
+    const lifecycle: DeviceLifecycleStatus = isIgnored ? "ARCHIVED" : "DISCOVERED";
+    const lastHeartbeat = disc.lastHeartbeatAt;
+    const diffMinutes = lastHeartbeat ? Math.floor((now - lastHeartbeat.getTime()) / 60000) : null;
+
+    let connectivityStatus: DeviceConnectivityStatus = "MISSING";
+    if (lastHeartbeat) {
+      if (diffMinutes != null && diffMinutes <= 5) connectivityStatus = "ONLINE";
+      else if (diffMinutes != null && diffMinutes <= 30) connectivityStatus = "STALE";
+      else connectivityStatus = "OFFLINE";
+    }
+
+    allMappedItems.push({
+      id: disc.id,
+      displayName: (disc.machineName ?? "MÁQUINA DESCOBERTA").toUpperCase(),
+      hostname: (disc.machineName ?? "DESCONHECIDO").toUpperCase(),
+      lifecycle,
+      statusLabel: isIgnored ? "Bloqueado" : "Aguardando vínculo",
+      connectivity: {
+        status: connectivityStatus,
+        lastHeartbeatAt: lastHeartbeat ? lastHeartbeat.toISOString() : null,
+        lastHeartbeatDiffMinutes: diffMinutes,
+      },
+      health: {
+        status: "UNEVALUATED",
+        primaryReason: "Dispositivo em configuração",
+        activeAlerts: 1,
+        alertsList: ["Aguardando definição da empresa"],
+      },
+      company: {
+        id: null,
+        tradeName: null,
+        legalName: null,
+        document: null,
+        documentDigits: null,
+      },
+      network: {
+        primaryIp: null,
+        publicIp: null,
+        localIp: null,
+      },
+      remote: {
+        provider: disc.provider ?? "RUSTDESK",
+        externalId: disc.agentExternalId ?? null,
+        externalIdFormatted: disc.agentExternalId ? formatRustDeskDisplay(disc.agentExternalId) : null,
+        alias: null,
+        status: disc.agentExternalId ? "OPERATIONAL" : "UNAVAILABLE",
+        isOperational: !!disc.agentExternalId,
+      },
+      capabilities: ["AGENT"],
+      agentVersion: disc.agentVersion ?? null,
+      agentInstallationId: null,
+      tags: disc.environment ? [disc.environment] : [],
+      notes: disc.description ?? null,
+      lastTicketNumber: null,
+      sysproUpdate: null,
+    });
+  }
+
+  const summary = {
+    total: allMappedItems.length,
+    managedCount: allMappedItems.filter((i) => i.lifecycle === "MANAGED").length,
+    awaitingLinkCount: allMappedItems.filter((i) => i.lifecycle === "AWAITING_LINK").length,
+    discoveredCount: allMappedItems.filter((i) => i.lifecycle === "DISCOVERED").length,
+    archivedCount: allMappedItems.filter((i) => i.lifecycle === "ARCHIVED").length,
+    online: allMappedItems.filter((i) => i.connectivity.status === "ONLINE").length,
+    stale: allMappedItems.filter((i) => i.connectivity.status === "STALE").length,
+    offline: allMappedItems.filter((i) => i.connectivity.status === "OFFLINE").length,
+    missing: allMappedItems.filter((i) => i.connectivity.status === "MISSING").length,
+    healthy: allMappedItems.filter((i) => i.health.status === "HEALTHY").length,
+    warning: allMappedItems.filter((i) => i.health.status === "WARNING").length,
+    critical: allMappedItems.filter((i) => i.health.status === "CRITICAL").length,
+  };
+
+  let filtered = allMappedItems.filter((item) => {
+    if (lifecycleFilter !== "ALL" && item.lifecycle !== lifecycleFilter) {
+      return false;
+    }
+    if (connectivityFilter !== "ALL" && item.connectivity.status !== connectivityFilter) {
+      return false;
+    }
+    if (healthFilter !== "ALL" && item.health.status !== healthFilter) {
+      return false;
+    }
+    if (companyIdFilter && companyIdFilter !== "all" && item.company.id !== companyIdFilter) {
+      return false;
+    }
+    return true;
+  });
+
+  if (queryNormalized || queryDigits) {
+    type ScoredItem = { item: DeviceListItem; score: number };
+    const scoredList: ScoredItem[] = [];
+
+    for (const item of filtered) {
+      let score = 0;
+
+      const dispNormalized = normalizeSearchText(item.displayName, { preserveSeparators: false });
+      const hostNormalized = normalizeSearchText(item.hostname, { preserveSeparators: false });
+      const tradeNormalized = normalizeSearchText(item.company.tradeName, { preserveSeparators: false });
+      const legalNormalized = normalizeSearchText(item.company.legalName, { preserveSeparators: false });
+      const ipNormalized = normalizeSearchText(item.network.primaryIp ?? item.network.publicIp, { preserveSeparators: false });
+      const rustdeskDigits = normalizeRustDeskIdDigits(item.remote.externalId);
+      const cnpjDigits = item.company.documentDigits ?? "";
+
+      if (queryNormalized && dispNormalized === queryNormalized) score += 100;
+      if (queryNormalized && hostNormalized === queryNormalized) score += 90;
+      if (queryDigits && rustdeskDigits && rustdeskDigits === queryDigits) score += 85;
+      if (queryDigits && cnpjDigits && cnpjDigits === queryDigits) score += 80;
+
+      if (queryNormalized && dispNormalized.includes(queryNormalized)) score += 50;
+      if (queryNormalized && hostNormalized.includes(queryNormalized)) score += 45;
+      if (queryNormalized && tradeNormalized.includes(queryNormalized)) score += 40;
+      if (queryNormalized && legalNormalized.includes(queryNormalized)) score += 35;
+      if (queryNormalized && ipNormalized.includes(queryNormalized)) score += 30;
+
+      if (queryDigits && rustdeskDigits && rustdeskDigits.includes(queryDigits)) score += 40;
+      if (queryDigits && cnpjDigits && cnpjDigits.includes(queryDigits)) score += 35;
+
+      const tagsStr = normalizeSearchText(item.tags.join(" ") + " " + (item.notes ?? ""), { preserveSeparators: false });
+      if (queryNormalized && tagsStr.includes(queryNormalized)) score += 20;
+
+      if (score > 0) {
+        scoredList.push({ item, score });
+      }
+    }
+
+    scoredList.sort((a, b) => b.score - a.score);
+    filtered = scoredList.map((s) => s.item);
+  }
+
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedItems = filtered.slice(startIndex, startIndex + pageSize);
+
+  return {
+    items: paginatedItems,
+    pagination: {
+      page: currentPage,
+      pageSize,
+      totalItems,
+      totalPages,
+    },
+    summary,
   };
 }

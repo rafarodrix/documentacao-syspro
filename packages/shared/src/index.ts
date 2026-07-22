@@ -38,7 +38,16 @@ export {
   formatRelativeDate,
   formatDurationBetween,
 } from "./date";
-export { buildSearchText, includesNormalizedSearch, normalizeSearchText } from "./search";
+export {
+  buildSearchText,
+  includesNormalizedSearch,
+  normalizeSearchText,
+  normalizeDigits,
+  normalizeCnpjDigits,
+  normalizeRustDeskIdDigits,
+  formatCnpj,
+  formatRustDeskDisplay,
+} from "./search";
 export type { NormalizeSearchTextOptions } from "./search";
 export {
   CHATWOOT_CONTACT_DISPLAY_SEPARATOR,

@@ -9,7 +9,9 @@ import {
   getRemoteHostDetails,
   getRemotePlatformDirectory,
   getRemotePlatformOverview,
+  getRemoteDevicesPaginated,
 } from './support/remote-host.queries';
+import type { DeviceListQueryParams } from '@dosc-syspro/contracts';
 import { getRemoteEfficiencyMetrics } from './support/report-queries';
 import { cleanupExpiredRemoteSessions, getRemoteSessions } from './support/session-queries';
 import { buildScopedCompanyWhere, buildScopedHostWhere } from './support/scope';
@@ -74,6 +76,12 @@ export class RemoteAdminService {
             ? `Escopo restrito a ${companyScope.companyIds.length} empresa(s) vinculada(s) ao usuario.`
             : 'Nenhuma empresa vinculada para escopo remoto.',
         };
+  }
+
+  async getDevices(params: DeviceListQueryParams, rawHeaders?: Record<string, unknown>) {
+    await this.authorizationService.getRequester(rawHeaders as any);
+    const tenantScope = await this.resolveTenantScope(rawHeaders);
+    return getRemoteDevicesPaginated(tenantScope, params);
   }
 
   async getDirectory(rawHeaders?: Record<string, unknown>) {

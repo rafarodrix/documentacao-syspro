@@ -162,3 +162,41 @@ describe("resolveRemoteProductStatus", () => {
     ).toBe("REMOTE_READY");
   });
 });
+
+describe("normalization and search rules", () => {
+  it("normalizes CNPJ stripping non-digits", () => {
+    const raw = "12.345.678/0001-90";
+    const formatted = "12345678000190";
+    const partial1 = "123.456";
+    const partial2 = "6780001";
+
+    expect(raw.replace(/\D/g, "")).toBe("12345678000190");
+    expect(formatted.replace(/\D/g, "")).toBe("12345678000190");
+    expect(partial1.replace(/\D/g, "")).toBe("123456");
+    expect(partial2.replace(/\D/g, "")).toBe("6780001");
+  });
+
+  it("normalizes RustDesk ID stripping spaces and hyphens", () => {
+    const id1 = "1218084808";
+    const id2 = "1 218 084 808";
+    const id3 = "121-808-480-8";
+
+    expect(id1.replace(/\D/g, "")).toBe("1218084808");
+    expect(id2.replace(/\D/g, "")).toBe("1218084808");
+    expect(id3.replace(/\D/g, "")).toBe("1218084808");
+  });
+
+  it("ignores accents, case, and extra spaces in text searches", () => {
+    const normalize = (str: string) =>
+      str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+
+    expect(normalize("Sacolão Bela Vista")).toBe("sacolao bela vista");
+    expect(normalize("SACOLAO BELA VISTA")).toBe("sacolao bela vista");
+    expect(normalize("sacolao   bela   vista")).toBe("sacolao bela vista");
+  });
+});

@@ -6,6 +6,16 @@ import { RemoteAdminService } from './remote-admin.service';
 export class RemotePortalController {
   constructor(private readonly remoteAdminService: RemoteAdminService) {}
 
+  @Get('infrastructure/devices')
+  listInfrastructureDevices(@Req() req: Request, @Query() query: any) {
+    return this.remoteAdminService.getDevices(query, req.headers);
+  }
+
+  @Get('devices')
+  listDevices(@Req() req: Request, @Query() query: any) {
+    return this.remoteAdminService.getDevices(query, req.headers);
+  }
+
   @Get('sessions')
   listSessions(@Req() req: Request) {
     return this.remoteAdminService.listRemoteSessions(req.headers);

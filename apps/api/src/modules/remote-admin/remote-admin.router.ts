@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
+import { deviceListQuerySchema } from '@dosc-syspro/contracts';
 import { TrpcService } from '../trpc/trpc.service';
 import { RemoteAdminService } from './remote-admin.service';
 
@@ -50,6 +51,12 @@ export class RemoteAdminRouter {
   private createRouter() {
     return this.trpc.router({
       // ─── Queries ───────────────────────────────────────────────────────
+
+      devices: this.trpc.publicProcedure
+        .input(deviceListQuerySchema.optional())
+        .query(({ input, ctx }) =>
+          this.remoteAdminService.getDevices(deviceListQuerySchema.parse(input ?? {}), ctx.headers),
+        ),
 
       directory: this.trpc.publicProcedure.query(({ ctx }) =>
         this.remoteAdminService.getDirectory(ctx.headers),
