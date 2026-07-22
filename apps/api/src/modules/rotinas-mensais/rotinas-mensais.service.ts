@@ -26,16 +26,15 @@ import {
 import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
-import { EvolutionClient, EvolutionOutboundError } from '../integrations/evolution/evolution.client';
-import { IntegrationContextService } from '../settings/integration-context.service';
+import { EvolutionOutboundError } from '../integrations/evolution/evolution.client';
+import { OperationalWhatsappDispatchService } from '../integrations/evolution/operational-whatsapp-dispatch.service';
 
 @Injectable()
 export class RotinasMensaisService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
-    private readonly integrationContext: IntegrationContextService,
-    private readonly evolutionClient: EvolutionClient,
+    private readonly operationalWhatsappDispatch: OperationalWhatsappDispatchService,
   ) {}
 
   async list(input: MonthlyRoutineListQuery, rawHeaders?: IncomingHttpHeaders): Promise<MonthlyRoutineListResponse> {
@@ -409,38 +408,50 @@ export class RotinasMensaisService {
       template: input.template,
     });
 
-    const context = await this.integrationContext.getDefaultContext();
-    if (!context) {
-      throw new BadRequestException('Nenhuma conexao Evolution ativa encontrada para realizar o disparo.');
-    }
-
-    const nextAttemptNumber = (await requestModel.count({
-      where: {
-        competencyId: competency.id,
-      },
-    })) + 1;
-
     try {
-      const sendResult = await this.evolutionClient.sendTextMessage(context.evolution, targetPhone, message);
-      const now = new Date();
-      const requestRecord = await requestModel.create({
-        data: {
-          competencyId: competency.id,
-          companyId: competency.companyId,
-          contactId: selectedContact.id,
-          requestedByUserId: requester.userId,
-          attemptNumber: nextAttemptNumber,
-          channel: 'WHATSAPP',
-          status: 'SENT',
-          targetPhone,
-          message,
-          providerMessageId: sendResult.messageId ?? null,
-          providerConnectionKey: context.connectionKey,
-          requestedAt: now,
-          sentAt: now,
-        },
-        include: this.getManualRequestInclude(),
+      const dispatch = await this.operationalWhatsappDispatch.sendAndRecord<any>({
+        companyId: competency.companyId,
+        targetPhone,
+        message,
+        getNextAttemptNumber: async () => (
+          await requestModel.count({ where: { competencyId: competency.id } })
+        ) + 1,
+        persistSent: ({ attemptNumber, occurredAt, providerMessageId, providerConnectionKey }) => requestModel.create({
+          data: {
+            competencyId: competency.id,
+            companyId: competency.companyId,
+            contactId: selectedContact.id,
+            requestedByUserId: requester.userId,
+            attemptNumber,
+            channel: 'WHATSAPP',
+            status: 'SENT',
+            targetPhone,
+            message,
+            providerMessageId,
+            providerConnectionKey,
+            requestedAt: occurredAt,
+            sentAt: occurredAt,
+          },
+          include: this.getManualRequestInclude(),
+        }),
+        persistFailed: ({ attemptNumber, occurredAt, providerConnectionKey, errorMessage }) => requestModel.create({
+          data: {
+            competencyId: competency.id,
+            companyId: competency.companyId,
+            contactId: selectedContact.id,
+            requestedByUserId: requester.userId,
+            attemptNumber,
+            channel: 'WHATSAPP',
+            status: 'FAILED',
+            targetPhone,
+            message,
+            providerConnectionKey,
+            errorMessage,
+            requestedAt: occurredAt,
+          },
+        }),
       });
+      const { attemptNumber, occurredAt: now, record: requestRecord } = dispatch;
       await this.createHistoryEntry({
         competencyId: competency.id,
         authorUserId: requester.userId,
@@ -454,7 +465,7 @@ export class RotinasMensaisService {
         description: message,
         metadata: {
           requestId: requestRecord.id,
-          attemptNumber: nextAttemptNumber,
+          attemptNumber,
           contactId: selectedContact.id,
           targetPhone,
           template: input.template ?? null,
@@ -478,24 +489,6 @@ export class RotinasMensaisService {
         request: this.toManualRequestItem(requestRecord),
       };
     } catch (error: any) {
-      const now = new Date();
-      await requestModel.create({
-        data: {
-          competencyId: competency.id,
-          companyId: competency.companyId,
-          contactId: selectedContact.id,
-          requestedByUserId: requester.userId,
-          attemptNumber: nextAttemptNumber,
-          channel: 'WHATSAPP',
-          status: 'FAILED',
-          targetPhone,
-          message,
-          providerConnectionKey: context.connectionKey,
-          errorMessage: error instanceof Error ? error.message : 'Falha ao enviar solicitacao manual.',
-          requestedAt: now,
-        },
-      });
-
       if (error instanceof EvolutionOutboundError) {
         throw new BadRequestException(
           error.code === 'WHATSAPP_NUMBER_NOT_REGISTERED'

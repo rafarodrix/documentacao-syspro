@@ -97,18 +97,7 @@ process-incoming-message.usecase
 
 ## Envio de mensagens
 
-**Endpoint:** `POST /api/platform/integrations/evolution/messages/send`
-
-```typescript
-// Payload
-{
-  instanceName: 'minha-instancia',
-  number: '5511987654321',
-  text: 'Olá, como posso ajudar?',
-}
-```
-
-O `EvolutionClient` define o port consumido pelo app. Hoje a chamada HTTP fica em `evolution-go.client.ts`, o que permite trocar a implementacao para uma API oficial depois sem reespalhar rotas ou bindings pelos modulos consumidores.
+O `EvolutionClient` define o port consumido pelo backend. A implementação HTTP fica em `evolution-go.client.ts`; os fluxos de automação, o bridge Chatwoot e os disparos manuais de tarefas e rotinas usam esse mesmo port, sem expor uma rota genérica de envio no portal. Os disparos manuais compartilham também a resolução da conexão por empresa e o registro de tentativa em `OperationalWhatsappDispatchService`. Isso permite trocar o provider depois sem reespalhar chamadas HTTP ou credenciais pelos módulos consumidores.
 
 ---
 
