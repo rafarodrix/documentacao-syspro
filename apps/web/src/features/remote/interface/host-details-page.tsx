@@ -19,6 +19,7 @@ import {
   HostServicesTab,
   HostSettingsTab,
   HostDiagnosticsTab,
+  HostCriticalEventsTab,
 } from "./host-details/components";
 import { ErpTab } from "@/features/infrastructure/device/erp/erp-tab";
 
@@ -550,10 +551,7 @@ export function RemoteHostDetailsPanel({
         </TabsContent>
 
         <TabsContent value="eventos" className="space-y-6">
-          <div className="rounded-xl border border-border/60 bg-card p-12 text-center shadow-sm">
-            <h3 className="text-lg font-medium text-foreground">Eventos e Auditoria</h3>
-            <p className="mt-2 text-sm text-muted-foreground">Esta aba exibirá o histórico de ações e logs de auditoria do dispositivo. Funcionalidade em desenvolvimento.</p>
-          </div>
+          <HostCriticalEventsTab hostId={host.id} initialEvents={details.criticalEvents} />
         </TabsContent>
 
         <TabsContent value="configuracoes" className="space-y-6">

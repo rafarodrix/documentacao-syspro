@@ -22,6 +22,11 @@ export class RemoteAdminController {
     return this.remoteAdminService.getHostDetails(id, req.headers);
   }
 
+  @Get('hosts/:id/critical-events')
+  async getHostCriticalEvents(@Req() req: Request, @Param('id') id: string, @Query() query: { cursor?: string; limit?: string; severity?: string; provider?: string }) {
+    return this.remoteAdminService.getHostCriticalEvents(id, { ...query, limit: query.limit ? Number(query.limit) : undefined }, req.headers);
+  }
+
   @Get('sessions')
   async getSessions(
     @Req() req: Request,

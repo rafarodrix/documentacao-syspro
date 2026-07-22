@@ -1351,6 +1351,19 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       ...scopedWhere,
     },
     include: {
+      criticalEvents: {
+        orderBy: { occurredAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          source: true,
+          provider: true,
+          eventCode: true,
+          severity: true,
+          message: true,
+          occurredAt: true,
+        },
+      },
       discoveryRecord: {
         select: {
           status: true,
@@ -1626,6 +1639,15 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       serviceStatus,
       contractErrorCode,
     },
+    criticalEvents: host.criticalEvents.map((event) => ({
+      id: event.id,
+      source: event.source,
+      provider: event.provider,
+      eventCode: event.eventCode,
+      severity: event.severity,
+      message: event.message,
+      occurredAt: event.occurredAt.toISOString(),
+    })),
     agentTelemetry: {
       systemSnapshot: toRecord(host.lastSystemSnapshot),
       systemSnapshotAt: host.lastSystemSnapshotAt?.toISOString() ?? null,
@@ -1756,6 +1778,33 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
         failedAt: command.failedAt,
       }),
     })),
+  };
+}
+
+export async function getRemoteHostCriticalEvents(
+  tenantScope: RemoteTenantScope,
+  hostId: string,
+  input: { cursor?: string; limit?: number; severity?: string; provider?: string },
+) {
+  const limit = Math.min(Math.max(input.limit ?? 25, 1), 100);
+  const scopedWhere = buildRemoteScopedWhere(tenantScope);
+  const events = await prisma.remoteHostCriticalEvent.findMany({
+    where: {
+      hostId,
+      host: { is: scopedWhere },
+      ...(input.severity ? { severity: input.severity } : {}),
+      ...(input.provider ? { provider: input.provider } : {}),
+    },
+    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    take: limit + 1,
+    ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+    select: { id: true, source: true, provider: true, eventCode: true, severity: true, message: true, occurredAt: true },
+  });
+  const hasMore = events.length > limit;
+  const page = hasMore ? events.slice(0, limit) : events;
+  return {
+    items: page.map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString() })),
+    nextCursor: hasMore ? page.at(-1)?.id ?? null : null,
   };
 }
 

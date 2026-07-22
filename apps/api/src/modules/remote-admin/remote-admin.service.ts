@@ -7,6 +7,7 @@ import { executeRemoteAdminProcedure, type RemoteAdminProcedure } from './remote
 import {
   getRemoteDiscoveredHostDetails,
   getRemoteHostDetails,
+  getRemoteHostCriticalEvents,
   getRemotePlatformDirectory,
   getRemotePlatformOverview,
   getRemoteDevicesPaginated,
@@ -100,6 +101,11 @@ export class RemoteAdminService {
     await this.authorizationService.getRequester(rawHeaders as any);
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     return getRemoteHostDetails(tenantScope, hostId);
+  }
+
+  async getHostCriticalEvents(hostId: string, query: { cursor?: string; limit?: number; severity?: string; provider?: string }, rawHeaders?: Record<string, unknown>) {
+    await this.authorizationService.getRequester(rawHeaders as any);
+    return getRemoteHostCriticalEvents(await this.resolveTenantScope(rawHeaders), hostId, query);
   }
 
   async getDiscoveredHostDetails(discoveredHostId: string, rawHeaders?: Record<string, unknown>) {

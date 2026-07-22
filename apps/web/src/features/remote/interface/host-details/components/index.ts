@@ -5,4 +5,5 @@ export * from './host-overview-tab';
 export { HostServicesTab } from './host-services-tab';
 export { HostSettingsTab } from './host-settings-tab';
 export { HostDiagnosticsTab } from './diagnostics/host-diagnostics-tab';
+export { HostCriticalEventsTab } from './host-critical-events-tab';
 export * from './searchable-company-picker';

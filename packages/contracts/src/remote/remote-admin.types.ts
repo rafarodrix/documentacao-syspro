@@ -446,6 +446,15 @@ export type RemoteHostDetails = {
     serviceStatus: string | null;
     contractErrorCode: string | null;
   };
+  criticalEvents: Array<{
+    id: string;
+    source: string;
+    provider: string;
+    eventCode: string;
+    severity: string;
+    message: string;
+    occurredAt: string;
+  }>;
   agentTelemetry: {
     systemSnapshot: Record<string, unknown> | null;
     systemSnapshotAt: string | null;
@@ -960,6 +969,15 @@ export const remoteHostDetailsSchema = z.object({
     serviceStatus: remoteStringOrNullSchema,
     contractErrorCode: remoteStringOrNullSchema,
   }),
+  criticalEvents: z.array(z.object({
+    id: z.string(),
+    source: z.string(),
+    provider: z.string(),
+    eventCode: z.string(),
+    severity: z.string(),
+    message: z.string(),
+    occurredAt: z.string(),
+  })),
   agentTelemetry: z.object({
     systemSnapshot: remoteUnknownRecordSchema.nullable(),
     systemSnapshotAt: remoteStringOrNullSchema,

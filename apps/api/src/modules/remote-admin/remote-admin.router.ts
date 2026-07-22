@@ -72,6 +72,10 @@ export class RemoteAdminRouter {
           this.remoteAdminService.getHostDetails(input.hostId, ctx.headers),
         ),
 
+      hostCriticalEvents: this.trpc.publicProcedure
+        .input(z.object({ hostId: z.string(), cursor: z.string().optional(), limit: z.number().int().min(1).max(100).optional(), severity: z.string().optional(), provider: z.string().optional() }))
+        .query(({ input, ctx }) => this.remoteAdminService.getHostCriticalEvents(input.hostId, input, ctx.headers)),
+
       discoveredHostDetails: this.trpc.publicProcedure
         .input(z.object({ discoveredHostId: z.string() }))
         .query(({ input, ctx }) =>
