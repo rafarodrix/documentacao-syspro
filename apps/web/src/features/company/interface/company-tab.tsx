@@ -15,7 +15,7 @@ import {
 } from "@dosc-syspro/contracts/settings"
 import { toast } from "sonner"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Button, DataTable, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, DropdownMenuCheckboxItem } from "@dosc-syspro/ui";
+import { Button, ColumnToggleDropdown, DataTable, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, DropdownMenuCheckboxItem } from "@dosc-syspro/ui";
 import { MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil, SlidersHorizontal, PanelsTopLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog"
@@ -841,60 +841,18 @@ export function CompanyTab({
               )}
             </div>
             <div className="hidden md:block">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-2 border-border/60 bg-background/50 hover:bg-muted/50 text-xs shadow-sm transition-all duration-200"
-                  >
-                    <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
-                    <span>Colunas</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44 bg-card/95 backdrop-blur-md border border-border/40 shadow-xl animate-in fade-in duration-200">
-                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-2.5 py-1.5">
-                    Exibir Colunas
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-border/40 mx-1" />
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.cnpj}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({ ...prev, cnpj: !!checked }))
-                    }
-                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
-                  >
-                    CNPJ
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.segment}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({ ...prev, segment: !!checked }))
-                    }
-                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
-                  >
-                    Segmento
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.status}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({ ...prev, status: !!checked }))
-                    }
-                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
-                  >
-                    Status
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.members}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({ ...prev, members: !!checked }))
-                    }
-                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
-                  >
-                    Membros
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ColumnToggleDropdown
+                columns={[
+                  { key: "cnpj", label: "CNPJ" },
+                  { key: "segment", label: "Segmento" },
+                  { key: "status", label: "Status" },
+                  { key: "members", label: "Membros" },
+                ]}
+                visibility={columnVisibility}
+                onVisibilityChange={(key, visible) =>
+                  setColumnVisibility((prev) => ({ ...prev, [key]: visible }))
+                }
+              />
             </div>
           </div>
 

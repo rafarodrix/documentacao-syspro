@@ -11308,88 +11308,52 @@
       "firstFile": {
         "end": 861,
         "endLoc": {
-          "column": 46,
+          "column": 18,
           "line": 861,
-          "position": 34831
+          "position": 34384
         },
         "name": "web\\src\\features\\company\\interface\\company-tab.tsx",
-        "start": 851,
+        "start": 849,
         "startLoc": {
-          "column": 113,
-          "line": 851,
-          "position": 34175
+          "column": 53,
+          "line": 849,
+          "position": 34030
         }
       },
       "format": "tsx",
       "fragment": "",
-      "lines": 11,
+      "lines": 13,
       "secondFile": {
-        "end": 467,
+        "end": 466,
         "endLoc": {
-          "column": 46,
-          "line": 467,
-          "position": 16980
+          "column": 18,
+          "line": 466,
+          "position": 16509
         },
         "name": "web\\src\\features\\contact\\interface\\contacts-tab.tsx",
-        "start": 457,
+        "start": 454,
         "startLoc": {
-          "column": 85,
-          "line": 457,
-          "position": 16324
+          "column": 56,
+          "line": 454,
+          "position": 16155
         }
       },
-      "tokens": 59
+      "tokens": 61
     },
     {
       "firstFile": {
-        "end": 886,
-        "endLoc": {
-          "column": 45,
-          "line": 886,
-          "position": 36146
-        },
-        "name": "web\\src\\features\\company\\interface\\company-tab.tsx",
-        "start": 877,
-        "startLoc": {
-          "column": 18,
-          "line": 877,
-          "position": 35649
-        }
-      },
-      "format": "tsx",
-      "fragment": "",
-      "lines": 10,
-      "secondFile": {
-        "end": 529,
-        "endLoc": {
-          "column": 45,
-          "line": 529,
-          "position": 21444
-        },
-        "name": "web\\src\\features\\user-access\\interface\\user-tab.tsx",
-        "start": 520,
-        "startLoc": {
-          "column": 18,
-          "line": 520,
-          "position": 20947
-        }
-      },
-      "tokens": 50
-    },
-    {
-      "firstFile": {
-        "end": 940,
+        "end": 898,
         "endLoc": {
           "column": 3,
-          "line": 940,
-          "position": 38247
+          "line": 898,
+          "position": 35828
         },
         "name": "web\\src\\features\\company\\interface\\company-tab.tsx",
-        "start": 930,
+        "start": 888,
         "startLoc": {
           "column": 34,
-          "line": 930,
-          "position": 37946
+          "line": 888,
+          "position": 35527
         }
       },
       "format": "tsx",
@@ -11954,108 +11918,72 @@
     },
     {
       "firstFile": {
-        "end": 467,
-        "endLoc": {
-          "column": 46,
-          "line": 467,
-          "position": 16980
-        },
-        "name": "web\\src\\features\\contact\\interface\\contacts-tab.tsx",
-        "start": 445,
-        "startLoc": {
-          "column": 66,
-          "line": 445,
-          "position": 15790
-        }
-      },
-      "format": "tsx",
-      "fragment": "",
-      "lines": 23,
-      "secondFile": {
-        "end": 504,
-        "endLoc": {
-          "column": 46,
-          "line": 504,
-          "position": 20104
-        },
-        "name": "web\\src\\features\\user-access\\interface\\user-tab.tsx",
-        "start": 482,
-        "startLoc": {
-          "column": 71,
-          "line": 482,
-          "position": 18914
-        }
-      },
-      "tokens": 107
-    },
-    {
-      "firstFile": {
-        "end": 553,
+        "end": 519,
         "endLoc": {
           "column": 5,
-          "line": 553,
-          "position": 19917
+          "line": 519,
+          "position": 17940
         },
         "name": "web\\src\\features\\contact\\interface\\contacts-tab.tsx",
-        "start": 543,
+        "start": 509,
         "startLoc": {
           "column": 24,
-          "line": 543,
-          "position": 19675
+          "line": 509,
+          "position": 17698
         }
       },
       "format": "tsx",
       "fragment": "",
       "lines": 11,
       "secondFile": {
-        "end": 634,
+        "end": 600,
         "endLoc": {
           "column": 5,
-          "line": 634,
-          "position": 22933
+          "line": 600,
+          "position": 20956
         },
         "name": "web\\src\\features\\contact\\interface\\contacts-tab.tsx",
-        "start": 624,
+        "start": 590,
         "startLoc": {
           "column": 20,
-          "line": 624,
-          "position": 22691
+          "line": 590,
+          "position": 20714
         }
       },
       "tokens": 52
     },
     {
       "firstFile": {
-        "end": 628,
+        "end": 594,
         "endLoc": {
           "column": 4,
-          "line": 628,
-          "position": 22771
+          "line": 594,
+          "position": 20794
         },
         "name": "web\\src\\features\\contact\\interface\\contacts-tab.tsx",
-        "start": 612,
+        "start": 578,
         "startLoc": {
           "column": 26,
-          "line": 612,
-          "position": 22503
+          "line": 578,
+          "position": 20526
         }
       },
       "format": "tsx",
       "fragment": "",
       "lines": 17,
       "secondFile": {
-        "end": 695,
+        "end": 661,
         "endLoc": {
           "column": 4,
-          "line": 695,
-          "position": 25000
+          "line": 661,
+          "position": 23023
         },
         "name": "web\\src\\features\\contact\\interface\\contacts-tab.tsx",
-        "start": 679,
+        "start": 645,
         "startLoc": {
           "column": 27,
-          "line": 679,
-          "position": 24732
+          "line": 645,
+          "position": 22755
         }
       },
       "tokens": 59
@@ -19046,7 +18974,7 @@
     }
   ],
   "statistics": {
-    "detectionDate": "2026-07-22T15:10:01.231Z",
+    "detectionDate": "2026-07-22T15:46:58.731Z",
     "formats": {
       "bash": {
         "clones": 0,
@@ -19092,21 +19020,21 @@
         "newClones": 0,
         "newDuplicatedLines": 0,
         "percentage": 1.1344299489506522,
-        "percentageTokens": 1.950886766712142,
+        "percentageTokens": 1.9471677559912854,
         "sources": 11,
-        "tokens": 7330
+        "tokens": 7344
       },
       "json": {
         "clones": 3,
         "duplicatedLines": 41,
         "duplicatedTokens": 214,
-        "lines": 3867,
+        "lines": 3868,
         "newClones": 0,
         "newDuplicatedLines": 0,
-        "percentage": 1.0602534264287562,
-        "percentageTokens": 2.352682497801231,
+        "percentage": 1.0599793174767322,
+        "percentageTokens": 2.3516483516483517,
         "sources": 29,
-        "tokens": 9096
+        "tokens": 9100
       },
       "markdown": {
         "clones": 1,
@@ -19169,28 +19097,28 @@
         "tokens": 1425
       },
       "tsx": {
-        "clones": 151,
-        "duplicatedLines": 2172,
-        "duplicatedTokens": 13105,
-        "lines": 67037,
+        "clones": 149,
+        "duplicatedLines": 2143,
+        "duplicatedTokens": 12950,
+        "lines": 67031,
         "newClones": 0,
         "newDuplicatedLines": 0,
-        "percentage": 3.2400017900562377,
-        "percentageTokens": 3.3043951859967273,
-        "sources": 411,
-        "tokens": 396593
+        "percentage": 3.1970282406647668,
+        "percentageTokens": 3.26564990215659,
+        "sources": 412,
+        "tokens": 396552
       },
       "typescript": {
         "clones": 302,
         "duplicatedLines": 3462,
         "duplicatedTokens": 23916,
-        "lines": 75471,
+        "lines": 75473,
         "newClones": 0,
         "newDuplicatedLines": 0,
-        "percentage": 4.587192431529992,
-        "percentageTokens": 5.182905686546464,
+        "percentage": 4.58707087302744,
+        "percentageTokens": 5.182636131962623,
         "sources": 514,
-        "tokens": 461440
+        "tokens": 461464
       },
       "yaml": {
         "clones": 0,
@@ -19206,16 +19134,16 @@
       }
     },
     "total": {
-      "clones": 529,
-      "duplicatedLines": 6585,
-      "duplicatedTokens": 43089,
-      "lines": 178766,
+      "clones": 527,
+      "duplicatedLines": 6556,
+      "duplicatedTokens": 42934,
+      "lines": 178763,
       "newClones": 0,
       "newDuplicatedLines": 0,
-      "percentage": 3.6835863642974616,
-      "percentageTokens": 4.191145573954183,
-      "sources": 1178,
-      "tokens": 1028096
+      "percentage": 3.66742558583152,
+      "percentageTokens": 4.176065098915764,
+      "sources": 1179,
+      "tokens": 1028097
     }
   }
 }

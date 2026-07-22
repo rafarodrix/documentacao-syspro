@@ -28,7 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Badge, Button, DataTable, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow, TableHead, DropdownMenuCheckboxItem } from "@dosc-syspro/ui";
+import { Badge, Button, ColumnToggleDropdown, DataTable, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow, TableHead, DropdownMenuCheckboxItem } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
 import {
@@ -447,51 +447,17 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
               )}
             </div>
             <div className="hidden md:block">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-2 border-border/60 bg-background/50 hover:bg-muted/50 text-xs shadow-sm transition-all duration-200"
-                  >
-                    <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>Colunas</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44 bg-card/95 backdrop-blur-md border border-border/40 shadow-xl animate-in fade-in duration-200">
-                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-2.5 py-1.5">
-                    Exibir Colunas
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-border/40 mx-1" />
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.phone}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({ ...prev, phone: !!checked }))
-                    }
-                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
-                  >
-                    Telefone
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.email}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({ ...prev, email: !!checked }))
-                    }
-                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
-                  >
-                    Email
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.companies}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({ ...prev, companies: !!checked }))
-                    }
-                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
-                  >
-                    Empresas
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ColumnToggleDropdown
+                columns={[
+                  { key: "phone", label: "Telefone" },
+                  { key: "email", label: "Email" },
+                  { key: "companies", label: "Empresas" },
+                ]}
+                visibility={columnVisibility}
+                onVisibilityChange={(key, visible) =>
+                  setColumnVisibility((prev) => ({ ...prev, [key]: visible }))
+                }
+              />
             </div>
           </div>
 

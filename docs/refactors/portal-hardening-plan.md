@@ -62,14 +62,15 @@
 
 - **ID:** `QUAL-P2-002`
   - **Prioridade:** P2
-  - **Evidência:** `jscpd` apontou 3.68% de duplicação total no repositório (529 clones).
-  - **Arquivos:** Módulos em `apps/web/src/features/*` e `apps/api/src/modules/*`.
+  - **Status:** Em Progresso (Extraído `ColumnToggleDropdown` em `@dosc-syspro/ui`, eliminando código duplicado em `company-tab.tsx` e `contacts-tab.tsx`).
+  - **Evidência:** `jscpd` apontou 3.68% de duplicação total no repositório (529 clones). Após extração do `ColumnToggleDropdown`, caiu para 3.66% (527 clones, -29 linhas duplicadas).
+  - **Arquivos:** `packages/ui/src/column-toggle-dropdown.tsx`, `apps/web/src/features/company/interface/company-tab.tsx`, `apps/web/src/features/contact/interface/contacts-tab.tsx`.
   - **Risco:** Manutenibilidade reduzida e divergência de regras de negócio entre interfaces.
-  - **Causa Raiz:** Duplicação de componentes de tabela/filtro e formatadores de apresentação entre features.
-  - **Correção:** Refatorar duplicidades de alta relevância (contratos e utilitários) para `packages/shared` ou `packages/ui`.
-  - **Teste:** `npx jscpd apps packages`.
+  - **Causa Raiz:** Duplicação de componentes de tabela/filtro e seletores de colunas em código inline de UI.
+  - **Correção:** Extrair componentes de apresentação genéricos para `@dosc-syspro/ui`.
+  - **Teste:** `npm run test:web` e `npx jscpd apps packages`.
   - **Complexidade:** Média
-  - **Critério de Aceite:** Redução da duplicação para menos de 3.0%.
+  - **Critério de Aceite:** Redução progressiva da duplicação e reaproveitamento de componentes no `@dosc-syspro/ui`.
 
 ### P3 — Baixo (Ajustes de Estilo e Alertas de Lint)
 - **ID:** `STYLE-P3-001`
