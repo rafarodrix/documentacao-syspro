@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Filter, ShieldAlert } from "lucide-react";
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
@@ -22,7 +22,7 @@ export function HostCriticalEventsTab({ hostId, initialEvents }: Props) {
   const [loading, setLoading] = useState(false);
   const providers = useMemo(() => [...new Set(events.map((event) => event.provider))].sort(), [events]);
   const visible = events;
-  async function loadPage(nextCursor?: string | null, replace = false) {
+  const loadPage = useCallback(async (nextCursor?: string | null, replace = false) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ limit: "25" });
@@ -33,8 +33,9 @@ export function HostCriticalEventsTab({ hostId, initialEvents }: Props) {
       setEvents((current) => replace ? response.data.items : [...current, ...response.data.items]);
       setCursor(response.data.nextCursor);
     } finally { setLoading(false); }
-  }
-  useEffect(() => { void loadPage(null, true); }, [hostId, severity, provider]);
+  }, [hostId, provider, severity]);
+
+  useEffect(() => { void loadPage(null, true); }, [loadPage]);
 
   return (
     <Card>
