@@ -200,11 +200,12 @@ export class ContactsOrchestrationService {
       include: this.getContactInclude(),
     });
     if (!existing) throw new Error('Contato nao encontrado');
-    if (requesterContext.assertContactManageable) {
+    const nextCompanyIds = input.companyIds !== undefined ? normalizeCompanyIds(input.companyIds) : extractCompanyIds(existing);
+    if (requesterContext.assertContactManageableForUpdate) {
+      await requesterContext.assertContactManageableForUpdate(existing, nextCompanyIds);
+    } else if (requesterContext.assertContactManageable) {
       await requesterContext.assertContactManageable(existing);
     }
-
-    const nextCompanyIds = input.companyIds !== undefined ? normalizeCompanyIds(input.companyIds) : extractCompanyIds(existing);
     if (requesterContext.assertCompanyIdsAllowed) {
       await requesterContext.assertCompanyIdsAllowed(nextCompanyIds);
     }

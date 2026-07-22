@@ -150,6 +150,7 @@ export type ChatwootDashboardState = {
   companyBindingFeedback: FeedbackState;
   primaryCompany: ContactCompanyEntry | null;
   linkedCompanies: ContactCompanyEntry[];
+  needsPortalCompanyReconciliation: boolean;
   contextCompanyId: string;
   contactEditHref: string;
 

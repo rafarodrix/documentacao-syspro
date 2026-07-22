@@ -312,6 +312,7 @@ export function ChatwootDashboardApp() {
         companyBindingFeedback: contactBinding.companyBindingFeedback,
         primaryCompany: contactBinding.primaryCompany,
         linkedCompanies: contactBinding.linkedCompanies,
+        needsPortalCompanyReconciliation: contactBinding.needsPortalCompanyReconciliation,
         contextCompanyId: resolved.companyId,
         contactEditHref: contactBinding.contactEditHref,
         setActiveTab,

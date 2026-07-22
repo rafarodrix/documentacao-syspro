@@ -50,7 +50,7 @@ export class ContactsService {
     const requesterContext = {
       role: requester.role,
       assertCompanyIdsAllowed: async (companyIds: string[]) => await this.assertCompanyIdsAllowedForRequester(requester, companyIds),
-      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact)
+      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact),
     };
     return this.contactsOrchestrator.createContact(input, requesterContext);
   }
@@ -60,7 +60,9 @@ export class ContactsService {
     const requesterContext = {
       role: requester.role,
       assertCompanyIdsAllowed: async (companyIds: string[]) => await this.assertCompanyIdsAllowedForRequester(requester, companyIds),
-      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact)
+      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact),
+      assertContactManageableForUpdate: async (contact: any, nextCompanyIds: string[]) =>
+        await this.assertContactManageableByRequester(requester, contact, nextCompanyIds),
     };
     return this.contactsOrchestrator.updateContact(contactId, input, requesterContext);
   }
@@ -70,7 +72,9 @@ export class ContactsService {
     const requesterContext = {
       role: requester.role,
       assertCompanyIdsAllowed: async (companyIds: string[]) => await this.assertCompanyIdsAllowedForRequester(requester, companyIds),
-      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact)
+      assertContactManageable: async (contact: any) => await this.assertContactManageableByRequester(requester, contact),
+      assertContactManageableForUpdate: async (contact: any, nextCompanyIds: string[]) =>
+        await this.assertContactManageableByRequester(requester, contact, nextCompanyIds),
     };
     // Re-use updateContact flow since it naturally handles link behavior
     return this.contactsOrchestrator.updateContact(contactId, { companyIds: [companyId] }, requesterContext);
@@ -160,11 +164,24 @@ export class ContactsService {
     throw new NotFoundException('Contato nao encontrado');
   }
 
-  private async assertContactManageableByRequester(requester: { userId: string; role: Role; email: string }, contact: any) {
+  private async assertContactManageableByRequester(
+    requester: { userId: string; role: Role; email: string },
+    contact: any,
+    nextCompanyIds?: string[],
+  ) {
     if (this.authorizationService.isSystemRole(requester.role)) return;
     const scope = await this.resolveContactCompanyScope(requester);
     const contactCompanyIds = extractCompanyIds(contact);
     if (contactCompanyIds.length && contactCompanyIds.every((companyId) => scope.companyIds.includes(companyId))) return;
+
+    // A contact without a company is outside every scoped listing. A client admin may
+    // adopt it only by linking exclusively to one of the companies they manage.
+    // The requested IDs are checked again by assertCompanyIdsAllowedForRequester.
+    if (!contactCompanyIds.length && nextCompanyIds?.length) {
+      await this.assertCompanyIdsAllowedForRequester(requester, nextCompanyIds);
+      return;
+    }
+
     throw new ForbiddenException('Contato informado nao pertence integralmente ao seu escopo.');
   }
 }

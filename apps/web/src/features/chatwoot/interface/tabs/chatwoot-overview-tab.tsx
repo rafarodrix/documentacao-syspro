@@ -20,6 +20,7 @@ export function ChatwootOverviewTab() {
   const {
     resolved,
     linkedCompanies,
+    needsPortalCompanyReconciliation,
     recommendedHost,
     primaryCompany,
     effectiveContactName,
@@ -50,14 +51,14 @@ export function ChatwootOverviewTab() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [forceShowBinding, setForceShowBinding] = useState(false);
 
-  const shouldShowBindingWizard = linkedCompanies.length === 0 || forceShowBinding;
+  const shouldShowBindingWizard = linkedCompanies.length === 0 || needsPortalCompanyReconciliation || forceShowBinding;
 
   // Auto-collapse binding wizard when a primary company is successfully set
   useEffect(() => {
-    if (primaryCompany) {
+    if (primaryCompany && !needsPortalCompanyReconciliation) {
       setForceShowBinding(false);
     }
-  }, [primaryCompany]);
+  }, [primaryCompany, needsPortalCompanyReconciliation]);
 
   return (
     <div className="space-y-4">
@@ -196,6 +197,9 @@ export function ChatwootOverviewTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {needsPortalCompanyReconciliation ? (
+              <InlineWarning message="A empresa ativa desta conversa ainda nao esta vinculada ao contato no portal. Confirme o vinculo abaixo para reconciliar os dados." />
+            ) : null}
             <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
               <div className="rounded-lg border border-border/60 bg-card p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">1. Contato no portal</p>

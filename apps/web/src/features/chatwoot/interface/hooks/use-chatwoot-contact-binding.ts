@@ -48,7 +48,19 @@ export function useChatwootContactBinding({
   const [isSavingContactName, setIsSavingContactName] = useState(false);
 
   const trimmedCompanySearchTerm = companySearchTerm.trim();
-  const shouldSearchCompanies = !companyId && trimmedCompanySearchTerm.length >= 2;
+  const portalCompanyIds = useMemo(
+    () => new Set([
+      ...(portalContactMatch?.companies ?? []).map((company) => company.id),
+      ...(portalContactMatch?.companyIds ?? []),
+    ]),
+    [portalContactMatch?.companies, portalContactMatch?.companyIds],
+  );
+  const needsPortalCompanyReconciliation = Boolean(
+    portalContactMatch?.id && companyId && !portalCompanyIds.has(companyId),
+  );
+  // Mesmo com uma empresa ativa, o atendente pode vincular o contato a outra empresa.
+  // O contexto atual nao pode bloquear a busca manual nem a reconciliacao do vinculo.
+  const shouldSearchCompanies = needsPortalCompanyReconciliation || trimmedCompanySearchTerm.length >= 2;
 
   const filteredCompanyOptions = useMemo(() => {
     const q = companySearchTerm.trim();
@@ -123,7 +135,6 @@ export function useChatwootContactBinding({
 
   // Load company options lazily (once, only when needed)
   useEffect(() => {
-    if (companyId) return;
     if (!shouldSearchCompanies) {
       setCompanyOptionsError(null);
       setIsLoadingCompanyOptions(false);
@@ -151,7 +162,12 @@ export function useChatwootContactBinding({
 
     void loadCompanyOptions();
     return () => controller.abort();
-  }, [hasLoadedCompanyOptions, companyId, shouldSearchCompanies]);
+  }, [hasLoadedCompanyOptions, shouldSearchCompanies]);
+
+  useEffect(() => {
+    if (!needsPortalCompanyReconciliation || !companyId || !companyOptions.some((company) => company.id === companyId)) return;
+    setSelectedCompanyId(companyId);
+  }, [companyId, companyOptions, needsPortalCompanyReconciliation]);
 
   // Lookup portal contact by phone or email
   useEffect(() => {
@@ -227,26 +243,35 @@ export function useChatwootContactBinding({
       setPortalContactMatch(updatedContact?.id ? updatedContact : portalContactMatch);
       setManualLinkedCompany(selectedCompanyOption);
       const portalContactId = updatedContact?.id ?? portalContactMatch?.id;
-      if (!portalContactId || !conversationId || !accountId) {
-        throw new Error("Nao foi possivel registrar o contexto da conversa.");
+
+      try {
+        if (!portalContactId || !conversationId || !accountId) {
+          throw new Error("Nao foi possivel registrar o contexto da conversa.");
+        }
+        const contextResponse = await fetch(
+          `/api/chatwoot/conversations/${encodeURIComponent(conversationId)}/company-context`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              companyId: selectedCompanyOption.id,
+              accountId,
+              contactId: chatwootContactId || null,
+              portalContactId,
+              linkSource: "MANUAL",
+            }),
+          },
+        );
+        if (!contextResponse.ok) throw new Error("Nao foi possivel registrar o contexto da conversa.");
+      } catch {
+        setCompanyBindingFeedback({
+          tone: "success",
+          message: `Contato vinculado a ${getCompanyLabel(selectedCompanyOption)} no portal. Nao foi possivel enfileirar a sincronizacao desta conversa com o Chatwoot.`,
+        });
+        onBindSuccess?.();
+        return;
       }
-      const contextResponse = await fetch(
-        `/api/chatwoot/conversations/${encodeURIComponent(conversationId)}/company-context`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            companyId: selectedCompanyOption.id,
-            accountId,
-            contactId: chatwootContactId || null,
-            portalContactId,
-            linkSource: "MANUAL",
-          }),
-        },
-      );
-      if (!contextResponse.ok) {
-        throw new Error("Nao foi possivel registrar o contexto da conversa.");
-      }
+
       setCompanyBindingFeedback({
         tone: "success",
         message: `Contato vinculado a ${getCompanyLabel(selectedCompanyOption)}. A sincronizacao com o Chatwoot foi colocada na fila.`,
@@ -330,6 +355,7 @@ export function useChatwootContactBinding({
     shouldSearchCompanies,
     linkedCompanies,
     primaryCompany,
+    needsPortalCompanyReconciliation,
     contactEditHref,
     effectiveContactName,
     handleBindCompany,
