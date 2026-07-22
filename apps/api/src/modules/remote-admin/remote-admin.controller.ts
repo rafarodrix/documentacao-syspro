@@ -65,6 +65,16 @@ export class RemoteAdminController {
     return this.remoteAdminService.updateCompanyObservacoes(id, (body ?? {}) as any, req.headers);
   }
 
+  @Patch('hosts/:hostId/installations/:installationId/runtime')
+  async updateInstallationRuntime(
+    @Req() req: Request,
+    @Param('hostId') hostId: string,
+    @Param('installationId') installationId: string,
+    @Body() body: unknown,
+  ) {
+    return this.remoteAdminService.updateErpInstallationRuntime(hostId, installationId, body, req.headers);
+  }
+
   @Post('hosts/:id/actions')
   async postHostAction(@Req() req: Request, @Param('id') id: string, @Body() body: { action?: 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS' | 'UPGRADE_CLIENT' | 'UPGRADE_RUSTDESK' | 'UPGRADE_AGENT' }) {
     const action = body?.action;

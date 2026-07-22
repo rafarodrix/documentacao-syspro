@@ -57,6 +57,43 @@ enum ErpCompanyRole {
   SECONDARY
 }
 
+enum ErpRuntimeType {
+  SYSPRO_SERVER
+  IIS
+}
+
+enum ErpProtocol {
+  HTTP
+  HTTPS
+  TCP
+}
+
+enum ErpRuntimeSource {
+  MANUAL
+  IIS_BINDING
+  PROCESS_ARGUMENT
+  CONFIG_FILE
+  WINDOWS_SERVICE
+}
+
+enum ErpRuntimeStatus {
+  PENDING_CONFIGURATION
+  CONFIGURED
+  VERIFIED
+  PORT_CONFLICT
+  PORT_MISMATCH
+  RUNTIME_MISMATCH
+  UNREACHABLE
+  INVALID_CONFIGURATION
+}
+
+enum ErpEnvironment {
+  PRODUCTION
+  HOMOLOGATION
+  TEST
+  DEVELOPMENT
+}
+
 
 enum CompanyContactStatus {
   PENDING_LINK
@@ -1010,6 +1047,20 @@ model ErpInstallation {
   executablePath          String?
   configPath              String?
   dataPath                String?
+  environment             ErpEnvironment @default(PRODUCTION)
+  runtimeType             ErpRuntimeType?
+  detectedRuntimeType     ErpRuntimeType?
+  configuredPort          Int?
+  requestedPort           Int?
+  detectedPort            Int?
+  protocol                ErpProtocol?
+  hostName                String?
+  iisSiteName             String?
+  iisAppPoolName          String?
+  iisApplicationPath      String?
+  runtimeSource           ErpRuntimeSource?
+  runtimeStatus           ErpRuntimeStatus @default(PENDING_CONFIGURATION)
+  lastRuntimeCheckAt      DateTime?
   version                 String?
   serviceName             String?
   serviceStatus           String?
@@ -1025,6 +1076,8 @@ model ErpInstallation {
 
   @@unique([deviceId, canonicalRootPath])
   @@unique([deviceId, installationFingerprint])
+  @@index([deviceId, configuredPort])
+  @@index([runtimeStatus])
   @@index([deviceId, lastSeenAt])
   @@map("erp_installation")
 }

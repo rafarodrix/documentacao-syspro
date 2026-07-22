@@ -501,6 +501,32 @@ export class RemoteAdminService {
     return this.callRemoteProcedure('hostsRevokeAgentToken', { hostId }, rawHeaders);
   }
 
+  async updateErpInstallationRuntime(hostId: string, installationId: string, body: unknown, rawHeaders?: Record<string, unknown>) {
+    await this.authorizationService.assertPermission(rawHeaders as any, 'remote:manage');
+    const tenantScope = await this.resolveTenantScope(rawHeaders);
+    const payload = this.asObject(body);
+    const runtimeType = payload.runtimeType === 'SYSPRO_SERVER' || payload.runtimeType === 'IIS' ? payload.runtimeType : null;
+    const protocol = payload.protocol === 'HTTP' || payload.protocol === 'HTTPS' || payload.protocol === 'TCP' ? payload.protocol : null;
+    const configuredPort = typeof payload.configuredPort === 'number' && Number.isInteger(payload.configuredPort) ? payload.configuredPort : null;
+    if (configuredPort !== null && (configuredPort < 1 || configuredPort > 65535)) throw new BadRequestException('A porta deve estar entre 1 e 65535.');
+
+    const installation = await prisma.erpInstallation.findFirst({
+      where: { id: installationId, deviceId: hostId, host: buildScopedHostWhere(tenantScope, hostId) },
+      select: { id: true, deviceId: true },
+    });
+    if (!installation) throw new ForbiddenException('Instalação ERP não encontrada no escopo.');
+
+    const conflict = configuredPort === null ? null : await prisma.erpInstallation.findFirst({
+      where: { deviceId: hostId, configuredPort, id: { not: installationId } },
+      select: { rootPath: true },
+    });
+    const data = conflict
+      ? { runtimeType, protocol, hostName: typeof payload.hostName === 'string' ? payload.hostName.trim() || null : null, requestedPort: configuredPort, runtimeSource: 'MANUAL' as const, runtimeStatus: 'PORT_CONFLICT' as const }
+      : { runtimeType, protocol, hostName: typeof payload.hostName === 'string' ? payload.hostName.trim() || null : null, configuredPort, requestedPort: null, runtimeSource: runtimeType || configuredPort ? 'MANUAL' as const : null, runtimeStatus: runtimeType && configuredPort ? 'CONFIGURED' as const : 'PENDING_CONFIGURATION' as const };
+    const saved = await prisma.erpInstallation.update({ where: { id: installationId }, data });
+    return { success: !conflict, data: saved, error: conflict ? `A porta ${configuredPort} já está configurada em ${conflict.rootPath}.` : null };
+  }
+
   async createManualRemoteHostSysproUpdate(
     hostId: string,
     body: unknown,

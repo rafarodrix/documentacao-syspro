@@ -29,6 +29,7 @@ export function ErpInstallationsView({ details }: Props) {
                 <span className="min-w-0">
                   <span className="flex items-center gap-2"><span className="truncate font-semibold">{installation.rootPath}</span>{running && <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600">Em execução</span>}</span>
                   <span className="block truncate text-xs text-muted-foreground">{installation.version ?? "Versão sem leitura"} · {installation.discoverySources.join(", ") || "Fonte não informada"}</span>
+                  <span className="block text-xs text-muted-foreground">{installation.runtimeType ?? "Runtime pendente"} · {installation.configuredPort ? `porta ${installation.configuredPort}` : installation.requestedPort ? `porta ${installation.requestedPort} em conflito` : "porta não informada"} · {installation.runtimeStatus}</span>
                 </span>
               </span>
               {expanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
