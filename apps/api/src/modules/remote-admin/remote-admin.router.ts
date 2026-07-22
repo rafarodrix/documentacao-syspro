@@ -4,7 +4,7 @@ import { deviceListQuerySchema } from '@dosc-syspro/contracts';
 import { TrpcService } from '../trpc/trpc.service';
 import { RemoteAdminService } from './remote-admin.service';
 
-const hostActionSchema = z.enum(['REBOOTSTRAP', 'RESEND_CONFIG', 'REAPPLY_ALIAS', 'UPGRADE_CLIENT']);
+const hostActionSchema = z.enum(['REBOOTSTRAP', 'RESEND_CONFIG', 'REAPPLY_ALIAS', 'UPGRADE_CLIENT', 'UPGRADE_RUSTDESK', 'UPGRADE_AGENT']);
 const serviceControlSchema = z.object({
   hostId: z.string(),
   serviceName: z.string().trim().min(1),

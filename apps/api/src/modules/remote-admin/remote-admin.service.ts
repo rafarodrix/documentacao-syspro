@@ -18,8 +18,9 @@ import { cleanupExpiredRemoteSessions, getRemoteSessions } from './support/sessi
 import { buildScopedCompanyWhere, buildScopedHostWhere } from './support/scope';
 import type { RemoteSessionStatus, RemoteTenantScope } from './support/remote-admin.types';
 
-type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS' | 'UPGRADE_CLIENT';
+type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS' | 'UPGRADE_CLIENT' | 'UPGRADE_RUSTDESK' | 'UPGRADE_AGENT';
 const DEFAULT_INSTALLATION_DIRECTORY = 'C:\\Syspro\\Server\\SysproServer.exe';
+const AGENT_UPDATE_MANIFEST_URL = 'https://ajuda.trilinksoftware.com.br/agent/manifest.json';
 
 function normalizeCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
   const nomeFantasia = input.nomeFantasia?.trim() ?? '';
@@ -325,14 +326,18 @@ export class RemoteAdminService {
     const commandType =
       action === 'RESEND_CONFIG'
         ? 'REAPPLY_CONFIG'
-        : action === 'UPGRADE_CLIENT'
-          ? 'UPGRADE_CLIENT'
+        : action === 'UPGRADE_AGENT'
+          ? 'UPGRADE_AGENT'
+          : action === 'UPGRADE_RUSTDESK' || action === 'UPGRADE_CLIENT'
+            ? 'UPGRADE_CLIENT'
           : 'REAPPLY_ALIAS';
     const reason =
       action === 'RESEND_CONFIG'
         ? 'Acao manual do portal: reenviar configuracao para o agente.'
-        : action === 'UPGRADE_CLIENT'
-          ? 'Acao manual do portal: solicitar upgrade do client RustDesk.'
+        : action === 'UPGRADE_AGENT'
+          ? 'Acao manual do portal: solicitar upgrade do servico do agente.'
+          : action === 'UPGRADE_RUSTDESK' || action === 'UPGRADE_CLIENT'
+            ? 'Acao manual do portal: solicitar upgrade do RustDesk.'
           : 'Acao manual do portal: reaplicar alias no agente.';
 
     const existing = await prisma.remoteAgentCommand.findFirst({
@@ -364,6 +369,7 @@ export class RemoteAdminService {
           requestedByUserId: requester.userId,
           requestedAt: new Date().toISOString(),
           action,
+          ...(action === 'UPGRADE_AGENT' ? { manifestUrl: AGENT_UPDATE_MANIFEST_URL, targetVersion: '1.0.85' } : {}),
         },
       },
       select: {

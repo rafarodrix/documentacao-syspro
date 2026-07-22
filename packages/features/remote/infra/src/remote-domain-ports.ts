@@ -39,7 +39,7 @@ function buildInstallToken() {
   return `rhost_${randomBytes(12).toString("hex")}`;
 }
 
-const DERIVED_COMMAND_TYPES = ["REAPPLY_ALIAS", "REAPPLY_CONFIG", "UPGRADE_CLIENT", "ROTATE_TOKEN_REQUIRED"] as const;
+const DERIVED_COMMAND_TYPES = ["REAPPLY_ALIAS", "REAPPLY_CONFIG", "UPGRADE_CLIENT", "UPGRADE_RUSTDESK", "UPGRADE_AGENT", "ROTATE_TOKEN_REQUIRED"] as const;
 const DELIVERABLE_COMMAND_TYPES = [...DERIVED_COMMAND_TYPES, "SERVICE_CONTROL"] as const;
 
 type RemoteLogger = {
@@ -535,9 +535,9 @@ export async function revokeExpiredSyncAgentToken(agentToken?: string | null) {
 export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: string | null }): RemoteSyncPort {
   const { logger, requestIp } = params;
 
-  function mapDeliveredCommandType(value: string): "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED" {
+  function mapDeliveredCommandType(value: string): "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "UPGRADE_RUSTDESK" | "UPGRADE_AGENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED" {
     if (DELIVERABLE_COMMAND_TYPES.includes(value as (typeof DELIVERABLE_COMMAND_TYPES)[number])) {
-      return value as "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED";
+      return value as "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "UPGRADE_RUSTDESK" | "UPGRADE_AGENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED";
     }
     return "REAPPLY_CONFIG";
   }

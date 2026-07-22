@@ -209,7 +209,7 @@ export type BootstrapCompliance = {
 
 export type SyncCompliance = BootstrapCompliance;
 
-export type SyncCommandType = "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED";
+export type SyncCommandType = "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "UPGRADE_RUSTDESK" | "UPGRADE_AGENT" | "SERVICE_CONTROL" | "ROTATE_TOKEN_REQUIRED";
 
 export type SyncCommandQueueItem = {
   id: string;

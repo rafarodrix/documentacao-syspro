@@ -30,9 +30,12 @@ const (
 type RemoteSyncCommandType string
 
 const (
-	RemoteSyncCommandReapplyAlias        RemoteSyncCommandType = "REAPPLY_ALIAS"
-	RemoteSyncCommandReapplyConfig       RemoteSyncCommandType = "REAPPLY_CONFIG"
+	RemoteSyncCommandReapplyAlias  RemoteSyncCommandType = "REAPPLY_ALIAS"
+	RemoteSyncCommandReapplyConfig RemoteSyncCommandType = "REAPPLY_CONFIG"
+	// UPGRADE_CLIENT is retained to execute commands already queued by older portals.
 	RemoteSyncCommandUpgradeClient       RemoteSyncCommandType = "UPGRADE_CLIENT"
+	RemoteSyncCommandUpgradeRustDesk     RemoteSyncCommandType = "UPGRADE_RUSTDESK"
+	RemoteSyncCommandUpgradeAgent        RemoteSyncCommandType = "UPGRADE_AGENT"
 	RemoteSyncCommandServiceControl      RemoteSyncCommandType = "SERVICE_CONTROL"
 	RemoteSyncCommandRotateTokenRequired RemoteSyncCommandType = "ROTATE_TOKEN_REQUIRED"
 )
@@ -51,6 +54,7 @@ const (
 	RemoteAckReasonReapplyAliasNoop       RemoteAckReasonCode = "REAPPLY_ALIAS_NOOP"
 	RemoteAckReasonReapplyConfigNoop      RemoteAckReasonCode = "REAPPLY_CONFIG_NOOP"
 	RemoteAckReasonUpgradeClientSuccess   RemoteAckReasonCode = "UPGRADE_CLIENT_SUCCESS"
+	RemoteAckReasonUpgradeAgentScheduled  RemoteAckReasonCode = "UPGRADE_AGENT_SCHEDULED"
 	RemoteAckReasonRotateTokenRequired    RemoteAckReasonCode = "ROTATE_TOKEN_REQUIRED"
 	RemoteAckReasonCommandUnknown         RemoteAckReasonCode = "COMMAND_UNKNOWN"
 	RemoteAckReasonCommandExecutionFailed RemoteAckReasonCode = "COMMAND_EXECUTION_FAILED"

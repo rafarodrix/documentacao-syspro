@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -803,7 +805,7 @@ func (m *Module) executeCommand(ctx context.Context, st *remoteState, cmd domain
 			message:         "local token marked for rebootstrap",
 			invalidateToken: true,
 		}
-	case domain.RemoteSyncCommandUpgradeClient:
+	case domain.RemoteSyncCommandUpgradeClient, domain.RemoteSyncCommandUpgradeRustDesk:
 		payload := parseUpgradeCommandPayload(cmd.Payload)
 		if err := m.refreshRustDeskState(ctx, st, st.AutoInstall, true, &rustDeskUpgradeSpec{
 			DownloadURL:    payload.DownloadURL,
@@ -829,6 +831,20 @@ func (m *Module) executeCommand(ctx context.Context, st *remoteState, cmd domain
 				"currentVersion": st.CurrentVersion,
 				"targetVersion":  st.TargetVersion,
 			},
+		}
+	case domain.RemoteSyncCommandUpgradeAgent:
+		payload := parseAgentUpgradeCommandPayload(cmd.Payload)
+		if payload.ManifestURL == "" {
+			return commandAck{status: domain.RemoteAckStatusFailed, reasonCode: domain.RemoteAckReasonCommandExecutionFailed, message: "agent upgrade failed: missing manifestUrl"}
+		}
+		if err := launchAgentUpdater(payload.ManifestURL); err != nil {
+			return commandAck{status: domain.RemoteAckStatusFailed, reasonCode: domain.RemoteAckReasonCommandExecutionFailed, message: fmt.Sprintf("agent upgrade failed: %v", err)}
+		}
+		return commandAck{
+			status:     domain.RemoteAckStatusAcknowledged,
+			reasonCode: domain.RemoteAckReasonUpgradeAgentScheduled,
+			message:    "agent service upgrade scheduled",
+			details:    map[string]any{"manifestUrl": payload.ManifestURL, "targetVersion": payload.TargetVersion},
 		}
 	case domain.RemoteSyncCommandServiceControl:
 		payload := parseServiceControlCommandPayload(cmd.Payload)
@@ -1055,6 +1071,11 @@ type upgradeCommandPayload struct {
 	SilentArgs     string `json:"silentArgs"`
 }
 
+type agentUpgradeCommandPayload struct {
+	ManifestURL   string `json:"manifestUrl"`
+	TargetVersion string `json:"targetVersion"`
+}
+
 type serviceControlCommandPayload struct {
 	ServiceName string `json:"serviceName"`
 	Action      string `json:"action"`
@@ -1076,6 +1097,27 @@ func parseUpgradeCommandPayload(raw json.RawMessage) upgradeCommandPayload {
 	var payload upgradeCommandPayload
 	_ = json.Unmarshal(raw, &payload)
 	return payload
+}
+
+func parseAgentUpgradeCommandPayload(raw json.RawMessage) agentUpgradeCommandPayload {
+	var payload agentUpgradeCommandPayload
+	_ = json.Unmarshal(raw, &payload)
+	payload.ManifestURL = strings.TrimSpace(payload.ManifestURL)
+	payload.TargetVersion = strings.TrimSpace(payload.TargetVersion)
+	return payload
+}
+
+func launchAgentUpdater(manifestURL string) error {
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("resolve agent executable: %w", err)
+	}
+	updater := filepath.Join(filepath.Dir(executable), "agent-updater.exe")
+	command := exec.Command(updater, "apply-remote", "--manifest-url", manifestURL, "--components", "service")
+	if err := command.Start(); err != nil {
+		return fmt.Errorf("start updater: %w", err)
+	}
+	return nil
 }
 
 func parseServiceControlCommandPayload(raw json.RawMessage) serviceControlCommandPayload {
