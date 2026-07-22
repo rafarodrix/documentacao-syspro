@@ -54,6 +54,8 @@ export type RemoteAgentCommandType =
   | "REAPPLY_ALIAS"
   | "REAPPLY_CONFIG"
   | "UPGRADE_CLIENT"
+  | "UPGRADE_RUSTDESK"
+  | "UPGRADE_AGENT"
   | "SERVICE_CONTROL"
   | "ROTATE_TOKEN_REQUIRED";
 export type RemoteAgentCommandStatus = "PENDING" | "DELIVERED" | "ACKNOWLEDGED" | "CANCELLED" | "FAILED";
