@@ -75,11 +75,12 @@
 ### P3 — Baixo (Ajustes de Estilo e Alertas de Lint)
 - **ID:** `STYLE-P3-001`
   - **Prioridade:** P3
-  - **Evidência:** Warnings do plugin `eslint-plugin-trilink-tokens` indicando uso de paletas de cor cruas Tailwind (ex: `bg-emerald-100`, `text-red-300`).
-  - **Arquivos:** `apps/web/src/features/tax/interface/*.tsx`.
+  - **Status:** Concluído (100% das cores cruas Tailwind no módulo `tax` substituídas por tokens semânticos `bg-primary/10`, `text-primary`, `bg-destructive/10`, `text-destructive`, `bg-muted`, `border-border`).
+  - **Evidência:** `grep_search` confirma zero ocorrências de classes de paleta de cor crua em `apps/web/src/features/tax`.
+  - **Arquivos:** `tax-sync-status-bar.tsx`, `tax-rules-viewer.tsx`, `tax-ncm-lookup.tsx`, `sync-tax-button.tsx`.
   - **Risco:** Inconsistência de temas e violação das diretrizes visuais do Design System.
   - **Causa Raiz:** Uso de classes diretas do Tailwind sem tokens semânticos (`bg-muted`, `text-foreground`).
-  - **Correção:** Substituir paletas brutas por tokens semânticos ou adicionar anotação autorizada `// ds-allow` onde justificável.
-  - **Teste:** `npm run lint`.
+  - **Correção:** Substituir paletas brutas por tokens semânticos do Design System.
+  - **Teste:** `npm run test:web` e `grep_search`.
   - **Complexidade:** Baixa
-  - **Critério de Aceite:** Zero warnings de paleta crua no módulo tax.
+  - **Critério de Aceite:** Zero ocorrências de cores cruas no módulo tax.

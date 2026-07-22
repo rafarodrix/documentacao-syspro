@@ -152,17 +152,17 @@ export function TaxSyncStatusBar() {
   const recentJobs = jobs.slice(0, 5);
 
   const statusClassName = (status: TaxSyncJob["status"]) => {
-    if (status === "SUCCESS") return "text-emerald-300 border-emerald-500/30 bg-emerald-500/10";
-    if (status === "FAILED") return "text-red-300 border-red-500/30 bg-red-500/10";
-    if (status === "RUNNING") return "text-amber-300 border-amber-500/30 bg-amber-500/10";
+    if (status === "SUCCESS") return "text-primary border-primary/30 bg-primary/10";
+    if (status === "FAILED") return "text-destructive border-destructive/30 bg-destructive/10";
+    if (status === "RUNNING") return "text-primary border-primary/30 bg-primary/10";
     return "text-muted-foreground border-border/50 bg-muted/30";
   };
 
   return (
-    <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
+    <div className="rounded-xl border border-border bg-muted/30 p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-amber-200">
-          <AlertTriangle className="h-4 w-4" />
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <AlertTriangle className="h-4 w-4 text-primary" />
           Sincronizacao fiscal
         </div>
         <Button variant="outline" size="sm" onClick={clearAll} className="gap-2">
@@ -209,7 +209,7 @@ export function TaxSyncStatusBar() {
             <div className="flex items-center gap-2">
               <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full bg-amber-400 transition-all"
+                  className="h-full bg-primary transition-all"
                   style={{
                     width: `${Math.min(
                       100,

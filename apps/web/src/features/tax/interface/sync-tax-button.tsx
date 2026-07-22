@@ -336,11 +336,11 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
         <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
           {title}
           {isNcm ? (
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700">
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
               API publica
             </span>
           ) : (
-            <span className="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">
+            <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
               <Lock className="h-3 w-3" /> Requer Certificado
             </span>
           )}

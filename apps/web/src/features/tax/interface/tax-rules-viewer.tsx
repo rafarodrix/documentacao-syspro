@@ -38,7 +38,7 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
     });
 
     const StatusIcon = ({ active }: { active: boolean }) =>
-        active ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-muted-foreground/30" />;
+        active ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <XCircle className="h-4 w-4 text-muted-foreground/30" />;
 
     return (
         <div className="flex w-full flex-col gap-4">
@@ -75,7 +75,7 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
                                                 <span className="text-sm font-medium">{cst.description}</span>
                                                 <div className="mt-1 flex items-center gap-2">
                                                     {cst.indIBSCBS && (
-                                                        <span className="flex w-fit items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-700">
+                                                        <span className="flex w-fit items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
                                                             <Percent className="h-3 w-3" /> Tributável
                                                         </span>
                                                     )}
