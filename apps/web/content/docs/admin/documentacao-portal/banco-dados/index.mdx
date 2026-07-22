@@ -6,9 +6,6 @@ owner: Engenharia de Plataforma
 status: published
 tags:
   - banco-dados
-  - prisma
-  - postgresql
-  - schema
 ---
 
 > PostgreSQL via Prisma ORM. Schema em `packages/database/prisma/schema.prisma`.
@@ -74,7 +71,7 @@ Permission
 1. `User.contactId` aponta para um `CompanyContact`
 2. `CompanyContact.companyLinks` define as empresas válidas para esse contato
 3. `UserContactAccessService` replica isso em `Membership` e `UserContactLink`
-4. `AuthorizationService` resolve permissÃµes globais e por empresa a partir desses vínculos
+4. `AuthorizationService` resolve permissões globais e por empresa a partir desses vínculos
 
 ---
 
@@ -84,8 +81,8 @@ Permission
 RemoteHost
   ├── Company
   ├── RemoteAgentCommand[]   (fila de comandos)
-  ├── RemoteSession[]        (histórico de sessÃµes)
-  ├── RemoteHostSysproUpdate[] (versÃµes detectadas)
+  ├── RemoteSession[]        (histórico de sessões)
+  ├── RemoteHostSysproUpdate[] (versões detectadas)
 
 RemoteDiscoveredHost        (hosts ainda não vinculados)
   ├── Company?
@@ -241,5 +238,5 @@ enum RemoteAddressBookCredentialScope { GLOBAL COMPANY }
 - Todos os IDs são `String` gerados com `@default(cuid())`
 - `createdAt` e `updatedAt` em todos os modelos
 - `deletedAt` (soft delete) em modelos onde histórico é necessário
-- Ãndices em campos de busca frequente: `cnpj`, `rustdeskId`, `agentToken`, `externalId`
+- Índices em campos de busca frequente: `cnpj`, `rustdeskId`, `agentToken`, `externalId`
 - Foreign keys com `onDelete: Cascade` onde semanticamente correto (ex: mensagens deletadas com conversa)

@@ -34,7 +34,7 @@
       "@dosc-syspro/contacts-domain/*": ["../../packages/features/contacts/domain/src/*"],
       "@dosc-syspro/contacts-infra": ["../../packages/features/contacts/infra/src/index.ts"],
       "@dosc-syspro/contacts-infra/*": ["../../packages/features/contacts/infra/src/*"],
-      "@dosc-syspro/app-api/types": ["../../apps/api/src/exports.ts"],
+      "@dosc-syspro/contracts/trpc": ["../../packages/contracts/src/trpc/index.ts"],
       "@dosc-syspro/core": ["../../packages/core/src/index.ts"],
       "@dosc-syspro/core/*": ["../../packages/core/src/*"],
       "@dosc-syspro/database": ["../../packages/database/src/index.ts"],

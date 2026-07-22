@@ -1,3 +1,3 @@
 declare module '@dosc-syspro/app-api/types' {
-  export type { AppRouter } from '../../../apps/api/src/exports';
+  export type { AppRouter } from '@dosc-syspro/contracts/trpc';
 }

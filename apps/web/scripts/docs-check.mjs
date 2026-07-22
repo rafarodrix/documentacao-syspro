@@ -35,12 +35,12 @@ function readJson(filePath) {
 }
 
 function readText(filePath) {
-  return readFileSync(filePath, "utf8");
+  return readFileSync(filePath, "utf8").replace(/\r\n/g, "\n");
 }
 
 function checkMdxFrontmatter(mdxFiles) {
   for (const filePath of mdxFiles) {
-    const text = readText(filePath);
+    const text = readText(filePath).replace(/\r\n/g, "\n");
     if (!/^---\s*$/m.test(text)) {
       errors.push(`Frontmatter ausente: ${relative(process.cwd(), filePath)}`);
       continue;

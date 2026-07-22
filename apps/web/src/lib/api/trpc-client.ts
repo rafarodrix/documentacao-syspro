@@ -1,5 +1,5 @@
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
-import type { AppRouter } from '@dosc-syspro/app-api/types';
+import type { AppRouter } from '@dosc-syspro/contracts/trpc';
 import { getBackendApiBaseUrl } from '../backend-api';
 
 const getBaseUrl = () => {

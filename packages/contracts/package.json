@@ -29,7 +29,8 @@
     "./contact": "./src/contact/index.ts",
     "./documento": "./src/documento/documento.types.ts",
     "./documento-config": "./src/documento/documento-config.types.ts",
-    "./user": "./src/user/index.ts"
+    "./user": "./src/user/index.ts",
+    "./trpc": "./src/trpc/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -38,6 +39,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@trpc/server": "^11.17.0",
     "typescript": "^5.8.2"
   }
 }

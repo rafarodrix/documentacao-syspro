@@ -16,6 +16,7 @@ export default defineConfig({
       "@dosc-syspro/shared/request-auth": path.resolve(__dirname, "../../packages/shared/src/request-auth.ts"),
       "@dosc-syspro/shared/action-rate-limit": path.resolve(__dirname, "../../packages/shared/src/action-rate-limit.ts"),
       "@dosc-syspro/shared/action-error-handler": path.resolve(__dirname, "../../packages/shared/src/action-error-handler.ts"),
+      "@dosc-syspro/shared/remote-operational-status": path.resolve(__dirname, "../../packages/shared/src/remote-operational-status.ts"),
       "@dosc-syspro/shared": path.resolve(__dirname, "../../packages/shared/src/index.ts"),
       "@dosc-syspro/core/config/route-access": path.resolve(__dirname, "../../packages/core/src/config/route-access.ts"),
       "@dosc-syspro/core/config/role-labels": path.resolve(__dirname, "../../packages/core/src/config/role-labels.ts"),

@@ -26,7 +26,6 @@
     "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
-    "@dosc-syspro/app-api": "file:../../apps/api",
     "@dosc-syspro/config": "file:../../packages/config",
     "@dosc-syspro/contracts": "file:../../packages/contracts",
     "@dosc-syspro/contacts-domain": "file:../../packages/features/contacts/domain",
