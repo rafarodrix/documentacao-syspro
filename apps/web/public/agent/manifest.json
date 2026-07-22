@@ -3,9 +3,9 @@
   "channel": "stable",
   "components": {
     "service": {
-      "version": "1.0.85",
-      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.85/agent-service.exe",
-      "sha256": "99a1c839b93a9c0ba078bc98f6ba1d04844b9b7a1ca98207e6568dfa70e6f4aa"
+      "version": "1.0.86",
+      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.86/agent-service.exe",
+      "sha256": "f0c42e052aeb54f5e124354ff2cdcc7ab9704c28298ea82c941619b51f9c5ba6"
     }
   }
 }

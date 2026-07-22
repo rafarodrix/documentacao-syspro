@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"trilink/agent/internal/buildinfo"
 )
 
 const defaultSupportChatwootBaseURL = "https://chat.trilinksoftware.com.br"
@@ -31,7 +33,7 @@ func Load() (Config, error) {
 			ChatwootWebsiteToken: getEnv("SUPPORT_CHATWOOT_WEBSITE_TOKEN", defaultSupportChatwootWebsiteToken),
 		},
 		Agent: AgentConfig{
-			Version:    getEnv("AGENT_VERSION", "go-agent-v1"),
+			Version:    buildinfo.RuntimeVersion(getEnv("AGENT_VERSION", "go-agent-v1")),
 			IPCAddress: getEnv("AGENT_IPC_ADDRESS", `\\.\pipe\trilink-agent-ipc`),
 			IPCToken:   getEnv("AGENT_IPC_TOKEN", "trilink-agent-local"),
 		},

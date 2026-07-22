@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"trilink/agent/internal/app"
+	"trilink/agent/internal/buildinfo"
 	"trilink/agent/internal/infra/winsvc"
 )
 
@@ -17,6 +18,7 @@ Comandos:
   uninstall  Remove o servico Windows (requer admin)
   start      Inicia o servico via SCM
   stop       Para o servico via SCM
+  version    Exibe a versao embutida do binario
   debug      Executa em modo console (sem SCM, para testes)
   run        Executado pelo SCM ao iniciar o servico (padrao)
 
@@ -59,6 +61,10 @@ func main() {
 		if err == nil {
 			fmt.Printf("Servico %q parado.\n", winsvc.Name)
 		}
+
+	case "version":
+		fmt.Printf("agent-service %s\n", buildinfo.RuntimeVersion("dev"))
+		return
 
 	case "debug":
 		err = app.RunServiceDebug()

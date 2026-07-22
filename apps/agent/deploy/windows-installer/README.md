@@ -39,7 +39,8 @@ O binario da UI deve sair em `apps/agent/build/bin`.
 
 ```powershell
 cd .\apps\agent
-go build -o .\build\bin\agent-service.exe .\cmd\agent-service
+$releaseVersion = "1.0.86"
+go build -ldflags "-X trilink/agent/internal/buildinfo.Version=$releaseVersion" -o .\build\bin\agent-service.exe .\cmd\agent-service
 ```
 
 3. Gere o updater dedicado:
@@ -118,6 +119,7 @@ Fluxo atual:
 - a interface e os atalhos abrem `agent-ui.exe` diretamente
 - o `agent-updater.exe` ja pode aplicar bundles locais com `apply-local --source <diretorio>`
 - o `agent-updater.exe` tambem aceita manifesto remoto via `AGENT_UPDATE_MANIFEST_URL` ou `--manifest-url`, com os comandos `check-remote` e `apply-remote`
+- a versao apresentada pelo portal vem do binario `agent-service.exe` publicado; confira localmente com `agent-service.exe version`
 - o `agent-ui.exe` empacotado deve vir do `wails build`; `go build` gera um binario invalido para Wails
 - o menu instalado tambem expone `Configurar agente`, que eleva um helper PowerShell para atualizar `PORTAL_BASE_URL` e o `REMOTE_DISCOVERY_TOKEN` sem editar o `.env` manualmente
 - o helper remove `REMOTE_INSTALL_TOKEN` legado para evitar bootstrap com token antigo apos reinstalacao
