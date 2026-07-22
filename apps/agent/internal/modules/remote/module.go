@@ -1115,7 +1115,9 @@ func launchAgentUpdater(manifestURL string) error {
 		return fmt.Errorf("resolve agent executable: %w", err)
 	}
 	updater := filepath.Join(filepath.Dir(executable), "agent-updater.exe")
-	command := exec.Command(updater, "apply-remote", "--manifest-url", manifestURL, "--components", "service")
+	// The updater compares manifest versions and downloads only changed components.
+	// Do not include itself: a running executable cannot safely replace itself.
+	command := exec.Command(updater, "apply-remote", "--manifest-url", manifestURL, "--components", "service,ui")
 	if err := command.Start(); err != nil {
 		return fmt.Errorf("start updater: %w", err)
 	}

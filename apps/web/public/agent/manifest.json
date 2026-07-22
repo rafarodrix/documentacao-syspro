@@ -3,9 +3,19 @@
   "channel": "stable",
   "components": {
     "service": {
-      "version": "1.0.87",
-      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.87/agent-service.exe",
-      "sha256": "bedbdeb53708078e9ba9ecfc83f267f8e8daee99a972549d8481cc2a3cbb4fae"
+      "version": "1.0.88",
+      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.88/agent-service.exe",
+      "sha256": "16aa745079953e18bf8dd809c4d811a665585c52ebd920557b827bf125baa4ee"
+    },
+    "ui": {
+      "version": "1.0.88",
+      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.88/agent-ui.exe",
+      "sha256": "6f8e499122e1c91d4c45a54fbab01dd92459eb2a4cf3149087da21d59662a8bb"
+    },
+    "updater": {
+      "version": "1.0.88",
+      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.88/agent-updater.exe",
+      "sha256": "be930d2335ec4ae84bbde2366884a851df99cb90e1fa7c68f88916c9d76e6903"
     }
   }
 }
