@@ -21,6 +21,9 @@ function isPublicPath(pathname: string): boolean {
 
   return (
     publicRoutes.includes(pathname) ||
+    // Release artifacts are fetched by the Windows service before it has a
+    // browser session. They remain integrity-protected by the updater SHA-256.
+    pathname.startsWith("/agent/") ||
     pathname.startsWith("/chatwoot/app") ||
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/health") ||
