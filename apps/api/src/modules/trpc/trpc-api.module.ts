@@ -11,6 +11,7 @@ import { TicketsModule } from '../tickets/tickets.module';
 import { RemoteAdminModule } from '../remote-admin/remote-admin.module';
 import { TarefasModule } from '../tarefas/tarefas.module';
 import { CrmModule } from '../crm/crm.module';
+import { RotinasMensaisModule } from '../rotinas-mensais/rotinas-mensais.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CrmModule } from '../crm/crm.module';
     TarefasModule,
     RemoteAdminModule,
     CrmModule,
+    RotinasMensaisModule,
   ],
   providers: [TrpcRouter],
   exports: [TrpcRouter],

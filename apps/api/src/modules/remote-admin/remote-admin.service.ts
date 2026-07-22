@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, HttpException, Injectable, Logger } from '@nestjs/common';
-import { Prisma, Role } from '@prisma/client';
+import { ErpProtocol, ErpRuntimeType, Prisma, Role } from '@prisma/client';
 import { hashAddressBookToken, prisma } from '@dosc-syspro/database';
 import { resolveScopedCompanyContext } from '@dosc-syspro/remote-infra';
 import { AuthorizationService } from '../authorization/authorization.service';
@@ -505,8 +505,8 @@ export class RemoteAdminService {
     await this.authorizationService.assertPermission(rawHeaders as any, 'remote:manage');
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     const payload = this.asObject(body);
-    const runtimeType = payload.runtimeType === 'SYSPRO_SERVER' || payload.runtimeType === 'IIS' ? payload.runtimeType : null;
-    const protocol = payload.protocol === 'HTTP' || payload.protocol === 'HTTPS' || payload.protocol === 'TCP' ? payload.protocol : null;
+    const runtimeType: ErpRuntimeType | null = payload.runtimeType === 'SYSPRO_SERVER' || payload.runtimeType === 'IIS' ? payload.runtimeType : null;
+    const protocol: ErpProtocol | null = payload.protocol === 'HTTP' || payload.protocol === 'HTTPS' || payload.protocol === 'TCP' ? payload.protocol : null;
     const configuredPort = typeof payload.configuredPort === 'number' && Number.isInteger(payload.configuredPort) ? payload.configuredPort : null;
     if (configuredPort !== null && (configuredPort < 1 || configuredPort > 65535)) throw new BadRequestException('A porta deve estar entre 1 e 65535.');
 
