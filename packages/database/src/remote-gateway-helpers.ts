@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import path from "node:path";
 import type { Prisma } from "@prisma/client";
 
 export type NormalizedSysproUpdate = {
@@ -48,6 +49,27 @@ function parseSysproDate(value?: string | null) {
   return null;
 }
 
+export function canonicalizeWindowsPath(rawPath?: string | null): string {
+  if (!rawPath) return "";
+  let cleaned = rawPath.trim().replace(/\//g, "\\");
+  cleaned = path.win32.normalize(cleaned);
+  if (cleaned.length > 3 && cleaned.endsWith("\\")) {
+    cleaned = cleaned.slice(0, -1);
+  }
+  return cleaned;
+}
+
+export function computeInstallationFingerprint(
+  deviceId: string,
+  executablePath?: string | null,
+  configOrDataPath?: string | null
+): string {
+  const normExe = canonicalizeWindowsPath(executablePath).toLowerCase();
+  const normSecondary = canonicalizeWindowsPath(configOrDataPath).toLowerCase();
+  const input = `${deviceId}|${normExe}|${normSecondary}`;
+  return createHash("sha256").update(input).digest("hex").slice(0, 32);
+}
+
 export function normalizeCompareValue(value?: string | null) {
   return (value ?? "")
     .normalize("NFD")
@@ -93,17 +115,17 @@ export function normalizeSysproUpdates(value: unknown): NormalizedSysproUpdate[]
     const rawFirebirdPath = typeof source.firebirdPath === "string" ? source.firebirdPath : null;
 
     const companyLabel = rawCompany.trim().slice(0, MAX_SYSPRO_LABEL_LENGTH);
-    const path = rawPath.trim().slice(0, MAX_SYSPRO_PATH_LENGTH);
-    if (!companyLabel || !path) continue;
+    const pathStr = rawPath.trim().slice(0, MAX_SYSPRO_PATH_LENGTH);
+    if (!companyLabel || !pathStr) continue;
 
-    const key = `${companyLabel.toLowerCase()}::${path.toLowerCase()}`;
+    const key = `${companyLabel.toLowerCase()}::${pathStr.toLowerCase()}`;
     if (unique.has(key)) continue;
 
     unique.set(key, {
       companyLabel,
-      path,
+      path: pathStr,
       lastFileWriteAt: parseSysproDate(rawLastFileWriteAt),
-      isServerHost: rawIsServerHost ?? path.toLowerCase().endsWith("\\syspro\\server\\sysproserver.exe"),
+      isServerHost: rawIsServerHost ?? pathStr.toLowerCase().endsWith("\\syspro\\server\\sysproserver.exe"),
       hasClientFolder: rawHasClientFolder ?? false,
       hasDllFolder: rawHasDllFolder ?? false,
       firebirdVersion: rawFirebirdVersion?.trim() ? rawFirebirdVersion.trim() : null,
@@ -200,7 +222,6 @@ export async function syncRemoteHostSysproUpdates(
         companyId: resolvedCompanyId,
         companyLabel: entry.companyLabel,
         path: entry.path,
-        
         lastFileWriteAt: entry.lastFileWriteAt,
         isServerHost: entry.isServerHost,
         hasClientFolder: entry.hasClientFolder,
@@ -239,4 +260,128 @@ export function buildAddressBookToken() {
   };
 }
 
+export type NormalizedErpInstallationPayload = {
+  rootPath: string;
+  serverPath?: string | null;
+  executablePath?: string | null;
+  configPath?: string | null;
+  dataPath?: string | null;
+  version?: string | null;
+  serviceName?: string | null;
+  serviceStatus?: string | null;
+  processPid?: number | null;
+  sources?: string[];
+  companies?: Array<{
+    code: string;
+    name: string;
+    role?: "PRIMARY" | "SECONDARY";
+  }>;
+};
 
+export async function syncErpInstallations(
+  tx: Prisma.TransactionClient,
+  input: {
+    hostId: string;
+    heartbeatAt: Date;
+    installations: NormalizedErpInstallationPayload[];
+  }
+) {
+  if (!input.installations || !Array.isArray(input.installations)) return;
+
+  const candidateCompanies = await tx.company.findMany({
+    where: { deletedAt: null },
+    select: { id: true, nomeFantasia: true, razaoSocial: true },
+  });
+
+  for (const item of input.installations) {
+    if (!item.rootPath) continue;
+
+    const canonicalRootPath = canonicalizeWindowsPath(item.rootPath);
+    if (!canonicalRootPath) continue;
+
+    const serverPath = item.serverPath ? canonicalizeWindowsPath(item.serverPath) : null;
+    const executablePath = item.executablePath ? canonicalizeWindowsPath(item.executablePath) : null;
+    const configPath = item.configPath ? canonicalizeWindowsPath(item.configPath) : null;
+    const dataPath = item.dataPath ? canonicalizeWindowsPath(item.dataPath) : null;
+
+    const fingerprint = computeInstallationFingerprint(input.hostId, executablePath ?? canonicalRootPath, configPath ?? dataPath);
+
+    const installation = await tx.erpInstallation.upsert({
+      where: {
+        deviceId_canonicalRootPath: {
+          deviceId: input.hostId,
+          canonicalRootPath,
+        },
+      },
+      create: {
+        deviceId: input.hostId,
+        rootPath: item.rootPath,
+        canonicalRootPath,
+        serverPath,
+        executablePath,
+        configPath,
+        dataPath,
+        version: item.version ?? null,
+        serviceName: item.serviceName ?? null,
+        serviceStatus: item.serviceStatus ?? null,
+        processPid: item.processPid ?? null,
+        installationFingerprint: fingerprint,
+        discoverySources: item.sources ?? ["FILESYSTEM"],
+        lastSeenAt: input.heartbeatAt,
+      },
+      update: {
+        rootPath: item.rootPath,
+        serverPath,
+        executablePath,
+        configPath,
+        dataPath,
+        version: item.version ?? null,
+        serviceName: item.serviceName ?? null,
+        serviceStatus: item.serviceStatus ?? null,
+        processPid: item.processPid ?? null,
+        installationFingerprint: fingerprint,
+        discoverySources: item.sources ?? ["FILESYSTEM"],
+        lastSeenAt: input.heartbeatAt,
+      },
+    });
+
+    if (item.companies && Array.isArray(item.companies)) {
+      for (const compHint of item.companies) {
+        const compCode = (compHint.code || "1").trim();
+        const compName = (compHint.name || "").trim();
+        const normName = normalizeCompareValue(compName);
+
+        const matchedCompany = candidateCompanies.find(
+          (c) =>
+            normalizeCompareValue(c.nomeFantasia) === normName ||
+            normalizeCompareValue(c.razaoSocial) === normName
+        );
+
+        const role = compHint.role === "SECONDARY" ? "SECONDARY" : "PRIMARY";
+
+        await tx.erpInstallationCompany.upsert({
+          where: {
+            installationId_companyCode: {
+              installationId: installation.id,
+              companyCode: compCode,
+            },
+          },
+          create: {
+            installationId: installation.id,
+            companyCode: compCode,
+            companyName: compName,
+            companyId: matchedCompany?.id ?? null,
+            role,
+            active: true,
+          },
+          update: {
+            companyName: compName,
+            companyId: matchedCompany?.id ?? null,
+            role,
+            active: true,
+          },
+        });
+      }
+    }
+  }
+}

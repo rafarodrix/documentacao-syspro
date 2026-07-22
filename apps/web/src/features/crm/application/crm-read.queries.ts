@@ -1,7 +1,7 @@
 import "server-only";
 
 import { trpc } from "@/lib/api/trpc-client";
-import type { CrmLead } from "@dosc-syspro/contracts/crm";
+import { crmLeadSchema, type CrmLead } from "@dosc-syspro/contracts/crm";
 import type { LeadDashboardData } from "@/features/crm/domain/crm.types";
 
 export async function getCrmLeadsData(): Promise<LeadDashboardData> {
@@ -23,7 +23,7 @@ export async function getCrmLeadsData(): Promise<LeadDashboardData> {
 export async function getCrmLeadById(id: string): Promise<CrmLead | null> {
   try {
     const response = await trpc.crm.getById.query({ id });
-    return response.success ? response.data ?? null : null;
+    return response.success && response.data ? crmLeadSchema.parse(response.data) : null;
   } catch (error) {
     console.error("Erro ao carregar lead do CRM:", error);
     return null;

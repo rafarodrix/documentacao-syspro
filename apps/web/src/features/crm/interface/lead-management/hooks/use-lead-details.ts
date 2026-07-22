@@ -4,7 +4,7 @@ import type { FormEvent, MouseEvent } from "react";
 import { useEffect, useState } from "react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { toast } from "sonner";
-import type { CrmActivity, CrmLead, CrmLeadManualContact, CrmTask } from "@dosc-syspro/contracts/crm";
+import { crmLeadSchema, type CrmActivity, type CrmLead, type CrmLeadManualContact, type CrmTask } from "@dosc-syspro/contracts/crm";
 import { trpc } from "@/lib/api/trpc-client";
 import { onlyDigits } from "@/lib/utils";
 import { formatCNPJ, isValidCnpj } from "@/lib/formatters";
@@ -78,8 +78,9 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
       try {
         const response = await trpc.crm.getById.query({ id: selectedLeadId! });
         if (response.success && response.data) {
-          setLeadDetails(response.data);
-          setEditForm(mapLeadToFormState(response.data));
+          const lead = crmLeadSchema.parse(response.data);
+          setLeadDetails(lead);
+          setEditForm(mapLeadToFormState(lead));
         } else {
           toast.error("Falha ao carregar detalhes do lead.");
           setSelectedLeadId(null);
@@ -133,7 +134,7 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
       });
 
       if (!result?.success || !result?.data) {
-        toast.error(result?.error || result?.message || "Falha ao atualizar lead.");
+        toast.error(result?.message || "Falha ao atualizar lead.");
         return;
       }
 
@@ -193,7 +194,7 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
         setActivities(unwrapCollectionResponse<CrmActivity>(activitiesRes));
         startTransition(() => router.refresh());
       } else {
-        toast.error(res.error || "Falha ao adicionar anotação.");
+        toast.error(res.message || "Falha ao adicionar anotação.");
       }
     } catch (err) {
       console.error(err);
@@ -213,7 +214,7 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
         const tasksRes = await trpc.crm.listTasks.query({ leadId: leadDetails.id });
         setTasks(unwrapCollectionResponse<CrmTask>(tasksRes));
       } else {
-        toast.error(res.error || "Falha ao atualizar tarefa.");
+        toast.error(res.message || "Falha ao atualizar tarefa.");
       }
     } catch (err) {
       console.error(err);
@@ -232,7 +233,7 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
         const tasksRes = await trpc.crm.listTasks.query({ leadId: leadDetails.id });
         setTasks(unwrapCollectionResponse<CrmTask>(tasksRes));
       } else {
-        toast.error(res.error || "Falha ao criar tarefa.");
+        toast.error(res.message || "Falha ao criar tarefa.");
       }
     } catch (err) {
       console.error(err);
@@ -251,7 +252,7 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
         const tasksRes = await trpc.crm.listTasks.query({ leadId: leadDetails.id });
         setTasks(unwrapCollectionResponse<CrmTask>(tasksRes));
       } else {
-        toast.error(res.error || "Falha ao excluir tarefa.");
+        toast.error(res.message || "Falha ao excluir tarefa.");
       }
     } catch (err) {
       console.error(err);
@@ -270,7 +271,7 @@ export function useLeadDetails({ setLeads, router, startTransition }: Deps) {
         toast.success("Contatos atualizados.");
         startTransition(() => router.refresh());
       } else {
-        toast.error(res.error || "Falha ao atualizar contatos.");
+        toast.error(res.message || "Falha ao atualizar contatos.");
       }
     } catch (err) {
       console.error(err);

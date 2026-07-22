@@ -24,11 +24,15 @@ export default async function AtendimentoPage() {
     const payload = await trpc.users.getChatwootSsoLink.query();
     if (payload?.url) {
       chatwootUrl = payload.url;
-      responseMode = payload.mode as "sso" | "fallback";
-      responseReason = payload.reason as string | undefined;
+      responseMode = payload.mode === "sso" || payload.mode === "fallback"
+        ? payload.mode
+        : undefined;
+      if ("reason" in payload) {
+        responseReason = payload.reason;
+      }
     }
-    if (payload?.message) {
-      failureMessage = payload.message as string;
+    if (payload && "message" in payload && payload.message) {
+      failureMessage = payload.message;
     }
   } catch (error) {
     failureMessage = error instanceof Error

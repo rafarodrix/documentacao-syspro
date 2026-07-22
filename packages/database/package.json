@@ -12,6 +12,7 @@
                     "db:deploy":  "dotenv -e ../../apps/api/.env node ./scripts/deploy-migrations.mjs",
                     "db:permissions:audit-legacy": "dotenv -e ../../apps/api/.env node ./scripts/audit-legacy-permissions.mjs",
                     "db:permissions:sanitize-legacy": "dotenv -e ../../apps/api/.env node ./scripts/sanitize-legacy-permissions.mjs",
+                    "db:migrate:legacy-erp": "dotenv -e ../../apps/api/.env node ./scripts/migrate-legacy-installations.mjs",
                     "db:seed:companies":  "dotenv -e ../../apps/api/.env node ./prisma/seed-companies.mjs",
                     "db:seed:remote":  "dotenv -e ../../apps/api/.env node ./prisma/seed-remote-hosts.mjs"
                 },

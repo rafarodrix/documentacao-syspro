@@ -3,9 +3,17 @@ import { currentUserHasAnyPermission } from "@/features/user-access/application/
 import { getTarefasItemsQuery } from "@/features/tarefas/application/tarefas-read.queries";
 import { TarefasPage } from "@/features/tarefas/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
+import { TASK_STATUS_VALUES, TASK_TYPE_VALUES } from "@dosc-syspro/contracts/tarefas";
 
 interface TarefasPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+const TASK_ORIGIN_VALUES = ["ALL", "MONTHLY", "MANUAL", "TICKET"] as const;
+const TASK_LIST_STATUS_VALUES = [...TASK_STATUS_VALUES, "ALL", "OPEN"] as const;
+
+function readEnumParam<T extends string>(value: string, values: readonly T[], fallback: T): T {
+  return values.includes(value as T) ? (value as T) : fallback;
 }
 
 export default async function TarefasRootPage({ searchParams }: TarefasPageProps) {
@@ -36,9 +44,12 @@ export default async function TarefasRootPage({ searchParams }: TarefasPageProps
   const pageValue = typeof pageParam === "string" ? Number(pageParam) : Array.isArray(pageParam) ? Number(pageParam[0]) : 1;
   const page = Number.isFinite(pageValue) && pageValue > 0 ? pageValue : 1;
   const search = typeof searchParam === "string" ? searchParam : Array.isArray(searchParam) ? searchParam[0] ?? "" : "";
-  const status = typeof statusParam === "string" ? statusParam : Array.isArray(statusParam) ? statusParam[0] ?? "OPEN" : "OPEN";
-  const type = typeof typeParam === "string" ? typeParam : Array.isArray(typeParam) ? typeParam[0] ?? "ALL" : "ALL";
-  const origin = typeof originParam === "string" ? originParam : Array.isArray(originParam) ? originParam[0] ?? "ALL" : "ALL";
+  const statusValue = typeof statusParam === "string" ? statusParam : Array.isArray(statusParam) ? statusParam[0] ?? "OPEN" : "OPEN";
+  const typeValue = typeof typeParam === "string" ? typeParam : Array.isArray(typeParam) ? typeParam[0] ?? "ALL" : "ALL";
+  const originValue = typeof originParam === "string" ? originParam : Array.isArray(originParam) ? originParam[0] ?? "ALL" : "ALL";
+  const status = readEnumParam(statusValue, TASK_LIST_STATUS_VALUES, "OPEN");
+  const type = readEnumParam(typeValue, [...TASK_TYPE_VALUES, "ALL"], "ALL");
+  const origin = readEnumParam(originValue, TASK_ORIGIN_VALUES, "ALL");
 
   const now = new Date();
   const year = typeof yearParam === "string" ? yearParam : Array.isArray(yearParam) ? yearParam[0] ?? String(now.getFullYear()) : String(now.getFullYear());

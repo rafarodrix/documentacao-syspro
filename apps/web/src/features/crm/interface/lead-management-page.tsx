@@ -68,7 +68,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
       const result = await trpc.crm.update.mutate({ id: leadId, data: payload });
       if (!result?.success || !result?.data) {
         setLeads(previousLeads);
-        toast.error(result?.error || result?.message || "Falha ao atualizar lead.");
+        toast.error(result?.message || "Falha ao atualizar lead.");
         return;
       }
       const updated = result.data as CrmLead;

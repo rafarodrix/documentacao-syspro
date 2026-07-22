@@ -8,6 +8,7 @@ import { trpc } from "@/lib/api/trpc-client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Checkbox, Badge } from "@dosc-syspro/ui";
 import { PageHeader } from "@/components/patterns";
 import { cn } from "@/lib/utils";
+import { crmLeadSchema, type CrmLead, type CrmProposal } from "@dosc-syspro/contracts/crm";
 
 type Props = {
   leadId: string;
@@ -32,15 +33,10 @@ export function ProposalBuilderForm({ leadId }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  // Queries
-  const { data: leadResponse, isLoading: isLoadingLead } = trpc.crm.getById.useQuery({ id: leadId });
-  const { data: proposalResponse, isLoading: isLoadingProposal, refetch: refetchProposal } = trpc.crm.getProposalByLeadId.useQuery({ leadId });
-
-  // Mutation
-  const saveMutation = trpc.crm.saveProposal.useMutation();
-
-  const lead = leadResponse?.success ? leadResponse.data : null;
-  const existingProposal = proposalResponse?.success ? proposalResponse.data : null;
+  const [lead, setLead] = useState<CrmLead | null>(null);
+  const [existingProposal, setExistingProposal] = useState<CrmProposal | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // State Variables
   const [planoFiscal, setPlanoFiscal] = useState<"standard" | "professional" | "enterprise">("standard");
@@ -57,6 +53,36 @@ export function ProposalBuilderForm({ leadId }: Props) {
     d.setDate(d.getDate() + 15);
     return d.toISOString().split("T")[0];
   });
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadProposalContext() {
+      setIsLoading(true);
+      try {
+        const [leadResponse, proposalResponse] = await Promise.all([
+          trpc.crm.getById.query({ id: leadId }),
+          trpc.crm.getProposalByLeadId.query({ leadId }),
+        ]);
+        if (!isCurrent) return;
+
+        setLead(leadResponse.success && leadResponse.data ? crmLeadSchema.parse(leadResponse.data) : null);
+        setExistingProposal(proposalResponse?.success ? proposalResponse.data ?? null : null);
+      } catch (error) {
+        console.error(error);
+        if (isCurrent) {
+          toast.error("Nao foi possivel carregar os dados da proposta.");
+          setLead(null);
+          setExistingProposal(null);
+        }
+      } finally {
+        if (isCurrent) setIsLoading(false);
+      }
+    }
+
+    void loadProposalContext();
+    return () => { isCurrent = false; };
+  }, [leadId]);
 
   // Load existing proposal data if any
   useEffect(() => {
@@ -134,6 +160,7 @@ export function ProposalBuilderForm({ leadId }: Props) {
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       // Build item lines
       const itemsPayload = [
@@ -165,7 +192,7 @@ export function ProposalBuilderForm({ leadId }: Props) {
         });
       });
 
-      const res = await saveMutation.mutateAsync({
+      const res = await trpc.crm.saveProposal.mutate({
         leadId,
         setupValue,
         recurringValue: displayMRR,
@@ -174,8 +201,8 @@ export function ProposalBuilderForm({ leadId }: Props) {
       });
 
       if (res.success) {
+        setExistingProposal(res.data ?? null);
         toast.success(existingProposal ? "Proposta atualizada com sucesso!" : "Proposta criada com sucesso!");
-        refetchProposal();
         startTransition(() => {
           router.refresh();
         });
@@ -185,10 +212,12 @@ export function ProposalBuilderForm({ leadId }: Props) {
     } catch (err) {
       console.error(err);
       toast.error("Erro ao salvar dados da proposta.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  if (isLoadingLead || isLoadingProposal) {
+  if (isLoading) {
     return (
       <div className="flex h-[400px] flex-col items-center justify-center gap-2">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -523,11 +552,11 @@ export function ProposalBuilderForm({ leadId }: Props) {
               <div className="pt-2">
                 <Button
                   onClick={handleSave}
-                  disabled={saveMutation.isLoading}
+                  disabled={isSaving}
                   className="w-full h-9 gap-1.5 text-xs font-semibold shadow-sm"
                 >
                   <Save className="h-4 w-4" />
-                  {saveMutation.isLoading ? "Salvando..." : existingProposal ? "Atualizar Proposta" : "Gerar Proposta"}
+                  {isSaving ? "Salvando..." : existingProposal ? "Atualizar Proposta" : "Gerar Proposta"}
                 </Button>
               </div>
             </CardContent>

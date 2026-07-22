@@ -1,10 +1,10 @@
-import type { CrmLeadManualContact } from '@dosc-syspro/contracts/crm';
+import type { CrmLead, CrmLeadManualContact } from '@dosc-syspro/contracts/crm';
 
 type RawLeadRecord = {
   id: string;
   title: string;
-  stage: string;
-  source: string;
+  stage: CrmLead['stage'];
+  source: CrmLead['source'];
   ownerUserId?: string | null;
   ownerUser?: { name: string | null; email: string } | null;
   companyName: string;
@@ -81,7 +81,7 @@ export function leadInclude() {
   };
 }
 
-export function serializeLead(lead: RawLeadRecord) {
+export function serializeLead(lead: RawLeadRecord): CrmLead {
   const contacts = normalizeContactsArray(lead.contacts);
   const primaryContact = contacts.find((c) => c.isPrimary) ?? contacts[0] ?? null;
 
@@ -112,6 +112,8 @@ export function serializeLead(lead: RawLeadRecord) {
     convertedCompanyId: lead.convertedCompanyId ?? null,
     convertedCompanyName:
       lead.convertedCompany?.nomeFantasia || lead.convertedCompany?.razaoSocial || null,
+    activities: [],
+    tasks: [],
     createdAt: new Date(lead.createdAt).toISOString(),
     updatedAt: new Date(lead.updatedAt).toISOString(),
   };

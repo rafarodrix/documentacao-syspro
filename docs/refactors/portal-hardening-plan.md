@@ -4,6 +4,7 @@
 | --- | --- | --- | --- | --- |
 | SEC-P0-001 | P0 concluido | `auth.service.ts` aceitava `fallback-secret-para-dev-local` | `requireBetterAuthSecret` agora falha na inicializacao quando ausente; testes cobrem ausencia e segredo valido | baixa |
 | ARC-P1-001 | P1 bloqueado | web resolve `@dosc-syspro/contracts/trpc` para a fonte da API; um alias opaco remove os procedimentos aninhados e quebra o typecheck | Publicar contratos endpoint-a-endpoint ou gerar tipos em `packages/contracts`, migrar consumidores por feature e so entao remover o alias | alta |
+| REL-P1-005 | P1 concluido | o web consumia `trpc.rotinasMensais.*`, mas o router agregado da API nao o expunha; filtros de rotinas e tarefas eram `string` livres | `TrpcRouter` agora agrega `rotinasMensais` (teste de caracterizacao); web usa os tipos de filtro dos contratos. Typecheck de web e API aprovados | media |
 | REL-P1-002 | P1 concluido | suite esperava nenhuma consulta para `in_reply_to_external_id`, mas a persistencia idempotente consulta o vinculo outbound | Caracterizado o reply direto e a consulta de deduplicacao do `MessageLink`, sem mudar a entrega | baixa |
 | REL-P1-003 | P1 | build Nest captura hook Console Ninja externo | Reproduzir em shell/CI limpo; impedir instrumentacao externa no build sem adicionar dependencias opcionais | baixa |
 | SEC-P1-004 | P1 | `npm audit`: Better Auth critica e Nodemailer alta | Atualizar com changelog e testes de login/OAuth; nao usar `audit fix --force` | media |

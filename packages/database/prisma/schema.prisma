@@ -52,6 +52,12 @@ enum CompanyContactSource {
   IMPORT
 }
 
+enum ErpCompanyRole {
+  PRIMARY
+  SECONDARY
+}
+
+
 enum CompanyContactStatus {
   PENDING_LINK
   LINKED
@@ -394,6 +400,8 @@ model Company {
   taskConfig                   TaskConfig?
   tasks                        Task[]
   taskRequests                 TaskRequest[]
+  erpInstallations             ErpInstallationCompany[]
+
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -822,6 +830,7 @@ model RemoteHost {
 
   sessions        RemoteSession[]
   sysproUpdates   RemoteHostSysproUpdate[]
+  erpInstallations ErpInstallation[]
   discoveryRecord RemoteDiscoveredHost?
   agentCommands   RemoteAgentCommand[]
   agentCapabilities AgentCapability[]
@@ -988,6 +997,57 @@ model RemoteHostSysproUpdate {
   @@index([hostId, lastHeartbeatAt])
   @@index([companyId])
   @@map("remote_host_syspro_update")
+}
+
+model ErpInstallation {
+  id                      String   @id @default(cuid())
+  deviceId                String
+  host                    RemoteHost @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  rootPath                String
+  canonicalRootPath       String
+  serverPath              String?
+  executablePath          String?
+  configPath              String?
+  dataPath                String?
+  version                 String?
+  serviceName             String?
+  serviceStatus           String?
+  processPid              Int?
+  installationFingerprint String
+  discoverySources        Json?
+  lastSeenAt              DateTime @default(now())
+
+  companies               ErpInstallationCompany[]
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([deviceId, canonicalRootPath])
+  @@unique([deviceId, installationFingerprint])
+  @@index([deviceId, lastSeenAt])
+  @@map("erp_installation")
+}
+
+model ErpInstallationCompany {
+  id             String         @id @default(cuid())
+  installationId String
+  companyId      String?
+  companyCode    String
+  companyName    String
+  role           ErpCompanyRole @default(PRIMARY)
+  active         Boolean        @default(true)
+
+  installation ErpInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  company      Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([installationId, companyCode])
+  @@index([installationId])
+  @@index([companyId])
+  @@map("erp_installation_company")
 }
 
 model RemoteSession {
