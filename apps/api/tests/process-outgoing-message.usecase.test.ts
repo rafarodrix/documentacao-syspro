@@ -117,7 +117,17 @@ describe("ProcessOutgoingMessageUseCase replies", () => {
       "cw-msg-1",
       "wamid-target-1",
     );
-    expect(prisma.messageLink.findUnique).not.toHaveBeenCalled();
+    // A resposta citada veio diretamente do payload; a unica consulta e a
+    // verificacao idempotente do vinculo da mensagem outbound que acabamos de enviar.
+    expect(prisma.messageLink.findUnique).toHaveBeenCalledTimes(1);
+    expect(prisma.messageLink.findUnique).toHaveBeenCalledWith({
+      where: {
+        connectionKey_chatwootMessageId: {
+          connectionKey: "env:default",
+          chatwootMessageId: "cw-msg-1",
+        },
+      },
+    });
   });
 
   it("resolves in_reply_to through messageLink when Chatwoot only sends the internal message id", async () => {

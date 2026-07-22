@@ -1,6 +1,6 @@
 # Plano de Endurecimento de Seguranca
 
-- [ ] P0: falhar na inicializacao sem `BETTER_AUTH_SECRET`; nunca gerar ou usar fallback.
+- [x] P0: falhar na inicializacao sem `BETTER_AUTH_SECRET`; nunca gerar ou usar fallback.
 - [ ] P1: atualizar Better Auth apos revisar breaking changes e cobrir login, callback OAuth, logout e sessao revogada.
 - [ ] P1: adicionar testes permitidos, negados e fora de escopo para rotas, comandos, jobs e exports por empresa.
 - [ ] P1: confirmar que Evolution tem autenticacao de webhook equivalente ao contrato do provider e testar replay.

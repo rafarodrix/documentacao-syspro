@@ -24,4 +24,4 @@ Execute `npm run quality:architecture` na raiz. Excecoes exigem justificativa lo
 
 ## Contratos tRPC
 
-`AppRouter` e um tipo de implementacao da API, nao um contrato independente. Enquanto existir, ele nao pode ser reexportado por `packages/contracts` nem resolvido por alias do web para `apps/api`. O plano de correcao e publicar schemas e clientes de transporte necessarios em `packages/contracts`, preservando o endpoint HTTP atual.
+`AppRouter` e um tipo de implementacao da API, nao um contrato independente. O cliente atual ainda o resolve durante a compilacao para inferir procedimentos tRPC aninhados. A migracao correta deve publicar contratos endpoint-a-endpoint ou gerar tipos em `packages/contracts`; so entao o alias para a API podera ser removido sem perder seguranca de tipos.

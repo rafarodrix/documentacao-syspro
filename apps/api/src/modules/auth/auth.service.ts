@@ -6,6 +6,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { admin } from 'better-auth/plugins';
 import nodemailer from 'nodemailer';
 import type { IncomingHttpHeaders } from 'node:http';
+import { requireBetterAuthSecret } from './auth-secret';
 
 type RegisterInput = {
   name?: string;
@@ -80,8 +81,7 @@ export class AuthService {
           await this.sendResetPasswordEmail(user.email, url, user.name ?? 'Usuario');
         },
       },
-      // Estas variaveis de ambiente devem existir no Dokploy / .env
-      secret: process.env.BETTER_AUTH_SECRET || 'fallback-secret-para-dev-local',
+      secret: requireBetterAuthSecret(),
       baseURL,
     });
 
