@@ -129,6 +129,8 @@ type remoteDesiredIntent struct {
 type DeviceSnapshotProvider interface {
 	GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate, allServices any, rebootPending *bool)
 	MarkSyncSnapshotsPublished(ctx context.Context)
+	GetCriticalEvents(ctx context.Context) []map[string]any
+	MarkCriticalEventsPublished(ctx context.Context)
 }
 
 type namedServiceController interface {
@@ -575,6 +577,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		syncReq.AllServicesSnapshot = devAllServices
 		syncReq.RebootPending = devReboot
 		syncReq.AgentMetrics = enrichAgentMetrics(devMetrics, devSystem, devDisks, st, flushStats)
+		syncReq.CriticalEvents = m.device.GetCriticalEvents(ctx)
 	}
 
 	syncResp, err := m.client.Sync(ctx, syncReq)
@@ -624,6 +627,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	}
 	if m.device != nil {
 		m.device.MarkSyncSnapshotsPublished(ctx)
+		m.device.MarkCriticalEventsPublished(ctx)
 	}
 
 	st.HostID = firstNonEmpty(syncResp.HostID, st.HostID)

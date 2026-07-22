@@ -359,6 +359,31 @@ describe("agent token lifecycle", () => {
     expect(port.persistSync).toHaveBeenCalledOnce();
   });
 
+  it("forwards critical events to the idempotent sync persistence contract", async () => {
+    const port = buildSyncPort();
+
+    await processSync(
+      {
+        schemaVersion: "sync.payload.v1",
+        agentToken: "valid-token",
+        criticalEvents: [{
+          eventId: "System:12345",
+          source: "windows_event_log",
+          provider: "Service Control Manager",
+          eventCode: "7031",
+          severity: "critical",
+          message: "Firebird service terminated unexpectedly.",
+          occurredAt: "2026-07-22T12:00:00.000Z",
+        }],
+      },
+      { port },
+    );
+
+    expect(port.persistSync).toHaveBeenCalledWith(expect.objectContaining({
+      criticalEvents: [expect.objectContaining({ eventId: "System:12345", eventCode: "7031" })],
+    }));
+  });
+
   it("logs an explicit warning when extended inventory snapshots are missing", async () => {
     const port = buildSyncPort();
 

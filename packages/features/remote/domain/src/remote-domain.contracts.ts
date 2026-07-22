@@ -114,6 +114,7 @@ export const processSyncInputSchema = z.object({
   allServicesSnapshot: z.unknown().optional(),
   rebootPending: z.unknown().optional(),
   agentMetrics: z.unknown().optional(),
+  criticalEvents: z.unknown().optional(),
   metadata: z
     .object({
       ip: z.string().trim().min(1).nullable().optional(),

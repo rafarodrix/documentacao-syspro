@@ -823,6 +823,7 @@ model RemoteHost {
   discoveryRecord RemoteDiscoveredHost?
   agentCommands   RemoteAgentCommand[]
   agentCapabilities AgentCapability[]
+  criticalEvents    RemoteHostCriticalEvent[]
 
   @@index([companyId, status])
   @@index([installToken])
@@ -830,6 +831,27 @@ model RemoteHost {
   @@index([lastHeartbeatSuccessAt])
   @@index([lastRustDeskConfigSyncAt])
   @@map("remote_host")
+}
+
+model RemoteHostCriticalEvent {
+  id String @id @default(cuid())
+
+  hostId String
+  host   RemoteHost @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  eventId   String
+  source    String
+  provider  String
+  eventCode String
+  severity  String
+  message   String @db.Text
+  metadata  Json?
+  occurredAt DateTime
+  receivedAt DateTime @default(now())
+
+  @@unique([hostId, eventId])
+  @@index([hostId, occurredAt])
+  @@map("remote_host_critical_event")
 }
 
 model RemoteAgentCommand {

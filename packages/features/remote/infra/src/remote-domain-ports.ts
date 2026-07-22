@@ -646,6 +646,7 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
         hasWindowsUpdateStatus: !!record.windowsUpdateStatus,
         allServicesCount: record.allServicesSnapshot.length,
         rebootPending: record.rebootPending,
+        criticalEventCount: record.criticalEvents.length,
       });
 
       const nextAgentExternalId = record.rustdeskId || record.context.agentExternalId;
@@ -733,6 +734,23 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
               firebirdPath: u.firebirdPath ?? null,
             })),
           });
+
+          if (record.criticalEvents.length > 0) {
+            await tx.remoteHostCriticalEvent.createMany({
+              data: record.criticalEvents.map((event) => ({
+                hostId: record.context.hostId,
+                eventId: String(event.eventId ?? "").trim(),
+                source: String(event.source ?? "windows_event_log").trim().slice(0, 80),
+                provider: String(event.provider ?? "unknown").trim().slice(0, 160),
+                eventCode: String(event.eventCode ?? "unknown").trim().slice(0, 40),
+                severity: String(event.severity ?? "warning").trim().slice(0, 24),
+                message: String(event.message ?? "").trim().slice(0, 4000),
+                metadata: toJsonValue(event),
+                occurredAt: new Date(String(event.occurredAt ?? record.heartbeatAt.toISOString())),
+              })).filter((event) => event.eventId.length > 0 && !Number.isNaN(event.occurredAt.getTime())),
+              skipDuplicates: true,
+            });
+          }
 
           await tx.agentCapability.updateMany({
             where: {

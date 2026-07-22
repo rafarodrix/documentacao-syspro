@@ -209,6 +209,7 @@ export async function processSync(
   );
   const rebootPending = normalizeOptionalBooleanWithWarning(input.rebootPending, "SYNC_INVALID_REBOOT_PENDING", warnings);
   const agentMetrics = normalizeOptionalRecordWithWarning(input.agentMetrics, "SYNC_INVALID_AGENT_METRICS", warnings);
+  const criticalEvents = normalizeOptionalRecordArrayWithWarning(input.criticalEvents, "SYNC_INVALID_CRITICAL_EVENTS", warnings, 50);
   const missingExtendedSnapshots = [
     !hardwareIdentity ? "hardwareIdentity" : null,
     diskSnapshot.length === 0 ? "diskSnapshot" : null,
@@ -284,6 +285,7 @@ export async function processSync(
     allServicesSnapshot,
     rebootPending,
     agentMetrics,
+    criticalEvents,
     normalizedSysproUpdates,
     syncDirectives: directives,
     compliance,

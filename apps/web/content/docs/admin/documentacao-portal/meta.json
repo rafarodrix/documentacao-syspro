@@ -1,4 +1,5 @@
 {
   "title": "Documentacao Portal",
-  "pages": ["index", "monorepo", "apps", "packages", "integracoes", "acesso-remoto", "banco-dados", "guias", "contribuindo"]
+  "pages": ["index", "monorepo", "apps", "packages", "analytics", "integracoes", "acesso-remoto", "banco-dados", "guias", "contribuindo"]
 }
+

@@ -1,0 +1,4 @@
+{
+  "title": "Analytics / BI",
+  "pages": ["index", "coleta-agente", "ingestao-worker", "portal-dashboards"]
+}

@@ -16,6 +16,7 @@ type Module struct {
 	collector  *Collector
 	logger     Logger
 	snapshots  *snapshotTracker
+	events     *criticalEventQueue
 	mu         sync.RWMutex
 	collectMu  sync.Mutex
 	watchOnce  sync.Once
@@ -43,6 +44,7 @@ func New(logger Logger, store StateStore) *Module {
 		collector: NewCollector(logger),
 		logger:    logger,
 		snapshots: newSnapshotTracker(store),
+		events:    newCriticalEventQueue(store),
 	}
 }
 
@@ -84,6 +86,7 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 	m.watchOnce.Do(func() {
 		go m.watchCriticalServices(ctx)
 		go m.watchCriticalProcesses(ctx)
+		go m.watchWindowsEventLog(ctx)
 	})
 
 	m.cycleCount++
@@ -296,6 +299,16 @@ func (m *Module) MarkSyncSnapshotsPublished(ctx context.Context) {
 	}
 	if err := m.snapshots.markPublished(ctx, batch); err != nil {
 		m.logger.Warn("device: confirm published snapshots failed", "error", err)
+	}
+}
+
+func (m *Module) GetCriticalEvents(ctx context.Context) []map[string]any {
+	return m.events.pending(ctx)
+}
+
+func (m *Module) MarkCriticalEventsPublished(ctx context.Context) {
+	if err := m.events.markPublished(ctx); err != nil {
+		m.logger.Warn("device: confirm published critical events failed", "error", err)
 	}
 }
 

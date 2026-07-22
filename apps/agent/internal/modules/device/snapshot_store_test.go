@@ -129,3 +129,26 @@ func TestSnapshotTrackerKeepsPendingSnapshotAcrossRestart(t *testing.T) {
 		t.Fatal("expected pending snapshot to survive restart until remote sync confirms it")
 	}
 }
+
+func TestCriticalEventQueueReplaysUntilPublishedAndDeduplicates(t *testing.T) {
+	ctx := context.Background()
+	store := &snapshotTestStore{}
+	event := criticalEvent{EventID: "System:42", Source: "windows_event_log", EventCode: "7031", OccurredAt: time.Now().UTC()}
+
+	first := newCriticalEventQueue(store)
+	added, err := first.observe(ctx, []criticalEvent{event, event})
+	if err != nil || len(added) != 1 {
+		t.Fatalf("expected one deduplicated event, added=%d err=%v", len(added), err)
+	}
+
+	restarted := newCriticalEventQueue(store)
+	if pending := restarted.pending(ctx); len(pending) != 1 || pending[0]["eventId"] != "System:42" {
+		t.Fatalf("expected event replay after restart, got %#v", pending)
+	}
+	if err := restarted.markPublished(ctx); err != nil {
+		t.Fatalf("mark published: %v", err)
+	}
+	if pending := restarted.pending(ctx); len(pending) != 0 {
+		t.Fatalf("expected queue empty after confirmation, got %#v", pending)
+	}
+}

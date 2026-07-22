@@ -171,6 +171,7 @@ type RemoteSyncRequest struct {
 	AllServicesSnapshot any    `json:"allServicesSnapshot,omitempty"`
 	RebootPending       any    `json:"rebootPending,omitempty"`
 	AgentMetrics        any    `json:"agentMetrics,omitempty"`
+	CriticalEvents      any    `json:"criticalEvents,omitempty"`
 }
 
 type RemoteSyncCommand struct {

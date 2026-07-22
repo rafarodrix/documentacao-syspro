@@ -308,6 +308,7 @@ export type ProcessedSyncRecord = {
   allServicesSnapshot: Array<Record<string, unknown>>;
   rebootPending: boolean | null;
   agentMetrics: Record<string, unknown> | null;
+  criticalEvents: Array<Record<string, unknown>>;
   normalizedSysproUpdates: RemoteSyncIncomingUpdate[];
   syncDirectives: SyncCommandDirective[];
   compliance: SyncCompliance;
