@@ -262,6 +262,43 @@ export const dashboardCsatAgentPerformanceSchema = z.object({
   lowScoreCount: z.number().int().nonnegative(),
 });
 
+export const metricValueSchema = z.object({
+  value: z.number().nullable(),
+  previousValue: z.number().nullable().optional(),
+  variationPercent: z.number().nullable().optional(),
+  trend: z.enum(['up', 'down', 'stable', 'unavailable']),
+  sampleSize: z.number().int().nonnegative().optional(),
+});
+
+export type MetricValue = z.infer<typeof metricValueSchema>;
+
+export const dashboardPriorityQueueItemSchema = z.object({
+  id: z.string().min(1),
+  reference: z.string().min(1),
+  subject: z.string().min(1),
+  companyName: z.string().min(1),
+  assigneeName: z.string().min(1),
+  assigneeId: z.string().nullable().optional(),
+  waitTimeMinutes: z.number().int().nonnegative(),
+  slaStatus: z.enum(['BREACHED', 'AT_RISK', 'OK']),
+  statusLabel: z.string().min(1),
+  priority: z.enum(['CRITICAL', 'HIGH', 'NORMAL', 'LOW']),
+  channel: z.enum(['WHATSAPP', 'EMAIL', 'PORTAL', 'PHONE']),
+  createdAt: z.string().min(1),
+  detailHref: z.string().min(1),
+});
+
+export type DashboardPriorityQueueItem = z.infer<typeof dashboardPriorityQueueItemSchema>;
+
+export const dashboardDataQualitySummarySchema = z.object({
+  unlinkedContactsCount: z.number().int().nonnegative(),
+  unlinkedCompaniesCount: z.number().int().nonnegative(),
+  unmappedChannelsCount: z.number().int().nonnegative(),
+  duplicateContactsCount: z.number().int().nonnegative(),
+});
+
+export type DashboardDataQualitySummary = z.infer<typeof dashboardDataQualitySummarySchema>;
+
 export const adminAtendimentosDataSchema = z.object({
   periodStart: z.string().min(1),
   periodEnd: z.string().min(1),
@@ -285,6 +322,8 @@ export const adminAtendimentosDataSchema = z.object({
   csatAverageScore: z.number().min(0).max(5).nullable(),
   avgFirstResponseMinutes: z.number().nonnegative().nullable(),
   avgResolutionHours: z.number().nonnegative().nullable(),
+  medianFirstResponseMinutes: z.number().nonnegative().nullable().optional(),
+  medianResolutionHours: z.number().nonnegative().nullable().optional(),
   activity: z.array(dashboardActivityPointSchema).default([]),
   statusCounts: z.array(dashboardConversationStatusSummarySchema).default([]),
   channelCounts: z.array(dashboardConversationChannelSummarySchema).default([]),
@@ -307,6 +346,30 @@ export const adminAtendimentosDataSchema = z.object({
   topTags: z.array(z.object({ name: z.string(), count: z.number().int().nonnegative() })).default([]),
   unassignedConversations: z.array(dashboardConversationQueueItemSchema).default([]),
   topCompanies: z.array(dashboardConversationTopContactSchema).default([]),
+  // Executive Overview Additions
+  operation: z.object({
+    openNow: metricValueSchema,
+    unassignedNow: metricValueSchema,
+    waitingCustomerNow: metricValueSchema,
+    slaAtRiskNow: metricValueSchema,
+    slaBreachedNow: metricValueSchema,
+    firstResponseMedianMinutes: metricValueSchema,
+  }).optional(),
+  volume: z.object({
+    created: metricValueSchema,
+    resolved: metricValueSchema,
+    reopened: metricValueSchema,
+    backlogStart: z.number().int().nonnegative(),
+    backlogEnd: z.number().int().nonnegative(),
+    backlogVariation: z.number().int(),
+  }).optional(),
+  priorityQueue: z.array(dashboardPriorityQueueItemSchema).default([]),
+  quality: z.object({
+    csatAverage: metricValueSchema,
+    csatResponseRate: metricValueSchema,
+    negativeRatings: metricValueSchema,
+  }).optional(),
+  dataQuality: dashboardDataQualitySummarySchema.optional(),
 });
 
 export const adminCadastrosDataSchema = z.object({

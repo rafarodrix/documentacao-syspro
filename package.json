@@ -47,11 +47,20 @@
     "check:utf8": "node scripts/check-utf8.mjs",
     "check:generated-js": "node scripts/check-generated-js.mjs",
     "check:api-deploy": "node scripts/check-api-deploy.mjs",
+    "quality:duplication": "jscpd apps packages --reporters console,json,html --output reports/jscpd",
+    "quality:architecture": "depcruise --config .dependency-cruiser.cjs apps packages --output-type err",
+    "quality:dead-code": "knip",
+    "security:dependencies": "npm audit --audit-level=high",
+    "quality:quick": "npm run check:utf8 && npm run docs:check && npm run lint && npm run typecheck && npm run test && npm run quality:architecture",
+    "quality:full": "npm run quality:quick && npm run quality:duplication && npm run quality:dead-code && npm run security:dependencies && npm run build",
     "postinstall": "npm run postinstall -w @dosc-syspro/web"
   },
   "devDependencies": {
+    "dependency-cruiser": "^18.1.0",
     "dotenv-cli": "^11.0.0",
     "eslint-plugin-trilink-tokens": "file:tools/eslint-plugin-trilink-tokens",
+    "jscpd": "^5.0.12",
+    "knip": "^6.29.0",
     "turbo": "^2.9.14"
   }
 }

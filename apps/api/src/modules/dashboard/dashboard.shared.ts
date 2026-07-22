@@ -214,6 +214,17 @@ export function extractChatwootAssignee(conversation: any) {
   return id ? { id, name: name || id } : null;
 }
 
+export function calculateMedian(values: number[]): number | null {
+  if (!values || values.length === 0) return null;
+  const sorted = [...values].filter((v) => typeof v === 'number' && !Number.isNaN(v)).sort((a, b) => a - b);
+  if (sorted.length === 0) return null;
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 10) / 10;
+  }
+  return Math.round(sorted[mid] * 10) / 10;
+}
+
 export function extractChatwootChannel(conversation: any) {
   const channelRaw = String(
     conversation?.meta?.channel ??
@@ -222,9 +233,18 @@ export function extractChatwootChannel(conversation: any) {
     '',
   ).trim().toLowerCase();
 
-  if (channelRaw.includes('email')) return 'EMAIL' as const;
-  if (channelRaw.includes('portal') || channelRaw.includes('api')) return 'PORTAL' as const;
-  if (channelRaw.includes('phone') || channelRaw.includes('call')) return 'PHONE' as const;
+  const inboxName = String(
+    conversation?.inbox?.name ??
+    conversation?.meta?.inbox?.name ??
+    '',
+  ).trim().toLowerCase();
+
+  if (channelRaw.includes('email') || inboxName.includes('email')) return 'EMAIL' as const;
+  if (channelRaw.includes('phone') || channelRaw.includes('call') || inboxName.includes('telef') || inboxName.includes('phone')) return 'PHONE' as const;
+  if (channelRaw.includes('whatsapp') || channelRaw.includes('wa') || inboxName.includes('whatsapp') || inboxName.includes('wa')) return 'WHATSAPP' as const;
+  if (channelRaw.includes('portal') || channelRaw.includes('web_widget') || channelRaw.includes('webwidget') || inboxName.includes('portal') || inboxName.includes('widget')) return 'PORTAL' as const;
+
+  // Default to WHATSAPP if channel is from Chatwoot API integration without explicit web_widget label
   return 'WHATSAPP' as const;
 }
 

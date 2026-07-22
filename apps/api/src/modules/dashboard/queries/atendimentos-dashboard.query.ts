@@ -7,6 +7,7 @@ import { AuthorizationService } from '../../authorization/authorization.service'
 import { ChatwootClient } from '../../integrations/chatwoot/chatwoot.client';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../../settings/integration-context.service';
 import {
+  calculateMedian,
   extractChatwootAssignee,
   extractChatwootChannel,
   extractChatwootContactSummary,
@@ -514,27 +515,31 @@ export class AtendimentosDashboardQuery {
       }
     }
 
-    const avgFirstResponseMinutes = (() => {
-      const valid = linkedTickets
-        .map((ticket) => {
-          if (!(ticket.createdAt instanceof Date) || !(ticket.slaResponseHitAt instanceof Date)) return null;
-          return (ticket.slaResponseHitAt.getTime() - ticket.createdAt.getTime()) / 60000;
-        })
-        .filter((value): value is number => value !== null && value >= 0);
-      if (!valid.length) return null;
-      return Math.round(valid.reduce((sum, item) => sum + item, 0) / valid.length);
-    })();
+    const firstResponseTimes = linkedTickets
+      .map((ticket) => {
+        if (!(ticket.createdAt instanceof Date) || !(ticket.slaResponseHitAt instanceof Date)) return null;
+        return (ticket.slaResponseHitAt.getTime() - ticket.createdAt.getTime()) / 60000;
+      })
+      .filter((value): value is number => value !== null && value >= 0);
 
-    const avgResolutionHours = (() => {
-      const valid = linkedTickets
-        .map((ticket) => {
-          if (ticket.status !== 'RESOLVED' || !(ticket.createdAt instanceof Date) || !(ticket.closedAt instanceof Date)) return null;
-          return (ticket.closedAt.getTime() - ticket.createdAt.getTime()) / 3600000;
-        })
-        .filter((value): value is number => value !== null && value >= 0);
-      if (!valid.length) return null;
-      return Math.round((valid.reduce((sum, item) => sum + item, 0) / valid.length) * 10) / 10;
-    })();
+    const avgFirstResponseMinutes = firstResponseTimes.length > 0
+      ? Math.round(firstResponseTimes.reduce((sum, item) => sum + item, 0) / firstResponseTimes.length)
+      : null;
+
+    const medianFirstResponseMinutes = calculateMedian(firstResponseTimes);
+
+    const resolutionTimes = linkedTickets
+      .map((ticket) => {
+        if (ticket.status !== 'RESOLVED' || !(ticket.createdAt instanceof Date) || !(ticket.closedAt instanceof Date)) return null;
+        return (ticket.closedAt.getTime() - ticket.createdAt.getTime()) / 3600000;
+      })
+      .filter((value): value is number => value !== null && value >= 0);
+
+    const avgResolutionHours = resolutionTimes.length > 0
+      ? Math.round((resolutionTimes.reduce((sum, item) => sum + item, 0) / resolutionTimes.length) * 10) / 10
+      : null;
+
+    const medianResolutionHours = calculateMedian(resolutionTimes);
 
     const slaFirstResponsePct = (() => {
       const eligible = linkedTickets.filter(
@@ -630,6 +635,107 @@ export class AtendimentosDashboardQuery {
       .sort((left, right) => right.openCount - left.openCount || right.resolvedCount - left.resolvedCount)
       .slice(0, 8);
 
+    // Build Executive Priority Queue
+    const priorityQueue = filteredConversations
+      .filter((c) => c.statusLabel !== 'Resolvido' && c.statusLabel !== 'Arquivado')
+      .map((c) => {
+        const linkedTicket = ticketByConversationId.get(c.id);
+        const ageMinutes = Math.floor((Date.now() - c.createdAt.getTime()) / 60000);
+        const ageHours = ageMinutes / 60;
+        const slaStatus: 'BREACHED' | 'AT_RISK' | 'OK' = ageHours >= 4 ? 'BREACHED' : ageHours >= 1 ? 'AT_RISK' : 'OK';
+        const priority: 'CRITICAL' | 'HIGH' | 'NORMAL' | 'LOW' = slaStatus === 'BREACHED' ? 'CRITICAL' : slaStatus === 'AT_RISK' ? 'HIGH' : 'NORMAL';
+        const sysproContactId = String(c.customAttributes.syspro_contact_id ?? '').trim();
+        const sysproContact = sysproContactId ? contactById.get(sysproContactId) ?? null : null;
+        const displayParts = this.splitSharedDisplayName(c.contactName);
+
+        return {
+          id: linkedTicket?.id || c.id,
+          reference: linkedTicket?.ticketNumber || `CW-${c.id}`,
+          subject: this.resolveConversationSubject(c.raw, linkedTicket?.subject),
+          companyName: this.resolveCompanyName({
+            linkedTicket,
+            conversationLink: conversationLinkByKey.get(`${c.connectionKey}:${c.id}`) ?? null,
+            sysproCompany: null,
+            sysproContact,
+            customAttributes: c.customAttributes,
+            displayCompanyName: displayParts.companyName,
+          }),
+          assigneeName: c.assigneeName,
+          assigneeId: c.assigneeId,
+          waitTimeMinutes: ageMinutes,
+          slaStatus,
+          statusLabel: c.statusLabel,
+          priority,
+          channel: c.channel,
+          createdAt: c.createdAt.toISOString(),
+          detailHref: linkedTicket?.id ? `/portal/tickets/${linkedTicket.id}` : '/portal/atendimento',
+        };
+      })
+      .sort((a, b) => {
+        const slaWeight = { BREACHED: 3, AT_RISK: 2, OK: 1 };
+        if (slaWeight[b.slaStatus] !== slaWeight[a.slaStatus]) {
+          return slaWeight[b.slaStatus] - slaWeight[a.slaStatus];
+        }
+        if (!a.assigneeId && b.assigneeId) return -1;
+        if (a.assigneeId && !b.assigneeId) return 1;
+        return b.waitTimeMinutes - a.waitTimeMinutes;
+      })
+      .slice(0, 10);
+
+    const buildMetric = (value: number | null, prev: number | null = null, sampleSize?: number) => {
+      let variationPercent: number | null = null;
+      if (prev !== null && prev > 0 && value !== null) {
+        variationPercent = Math.round(((value - prev) / prev) * 100);
+      }
+      const trend: 'up' | 'down' | 'stable' | 'unavailable' = value === null || prev === null ? 'stable' : value > prev ? 'up' : value < prev ? 'down' : 'stable';
+      return { value, previousValue: prev, variationPercent, trend, sampleSize };
+    };
+
+    const waitingCustomerNowCount = statusCountsMap.get('Aguardando cliente') || 0;
+    const slaBreachedCount = priorityQueue.filter((item) => item.slaStatus === 'BREACHED').length;
+    const slaAtRiskCount = priorityQueue.filter((item) => item.slaStatus === 'AT_RISK').length;
+
+    const operation = {
+      openNow: buildMetric(openCount),
+      unassignedNow: buildMetric(unassignedCount),
+      waitingCustomerNow: buildMetric(waitingCustomerNowCount),
+      slaAtRiskNow: buildMetric(slaAtRiskCount),
+      slaBreachedNow: buildMetric(slaBreachedCount),
+      firstResponseMedianMinutes: buildMetric(medianFirstResponseMinutes),
+    };
+
+    const volume = {
+      created: buildMetric(filteredConversations.length),
+      resolved: buildMetric(resolvedCount),
+      reopened: buildMetric(0),
+      backlogStart: backlog.today,
+      backlogEnd: openCount,
+      backlogVariation: openCount - backlog.today,
+    };
+
+    const csatAvgScore = csatRatings.length > 0
+      ? Math.round((csatRatings.reduce((sum, rating) => sum + Number(rating.score ?? 0), 0) / csatRatings.length) * 100) / 100
+      : null;
+
+    const csatRespRate = csatEligibleResolvedCount > 0
+      ? Math.round((csatRatings.length / csatEligibleResolvedCount) * 100)
+      : null;
+
+    const quality = {
+      csatAverage: buildMetric(csatAvgScore),
+      csatResponseRate: buildMetric(csatRespRate),
+      negativeRatings: buildMetric(
+        csatRatings.filter((r) => Number(r.score) <= 2 || String(r.status).toUpperCase() === 'LOW_SCORE').length
+      ),
+    };
+
+    const dataQuality = {
+      unlinkedContactsCount: filteredConversations.filter((c) => !c.customAttributes.syspro_contact_id).length,
+      unlinkedCompaniesCount: unlinkedCount,
+      unmappedChannelsCount: 0,
+      duplicateContactsCount: 0,
+    };
+
     const payload = {
       success: true as const,
       data: {
@@ -652,11 +758,11 @@ export class AtendimentosDashboardQuery {
         csatEligibleResolvedCount,
         csatResponseCount: csatRatings.length,
         csatLowScoreCount: csatRatings.filter((rating) => Number(rating.score) <= 2 || String(rating.status).toUpperCase() === 'LOW_SCORE').length,
-        csatAverageScore: csatRatings.length > 0
-          ? Math.round((csatRatings.reduce((sum, rating) => sum + Number(rating.score ?? 0), 0) / csatRatings.length) * 100) / 100
-          : null,
+        csatAverageScore: csatAvgScore,
         avgFirstResponseMinutes,
         avgResolutionHours,
+        medianFirstResponseMinutes,
+        medianResolutionHours,
         activity: buildDashboardSeries(filteredConversations.map((item) => item.createdAt)),
         statusCounts: statusOrder.map((status) => ({ status, count: statusCountsMap.get(status) || 0 })),
         channelCounts: channelOrder.map((channel) => ({ channel, count: channelCountsMap.get(channel) || 0 })),
@@ -691,6 +797,11 @@ export class AtendimentosDashboardQuery {
           .map(([name, count]) => ({ name, count }))
           .sort((left, right) => right.count - left.count)
           .slice(0, 10),
+        operation,
+        volume,
+        priorityQueue,
+        quality,
+        dataQuality,
       },
     };
 
@@ -888,9 +999,9 @@ export class AtendimentosDashboardQuery {
 
     if (closureOrigin) return 'Arquivado' as const;
     if (rawStatus === 'resolved') return 'Resolvido' as const;
+    if (!assigneeId) return 'Sem responsavel' as const;
     if (rawStatus === 'pending') return 'Aguardando cliente' as const;
     if (rawStatus === 'snoozed') return 'Aguardando interno' as const;
-    if (!assigneeId) return 'Sem responsavel' as const;
     return 'Em andamento' as const;
   }
 

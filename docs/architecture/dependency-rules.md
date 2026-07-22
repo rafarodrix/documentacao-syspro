@@ -1,33 +1,27 @@
-# Regras de Dependência e Fronteiras Arquiteturais
+# Regras de Dependencia e Fronteiras
 
-## Matriz de Matriz de Workspaces
+## Matriz de workspaces
 
-| Workspace | Responsabilidade Principal | Pode Depender De | NÃO Pode Depender De | Direção Esperada |
-| :--- | :--- | :--- | :--- | :--- |
-| **`apps/web`** | Interface visual, navegação, documentação MDX, Server Actions | `packages/contracts`, `packages/ui`, `packages/config`, `packages/shared`, `packages/core` | `apps/api`, `packages/database`, `@prisma/client` | Consumidor final de frontend |
-| **`apps/api`** | Backend HTTP/tRPC, autenticação, autorização central, adapters NestJS | `packages/application`, `packages/domain`, `packages/contracts`, `packages/database`, `packages/config`, `packages/shared`, `packages/core` | `apps/web`, componentes React | Provedor de API e serviços de backend |
-| **`packages/domain`** / `packages/core` | Entidades puras, objetos de valor e regras invariantes de negócio | Nenhum framework ou biblioteca externa de I/O | NestJS, Next.js, Prisma, React, Express, Axios | Núcleo puro sem dependências |
-| **`packages/application`** / `packages/features/*/domain` | Casos de uso e orquestração de negócios | `packages/domain`, `packages/contracts` | Controllers NestJS, React, Prisma diretamente | Camada de orquestração desacoplada |
-| **`packages/database`** | Persistência, schema Prisma, repositórios e migrações | Prisma, `packages/domain` | `apps/web`, `packages/ui`, React, Next.js | Infraestrutura de dados |
-| **`packages/contracts`** | Schemas DTO (Zod), validação de fronteira, interfaces de transporte | Zod | Prisma, Next.js, NestJS, React, `packages/ui` | Contratos tipados e imutáveis |
-| **`packages/ui`** | Componentes visuais reutilizáveis (Design System) | Tailwind, Radix UI, Lucide | `packages/database`, APIs do backend, regras de negócio | Apresentação pura |
-| **`packages/shared`** | Formatadores, utilitários puros de data/moeda, loggers | Utilitários agnósticos | UI, Prisma, Controllers, Next Router | Utilitários agnósticos |
+| Workspace | Responsabilidade | Pode depender de | Nao pode depender de |
+| --- | --- | --- | --- |
+| `apps/web` | UI Next.js, rotas e docs | contratos, UI, core, shared, config e features publicas | `apps/api` e Prisma fora da borda server-side existente |
+| `apps/api` | HTTP NestJS, RBAC, webhooks e integracoes | contracts, database, core, shared e features | `apps/web` |
+| `packages/contracts` | schemas e tipos de transporte | Zod | apps, Prisma, Nest, Next e React |
+| `packages/core` e `features/*/domain` | regras puras e portas | contracts e shared puro | apps, Prisma, HTTP e UI |
+| `packages/database` e `features/*/infra` | Prisma e adapters de persistencia | domain/contracts/database | apps e UI |
+| `packages/ui` | componentes reutilizaveis | React, Radix e estilos | banco, rede e autorizacao |
 
----
+## Regras executaveis
 
-## Regras Fundamentais do Monorepo
+`.dependency-cruiser.cjs` bloqueia:
 
-1. **Separação Frontend/Backend**:
-   - `apps/web` NUNCA pode importar diretamente de `apps/api` (exceto tipos DTO exportados via `@dosc-syspro/contracts`).
-   - `apps/api` NUNCA pode importar componentes ou arquivos do `apps/web`.
+- imports diretos entre `apps/web` e `apps/api`;
+- imports de `apps/*` por qualquer pacote;
+- deep imports de internals de workspaces;
+- ciclos de dependencia.
 
-2. **Isolamento de Pacotes**:
-   - Nenhum pacote dentro de `packages/*` pode importar de `apps/*`.
-   - Importações entre pacotes devem usar exclusivamente a API pública declarada no `package.json` (`exports`).
-   - Proibido uso de deep imports privados como `@dosc-syspro/pacote/src/interno/...`.
+Execute `npm run quality:architecture` na raiz. Excecoes exigem justificativa local e regra estreita; nao use exclusoes globais.
 
-3. **Invariantes por Camada**:
-   - **Domain/Core**: Sem importação de Next.js, NestJS, React ou Prisma. Não realiza I/O de rede ou disco.
-   - **Database**: Encapsula o client Prisma e expõe apenas interfaces/repositories.
-   - **Contracts**: Schemas Zod versionados sem lógica operacional ou modelos internos expostos.
-   - **UI**: Zero acesso a banco ou autorização; sem acoplamento a regras de negócio de empresas.
+## Contratos tRPC
+
+`AppRouter` e um tipo de implementacao da API, nao um contrato independente. Enquanto existir, ele nao pode ser reexportado por `packages/contracts` nem resolvido por alias do web para `apps/api`. O plano de correcao e publicar schemas e clientes de transporte necessarios em `packages/contracts`, preservando o endpoint HTTP atual.

@@ -1,28 +1,12 @@
-# Modelo de Ameaças do Portal Trilink (Threat Model)
+# Modelo de Ameacas do Portal Trilink
 
-## 1. Visão Geral do Sistema
-O Portal Trilink Syspro é uma plataforma ERP web multiempresa integrada a agentes locais Windows, gateways de mensagens (Evolution API/Chatwoot) e microsserviços de mensageria.
+| Ativo/superficie | Ameaca | Controle verificado | Risco residual |
+| --- | --- | --- | --- |
+| Dados por empresa | IDOR e escopo forjado | `AuthorizationService` resolve permissoes globais ou por `companyId`; testes de tickets cobrem escopo negado | cobertura negativa ainda nao e sistematica para todas as rotas, jobs e exports |
+| Sessao | segredo previsivel ou sessao invalida | Better Auth e cookies de sessao | fallback local de `BETTER_AUTH_SECRET` e vulnerabilidade critica do pacote |
+| Webhooks Chatwoot | replay ou forja | assinatura HMAC, timestamp e deduplicacao | exigir testes de replay em todos os providers |
+| Webhooks Evolution | instancia/token indevidos | conexao ativa e token da instancia validados | verificar cobertura de assinatura quando provider a suportar |
+| Uploads/integracoes | SSRF, leitura de arquivo ou vazamento | R2 e URLs assinadas previstos; secrets criptografados em conexoes | dependencia Nodemailer vulneravel e limites precisam ser revisados por endpoint |
+| Build/deploy | segredo no build e imagem privilegiada | CI executa audit, Gitleaks e Trivy; imagens usam Node Alpine | Dockerfiles nao definem `USER` nao-root |
 
----
-
-## 2. Superfícies de Ataque e Ameaças Principais
-
-### 2.1 Isolamento Multiempresa (Multi-Tenant Bypasses / IDOR)
-- **Vetor:** Alteração de parâmetros HTTP (`companyId`, `tenantId`, `ticketId`) em chamadas Server Action ou endpoints REST/tRPC.
-- **Risco:** Acesso não autorizado a dados de empresas concorrentes ou vazamento de segredos/chaves de API de terceiros.
-- **Mitigação Exigida:** Resolução e validação obrigatória do escopo da empresa (`CompanyScope`) no backend/NestJS para TODA requisição autenticada (Deny-by-Default).
-
-### 2.2 Autorização Exclusiva no Frontend
-- **Vetor:** Ocultação de elementos visuais no Next.js enquanto as rotas de backend permanecem expostas sem checagem de permissões (`Role`/`Permissions`).
-- **Risco:** Usuários com perfil `CLIENTE_USER` executando ações administrativas de `ADMIN` ou `DEVELOPER`.
-- **Mitigação Exigida:** Guardas de autorização (`APP_GUARD`, `RolesGuard`, `PermissionsGuard`) ativos no NestJS em todas as rotas e procedimentos tRPC.
-
-### 2.3 Exposição de Segredos e Credenciais
-- **Vetor:** Inclusão acidental de variáveis `.env` de produção, chaves JWT, ou tokens de gateway em arquivos comitados ou respostas de erro HTTP (Stack Trace).
-- **Risco:** Comprometimento total da infraestrutura ou interceptação de mensagens de clientes.
-- **Mitigação Exigida:** Uso de `LoggerModule` Pino redigindo headers sensíveis, sanitização de respostas de erro em ambiente produtivo, e validação via CI/CD.
-
-### 2.4 Vulnerabilidade de Upload e SSRF
-- **Vetor:** Envio de anexos de tickets ou arquivos fiscais sem verificação de MIME/extensão, ou fornecimento de URLs arbitrárias para pré-visualização.
-- **Risco:** Execução de scripts nocivos ou requisições maliciosas internas a partir do servidor (SSRF).
-- **Mitigação Exigida:** Validação estrita de extensão/tamanho, armazenamento em buckets S3 privados e geração de URLs pré-assinadas temporárias.
+Prioridade imediata: eliminar fallback de segredo, corrigir Better Auth com plano de compatibilidade e expandir testes negativos de empresa para todas as bordas mutaveis.
