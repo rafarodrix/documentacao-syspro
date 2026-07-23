@@ -4,6 +4,7 @@
   "description": "Guias operacionais do Syspro ERP para execução das rotinas do dia a dia.",
   "pages": [
     "cadastros-rapidos",
+    "fluxo-essencial",
     "---Guias por segmento---",
     "segmentos"
   ]
