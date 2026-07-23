@@ -1,19 +1,80 @@
 ---
-title: Produto
-description: Cadastro e manutencao de produtos utilizados nas rotinas de estoque do Syspro ERP.
-lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+title: Cadastro de Produto e Serviço
+description: Referência dos dados globais para cadastrar produtos e serviços usados nas rotinas de estoque, venda, compra e emissão fiscal do Syspro ERP.
+lastUpdated: 2026-07-23
+owner: Equipe de Documentação
 status: published
 tags:
   - manual
   - estoque
   - produto
+  - servico
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
-O cadastro de **Produto** concentra as informacoes principais dos itens comercializados ou movimentados no estoque, como identificacao, classificacao e parametrizacoes de uso.
+O cadastro de **Produto e Serviço** concentra os dados globais dos itens utilizados em compras, vendas, estoque, ordens de serviço e documentos fiscais.
 
-<Callout type="info" title="Dica">
-  Revise codigo, descricao, unidade e demais parametros do item antes de liberar o produto para compra, venda ou movimentacao.
+<Callout type="info" title="Quer começar pelo essencial?">
+  Para assistir ao vídeo e conferir os dados mínimos de cada tipo de item, acesse [Cadastros rápidos](/portal/docs/cliente/primeiros-passos/cadastros-rapidos).
 </Callout>
+
+## Quando usar cada tipo
+
+<Tabs items={['Produto', 'Serviço']}>
+  <Tab value="Produto">
+    Use para mercadorias, peças e outros itens físicos que podem movimentar estoque.
+  </Tab>
+  <Tab value="Serviço">
+    Use para mão de obra e prestações que não movimentam estoque físico.
+  </Tab>
+</Tabs>
+
+<Callout type="warning" title="Classificação correta">
+  Não cadastre um serviço como produto, nem um produto como serviço. A natureza do item influencia estoque, tributação e os documentos emitidos.
+</Callout>
+
+## Dados globais do cadastro
+
+| Informação | Orientação |
+| --- | --- |
+| **Descrição** | Use um nome claro, padronizado e fácil de localizar na operação. |
+| **Unidade de medida** | Informe a unidade usada para comprar, vender e controlar o item, como UN, KG, LT ou H. |
+| **Departamento** | Classifique o item no departamento adequado para organizar regras comerciais e fiscais. |
+| **Natureza do item** | Defina se o cadastro é produto ou serviço antes de utilizar o item. |
+| **Preço e custo** | Revise conforme a política comercial e a rotina que utilizará o cadastro. |
+| **NCM** | Informe para produtos quando exigido pela operação fiscal. |
+| **NBS** | Informe para serviços quando exigido pela operação fiscal. |
+
+## Antes de liberar para uso
+
+<Cards>
+  <Card title="Identificação">
+    Descrição, tipo de item, unidade de medida e departamento conferidos.
+  </Card>
+  <Card title="Fiscal">
+    NCM ou NBS revisado conforme a natureza do item e a operação.
+  </Card>
+  <Card title="Comercial e estoque">
+    Preço, custo e controle de estoque revisados quando aplicáveis.
+  </Card>
+</Cards>
+
+<Callout type="warning" title="Valide antes da primeira emissão">
+  Quando o item for utilizado em documento fiscal, confirme a classificação e as regras tributárias antes da primeira venda ou prestação.
+</Callout>
+
+## Relação com as trilhas por segmento
+
+Este manual reúne o que é comum a qualquer operação. As trilhas por segmento explicam apenas a ordem de execução e os cuidados específicos do negócio.
+
+<Cards>
+  <Card title="Segmento Comercial" href="/portal/docs/cliente/primeiros-passos/steps-comercial">
+    Contexto de varejo, atacado e comércio em geral.
+  </Card>
+  <Card title="Segmento Auto Center" href="/portal/docs/cliente/primeiros-passos/steps-auto-center">
+    Contexto de peças, mão de obra, veículos e ordem de serviço.
+  </Card>
+</Cards>

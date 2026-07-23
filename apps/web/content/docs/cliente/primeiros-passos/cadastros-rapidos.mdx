@@ -1,0 +1,91 @@
+---
+title: Cadastros rápidos
+description: Vídeos e dados mínimos para iniciar os cadastros mais usados no Syspro ERP.
+lastUpdated: 2026-07-23
+owner: Equipe de Documentação
+status: published
+tags:
+  - primeiros-passos
+  - cadastro
+  - participante
+  - produto
+  - estoque
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { YouTubeModal } from '@/components/docs/youtube-modal';
+
+Use esta página quando precisar criar um cadastro e quer começar pelo essencial. Para conhecer todas as guias, regras e impactos de cada campo, consulte o manual completo indicado em cada seção.
+
+<Callout type="info" title="Antes de começar">
+  Pesquise pelo nome, CPF/CNPJ, telefone e fantasia antes de incluir um novo participante. Isso evita duplicidade e histórico dividido.
+</Callout>
+
+## Participantes
+
+O participante é o cadastro-base para clientes, fornecedores, colaboradores e outros relacionamentos usados na operação.
+
+<Tabs items={['Pessoa física', 'Pessoa jurídica']}>
+  <Tab value="Pessoa física">
+    Use para consumidores finais, colaboradores e contatos pessoais.
+
+    **Dados mínimos:** nome completo, CPF quando aplicável, telefone ou e-mail e situação ativa. Informe o endereço quando houver entrega, cobrança ou emissão fiscal.
+
+    <YouTubeModal videoId="Dg7VzTPY0uE" thumbnailTitle="Cadastro de participante — Pessoa Física" priority />
+  </Tab>
+
+  <Tab value="Pessoa jurídica">
+    Use para empresas, fornecedores, transportadoras e clientes corporativos.
+
+    **Dados mínimos:** razão social, CNPJ quando aplicável, nome fantasia quando houver, contato e situação ativa. Antes da primeira emissão, confira os dados fiscais e o endereço.
+
+    <YouTubeModal videoId="E54396oUlTo" thumbnailTitle="Cadastro de participante — Pessoa Jurídica" priority />
+  </Tab>
+</Tabs>
+
+<Cards>
+  <Card title="Manual completo de Participante" href="/portal/docs/cliente/documentacao/cadastro/participante">
+    Campos, guias, bloqueios, regras comerciais, impactos fiscais e solução de problemas.
+  </Card>
+</Cards>
+
+## Produtos e serviços
+
+Cadastre o item conforme sua natureza antes de utilizá-lo em compras, vendas, estoque ou ordem de serviço. A classificação correta evita erros fiscais e de saldo.
+
+<Tabs items={['Produto', 'Serviço']}>
+  <Tab value="Produto">
+    Use para itens físicos que podem ser comprados, vendidos ou movimentados em estoque.
+
+    **Dados mínimos:** descrição clara, unidade de medida, departamento e NCM quando houver emissão fiscal. Revise preço, custo e controle de estoque conforme a operação.
+  </Tab>
+
+  <Tab value="Serviço">
+    Use para mão de obra e demais prestações que não movimentam estoque físico.
+
+    **Dados mínimos:** descrição clara, unidade de medida, departamento e NBS quando houver emissão fiscal. Revise o preço de venda e a classificação fiscal antes de utilizar o serviço.
+  </Tab>
+</Tabs>
+
+<YouTubeModal videoId="aJAqC5tTm0A" thumbnailTitle="Cadastro de Produtos e Serviços" />
+
+<Cards>
+  <Card title="Manual completo de Produto" href="/portal/docs/cliente/documentacao/estoque/produto">
+    Dados globais do item, classificação, estoque, preço, cuidados fiscais e validação antes do uso.
+  </Card>
+</Cards>
+
+## Próximos cadastros
+
+Depois de cadastrar os participantes, prossiga com os cadastros necessários à sua operação, como empresa, produtos, serviços e veículos. As trilhas por segmento mostram a ordem recomendada.
+
+<Cards>
+  <Card title="Segmento Comercial" href="/portal/docs/cliente/primeiros-passos/steps-comercial">
+    Ordem recomendada para varejo, atacado e comércio em geral.
+  </Card>
+  <Card title="Segmento Auto Center" href="/portal/docs/cliente/primeiros-passos/steps-auto-center">
+    Ordem recomendada para oficinas e operações com veículos.
+  </Card>
+</Cards>

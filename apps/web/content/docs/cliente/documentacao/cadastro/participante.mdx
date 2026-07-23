@@ -1,11 +1,14 @@
 ---
 title: Cadastro de Participante
-description: Manual técnico e operacional do cadastro de Participante no Syspro ERP, incluindo dados cadastrais, fiscais, comerciais, financeiros, bloqueios e informações complementares.
-lastUpdated: 2026-05-09
+description: Aprenda a cadastrar clientes, fornecedores e outras pessoas ou empresas utilizadas nas rotinas do Syspro ERP.
+lastUpdated: 2026-07-23
 owner: Equipe de Documentação
 status: published
 tags:
   - cadastro
+  - participante
+  - cliente
+  - fornecedor
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -13,487 +16,58 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
-import { TypeTable } from 'fumadocs-ui/components/type-table';
-import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
 
 # Cadastro de Participante
 
-## Introdução
+O cadastro de **Participante** centraliza as informações de pessoas e empresas utilizadas nas rotinas do Syspro ERP.
 
-O cadastro de **Participante** é utilizado para registrar pessoas e empresas que se relacionam com a empresa dentro do **Syspro ERP**.
+Um participante pode atuar como:
 
-Um participante pode representar cliente, fornecedor, colaborador, vendedor, transportadora, contato, responsável financeiro ou outro tipo de relacionamento utilizado pela operação.
+* cliente;
+* fornecedor;
+* colaborador;
+* vendedor;
+* transportadora;
+* contato;
+* responsável financeiro;
+* conveniado;
+* outro relacionamento utilizado pela empresa.
 
-As informações cadastradas nesta tela podem impactar vendas, compras, financeiro, emissão fiscal, cobrança, relatórios, rotas de entrega, bloqueios comerciais e integrações.
-
-<Callout type="info" title="Objetivo do módulo">
-  Centralizar os dados cadastrais, fiscais, comerciais e financeiros de pessoas e empresas utilizadas nas rotinas do Syspro ERP.
+<Callout type="info" title="Onde acessar">
+  Acesse **Cadastro > Participante > Participante**.
 </Callout>
 
-<InlineTOC items={toc}>Nesta página</InlineTOC>
-
----
+<Callout type="info" title="Quer apenas o essencial?">
+  Para assistir aos vídeos e conferir os dados mínimos de pessoa física e jurídica, acesse [Cadastros rápidos](/portal/docs/cliente/primeiros-passos/cadastros-rapidos).
+</Callout>
 
 ## Visão geral
 
 <Cards>
-  <Card title="Onde acessar">
-    Acesse **Cadastro > Participante > Participante**.
+  <Card title="Cadastro central">
+    As informações do participante podem ser utilizadas em vendas, compras, financeiro, fiscal, entregas e relatórios.
   </Card>
 
-  <Card title="Quando utilizar">
-    Utilize esta tela para cadastrar clientes, fornecedores, colaboradores, vendedores, contatos e demais pessoas ou empresas relacionadas à operação.
+  <Card title="Pessoa física ou jurídica">
+    O tipo de pessoa define os documentos e campos que serão solicitados pelo sistema.
   </Card>
 
-  <Card title="Impacto no sistema">
-    O cadastro pode impactar vendas, compras, emissão fiscal, financeiro, cobranças, rotas, relatórios e bloqueios.
+  <Card title="Dados fiscais">
+    CPF/CNPJ, endereço, modelo fiscal e e-mail de NF-e podem impactar a emissão de documentos.
   </Card>
 
-  <Card title="Perfil recomendado">
-    Indicado para usuários administrativos, equipe de cadastro, financeiro, vendas, implantação e suporte.
+  <Card title="Regras comerciais">
+    O participante pode possuir preço especial, desconto máximo, alertas e bloqueios de venda.
   </Card>
 </Cards>
 
----
-
-## Quando utilizar
-
-Utilize o cadastro de **Participante** sempre que uma pessoa física ou jurídica precisar ser utilizada em algum processo do Syspro ERP.
-
-| Situação | Como o módulo ajuda |
-|---|---|
-| Cadastrar um novo cliente | Permite utilizar o participante em vendas, orçamentos, documentos fiscais e financeiro. |
-| Cadastrar um fornecedor | Permite relacionar compras, contas a pagar e dados complementares do fornecedor. |
-| Cadastrar um colaborador | Permite registrar dados de pessoas vinculadas à empresa, conforme necessidade operacional. |
-| Configurar dados fiscais | Define CPF/CNPJ, modelo fiscal, e-mail de NF-e e demais dados usados em documentos. |
-| Definir regras comerciais | Permite configurar preço especial, desconto máximo, alertas e bloqueios. |
-| Organizar cobrança e rota | Permite informar cobrador padrão, ordem de rota e mensagem em boletos ou carnês. |
-| Registrar contatos e telefones | Mantém dados de comunicação atualizados para atendimento, vendas e suporte. |
-
-<Callout type="success" title="Exemplo prático">
-  Antes de realizar uma venda para um novo cliente, cadastre o participante com nome, CPF/CNPJ, e-mail, endereço e situação ativa. Isso evita erros na venda, no financeiro e na emissão fiscal.
+<Callout type="warning" title="Antes de cadastrar">
+  Pesquise pelo **CPF/CNPJ**, nome, fantasia e telefone para evitar cadastros duplicados.
 </Callout>
 
 ---
 
-## Dicionário de campos
-
-<TypeTable
-  type={{
-    pessoa: {
-      description: 'Define se o participante é Pessoa Física ou Pessoa Jurídica.',
-      type: 'Física | Jurídica',
-      required: true,
-    },
-    nomeRazaoSocial: {
-      description: 'Nome completo da pessoa física ou razão social da empresa.',
-      type: 'Texto',
-      required: true,
-    },
-    fantasia: {
-      description: 'Nome comercial da empresa. Normalmente utilizado para pessoa jurídica.',
-      type: 'Texto',
-      required: false,
-    },
-    cpfCnpj: {
-      description: 'Documento principal do participante. O campo varia conforme o tipo de pessoa selecionado.',
-      type: 'CPF | CNPJ',
-      required: false,
-    },
-    rg: {
-      description: 'Registro Geral da pessoa física, quando aplicável.',
-      type: 'Texto',
-      required: false,
-    },
-    orgaoExpedidorUf: {
-      description: 'Órgão expedidor e UF do RG, como SSP/MG, quando aplicável.',
-      type: 'Texto',
-      required: false,
-    },
-    identificacaoEstrangeiro: {
-      description: 'Identificação utilizada quando o participante for estrangeiro.',
-      type: 'Texto',
-      required: false,
-    },
-    classificacao: {
-      description: 'Categoria ou classificação do participante, conforme organização da empresa.',
-      type: 'Seleção',
-      required: false,
-    },
-    precoEspecial: {
-      description: 'Grupo ou regra de preço especial vinculada ao participante, quando aplicável.',
-      type: 'Seleção',
-      required: false,
-    },
-    modeloFiscal: {
-      description: 'Modelo fiscal padrão utilizado para documentos do participante, como 55 para NF-e ou 65 para NFC-e, conforme operação.',
-      type: 'Número | Seleção',
-      required: false,
-    },
-    email: {
-      description: 'E-mail principal do participante para contato.',
-      type: 'E-mail',
-      required: false,
-    },
-    emailNfe: {
-      description: 'E-mail utilizado para envio automático de documentos fiscais, quando configurado.',
-      type: 'E-mail',
-      required: false,
-    },
-    dataCadastro: {
-      description: 'Data de criação do cadastro. Normalmente preenchida automaticamente pelo sistema.',
-      type: 'Data',
-      required: false,
-    },
-    situacao: {
-      description: 'Define se o participante está ativo e disponível para uso em rotinas como vendas e compras.',
-      type: 'Ativo | Inativo',
-      required: true,
-      default: 'Ativo',
-    },
-    foto: {
-      description: 'Imagem, foto ou logotipo relacionado ao participante.',
-      type: 'Imagem',
-      required: false,
-    },
-    descontoMaximo: {
-      description: 'Percentual máximo de desconto que pode ser aplicado para este participante, quando utilizado pela empresa.',
-      type: 'Percentual',
-      required: false,
-    },
-    origem: {
-      description: 'Origem de captação do participante, como indicação, redes sociais ou campanha comercial.',
-      type: 'Texto | Seleção',
-      required: false,
-    },
-    contaContabil: {
-      description: 'Conta contábil vinculada ao participante, quando houver integração contábil.',
-      type: 'Texto | Seleção',
-      required: false,
-    },
-    ordemRota: {
-      description: 'Ordem do participante na rota de entrega, quando a empresa utiliza controle de rotas.',
-      type: 'Número',
-      required: false,
-    },
-    cobradorPadrao: {
-      description: 'Colaborador ou responsável padrão pela cobrança do participante.',
-      type: 'Seleção',
-      required: false,
-    },
-    observacao: {
-      description: 'Campo livre para observações gerais sobre o participante.',
-      type: 'Texto longo',
-      required: false,
-    },
-    observacaoFiscal: {
-      description: 'Campo livre para informações fiscais ou orientações relacionadas ao participante.',
-      type: 'Texto longo',
-      required: false,
-    },
-    mensagemFixa: {
-      description: 'Mensagem que pode ser impressa em boletos, carnês ou documentos, conforme configuração.',
-      type: 'Texto longo',
-      required: false,
-    },
-    alertaVendedores: {
-      description: 'Mensagem de alerta exibida ao vendedor durante a venda.',
-      type: 'Texto longo',
-      required: false,
-    },
-  }}
-/>
-
-<Callout type="warning" title="Atenção ao preenchimento">
-  Campos como tipo de pessoa, CPF/CNPJ, modelo fiscal, e-mail de NF-e e situação podem impactar diretamente vendas, financeiro e emissão de documentos fiscais.
-</Callout>
-
----
-
-## Estrutura da tela
-
-<Tabs items={['Principal', 'Informações Pessoais', 'Outros', 'Bloqueios', 'Guias Laterais']}>
-  <Tab value="Principal">
-    A guia **Principal** reúne os dados mais importantes do participante.
-
-    Nela são preenchidos campos como:
-
-    - pessoa;
-    - nome ou razão social;
-    - fantasia;
-    - CPF/CNPJ;
-    - RG;
-    - identificação estrangeiro;
-    - classificação;
-    - preço especial;
-    - modelo fiscal;
-    - e-mail;
-    - e-mail NF-e;
-    - situação;
-    - foto.
-
-    Essa guia deve ser preenchida com atenção, pois concentra informações usadas em várias rotinas do sistema.
-  </Tab>
-
-  <Tab value="Informações Pessoais">
-    A guia **Informações Pessoais** é usada principalmente para pessoas físicas.
-
-    Pode incluir dados como sexo, estado civil, nome da mãe, nome do pai, cônjuge, naturalidade, nacionalidade, profissão, local de trabalho, renda e salário.
-
-    Nem todos os campos são obrigatórios. Preencha conforme necessidade da empresa.
-  </Tab>
-
-  <Tab value="Outros">
-    A guia **Outros** reúne informações complementares usadas em controle financeiro, cobrança, contabilidade, rota e comunicação.
-
-    Pode incluir origem, conta contábil, ordem de rota, cobrador padrão, parcelas quitadas, observações, mensagem fixa e alerta para vendedores.
-  </Tab>
-
-  <Tab value="Bloqueios">
-    A guia **Bloqueios** permite configurar regras que podem impedir vendas conforme critérios comerciais ou financeiros.
-
-    Exemplos:
-
-    - títulos vencidos;
-    - recebimentos com atraso;
-    - falta de compras por determinado período;
-    - registro SPC;
-    - bloqueio de venda por atraso.
-
-    Essas regras devem ser configuradas com cuidado.
-  </Tab>
-
-  <Tab value="Guias Laterais">
-    As guias laterais complementam o cadastro conforme o tipo de participante.
-
-    Podem incluir:
-
-    - endereço;
-    - telefone;
-    - venda particular;
-    - convênio;
-    - fornecedor;
-    - colaborador;
-    - dependente;
-    - referência;
-    - contrato;
-    - haver;
-    - cashback;
-    - contato;
-    - vendedor.
-  </Tab>
-</Tabs>
-
----
-
-# Campos principais
-
-## Pessoa
-
-O campo **Pessoa** define se o participante será tratado como pessoa física ou pessoa jurídica.
-
-Essa escolha influencia os campos exibidos e o tipo de documento esperado.
-
-| Tipo | Uso comum |
-|---|---|
-| Física | Clientes individuais, colaboradores, dependentes ou contatos pessoais. |
-| Jurídica | Empresas, fornecedores, transportadoras, convênios ou clientes empresariais. |
-
-<Callout type="warning" title="Atenção">
-  Se o tipo de pessoa for preenchido incorretamente, o sistema pode solicitar documento incompatível ou gerar inconsistências em documentos fiscais.
-</Callout>
-
----
-
-## Nome / Razão Social
-
-O campo **Nome / Razão Social** identifica oficialmente o participante.
-
-Para pessoa física, informe o nome completo.  
-Para pessoa jurídica, informe a razão social conforme documento da empresa.
-
-<Callout type="success" title="Boa prática">
-  Preencha o nome de forma clara e padronizada para facilitar buscas, relatórios, vendas e emissão de documentos.
-</Callout>
-
----
-
-## Fantasia
-
-O campo **Fantasia** representa o nome comercial do participante.
-
-É mais utilizado para empresas. Para pessoa física, pode ficar em branco quando não houver necessidade.
-
----
-
-## CPF / CNPJ
-
-O campo **CPF / CNPJ** identifica o participante em rotinas fiscais, financeiras e comerciais.
-
-Quando o participante for utilizado em emissão fiscal, esse campo deve ser preenchido com atenção.
-
-<Callout type="warning" title="Impacto fiscal">
-  Documento incorreto pode impedir emissão de NF-e/NFC-e, gerar rejeições fiscais ou causar divergência em relatórios.
-</Callout>
-
----
-
-## Classificação
-
-O campo **Classificação** permite categorizar participantes conforme a organização da empresa.
-
-Exemplos de uso:
-
-- cliente varejo;
-- cliente atacado;
-- fornecedor;
-- colaborador;
-- transportadora;
-- parceiro;
-- convênio.
-
-Essa classificação pode facilitar filtros, relatórios e processos comerciais.
-
----
-
-## Preço Especial
-
-O campo **Preço Especial** vincula o participante a uma regra ou grupo de preço diferenciado, quando a empresa utiliza esse controle.
-
-Esse campo pode influenciar o preço aplicado em vendas, conforme a configuração do sistema.
-
-<Callout type="info" title="Relação comercial">
-  Quando houver preço especial vinculado ao participante, valide também as regras configuradas em produto, departamento ou grupo de preço, quando aplicável.
-</Callout>
-
----
-
-## Modelo Fiscal
-
-O campo **Modelo Fiscal** define o modelo de documento fiscal padrão para o participante.
-
-Exemplos comuns:
-
-- **55**: NF-e;
-- **65**: NFC-e.
-
-<Callout type="info" title="Uso fiscal">
-  O modelo fiscal deve seguir a operação realizada pela empresa. Em caso de dúvida, valide com o responsável fiscal ou suporte.
-</Callout>
-
----
-
-## E-mail e E-mail NF-e
-
-O campo **E-mail** é utilizado para contato geral com o participante.
-
-O campo **E-mail NF-e** é utilizado para envio automático de documentos fiscais, quando a rotina estiver configurada.
-
----
-
-## Situação
-
-O campo **Situação** define se o participante está disponível para uso.
-
-| Situação | Comportamento |
-|---|---|
-| Ativo | Pode ser utilizado em vendas, compras e demais rotinas. |
-| Inativo | Pode deixar de aparecer para novas movimentações, preservando histórico. |
-
-<Callout type="success" title="Boa prática">
-  Prefira inativar participantes que não devem mais ser utilizados, em vez de excluir cadastros com histórico.
-</Callout>
-
----
-
-# Relações com outros cadastros
-
-O cadastro de **Participante** se relaciona com vários módulos do Syspro ERP.
-
-| Cadastro ou módulo relacionado | Impacto |
-|---|---|
-| Empresa | A empresa cadastrada no sistema depende de um participante vinculado. |
-| Vendas | O participante pode ser cliente, receber preço especial, bloqueios, alertas e condições comerciais. |
-| Compras | O participante pode ser fornecedor em entradas, pedidos e contas a pagar. |
-| Financeiro | O participante é usado em títulos, cobranças, carnês, boletos e histórico de pagamentos. |
-| Fiscal | CPF/CNPJ, modelo fiscal, e-mail NF-e e dados cadastrais podem impactar emissão fiscal. |
-| Estoque | Pode se relacionar indiretamente com compras, vendas e movimentações. |
-| Convênio | Pode ser usado em venda particular, convênio, dependentes e contratos. |
-| Rotas | Pode possuir ordem de rota e dados de entrega. |
-| Contabilidade | Pode possuir conta contábil quando houver integração contábil. |
-| Relatórios | Dados do participante são utilizados em filtros, análises e demonstrativos. |
-
-<Callout type="info" title="Cadastro central">
-  O participante é um cadastro base do ERP. Um erro cadastral pode se refletir em várias rotinas, como venda, emissão fiscal, cobrança e relatórios.
-</Callout>
-
----
-
-# Cenários práticos
-
-<Tabs items={['Cliente novo', 'Fornecedor', 'Cliente com bloqueio', 'Cliente com preço especial']}>
-  <Tab value="Cliente novo">
-    Use este cenário para cadastrar uma pessoa ou empresa que realizará compras.
-
-    Configure:
-
-    - pessoa;
-    - nome ou razão social;
-    - CPF/CNPJ, quando necessário;
-    - telefone;
-    - endereço;
-    - e-mail;
-    - situação ativa.
-
-    **Resultado esperado:** o cliente poderá ser utilizado em vendas, financeiro e documentos fiscais.
-  </Tab>
-
-  <Tab value="Fornecedor">
-    Use este cenário quando o participante será utilizado em compras ou contas a pagar.
-
-    Configure:
-
-    - pessoa jurídica ou física;
-    - razão social ou nome;
-    - CPF/CNPJ;
-    - dados de contato;
-    - guia lateral de fornecedor, quando aplicável;
-    - informações fiscais e financeiras necessárias.
-
-    **Resultado esperado:** o fornecedor poderá ser utilizado em entradas, compras e financeiro.
-  </Tab>
-
-  <Tab value="Cliente com bloqueio">
-    Use este cenário quando a empresa deseja controlar venda para clientes inadimplentes ou com restrição.
-
-    Configure:
-
-    - quantidade de títulos vencidos;
-    - prazo de atraso;
-    - bloqueio por atraso;
-    - registro SPC, quando aplicável;
-    - alerta para vendedores.
-
-    **Resultado esperado:** o sistema poderá impedir ou alertar vendas conforme a regra definida.
-  </Tab>
-
-  <Tab value="Cliente com preço especial">
-    Use este cenário quando o cliente possui negociação diferenciada.
-
-    Configure:
-
-    - grupo ou regra de preço especial;
-    - classificação comercial;
-    - desconto máximo, quando aplicável;
-    - alertas para vendedores, se necessário.
-
-    **Resultado esperado:** o sistema poderá aplicar condições comerciais diferenciadas conforme configuração.
-  </Tab>
-</Tabs>
-
----
-
-# Como cadastrar
+## Como cadastrar
 
 <Steps>
   <Step>
@@ -501,39 +75,55 @@ O cadastro de **Participante** se relaciona com vários módulos do Syspro ERP.
   </Step>
 
   <Step>
-    Na lista de participantes, clique em **Incluir**.
+    Clique em **Incluir**.
   </Step>
 
   <Step>
-    Selecione o tipo de **Pessoa**: Física ou Jurídica.
+    Selecione o tipo de **Pessoa**:
+
+    - **Física** para clientes individuais, colaboradores e contatos;
+    - **Jurídica** para empresas, fornecedores e transportadoras.
+
   </Step>
 
   <Step>
-    Preencha o campo **Nome / Razão Social**.
+    Informe o **Nome / Razão Social**.
+
+    Para pessoa jurídica, preencha também o campo **Fantasia**, quando houver.
+
   </Step>
 
   <Step>
-    Informe **Fantasia**, quando for pessoa jurídica e houver nome comercial.
+    Preencha o **CPF ou CNPJ** e os demais documentos aplicáveis.
   </Step>
 
   <Step>
-    Preencha **CPF/CNPJ**, **RG**, **Órgão Expedidor/UF** ou **Identificação Estrangeiro**, conforme o tipo de participante.
+    Informe os dados de contato:
+
+    - telefone;
+    - e-mail;
+    - e-mail de NF-e;
+    - endereço.
+
   </Step>
 
   <Step>
-    Informe **Classificação**, **Preço Especial** e **Modelo Fiscal**, quando aplicável.
+    Configure os dados comerciais e fiscais necessários, como:
+
+    - classificação;
+    - preço especial;
+    - desconto máximo;
+    - modelo fiscal;
+    - situação.
+
   </Step>
 
   <Step>
-    Preencha **E-mail** e **E-mail NF-e**, conforme necessidade da empresa.
+    Preencha as guias complementares conforme a utilização do participante.
   </Step>
 
   <Step>
-    Verifique se a **Situação** está como **Ativo** para permitir uso em vendas, compras e demais rotinas.
-  </Step>
-
-  <Step>
-    Preencha as guias complementares, como **Informações Pessoais**, **Outros**, **Bloqueios**, **Endereço** e **Telefone**, conforme o caso.
+    Revise os bloqueios, alertas e observações.
   </Step>
 
   <Step>
@@ -541,312 +131,487 @@ O cadastro de **Participante** se relaciona com vários módulos do Syspro ERP.
   </Step>
 
   <Step>
-    Após salvar, localize o participante na consulta para confirmar que o cadastro foi registrado corretamente.
+    Localize o participante na consulta e confirme se o cadastro foi gravado corretamente.
   </Step>
 </Steps>
 
 ---
 
-# Validação por perfil
+## Campos essenciais
 
-<Tabs items={['Usuário', 'Administrador', 'Suporte']}>
-  <Tab value="Usuário">
-    O usuário deve conferir:
+| Campo                   | Orientação                                                          |
+| ----------------------- | ------------------------------------------------------------------- |
+| **Pessoa**              | Define se o participante é pessoa física ou jurídica.               |
+| **Nome / Razão Social** | Informe o nome completo ou a razão social oficial.                  |
+| **Fantasia**            | Informe o nome comercial da empresa, quando houver.                 |
+| **CPF/CNPJ**            | Documento utilizado em processos comerciais, financeiros e fiscais. |
+| **Classificação**       | Organiza o participante conforme a função ou perfil comercial.      |
+| **Preço Especial**      | Vincula uma regra diferenciada de preço ao participante.            |
+| **Modelo Fiscal**       | Define o modelo de documento fiscal utilizado por padrão.           |
+| **E-mail**              | E-mail principal para contato.                                      |
+| **E-mail NF-e**         | E-mail utilizado para envio de documentos fiscais.                  |
+| **Situação**            | Define se o participante está ativo ou inativo.                     |
 
-    - se selecionou o participante correto;
-    - se o participante está ativo;
-    - se o nome ou razão social está correto;
-    - se o telefone e e-mail estão atualizados;
-    - se há alerta para vendedores;
-    - se existe bloqueio durante a venda.
+<Callout type="warning" title="Campos com impacto fiscal">
+  Revise especialmente o **tipo de pessoa**, **CPF/CNPJ**, **razão social**, **endereço**, **modelo fiscal** e **e-mail NF-e** antes de emitir documentos.
+</Callout>
 
-    O usuário operacional deve evitar alterar dados fiscais sem orientação.
-  </Tab>
+<Callout type="info" title="Preenchimento conforme a operação">
+  Nem todos os campos são necessários em todos os cenários. Preencha os dados exigidos pela rotina que utilizará o participante e pelas configurações da empresa.
+</Callout>
 
-  <Tab value="Administrador">
-    O administrador deve validar:
+### Pessoa
 
-    - padronização de nomes;
+O campo **Pessoa** determina o tipo de cadastro e o documento esperado.
+
+| Tipo         | Utilização comum                                            |
+| ------------ | ----------------------------------------------------------- |
+| **Física**   | Consumidor, colaborador, dependente ou contato pessoal.     |
+| **Jurídica** | Empresa, fornecedor, transportadora ou cliente empresarial. |
+
+O preenchimento incorreto pode fazer o sistema solicitar um documento incompatível ou gerar inconsistências fiscais.
+
+### Nome / Razão Social
+
+Informe o nome conforme o documento oficial:
+
+* pessoa física: nome completo;
+* pessoa jurídica: razão social da empresa.
+
+Evite abreviações desnecessárias ou nomes diferentes dos utilizados nos documentos fiscais.
+
+### CPF/CNPJ
+
+O CPF ou CNPJ identifica o participante em vendas, financeiro, documentos fiscais e relatórios.
+
+<Callout type="danger" title="Documento incorreto">
+  Um CPF ou CNPJ inválido pode impedir a emissão da NF-e ou NFC-e e causar divergências fiscais e financeiras.
+</Callout>
+
+### Modelo Fiscal
+
+O campo **Modelo Fiscal** define o documento utilizado por padrão para o participante.
+
+Exemplos:
+
+* **55** — NF-e;
+* **65** — NFC-e.
+
+A configuração deve seguir a operação realizada pela empresa e os parâmetros fiscais vigentes. Confirme o modelo aplicável antes da primeira emissão.
+
+### E-mail NF-e
+
+Informe o endereço que deverá receber os documentos fiscais eletrônicos.
+
+O e-mail de contato geral e o e-mail fiscal podem ser diferentes.
+
+### Situação
+
+| Situação    | Comportamento                                                                  |
+| ----------- | ------------------------------------------------------------------------------ |
+| **Ativo**   | O participante pode ser utilizado nas rotinas do sistema.                      |
+| **Inativo** | O cadastro deixa de ser utilizado em novas operações, preservando o histórico. |
+
+<Callout type="success" title="Preservação do histórico">
+  Prefira **inativar** participantes antigos em vez de excluir cadastros que já possuem movimentações.
+</Callout>
+
+---
+
+## Guias do cadastro
+
+<Tabs items={['Principal', 'Informações pessoais', 'Outros', 'Bloqueios', 'Guias laterais']}>
+  <Tab value="Principal">
+    Reúne os principais dados cadastrais, comerciais e fiscais.
+
+    Normalmente inclui:
+
+    - pessoa;
+    - nome ou razão social;
+    - fantasia;
     - CPF/CNPJ;
+    - documentos pessoais;
     - classificação;
-    - modelo fiscal;
-    - e-mail de NF-e;
     - preço especial;
-    - bloqueios;
-    - rota;
-    - cobrador padrão;
-    - informações financeiras e fiscais.
+    - modelo fiscal;
+    - e-mails;
+    - situação;
+    - foto ou logotipo.
 
-    Também deve revisar duplicidades antes de cadastrar novos participantes.
   </Tab>
 
-  <Tab value="Suporte">
-    O suporte deve verificar:
+  <Tab value="Informações pessoais">
+    Utilizada principalmente para pessoas físicas.
 
-    - se o participante está ativo;
-    - se o CPF/CNPJ está preenchido corretamente;
-    - se há bloqueios comerciais;
-    - se o modelo fiscal está adequado;
-    - se o e-mail NF-e foi informado;
-    - se há divergência de endereço ou telefone;
-    - se existe preço especial vinculado;
-    - se o problema ocorre com um participante específico ou com todos.
+    Pode conter:
 
-    Em caso de erro fiscal, solicite prints do cadastro, dados do documento e mensagem apresentada pelo sistema.
+    - data de nascimento;
+    - sexo;
+    - estado civil;
+    - filiação;
+    - cônjuge;
+    - naturalidade;
+    - nacionalidade;
+    - profissão;
+    - local de trabalho;
+    - renda ou salário.
+
+    Preencha somente os dados necessários para a operação da empresa.
+
+    <Callout type="warning" title="Dados pessoais">
+      Registre dados pessoais, como renda, filiação e estado civil, apenas quando forem necessários à operação e conforme a política de privacidade da empresa.
+    </Callout>
+
+  </Tab>
+
+  <Tab value="Outros">
+    Reúne configurações complementares de cobrança, contabilidade, entrega e comunicação.
+
+    Pode incluir:
+
+    - origem do cliente;
+    - conta contábil;
+    - ordem de rota;
+    - cobrador padrão;
+    - observações;
+    - observação fiscal;
+    - mensagem para boleto ou carnê;
+    - alerta para vendedores.
+
+  </Tab>
+
+  <Tab value="Bloqueios">
+    Permite controlar vendas para participantes com restrições comerciais ou financeiras.
+
+    Exemplos:
+
+    - títulos vencidos;
+    - atraso em pagamentos;
+    - período sem compras;
+    - registro no SPC;
+    - bloqueio manual;
+    - bloqueio por quantidade ou prazo de títulos vencidos.
+
+    <Callout type="warning" title="Configuração sensível">
+      Revise as regras de bloqueio antes de ativá-las, pois elas podem impedir a conclusão de vendas.
+    </Callout>
+
+
+  </Tab>
+
+  <Tab value="Guias laterais">
+    Complementam o cadastro conforme a função do participante.
+
+    Podem incluir:
+
+    - endereço;
+    - telefone;
+    - fornecedor;
+    - colaborador;
+    - vendedor;
+    - contato;
+    - dependente;
+    - convênio;
+    - contrato;
+    - referência;
+    - venda particular;
+    - haver;
+    - cashback.
+
   </Tab>
 </Tabs>
 
 ---
 
-# Boas práticas
+## Endereço e telefone
 
-- Consulte antes de cadastrar para evitar duplicidade.
-- Preencha nome ou razão social conforme documento oficial.
-- Informe CPF/CNPJ com atenção.
-- Use classificações padronizadas.
-- Mantenha telefone e e-mail atualizados.
-- Preencha o e-mail NF-e quando houver envio automático de documentos fiscais.
-- Configure preço especial apenas quando houver regra comercial definida.
-- Use alerta para vendedores em situações importantes.
-- Configure bloqueios com critério e comunique a equipe comercial.
-- Prefira inativar cadastros antigos em vez de excluir.
-- Revise os dados fiscais antes de emitir notas.
-- Preencha endereço e telefone sempre que o participante for usado em vendas, entrega ou cobrança.
+O endereço pode ser utilizado na emissão fiscal, cobrança, entrega e definição de rotas.
 
-<Callout type="success" title="Boa prática cadastral">
-  Um cadastro de participante bem preenchido reduz erros em vendas, cobranças, emissão fiscal e atendimento ao cliente.
+Confira principalmente:
+
+* CEP;
+* logradouro;
+* número;
+* bairro;
+* município;
+* UF;
+* código do município;
+* tipo ou finalidade do endereço.
+
+O telefone deve ser mantido atualizado para contato comercial, financeiro e suporte.
+
+<Callout type="info" title="Mais de um endereço">
+  Quando a empresa utilizar endereço fiscal, cobrança e entrega diferentes, cadastre cada endereço com sua finalidade correta.
 </Callout>
 
 ---
 
-# Impactos no sistema
+## Configurações comerciais
 
-| Área | Impacto |
-|---|---|
-| Vendas | Define cliente, alertas, bloqueios, preço especial e dados usados no atendimento. |
-| Compras | Permite utilizar o participante como fornecedor em rotinas de entrada e contas a pagar. |
-| Fiscal | CPF/CNPJ, modelo fiscal e e-mail NF-e podem impactar documentos fiscais. |
-| Financeiro | Participante é usado em títulos, cobranças, boletos, carnês e histórico financeiro. |
-| Entrega | Endereço e ordem de rota podem impactar logística e distribuição. |
-| Contabilidade | Conta contábil pode ser usada em integração contábil, quando aplicável. |
-| Relatórios | Classificação, situação e dados cadastrais influenciam filtros e análises. |
-| Suporte | Dados incorretos podem gerar chamados relacionados a venda, fiscal, financeiro e bloqueios. |
+<Tabs items={['Classificação', 'Preço especial', 'Desconto', 'Alertas']}>
+  <Tab value="Classificação">
+    Utilize a classificação para organizar os participantes.
 
-<Callout type="warning" title="Impacto operacional">
-  Alterações em CPF/CNPJ, situação, bloqueios, preço especial e modelo fiscal devem ser feitas com cuidado, pois podem alterar o comportamento do sistema.
-</Callout>
+    Exemplos:
+
+    - cliente varejo;
+    - cliente atacado;
+    - fornecedor;
+    - transportadora;
+    - parceiro;
+    - colaborador.
+
+    A classificação pode ser utilizada em filtros, consultas e relatórios.
+
+  </Tab>
+
+  <Tab value="Preço especial">
+    Vincula o participante a uma tabela, grupo ou regra diferenciada de preço.
+
+    Caso o preço não seja aplicado, verifique também as configurações do produto, departamento ou grupo de preço.
+
+  </Tab>
+
+  <Tab value="Desconto">
+    O desconto máximo limita o percentual que poderá ser concedido ao participante, conforme as regras da empresa.
+
+    Evite cadastrar percentuais sem uma política comercial definida.
+
+  </Tab>
+
+  <Tab value="Alertas">
+    O campo **Alerta para Vendedores** exibe uma mensagem ao selecionar o participante durante a venda.
+
+    Exemplos:
+
+    - confirmar endereço de entrega;
+    - consultar o financeiro;
+    - venda somente à vista;
+    - cliente possui condição comercial específica.
+
+  </Tab>
+</Tabs>
 
 ---
 
-# Checklist antes de salvar
+## Exemplos de cadastro
 
-Antes de salvar o cadastro de Participante, confira:
-
-- tipo de pessoa selecionado;
-- nome ou razão social preenchido;
-- CPF/CNPJ informado corretamente, quando aplicável;
-- fantasia preenchida para pessoa jurídica, se necessário;
-- classificação revisada;
-- preço especial vinculado corretamente, quando houver;
-- modelo fiscal conferido;
-- e-mail principal informado;
-- e-mail NF-e informado, quando necessário;
-- situação como ativo ou inativo conforme o caso;
-- endereço preenchido;
-- telefone preenchido;
-- dados financeiros revisados;
-- bloqueios configurados corretamente;
-- alerta para vendedores revisado;
-- observações preenchidas, quando necessário;
-- ausência de cadastro duplicado.
-
----
-
-# Exemplos de configuração
-
-<Tabs items={['Cliente pessoa física', 'Cliente pessoa jurídica', 'Fornecedor', 'Cliente com bloqueio']}>
+<Tabs items={['Cliente pessoa física', 'Cliente pessoa jurídica', 'Fornecedor']}>
   <Tab value="Cliente pessoa física">
-    Exemplo:
-
     ```txt
     Pessoa: Física
     Nome / Razão Social: João da Silva
     CPF/CNPJ: CPF do cliente
-    E-mail: email do cliente
+    E-mail: contato do cliente
     Situação: Ativo
-    Modelo Fiscal: conforme operação
     ```
 
-    **Resultado esperado:** o cliente pode ser usado em vendas, financeiro e documentos, conforme configuração.
+    Preencha também endereço e telefone quando o cliente for utilizado em entrega, cobrança ou emissão fiscal.
+
   </Tab>
 
   <Tab value="Cliente pessoa jurídica">
-    Exemplo:
-
     ```txt
     Pessoa: Jurídica
     Nome / Razão Social: Empresa Exemplo Ltda
     Fantasia: Empresa Exemplo
     CPF/CNPJ: CNPJ da empresa
     E-mail NF-e: fiscal@empresa.com.br
-    Situação: Ativo
     Modelo Fiscal: 55
+    Situação: Ativo
     ```
 
-    **Resultado esperado:** a empresa pode ser usada em vendas, emissão fiscal e financeiro.
+    Confira os dados fiscais antes de realizar a primeira emissão.
+
   </Tab>
 
   <Tab value="Fornecedor">
-    Exemplo:
-
     ```txt
     Pessoa: Jurídica
     Nome / Razão Social: Fornecedor Exemplo Ltda
     CPF/CNPJ: CNPJ do fornecedor
     Classificação: Fornecedor
     Situação: Ativo
-    Guia lateral: Fornecedor preenchida quando aplicável
     ```
 
-    **Resultado esperado:** o participante pode ser usado em compras, entradas e contas a pagar.
-  </Tab>
+    Preencha a guia **Fornecedor** e as informações financeiras necessárias para compras e contas a pagar.
 
-  <Tab value="Cliente com bloqueio">
-    Exemplo:
-
-    ```txt
-    Bloquear venda por atraso: Sim
-    Com títulos vencidos há X dias: conforme política da empresa
-    Registro SPC: quando aplicável
-    Alerta para vendedores: Verificar financeiro antes da venda
-    ```
-
-    **Resultado esperado:** o sistema alerta ou bloqueia vendas conforme a política definida.
   </Tab>
 </Tabs>
 
 ---
 
-# Problemas comuns
+## Checklist antes de salvar
+
+<Cards>
+  <Card title="Identificação">
+    Tipo de pessoa, nome, razão social, fantasia e CPF/CNPJ conferidos.
+  </Card>
+
+  <Card title="Contato">
+    Endereço, telefone, e-mail principal e e-mail de NF-e atualizados.
+  </Card>
+
+  <Card title="Configuração">
+    Classificação, modelo fiscal, preço especial e situação revisados.
+  </Card>
+
+  <Card title="Restrições">
+    Bloqueios, alertas, desconto máximo e observações validados.
+  </Card>
+</Cards>
+
+Antes de concluir, confirme:
+
+* o participante não está duplicado;
+* o tipo de pessoa está correto;
+* o CPF/CNPJ corresponde ao participante;
+* o nome está de acordo com o documento oficial;
+* o endereço está completo;
+* o município e a UF estão corretos;
+* o e-mail de NF-e está atualizado;
+* a situação está adequada;
+* os bloqueios foram configurados corretamente;
+* o preço especial está vinculado somente quando necessário.
+
+---
+
+## Problemas comuns
 
 <Accordions type="single">
-  <Accordion title="O participante não aparece na venda" id="participante-nao-aparece-venda">
-    Verifique se o participante está com **Situação: Ativo**.
+  <Accordion title="O participante não aparece na venda" id="participante-nao-aparece">
+    Verifique se o cadastro está com **Situação: Ativo**.
 
-    Também confira se existem filtros aplicados, se o cadastro foi salvo corretamente e se o usuário possui permissão para visualizar o participante.
+    Confira também se:
+
+    - o cadastro foi salvo;
+    - existem filtros na consulta;
+    - o usuário possui permissão;
+    - o participante possui alguma restrição específica.
+
   </Accordion>
 
-  <Accordion title="O sistema informa CPF/CNPJ inválido" id="cpf-cnpj-invalido">
-    Confira se o documento foi digitado corretamente e se o tipo de pessoa está adequado.
+  <Accordion title="O sistema informa CPF ou CNPJ inválido" id="documento-invalido">
+    Confira o número informado e o tipo de pessoa selecionado.
 
-    Para pessoa física, o sistema espera CPF. Para pessoa jurídica, o sistema espera CNPJ.
+    Para pessoa física, informe CPF. Para pessoa jurídica, informe CNPJ.
+
   </Accordion>
 
-  <Accordion title="A venda foi bloqueada para o cliente" id="venda-bloqueada-cliente">
-    Verifique a guia **Bloqueios**.
+  <Accordion title="A venda foi bloqueada" id="venda-bloqueada">
+    Consulte a guia **Bloqueios** e o histórico financeiro do participante.
 
-    O bloqueio pode ocorrer por títulos vencidos, recebimentos com atraso, período sem compras, registro SPC ou bloqueio por atraso.
+    O bloqueio pode estar relacionado a títulos vencidos, atraso em pagamentos, SPC ou bloqueio manual.
+
   </Accordion>
 
-  <Accordion title="O preço especial não foi aplicado" id="preco-especial-nao-aplicado">
-    Confira se o campo **Preço Especial** está preenchido no participante.
+  <Accordion title="O preço especial não foi aplicado" id="preco-nao-aplicado">
+    Verifique se o campo **Preço Especial** está preenchido.
 
-    Também valide se as regras relacionadas em produto, departamento ou grupo de preço estão configuradas, quando aplicável.
+    Confira também as regras vinculadas ao produto, departamento, tabela ou grupo de preço.
+
   </Accordion>
 
-  <Accordion title="A NF-e não foi enviada para o e-mail correto" id="nfe-email-incorreto">
-    Verifique o campo **E-mail NF-e**.
+  <Accordion title="A NF-e foi enviada para o e-mail incorreto" id="email-nfe-incorreto">
+    Revise o campo **E-mail NF-e**.
 
-    Caso esteja vazio ou incorreto, o envio automático pode não ocorrer para o destinatário esperado.
+    Alterar apenas o e-mail principal pode não modificar o destinatário utilizado no envio fiscal.
+
   </Accordion>
 
-  <Accordion title="O cadastro está duplicado" id="cadastro-duplicado">
-    Pesquise pelo nome, CPF/CNPJ, telefone e fantasia antes de criar um novo cadastro.
+  <Accordion title="O participante está duplicado" id="participante-duplicado">
+    Compare os cadastros pelo CPF/CNPJ, nome, fantasia, telefone e endereço.
 
-    Se houver duplicidade, avalie manter apenas o cadastro correto e inativar o outro, conforme orientação da empresa.
+    Preserve o cadastro que possui o histórico correto e inative o cadastro duplicado, conforme a política da empresa.
+
   </Accordion>
 
-  <Accordion title="O vendedor recebeu uma mensagem ao selecionar o cliente" id="alerta-vendedor">
-    Verifique o campo **Alerta para Vendedores** na guia **Outros**.
+  <Accordion title="O endereço não aparece no documento" id="endereco-nao-aparece">
+    Verifique se o endereço foi salvo e se sua finalidade está configurada corretamente.
 
-    Esse campo é usado para exibir informações importantes durante a venda.
+    Confira também CEP, município, UF e código do município.
+
   </Accordion>
 
-  <Accordion title="O endereço ou telefone não aparece" id="endereco-telefone-nao-aparece">
-    Confira as guias laterais **Endereço** e **Telefone**.
+  <Accordion title="O vendedor recebe uma mensagem ao selecionar o cliente" id="mensagem-vendedor">
+    Consulte o campo **Alerta para Vendedores** na guia **Outros**.
 
-    O participante pode possuir múltiplos endereços e telefones, conforme configuração.
+    A mensagem pode conter orientações comerciais, financeiras ou de entrega.
+
   </Accordion>
 </Accordions>
 
 ---
 
-# Perguntas frequentes
+## Perguntas frequentes
 
 <Accordions type="single">
-  <Accordion title="Para que serve o cadastro de Participante?" id="para-que-serve-participante">
-    Serve para cadastrar pessoas e empresas utilizadas no Syspro ERP, como clientes, fornecedores, colaboradores, vendedores, contatos e outros relacionamentos.
+  <Accordion title="Qual é a diferença entre participante e cliente?" id="participante-cliente">
+    **Participante** é o cadastro principal.
+
+    Cliente, fornecedor, vendedor, colaborador e outros relacionamentos são funções que o participante pode exercer no sistema.
+
   </Accordion>
 
-  <Accordion title="Onde acesso o cadastro de Participante?" id="onde-acessar-participante">
-    Acesse **Cadastro > Participante > Participante**.
+  <Accordion title="É obrigatório informar CPF ou CNPJ?" id="cpf-cnpj-obrigatorio">
+    A obrigatoriedade depende da operação e das configurações da empresa.
+
+    Para emissão fiscal e determinadas rotinas financeiras, o documento pode ser obrigatório.
+
   </Accordion>
 
-  <Accordion title="Preciso preencher CPF/CNPJ?" id="precisa-cpf-cnpj">
-    Depende da operação da empresa.
+  <Accordion title="Qual é a diferença entre E-mail e E-mail NF-e?" id="diferenca-email">
+    O campo **E-mail** é utilizado para contato geral.
 
-    Quando o participante for usado em rotinas fiscais, financeiras ou emissão de documentos, o preenchimento correto é recomendado e pode ser obrigatório conforme configuração.
+    O campo **E-mail NF-e** é utilizado para envio de documentos fiscais eletrônicos.
+
   </Accordion>
 
-  <Accordion title="Qual a diferença entre E-mail e E-mail NF-e?" id="email-vs-email-nfe">
-    O campo **E-mail** é usado para contato geral.
+  <Accordion title="Posso excluir um participante?" id="excluir-participante">
+    Não é recomendado excluir participantes que já possuem movimentações.
 
-    O campo **E-mail NF-e** é usado para envio automático de documentos fiscais, quando aplicável.
+    Utilize a situação **Inativo** para preservar vendas, títulos, documentos e demais históricos.
+
   </Accordion>
 
-  <Accordion title="O que acontece se o participante estiver inativo?" id="participante-inativo">
-    O participante pode deixar de aparecer em novas vendas, compras ou rotinas operacionais.
+  <Accordion title="Um participante pode ser cliente e fornecedor?" id="cliente-fornecedor">
+    Sim.
 
-    O histórico anterior permanece preservado.
+    O mesmo participante pode possuir mais de um relacionamento, desde que as guias e configurações necessárias estejam preenchidas.
+
   </Accordion>
 
-  <Accordion title="Para que serve o campo Preço Especial?" id="preco-especial">
-    Serve para vincular o participante a uma condição comercial diferenciada, conforme regras configuradas pela empresa.
-  </Accordion>
+  <Accordion title="O que conferir antes de chamar o suporte?" id="conferir-suporte">
+    Verifique:
 
-  <Accordion title="Para que serve o Alerta para Vendedores?" id="alerta-para-vendedores">
-    Serve para exibir uma mensagem importante ao vendedor durante a venda.
+    - situação do participante;
+    - CPF/CNPJ;
+    - endereço;
+    - modelo fiscal;
+    - e-mail NF-e;
+    - bloqueios;
+    - preço especial;
+    - alerta para vendedores.
 
-    Pode ser usado para avisos financeiros, comerciais, de entrega ou atendimento.
-  </Accordion>
+    Informe também em qual rotina o problema ocorreu e encaminhe a mensagem apresentada pelo sistema.
 
-  <Accordion title="Posso excluir um participante?" id="posso-excluir-participante">
-    Em geral, não é recomendado excluir participantes que já foram usados em vendas, compras, títulos ou documentos.
-
-    A melhor prática é inativar o cadastro para preservar o histórico.
-  </Accordion>
-
-  <Accordion title="Como evitar duplicidade de participantes?" id="evitar-duplicidade">
-    Antes de cadastrar, pesquise por CPF/CNPJ, nome, fantasia, telefone e e-mail.
-
-    Use padrões de nomenclatura para facilitar a identificação.
-  </Accordion>
-
-  <Accordion title="O que devo conferir antes de chamar o suporte?" id="antes-de-chamar-suporte-participante">
-    Confira se o participante está ativo, se CPF/CNPJ está correto, se há bloqueios configurados, se o e-mail NF-e está preenchido e se existem alertas ou preço especial vinculados.
-
-    Se possível, envie print do cadastro e descreva em qual rotina o problema ocorreu.
   </Accordion>
 </Accordions>
 
 ---
 
-# Resumo
+## Impactos do cadastro
 
-O cadastro de **Participante** é um dos cadastros mais importantes do Syspro ERP, pois centraliza pessoas e empresas utilizadas em vendas, compras, financeiro, fiscal, rotas, cobrança e relatórios.
+| Área              | Principais impactos                                            |
+| ----------------- | -------------------------------------------------------------- |
+| **Vendas**        | Cliente, preço especial, desconto, alertas e bloqueios.        |
+| **Compras**       | Fornecedor, entradas e contas a pagar.                         |
+| **Fiscal**        | CPF/CNPJ, razão social, endereço, modelo fiscal e e-mail NF-e. |
+| **Financeiro**    | Títulos, boletos, carnês, cobranças e histórico de pagamentos. |
+| **Entrega**       | Endereço, telefone e ordem de rota.                            |
+| **Contabilidade** | Conta contábil e integrações contábeis.                        |
+| **Relatórios**    | Classificação, situação e identificação do participante.       |
 
-Um participante bem cadastrado reduz erros operacionais, melhora a qualidade das informações e facilita o trabalho de usuários, administradores e suporte.
-
-<Callout type="success" title="Resumo">
-  Cadastre participantes com dados claros, revise CPF/CNPJ, mantenha contatos atualizados, configure bloqueios com cuidado e valide informações fiscais antes de usar o cadastro em operações reais.
+<Callout type="success" title="Resultado esperado">
+  Um participante corretamente cadastrado poderá ser utilizado nas rotinas autorizadas, com dados comerciais, financeiros e fiscais consistentes.
 </Callout>
