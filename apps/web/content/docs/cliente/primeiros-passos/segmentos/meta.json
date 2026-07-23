@@ -1,0 +1,10 @@
+{
+  "root": false,
+  "title": "Guias por segmento",
+  "description": "Trilhas de implantação e operação organizadas por modelo de negócio.",
+  "pages": [
+    "index",
+    "comercial",
+    "auto-center"
+  ]
+}

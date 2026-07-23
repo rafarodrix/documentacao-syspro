@@ -20,8 +20,10 @@ const nextConfig = {
     return [
       { source: '/docs/suporte', destination: '/portal/docs/suporte', permanent: false },
       { source: '/docs/manuais-tecnicos', destination: '/portal/docs/suporte', permanent: false },
-      { source: '/docs/treinamento/steps-comercial', destination: '/portal/docs/cliente/primeiros-passos/steps-comercial', permanent: false },
-      { source: '/docs/treinamento/steps-auto-center', destination: '/portal/docs/cliente/primeiros-passos/steps-auto-center', permanent: false },
+      { source: '/docs/treinamento/steps-comercial', destination: '/portal/docs/cliente/primeiros-passos/segmentos/comercial', permanent: false },
+      { source: '/docs/treinamento/steps-auto-center', destination: '/portal/docs/cliente/primeiros-passos/segmentos/auto-center', permanent: false },
+      { source: '/portal/docs/cliente/primeiros-passos/steps-comercial', destination: '/portal/docs/cliente/primeiros-passos/segmentos/comercial', permanent: true },
+      { source: '/portal/docs/cliente/primeiros-passos/steps-auto-center', destination: '/portal/docs/cliente/primeiros-passos/segmentos/auto-center', permanent: true },
     ];
   },
   images: {
