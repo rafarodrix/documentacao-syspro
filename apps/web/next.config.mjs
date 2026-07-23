@@ -24,6 +24,7 @@ const nextConfig = {
       { source: '/docs/treinamento/steps-auto-center', destination: '/portal/docs/cliente/primeiros-passos/segmentos/auto-center', permanent: false },
       { source: '/portal/docs/cliente/primeiros-passos/steps-comercial', destination: '/portal/docs/cliente/primeiros-passos/segmentos/comercial', permanent: true },
       { source: '/portal/docs/cliente/primeiros-passos/steps-auto-center', destination: '/portal/docs/cliente/primeiros-passos/segmentos/auto-center', permanent: true },
+      { source: '/portal/docs/cliente/primeiros-passos/fluxo-essencial', destination: '/portal/docs/cliente/primeiros-passos', permanent: true },
     ];
   },
   images: {

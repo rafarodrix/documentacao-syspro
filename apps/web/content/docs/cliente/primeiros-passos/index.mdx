@@ -1,31 +1,87 @@
 ---
 title: Primeiros Passos
-description: Trilhas de operação guiadas passo a passo, separadas por segmento de atuação.
-lastUpdated: 2026-05-13
-owner: Equipe de Documentacao
+description: Jornada guiada para preparar os cadastros, realizar a primeira operação e aplicar o fluxo ao segmento da empresa.
+lastUpdated: 2026-07-23
+owner: Equipe de Documentação
 status: published
 tags:
   - primeiros-passos
+  - operacao
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
 import { Cards, Card } from 'fumadocs-ui/components/card';
-import { Building2, Route, Wrench, UserRoundPlus } from 'lucide-react';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { BadgeCheck, Building2, FileText, ReceiptText, WalletCards, Wrench } from 'lucide-react';
 
-Esta seção reúne os guias para iniciar a operação, preparar cadastros e aplicar o fluxo ao seu segmento. Comece pela jornada essencial se precisa de uma visão sequencial da primeira operação.
+Use esta página como a jornada inicial da operação. Siga as etapas na ordem apresentada: cada uma prepara os dados e as decisões necessárias para a próxima.
 
-Escolha a trilha de aprendizado correspondente ao seu modelo de negócio:
+<Callout type="info" title="Uma jornada, vários segmentos">
+  O fluxo abaixo é comum a qualquer negócio. Depois de concluir a base, use o guia do seu segmento para aplicar as particularidades da sua operação.
+</Callout>
+
+## Jornada da primeira operação
+
+<Steps>
+  <Step>
+    ### 1. Preparar os cadastros-base
+
+    Cadastre participantes, produtos e serviços antes de iniciar uma venda. A qualidade desses dados influencia preço, estoque, financeiro e emissão fiscal.
+
+    [Abrir Cadastros rápidos](/portal/docs/cliente/primeiros-passos/cadastros-rapidos)
+  </Step>
+
+  <Step>
+    ### 2. Registrar o primeiro Pedido de Venda
+
+    Selecione o participante, inclua os itens, confira quantidades, preços e pagamento e salve o pedido. O pedido organiza a operação comercial antes do faturamento.
+
+    [Abrir tutorial da primeira venda](/portal/docs/cliente/primeiros-passos/pedido-venda)
+  </Step>
+
+  <Step>
+    ### 3. Concluir a operação fiscal quando aplicável
+
+    Antes de emitir, revise participante, itens e regras fiscais. A emissão depende da natureza da operação e das configurações da empresa.
+
+    [Consultar documentação fiscal](/portal/docs/cliente/documentacao/fiscal)
+  </Step>
+
+  <Step>
+    ### 4. Acompanhar o financeiro
+
+    Confirme os títulos, recebimentos, caixa e demais efeitos financeiros gerados pela operação.
+
+    [Consultar documentação financeira](/portal/docs/cliente/documentacao/financeiro)
+  </Step>
+</Steps>
+
+## Atalhos da jornada
 
 <Cards>
-  <Card title="Cadastros rápidos" href="/portal/docs/cliente/primeiros-passos/cadastros-rapidos" icon={<UserRoundPlus />}>
-    Vídeos, dados mínimos e atalhos para iniciar os cadastros mais usados.
+  <Card title="Cadastros rápidos" href="/portal/docs/cliente/primeiros-passos/cadastros-rapidos" icon={<BadgeCheck />}>
+    Participantes, produtos e serviços: vídeo, dados mínimos e manuais completos.
   </Card>
-  <Card title="Fluxo essencial da operação" href="/portal/docs/cliente/primeiros-passos/fluxo-essencial" icon={<Route />}>
-    Jornada da primeira operação: cadastros, pedido de venda, fiscal e financeiro.
+  <Card title="Primeira venda" href="/portal/docs/cliente/primeiros-passos/pedido-venda" icon={<FileText />}>
+    Tutorial e vídeo para criar, conferir e salvar o primeiro Pedido de Venda.
   </Card>
+  <Card title="Fiscal" href="/portal/docs/cliente/documentacao/fiscal" icon={<ReceiptText />}>
+    Regras e validações para documentos fiscais.
+  </Card>
+  <Card title="Financeiro" href="/portal/docs/cliente/documentacao/financeiro" icon={<WalletCards />}>
+    Títulos, caixa e acompanhamento financeiro da operação.
+  </Card>
+</Cards>
+
+## Aplique ao seu segmento
+
+As trilhas abaixo não repetem os cadastros e rotinas globais. Elas mostram a ordem recomendada e os cuidados específicos de cada modelo de negócio.
+
+<Cards>
   <Card title="Segmento Comercial" href="/portal/docs/cliente/primeiros-passos/segmentos/comercial" icon={<Building2 />}>
-    Varejo, atacado e comércio em geral. Do cadastro à gestão financeira.
+    Varejo, atacado e comércio em geral: do cadastro à gestão financeira.
   </Card>
   <Card title="Segmento Auto Center" href="/portal/docs/cliente/primeiros-passos/segmentos/auto-center" icon={<Wrench />}>
-    Oficinas e mecânicas. Focado na gestão de veículos e ordens de serviço.
+    Oficinas e mecânicas: peças, veículos, ordens de serviço e gestão financeira.
   </Card>
 </Cards>
