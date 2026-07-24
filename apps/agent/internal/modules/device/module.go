@@ -341,7 +341,7 @@ func (m *Module) GetSyncSnapshots() (metrics, system, network, software, hardwar
 func (m *Module) GetSysproRuntimeProbes() any {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	if m.lastRuntimeProbes == nil || !m.inSyncBatch(collectorSysproRuntimeProbes) {
+	if m.lastRuntimeProbes == nil || len(m.lastRuntimeProbes.Results) == 0 || !m.inSyncBatch(collectorSysproRuntimeProbes) {
 		return nil
 	}
 	return m.lastRuntimeProbes

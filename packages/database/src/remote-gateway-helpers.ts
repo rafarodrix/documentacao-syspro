@@ -476,3 +476,85 @@ export async function syncErpInstallations(
     });
   }
 }
+
+export type ErpRuntimeProbeResultPayload = {
+  installationId: string;
+  status: "VERIFIED" | "UNREACHABLE";
+  runtimeType?: string | null;
+  port?: number | null;
+  checkedAt?: Date | null;
+};
+
+export function normalizeErpRuntimeProbeResults(snapshot: unknown): ErpRuntimeProbeResultPayload[] {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+    return [];
+  }
+  const results = (snapshot as { results?: unknown }).results;
+  if (!Array.isArray(results)) {
+    return [];
+  }
+
+  const out: ErpRuntimeProbeResultPayload[] = [];
+  for (const entry of results) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const record = entry as Record<string, unknown>;
+    const installationId =
+      typeof record.installationId === "string"
+        ? record.installationId.trim()
+        : typeof record.installation_id === "string"
+          ? record.installation_id.trim()
+          : "";
+    const statusRaw = typeof record.status === "string" ? record.status.trim().toUpperCase() : "";
+    if (!installationId || (statusRaw !== "VERIFIED" && statusRaw !== "UNREACHABLE")) continue;
+
+    const port =
+      typeof record.port === "number" && Number.isInteger(record.port) && record.port > 0 && record.port <= 65535
+        ? record.port
+        : null;
+    const runtimeType = typeof record.runtimeType === "string" ? record.runtimeType.trim() : null;
+    const checkedAtRaw = typeof record.checkedAt === "string" ? record.checkedAt : null;
+    const checkedAt = checkedAtRaw ? new Date(checkedAtRaw) : null;
+
+    out.push({
+      installationId,
+      status: statusRaw,
+      runtimeType: runtimeType || null,
+      port,
+      checkedAt: checkedAt && !Number.isNaN(checkedAt.getTime()) ? checkedAt : null,
+    });
+  }
+  return out;
+}
+
+export async function applyErpRuntimeProbeResults(
+  tx: Prisma.TransactionClient,
+  input: {
+    hostId: string;
+    heartbeatAt: Date;
+    probes: unknown;
+  },
+) {
+  const results = normalizeErpRuntimeProbeResults(input.probes);
+  if (results.length === 0) return;
+
+  for (const result of results) {
+    const existing = await tx.erpInstallation.findFirst({
+      where: { id: result.installationId, deviceId: input.hostId },
+      select: { id: true },
+    });
+    if (!existing) continue;
+
+    const checkedAt = result.checkedAt ?? input.heartbeatAt;
+    await tx.erpInstallation.update({
+      where: { id: existing.id },
+      data: {
+        runtimeStatus: result.status,
+        lastRuntimeCheckAt: checkedAt,
+        ...(result.port ? { detectedPort: result.port } : {}),
+        ...(result.runtimeType === "SYSPRO_SERVER" || result.runtimeType === "IIS"
+          ? { detectedRuntimeType: result.runtimeType }
+          : {}),
+      },
+    });
+  }
+}

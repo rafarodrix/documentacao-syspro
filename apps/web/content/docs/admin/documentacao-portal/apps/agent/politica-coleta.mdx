@@ -36,7 +36,7 @@ O watcher operacional de servicos criticos consulta o SCM nativo do Windows a ca
 | --- | --- | --- | --- |
 | Heartbeat | 30 s servidor; 60-120 s estacao | identidade, versao, estado do agente | sempre, payload minimo |
 | Operacional | 1-5 min | CPU/RAM agregados, discos, processos e servicos criticos | valor atual ou mudanca relevante |
-| Verificacao | 15-30 min | portas, endpoint Syspro/IIS, Firebird, compliance RustDesk | resultado resumido |
+| Verificacao | 5 min (servidor) | `syspro_runtime_probes` (TCP/HTTP por instalação configurada), Firebird (futuro), compliance RustDesk | `ErpInstallation.runtimeStatus` (`VERIFIED`/`UNREACHABLE`) |
 | Inventario | diario, com jitter | hardware, software, rede, servicos completos, instalacoes | somente delta |
 | Diagnostico | semanal ou sob demanda | varreduras, hashes, eventos e performance profunda | somente mediante politica ou comando |
 

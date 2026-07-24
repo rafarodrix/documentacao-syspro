@@ -71,6 +71,31 @@ func TestResolveCollectionPolicyRespectsCollectorOverrides(t *testing.T) {
 	}
 }
 
+func TestResolveCollectionPolicyServerEnablesRuntimeProbes(t *testing.T) {
+	policy := resolveCollectionPolicy(domain.DeviceDesiredState{
+		Enabled:           true,
+		CollectInventory:  true,
+		CollectMetrics:    true,
+		CollectionProfile: "server_syspro",
+	})
+	if !policy.enabled(collectorSysproRuntimeProbes) {
+		t.Fatal("server_syspro must enable syspro_runtime_probes")
+	}
+	if got := policy.schedule(collectorSysproRuntimeProbes).interval; got != 5*time.Minute {
+		t.Fatalf("probe interval=%v", got)
+	}
+
+	unlinked := resolveCollectionPolicy(domain.DeviceDesiredState{
+		Enabled:           true,
+		CollectInventory:  true,
+		CollectMetrics:    true,
+		CollectionProfile: "unlinked",
+	})
+	if unlinked.enabled(collectorSysproRuntimeProbes) {
+		t.Fatal("unlinked must not run runtime probes")
+	}
+}
+
 func TestResolveCollectionPolicyLegacyFlagsDisableFamilies(t *testing.T) {
 	policy := resolveCollectionPolicy(domain.DeviceDesiredState{
 		Enabled:           true,

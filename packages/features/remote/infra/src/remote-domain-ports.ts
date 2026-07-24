@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import {
+  applyErpRuntimeProbeResults,
   buildErpInstallationsFromSysproSnapshot,
   normalizeCompareValue,
   normalizeSysproUpdates,
@@ -797,6 +798,12 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
             hostId: record.context.hostId,
             heartbeatAt: record.heartbeatAt,
             installations: buildErpInstallationsFromSysproSnapshot(record.sysproVersions),
+          });
+
+          await applyErpRuntimeProbeResults(tx, {
+            hostId: record.context.hostId,
+            heartbeatAt: record.heartbeatAt,
+            probes: record.sysproRuntimeProbes,
           });
 
           if (record.criticalEvents.length > 0) {

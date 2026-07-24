@@ -48,6 +48,7 @@ export function ErpInstallationsView({ details, hostId }: Props) {
       {installations.map((installation) => {
         const expanded = expandedId === installation.id;
         const running = installation.serviceStatus === "running";
+        const runtimeBadge = runtimeStatusBadge(installation.runtimeStatus);
         return (
           <article key={installation.id} className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
             <button
@@ -60,13 +61,14 @@ export function ErpInstallationsView({ details, hostId }: Props) {
                   <Server className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="flex items-center gap-2">
+                  <span className="flex flex-wrap items-center gap-2">
                     <span className="truncate font-semibold">{installation.rootPath}</span>
                     {running ? (
                       <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600">
                         Em execução
                       </span>
                     ) : null}
+                    <span className={runtimeBadge.className}>{runtimeBadge.label}</span>
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {installation.version ?? "Versão sem leitura"} ·{" "}
@@ -83,8 +85,10 @@ export function ErpInstallationsView({ details, hostId }: Props) {
                       ? `porta ${installation.configuredPort}`
                       : installation.requestedPort
                         ? `porta ${installation.requestedPort} em conflito`
-                        : "porta não informada"}{" "}
-                    · {installation.runtimeStatus}
+                        : "porta não informada"}
+                    {installation.lastRuntimeCheckAt
+                      ? ` · último probe ${formatDateTime(installation.lastRuntimeCheckAt)}`
+                      : ""}
                   </span>
                 </span>
               </span>
@@ -244,7 +248,13 @@ function InstallationRuntimeForm({
           Configuração RMM da instalação
         </h5>
         <p className="mt-1 text-xs text-muted-foreground">
-          Amarrar empresa + porta + runtime permite probes locais do agente e coleta completa de servidor.
+          Amarrar empresa + porta + runtime permite probes locais do agente (~5 min no perfil Servidor) e coleta
+          completa. Status atual:{" "}
+          <span className="font-medium text-foreground">{runtimeStatusBadge(installation.runtimeStatus).label}</span>
+          {installation.lastRuntimeCheckAt
+            ? ` · último probe ${formatDateTime(installation.lastRuntimeCheckAt)}`
+            : " · aguardando primeiro probe"}
+          .
         </p>
       </div>
 
@@ -352,4 +362,38 @@ function PathDetail({ icon, label, value }: { icon: ReactNode; label: string; va
       <p className="mt-1 truncate font-mono text-xs">{value ?? "Sem leitura"}</p>
     </div>
   );
+}
+
+function runtimeStatusBadge(status: string): { label: string; className: string } {
+  const base = "rounded-full border px-2 py-0.5 text-xs font-semibold";
+  switch (status) {
+    case "VERIFIED":
+      return {
+        label: "Verificado",
+        className: `${base} border-emerald-500/20 bg-emerald-500/10 text-emerald-600`,
+      };
+    case "UNREACHABLE":
+      return {
+        label: "Inalcançável",
+        className: `${base} border-destructive/20 bg-destructive/10 text-destructive`,
+      };
+    case "CONFIGURED":
+      return {
+        label: "Configurado",
+        className: `${base} border-sky-500/20 bg-sky-500/10 text-sky-700`,
+      };
+    case "PORT_CONFLICT":
+    case "PORT_MISMATCH":
+    case "RUNTIME_MISMATCH":
+    case "INVALID_CONFIGURATION":
+      return {
+        label: "Atenção",
+        className: `${base} border-amber-500/20 bg-amber-500/10 text-amber-700`,
+      };
+    default:
+      return {
+        label: "Pendente",
+        className: `${base} border-border/60 bg-muted/40 text-muted-foreground`,
+      };
+  }
 }
