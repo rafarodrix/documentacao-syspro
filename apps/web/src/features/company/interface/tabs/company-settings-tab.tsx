@@ -3,8 +3,6 @@
 import { useFormContext, useFieldArray } from "react-hook-form";
 import {
   COMPANY_REMOTE_CONNECTION_TYPE_VALUES,
-  COMPANY_SERVER_PROTOCOL_VALUES,
-  COMPANY_SERVER_TYPE_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
 import type { TaskConfigUpsertInput, TaskConfigView } from "@dosc-syspro/contracts/tarefas";
@@ -39,159 +37,44 @@ export function CompanySettingsTab({
     name: "remoteConnections",
   });
 
-  const currentServerType = form.watch("serverType");
   const remoteConnections = form.watch("remoteConnections") ?? [];
   const accountingFirmId = form.watch("accountingFirmId");
 
   return (
     <Tabs defaultValue="instalacao" className="space-y-5">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="instalacao">Instalacao</TabsTrigger>
+        <TabsTrigger value="instalacao">Acesso</TabsTrigger>
         <TabsTrigger value="rotinas-mensais">Tarefas</TabsTrigger>
       </TabsList>
 
       <TabsContent value="instalacao" className="space-y-6">
         <Card className="border-border/60 bg-card shadow-sm">
-          <CardContent className="space-y-4 p-4 md:p-5">
+          <CardContent className="space-y-3 p-4 md:p-5">
             <div className="mb-1 flex items-center gap-2">
               <div className="rounded-md bg-primary/10 p-1.5">
                 <Server className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Servidor SYSPRO</p>
-                <p className="text-xs text-muted-foreground">Configuracoes de conexao com o servidor de aplicacao.</p>
+                <p className="text-sm font-semibold text-foreground">Runtime Syspro / IIS</p>
+                <p className="text-xs text-muted-foreground">
+                  Nao e mais configurado na empresa.
+                </p>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="serverType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de servidor</FormLabel>
-                    <Select onValueChange={field.onChange} value={toInputValue(field.value)}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={COMPANY_SERVER_TYPE_VALUES[0]}>Syspro Server</SelectItem>
-                        <SelectItem value={COMPANY_SERVER_TYPE_VALUES[1]}>IIS</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="installationDirectory"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Diretorio de instalacao</FormLabel>
-                    <FormControl>
-                      <Input placeholder="C:\Syspro\..." {...field} value={toInputValue(field.value)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <FormField
-                control={form.control}
-                name="serverPort"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Porta</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        {...field}
-                        value={String(field.value ?? 1234)}
-                        onChange={(e) => field.onChange(e.target.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="serverProtocol"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Protocolo</FormLabel>
-                    <Select onValueChange={field.onChange} value={toInputValue(field.value)}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {COMPANY_SERVER_PROTOCOL_VALUES.map((protocol) => (
-                          <SelectItem key={protocol} value={protocol}>
-                            {protocol}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="serverHost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Servidor / Host</FormLabel>
-                    <FormControl>
-                      <Input placeholder="localhost" {...field} value={toInputValue(field.value)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {currentServerType === "IIS" ? (
-              <div className="space-y-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Info className="h-4 w-4 shrink-0 text-amber-500" />
-                  <p>
-                    Para IIS, o campo <strong className="text-foreground">URL Path (ISAPI)</strong> deve apontar para{" "}
-                    <code className="rounded bg-muted px-1 font-mono text-foreground">SYSPROSERVERISAPI.DLL</code>.
-                  </p>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="iisIsapiPath"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL Path (ISAPI)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="SYSPROSERVERISAPI.DLL" {...field} value={toInputValue(field.value)} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <div className="flex items-start gap-2 rounded-lg border border-border/50 bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="space-y-1">
+                <p>
+                  Porta, diretorio e tipo <strong className="text-foreground">Syspro Server ou IIS</strong>{" "}
+                  ficam em cada instalacao do dispositivo (aba ERP → Instalações).
+                </p>
+                <p>
+                  Uma empresa pode ter varias instalacoes em maquinas/portas diferentes. A empresa do
+                  cadastro continua sendo a <strong className="text-foreground">empresa principal</strong>{" "}
+                  do host; o vinculo operacional por pasta/porta e feito na instalacao.
+                </p>
               </div>
-            ) : (
-              <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/5 px-4 py-3 text-sm text-muted-foreground">
-                <Info className="h-4 w-4 shrink-0" />
-                Padrao sugerido: porta{" "}
-                <code className="px-1 font-mono font-semibold text-foreground">1234</code>,
-                servidor{" "}
-                <code className="px-1 font-mono font-semibold text-foreground">localhost</code>,
-                protocolo{" "}
-                <code className="px-1 font-mono font-semibold text-foreground">HTTP</code>.
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 

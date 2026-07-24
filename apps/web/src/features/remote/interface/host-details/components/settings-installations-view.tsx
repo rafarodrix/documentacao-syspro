@@ -141,7 +141,14 @@ export function SettingsInstallationsView({
               <div className="space-y-1">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Adicionar nova pasta ou associação</p>
                 <p className="text-sm text-muted-foreground">
-                  Defina manualmente qual empresa usa cada diretório deste host para orientar o agente e os backups.
+                  Defina qual empresa usa cada diretório deste host. A{" "}
+                  <span className="font-medium text-foreground">empresa principal do dispositivo</span>{" "}
+                  continua no vínculo do host; aqui você amarra empresas por instalação (pasta/porta),
+                  inclusive quando há mais de um Syspro na mesma máquina.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Porta e tipo Syspro Server/IIS são configurados em{" "}
+                  <span className="font-medium text-foreground">ERP → Instalações</span>, não no cadastro da empresa.
                 </p>
               </div>
 

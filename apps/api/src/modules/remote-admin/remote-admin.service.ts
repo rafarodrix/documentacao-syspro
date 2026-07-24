@@ -241,18 +241,11 @@ export class RemoteAdminService {
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     await this.resolveCompanyContextForRemoteAdmin(tenantScope, companyId, 'Empresa nao encontrada.');
 
-    const serverPortValue =
-      body.serverPort === null || body.serverPort === undefined || body.serverPort === '' ? null : Number(body.serverPort);
-
+    // Runtime Syspro/IIS/porta/diretorio nao sao mais persistidos na Company.
+    // Fonte da verdade: ErpInstallation no host (aba ERP → Instalações).
     const updated = await prisma.company.update({
       where: { id: companyId },
       data: {
-        serverType: body.serverType ?? undefined,
-        installationDirectory: body.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY,
-        serverHost: body.serverHost?.trim() || 'localhost',
-        serverPort: serverPortValue ?? undefined,
-        serverProtocol: body.serverProtocol ?? undefined,
-        iisIsapiPath: body.iisIsapiPath?.trim() || null,
         observacoes: body.observacoes?.trim() || null,
       },
       select: {
@@ -267,7 +260,12 @@ export class RemoteAdminService {
       },
     });
 
-    return { success: true, data: updated };
+    return {
+      success: true,
+      data: updated,
+      message:
+        'Observacoes atualizadas. Porta/tipo Syspro ou IIS devem ser configurados na instalacao do dispositivo.',
+    };
   }
 
   async updateCompanyObservacoes(

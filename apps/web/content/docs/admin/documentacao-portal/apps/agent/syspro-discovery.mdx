@@ -1,7 +1,7 @@
 ---
 title: Agent - Descoberta Syspro
 description: Modelo de descoberta Syspro do agente, baseado em pistas do portal e validacao fisica da instalacao no host.
-lastUpdated: 2026-07-22
+lastUpdated: 2026-07-24
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -12,7 +12,7 @@ tags:
 
 # Descoberta Syspro no Agent
 
-Atualizado em 22/07/2026.
+Atualizado em 24/07/2026.
 
 ## Resumo
 
@@ -25,10 +25,23 @@ essas pistas em:
 - `validatedServerCount`
 - `installationGroups[]`
 
-No heartbeat, o backend mantém o snapshot bruto para auditoria e também projeta
+No sync, o backend mantém o snapshot bruto para auditoria e também projeta
 cada servidor validado em uma `ErpInstallation` persistida. A tela de ERP lê
 essa projeção, incluindo empresas vinculadas, e não trata caminhos ou rótulos
 de telemetria como entidades independentes.
+
+## Empresa principal vs empresa da instalacao
+
+| Camada | Campo | Papel |
+| --- | --- | --- |
+| Host | `RemoteHost.companyId` | Empresa **principal** do dispositivo (ownership, RBAC, cockpit) |
+| Instalacao | `ErpInstallationCompany` (+ hints `company_id`/`path`) | Empresa **atendida** por aquele diretorio/porta |
+
+Recomendacao: manter os dois niveis.
+
+- No vinculo/sincronizacao do host, a empresa principal continua sendo a do dispositivo.
+- Quando a maquina tem varias instalacoes Syspro (diretorios e portas distintos), cada instalacao amarra a empresa operacional correspondente em **ERP → Instalações**.
+- Runtime (Syspro Server **ou** IIS), porta e caminho ISAPI **nao** ficam mais no cadastro da empresa; a fonte da verdade e a instalacao.
 
 ## Hints enviados pelo portal
 

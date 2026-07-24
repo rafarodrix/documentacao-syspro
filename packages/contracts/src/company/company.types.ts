@@ -73,12 +73,12 @@ export const createCompanySchema = z
     segment: z.enum(COMPANY_SEGMENT_VALUES).nullable().optional(),
     status: z.enum(COMPANY_STATUS_VALUES).default("ACTIVE"),
     logoUrl: emptyToUndefined.pipe(z.string().url("URL invalida").optional()),
-    serverType: z.enum(COMPANY_SERVER_TYPE_VALUES).default(DEFAULT_COMPANY_SERVER_TYPE),
-    serverPort: z.coerce.number().int().min(1, "Porta obrigatoria").default(DEFAULT_COMPANY_SERVER_PORT),
-    serverHost: z.string().trim().min(1, "Servidor obrigatorio").default(DEFAULT_COMPANY_SERVER_HOST),
-    serverProtocol: z.enum(COMPANY_SERVER_PROTOCOL_VALUES).default(DEFAULT_COMPANY_SERVER_PROTOCOL),
-    iisIsapiPath: emptyToUndefined.default("SYSPROSERVERISAPI.DLL"),
-    installationDirectory: emptyToUndefined.default(DEFAULT_COMPANY_INSTALLATION_DIRECTORY),
+    serverType: z.enum(COMPANY_SERVER_TYPE_VALUES).optional().default(DEFAULT_COMPANY_SERVER_TYPE),
+    serverPort: z.coerce.number().int().min(1).optional().default(DEFAULT_COMPANY_SERVER_PORT),
+    serverHost: z.string().trim().optional().default(DEFAULT_COMPANY_SERVER_HOST),
+    serverProtocol: z.enum(COMPANY_SERVER_PROTOCOL_VALUES).optional().default(DEFAULT_COMPANY_SERVER_PROTOCOL),
+    iisIsapiPath: emptyToUndefined.optional().default("SYSPROSERVERISAPI.DLL"),
+    installationDirectory: emptyToUndefined.optional().default(DEFAULT_COMPANY_INSTALLATION_DIRECTORY),
     remoteConnections: z.array(companyRemoteConnectionSchema).default([]),
     parentCompanyId: emptyToUndefined,
     accountingFirmId: emptyToUndefined,
@@ -129,18 +129,6 @@ export const createCompanySchema = z
     {
       message: "Inscricao Estadual obrigatoria para Contribuintes",
       path: ["inscricaoEstadual"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.serverType === "IIS") {
-        return Boolean(data.iisIsapiPath?.trim());
-      }
-      return true;
-    },
-    {
-      message: "Informe o arquivo ISAPI quando o tipo de servidor for IIS.",
-      path: ["iisIsapiPath"],
     },
   );
 
