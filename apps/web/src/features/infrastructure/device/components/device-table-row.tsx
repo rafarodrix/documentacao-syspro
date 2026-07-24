@@ -8,6 +8,7 @@ import { CompanyCell } from "./company-cell";
 import { ConnectivityCell } from "./connectivity-cell";
 import { HealthCell } from "./health-cell";
 import { CapabilitiesCell } from "./capabilities-cell";
+import { deviceDetailPath } from "../domain/device-detail-paths";
 import { DeviceActions } from "./device-actions";
 
 type DeviceTableRowProps = {
@@ -30,7 +31,7 @@ export function DeviceTableRow({
   onArchive,
 }: DeviceTableRowProps) {
   const router = useRouter();
-  const targetHref = `/portal/infraestrutura/dispositivos/${item.id}`;
+  const targetHref = deviceDetailPath(item);
 
   const handleRowClick = () => {
     router.push(targetHref);

@@ -11,7 +11,7 @@ export default async function InfrastructureDiscoveredHostDetailsPage({
   params: Promise<{ discoveredHostId: string }>;
 }) {
   await requireSession();
-  const canAccess = await currentUserHasAnyPermission(["remote:manage", "tools:all"], {
+  const canAccess = await currentUserHasAnyPermission(["remote:view", "remote:manage"], {
     acceptCompanyScope: true,
   });
   if (!canAccess) {

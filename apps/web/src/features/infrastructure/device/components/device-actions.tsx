@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@dosc-syspro/ui";
 import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
+import { deviceDetailHref, deviceDetailPath, isManagedDeviceListItem } from "../domain/device-detail-paths";
 
 type DeviceActionsProps = {
   item: DeviceListItem;
@@ -43,7 +44,8 @@ export function DeviceActions({
   onArchive,
   canManage = true,
 }: DeviceActionsProps) {
-  const detailsHref = `/portal/infraestrutura/dispositivos/${item.id}`;
+  const detailsHref = deviceDetailPath(item);
+  const isManaged = isManagedDeviceListItem(item);
   const isConnectable = item.remote.isOperational && !!item.remote.externalId;
   const [isRequestingAgentUpgrade, startRequestingAgentUpgrade] = useTransition();
 
@@ -68,7 +70,9 @@ export function DeviceActions({
           method: "POST",
           body: { action: "UPGRADE_AGENT" },
         });
-        toast.success(result.message ?? "Atualizacao incremental do agente enfileirada. Acompanhe o status no dispositivo.");
+        toast.success(
+          result.message ?? "Atualização incremental do agente enfileirada. Acompanhe o status no dispositivo.",
+        );
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
       }
@@ -80,7 +84,6 @@ export function DeviceActions({
       className="flex items-center justify-end gap-1.5 shrink-0"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Primary Action Button */}
       {isConnectable ? (
         <Button
           type="button"
@@ -106,7 +109,6 @@ export function DeviceActions({
         </Button>
       )}
 
-      {/* Secondary Dropdown Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -134,25 +136,38 @@ export function DeviceActions({
             </DropdownMenuItem>
           )}
 
-          <DropdownMenuItem asChild>
-            <Link href={`${detailsHref}?tab=diagnostico`} className="flex items-center gap-2 cursor-pointer">
-              <Stethoscope className="h-3.5 w-3.5 text-muted-foreground" />
-              Executar diagnóstico
-            </Link>
-          </DropdownMenuItem>
+          {isManaged && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link
+                  href={deviceDetailHref(item, { tab: "diagnostico" })}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Stethoscope className="h-3.5 w-3.5 text-muted-foreground" />
+                  Executar diagnóstico
+                </Link>
+              </DropdownMenuItem>
 
-          <DropdownMenuItem asChild>
-            <Link href={`${detailsHref}?tab=eventos`} className="flex items-center gap-2 cursor-pointer">
-              <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-              Ver eventos
-            </Link>
-          </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href={deviceDetailHref(item, { tab: "eventos" })}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                  Ver eventos
+                </Link>
+              </DropdownMenuItem>
+            </>
+          )}
 
-          {canManage && (
+          {canManage && isManaged && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href={`${detailsHref}?edit=true`} className="flex items-center gap-2 cursor-pointer">
+                <Link
+                  href={deviceDetailHref(item, { edit: true })}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
                   <Edit className="h-3.5 w-3.5 text-muted-foreground" />
                   Editar identificação
                 </Link>
@@ -164,7 +179,7 @@ export function DeviceActions({
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
-                {isRequestingAgentUpgrade ? "Agendando atualizacao..." : "Atualizar agente"}
+                {isRequestingAgentUpgrade ? "Agendando atualização..." : "Atualizar agente"}
               </DropdownMenuItem>
 
               {!item.company.id && onLinkCompany && (

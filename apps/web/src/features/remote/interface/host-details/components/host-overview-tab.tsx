@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertCircle,
@@ -89,6 +89,7 @@ type Props = {
   isSavingMachineName: boolean;
   onSaveHostName: () => void;
   installationCount: number;
+  initialIdentitySheetOpen?: boolean;
 };
 
 function formatOperationalStatus(status: RemoteHostDetails["host"]["operationalStatus"]): string {
@@ -222,9 +223,16 @@ export function HostOverviewTab(props: Props) {
     isSavingMachineName,
     onSaveHostName,
     installationCount,
+    initialIdentitySheetOpen = false,
   } = props;
 
-  const [identitySheetOpen, setIdentitySheetOpen] = useState(false);
+  const [identitySheetOpen, setIdentitySheetOpen] = useState(initialIdentitySheetOpen);
+
+  useEffect(() => {
+    if (initialIdentitySheetOpen) {
+      setIdentitySheetOpen(true);
+    }
+  }, [initialIdentitySheetOpen]);
   const resolvedHostname = windowsComputerName?.trim() || null;
   const effectiveRole = host.machineProfile ? MACHINE_PROFILE_LABEL[host.machineProfile] : "Não definida";
   const collectionProfile = mapMachineProfileToCollectionProfile(host.machineProfile, true);

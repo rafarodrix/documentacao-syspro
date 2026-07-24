@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { PageHeader, PageShell } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import { getRemoteSessions } from "@/features/remote/application/session-queries";
+import { searchRemoteCompanies } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import type { RemoteSessionStatus } from "@/features/remote/domain/remote-host.types";
 import { parseOperationsView, type OperationsView } from "@/features/remote/interface/operations-view";
@@ -24,10 +25,6 @@ type LegacyInfrastructureTab = InfrastructureTab | "sessoes" | "hosts" | "agente
 function readParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return String(value[0] ?? "").trim();
   return String(value ?? "").trim();
-}
-
-function parseAgentStatus(value: string): "all" | "online" | "offline" {
-  return value === "online" || value === "offline" ? value : "all";
 }
 
 function parseSessionStatus(value: string): RemoteSessionStatus | "ACTIVE" | undefined {
@@ -150,6 +147,11 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     const canManageRemote = await currentUserHasAnyPermission(["remote:manage", "tools:all"], {
       acceptCompanyScope: true,
     });
+    const tenantScope = await getRemoteTenantScope();
+    const companyOptions = canManageRemote
+      ? await searchRemoteCompanies(tenantScope).catch(() => [])
+      : [];
+
     if (canManageRemote) {
       actions = (
         <Button asChild size="sm" className="h-9 gap-1.5 shrink-0 animate-in fade-in zoom-in-95 duration-200">
@@ -165,6 +167,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
         initialCompanyId={tabParams.companyId || undefined}
         initialTicketNumber={tabParams.ticketNumber || undefined}
         canManageRemote={canManageRemote}
+        companyOptions={companyOptions}
       />
     );
   }

@@ -15,12 +15,16 @@ import { DeviceLifecycleTabs } from "./device-lifecycle-tabs";
 import { DeviceListSummaryBar } from "./device-list-summary";
 import { DeviceTable } from "./device-table";
 import { DeviceEmptyState } from "./device-empty-state";
+import { CreateDeviceSheetFromUrl } from "./create-device-sheet";
+
+type CompanyOption = { id: string; label: string; searchText?: string };
 
 type DeviceListPageProps = {
   initialCompanyId?: string;
   initialTicketNumber?: string;
   canManageRemote?: boolean;
   isAdmin?: boolean;
+  companyOptions?: CompanyOption[];
 };
 
 export function DeviceListPage({
@@ -28,6 +32,7 @@ export function DeviceListPage({
   initialTicketNumber,
   canManageRemote = true,
   isAdmin = true,
+  companyOptions = [],
 }: DeviceListPageProps) {
   const { queryParams, activeFilterCount, updateParams } = useDeviceSearchParams();
   const { data, isLoading, error, refetch } = useDeviceListQuery(queryParams);
@@ -233,6 +238,12 @@ export function DeviceListPage({
           onClearSearch={handleResetAllFilters}
         />
       )}
+
+      <CreateDeviceSheetFromUrl
+        canManage={canManageRemote}
+        companyOptions={companyOptions}
+        initialCompanyId={queryParams.companyId ?? initialCompanyId}
+      />
     </div>
   );
 }

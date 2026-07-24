@@ -86,7 +86,7 @@ export async function requestRemoteSessionAction(input: {
     const created = await postJson<{ success: true; data: RemoteSessionRecord }>("/api/remote/sessions", input);
     const started = await ensureStartedSession(created.data.id);
 
-    revalidatePath("/portal/infraestrutura?tab=operacao&view=ativas");
+    revalidatePath("/portal/infraestrutura?tab=operacao&view=em_andamento");
     revalidatePath(`/portal/infraestrutura/dispositivos/${input.hostId}`);
 
     return {
@@ -105,7 +105,7 @@ export async function requestRemoteSessionAction(input: {
               ? await ensureStartedSession(existingSession.id)
               : existingSession;
 
-          revalidatePath("/portal/infraestrutura?tab=operacao&view=ativas");
+          revalidatePath("/portal/infraestrutura?tab=operacao&view=em_andamento");
           revalidatePath(`/portal/infraestrutura/dispositivos/${input.hostId}`);
 
           return {
@@ -136,7 +136,7 @@ export async function stopRemoteSessionAction(sessionId: string) {
 
   try {
     await postJson(`/api/remote/sessions/${sessionId}/stop`);
-    revalidatePath("/portal/infraestrutura?tab=operacao&view=ativas");
+    revalidatePath("/portal/infraestrutura?tab=operacao&view=em_andamento");
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Falha ao encerrar sessao" };

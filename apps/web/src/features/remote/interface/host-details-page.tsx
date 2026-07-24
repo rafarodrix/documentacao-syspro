@@ -22,6 +22,7 @@ import {
   HostCriticalEventsTab,
 } from "./host-details/components";
 import { ErpTab } from "@/features/infrastructure/device/erp/erp-tab";
+import { parseHostDetailsTab, type HostDetailsTab } from "@/features/infrastructure/device/domain/device-detail-paths";
 
 export function RemoteHostDetailsPanel({
   details,
@@ -31,9 +32,14 @@ export function RemoteHostDetailsPanel({
   linkedDevice?: AgentInstallationSummary | null;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { host } = details;
 
   // ── UI state ────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<HostDetailsTab>(() =>
+    searchParams.get("edit") === "true" ? "geral" : parseHostDetailsTab(searchParams.get("tab")),
+  );
+  const [openIdentityOnMount] = useState(() => searchParams.get("edit") === "true");
   const [projectedHostName, setProjectedHostName] = useState(host.name);
   const [projectedCompanyId, setProjectedCompanyId] = useState(host.companyId ?? details.companyOptions[0]?.id ?? "");
   const [projectedMachineProfile, setProjectedMachineProfile] = useState<RemoteHostDetails["host"]["machineProfile"]>(
@@ -100,7 +106,7 @@ export function RemoteHostDetailsPanel({
     heartbeat,
   } = computed;
 
-  const ticketNumber = useSearchParams().get("ticketNumber");
+  const ticketNumber = searchParams.get("ticketNumber");
 
   const normalizedProjectedHostName = projectedHostName.trim();
   const normalizedProjectedNotes = projectedNotes.trim();
@@ -111,7 +117,38 @@ export function RemoteHostDetailsPanel({
     projectedMachineProfile !== host.machineProfile ||
     normalizedProjectedNotes !== (host.notes?.trim() ?? "");
 
+  function updateHostDetailsQuery(mutate: (params: URLSearchParams) => void) {
+    const params = new URLSearchParams(searchParams.toString());
+    mutate(params);
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : "?", { scroll: false });
+  }
+
+  function handleTabChange(nextTab: string) {
+    const parsed = parseHostDetailsTab(nextTab);
+    setActiveTab(parsed);
+    updateHostDetailsQuery((params) => {
+      if (parsed === "geral") {
+        params.delete("tab");
+      } else {
+        params.set("tab", parsed);
+      }
+    });
+  }
+
   // ── Effects ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    setActiveTab(parseHostDetailsTab(searchParams.get("tab")));
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("edit") !== "true") return;
+    updateHostDetailsQuery((params) => {
+      params.delete("edit");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- clear one-shot edit deep-link once
+  }, []);
+
   useEffect(() => {
     if (ticketNumber) {
       setIsLoadingTicket(true);
@@ -399,7 +436,7 @@ export function RemoteHostDetailsPanel({
         onStartSession={handleStartOrchestratedSession}
       />
 
-      <Tabs defaultValue="geral" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <div className="flex w-full">
           <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:grid-cols-7">
             <TabsTrigger value="geral">Visão geral</TabsTrigger>
@@ -447,6 +484,7 @@ export function RemoteHostDetailsPanel({
             isSavingMachineName={isSavingMachineName}
             onSaveHostName={handleSaveProjectedHostName}
             installationCount={dedupedInstallationContexts.length}
+            initialIdentitySheetOpen={openIdentityOnMount}
           />
         </TabsContent>
 

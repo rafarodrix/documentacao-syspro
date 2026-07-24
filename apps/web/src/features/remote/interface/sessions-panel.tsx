@@ -4,15 +4,15 @@ import { useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Badge, Button, Card, CardContent, CardHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import { Activity, Clock, Filter, History, Monitor, Ticket, User } from "lucide-react";
+import { Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Activity, Filter, Monitor, Ticket, User } from "lucide-react";
 import { RegistryDataTable } from "@/components/platform/shared/registry-list-scaffold";
-import { EmptyState, FilterTabs, SearchToolbar } from "@/components/patterns";
+import { FilterTabs, SearchToolbar } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
-import { RemoteEfficiencyReportsPanel } from "@/features/remote/interface/reports-panel";
 import type { RemotePaginationMeta, RemoteSessionStatus } from "@/features/remote/domain/remote-host.types";
 import type { OperationsView } from "@/features/remote/interface/operations-view";
+import { deviceManagedDetailPath } from "@/features/infrastructure/device/domain/device-detail-paths";
 import { formatDateOnly, formatDateTime } from "./host-details/host-details.helpers";
 
 interface SessionItem extends RemoteSessionSummary {
@@ -64,12 +64,15 @@ function formatRelativeStart(value: string | null) {
   return `há ${diffDays}d`;
 }
 
+function isStoppableSession(status: RemoteSessionStatus) {
+  return status === "REQUESTED" || status === "STARTED";
+}
+
 export function RemoteSessionsPanel({
   sessions,
   pagination,
   hostOptions,
   view,
-  metrics,
   filters,
 }: RemoteSessionsPanelProps) {
   const router = useRouter();
@@ -80,8 +83,6 @@ export function RemoteSessionsPanel({
   const [stoppingSessionId, setStoppingSessionId] = useState<string | null>(null);
   const [hostDraft, setHostDraft] = useState(filters.hostId);
   const [ticketDraft, setTicketDraft] = useState(filters.ticket);
-
-
 
   const updateParams = (mutate: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -223,23 +224,48 @@ export function RemoteSessionsPanel({
             title: "Nenhuma operação encontrada.",
             description: "Ajuste os filtros ou selecione outra visualização.",
           }}
-          desktopColSpan={6}
+          desktopColSpan={7}
           flexible={true}
           desktopHeader={
             <tr className="border-b border-border/40 hover:bg-transparent">
-              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-32">Operação</th>
-              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Dispositivo</th>
-              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Empresa</th>
-              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-36">Estado</th>
-              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-40">Iniciada em</th>
-              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-40">Responsável</th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-32">
+                Operação
+              </th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">
+                Dispositivo
+              </th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">
+                Empresa
+              </th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-36">
+                Estado
+              </th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-40">
+                Iniciada em
+              </th>
+              <th className="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-40">
+                Responsável
+              </th>
+              <th className="h-10 px-4 text-right align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground w-36">
+                Ações
+              </th>
             </tr>
           }
           desktopContent={sessions.map((session) => (
-            <SessionTableRow key={session.id} session={session} />
+            <SessionTableRow
+              key={session.id}
+              session={session}
+              isStopping={stoppingSessionId === session.id}
+              onStopSession={handleStopSession}
+            />
           ))}
           mobileContent={sessions.map((session) => (
-            <SessionListRow key={session.id} session={session} />
+            <SessionListRow
+              key={session.id}
+              session={session}
+              isStopping={stoppingSessionId === session.id}
+              onStopSession={handleStopSession}
+            />
           ))}
           pagination={{
             pagination,
@@ -269,82 +295,19 @@ function StatusBadge({ status }: { status: RemoteSessionStatus }) {
   );
 }
 
-function SessionCard({
+function SessionTableRow({
   session,
-  isActive,
   isStopping = false,
   onStopSession,
 }: {
   session: SessionItem;
-  isActive?: boolean;
   isStopping?: boolean;
   onStopSession?: (sessionId: string) => void;
 }) {
   const startReference = session.startedAt ?? session.createdAt;
   const startAbsolute = formatDateTime(startReference);
-
-  return (
-    <Card
-      className={cn(
-        "border-border/50 transition-all hover:border-primary/30",
-        isActive && "border-emerald-500/20 shadow-sm shadow-emerald-500/5",
-      )}
-    >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Monitor className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-semibold leading-none">{session.hostName}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">{session.companyName}</p>
-          </div>
-          <StatusBadge status={session.status} />
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <div className="grid gap-2">
-          {session.ticketNumber && (
-            <div className="flex items-center gap-2 text-xs">
-              <Ticket className="h-3.5 w-3.5 text-primary" />
-              <span className="font-medium">Ticket #{session.ticketNumber}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-xs">
-            <User className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>{session.requestedByName ?? "Operador desconhecido"}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
-            <span title={startAbsolute}>Iniciada {formatRelativeStart(startReference)}</span>
-          </div>
-        </div>
-
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" className="h-8 w-full gap-1.5 text-xs" asChild>
-            <Link href={`/portal/infraestrutura/dispositivos/${session.hostId}`}>Ver máquina</Link>
-          </Button>
-          {isActive && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-8 w-full gap-1.5 border-rose-500/20 text-xs hover:bg-rose-500/10 hover:text-rose-600"
-              onClick={() => onStopSession?.(session.id)}
-              disabled={isStopping}
-            >
-              Encerrar
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SessionTableRow({ session }: { session: SessionItem }) {
-  const startReference = session.startedAt ?? session.createdAt;
-  const startAbsolute = formatDateTime(startReference);
+  const deviceHref = deviceManagedDetailPath(session.hostId);
+  const canStop = isStoppableSession(session.status);
 
   return (
     <tr className="group/row transition-all duration-200 hover:bg-muted/20 hover:shadow-sm">
@@ -359,10 +322,10 @@ function SessionTableRow({ session }: { session: SessionItem }) {
         )}
       </td>
       <td className="min-w-0 px-4 py-2.5 align-middle">
-        <div className="flex items-center gap-2">
+        <Link href={deviceHref} className="flex items-center gap-2 hover:text-primary">
           <Monitor className="h-4 w-4 text-muted-foreground shrink-0" />
-          <p className="truncate text-sm font-semibold">{session.hostName}</p>
-        </div>
+          <p className="truncate text-sm font-semibold underline-offset-2 hover:underline">{session.hostName}</p>
+        </Link>
       </td>
       <td className="min-w-0 px-4 py-2.5 align-middle">
         <p className="truncate text-sm">{session.companyName || "-"}</p>
@@ -380,51 +343,99 @@ function SessionTableRow({ session }: { session: SessionItem }) {
           <span className="truncate text-xs">{session.requestedByName || "-"}</span>
         </div>
       </td>
+      <td className="w-36 px-4 py-2.5 align-middle">
+        <div className="flex items-center justify-end gap-1.5">
+          <Button asChild type="button" variant="outline" size="sm" className="h-8 px-2.5 text-xs">
+            <Link href={deviceHref}>Abrir</Link>
+          </Button>
+          {canStop && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 px-2.5 text-xs border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600"
+              onClick={() => onStopSession?.(session.id)}
+              disabled={isStopping}
+            >
+              {isStopping ? "..." : "Encerrar"}
+            </Button>
+          )}
+        </div>
+      </td>
     </tr>
   );
 }
 
-function SessionListRow({ session }: { session: SessionItem }) {
+function SessionListRow({
+  session,
+  isStopping = false,
+  onStopSession,
+}: {
+  session: SessionItem;
+  isStopping?: boolean;
+  onStopSession?: (sessionId: string) => void;
+}) {
   const startReference = session.startedAt ?? session.createdAt;
   const startAbsolute = formatDateTime(startReference);
+  const deviceHref = deviceManagedDetailPath(session.hostId);
+  const canStop = isStoppableSession(session.status);
 
   return (
-    <div className="group flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/5">
-      <div className="flex flex-1 items-center gap-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border/50 bg-muted/20">
-          <Monitor className="h-4 w-4 text-muted-foreground" />
-        </div>
-        <div className="min-w-0 space-y-0.5">
-          <p className="truncate text-sm font-semibold">{session.hostName}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{session.companyName}</span>
-            <span>-</span>
-            <div className="flex items-center gap-1">
-              <User className="h-3 w-3" />
-              <span className="truncate">{session.requestedByName}</span>
+    <div className="space-y-3 p-4 transition-colors hover:bg-muted/5">
+      <div className="flex items-center justify-between gap-4">
+        <Link href={deviceHref} className="flex flex-1 items-center gap-4 min-w-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border/50 bg-muted/20">
+            <Monitor className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="min-w-0 space-y-0.5">
+            <p className="truncate text-sm font-semibold underline-offset-2 hover:underline">{session.hostName}</p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{session.companyName}</span>
+              <span>-</span>
+              <div className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                <span className="truncate">{session.requestedByName}</span>
+              </div>
             </div>
+          </div>
+        </Link>
+
+        <div className="flex items-center gap-4">
+          {session.ticketNumber && (
+            <div className="hidden items-center gap-1.5 rounded-md border border-primary/10 bg-primary/5 px-2 py-1 text-xs font-medium text-primary sm:flex">
+              <Ticket className="h-3.5 w-3.5" />
+              #{session.ticketNumber}
+            </div>
+          )}
+
+          <div className="hidden space-y-0.5 text-right md:block" title={startAbsolute}>
+            <p className="text-xs font-medium">{formatDateOnly(startReference)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground">{formatRelativeStart(startReference)}</p>
+          </div>
+
+          <div className="flex w-24 justify-end">
+            <StatusBadge status={session.status} />
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
-        {session.ticketNumber && (
-          <div className="hidden items-center gap-1.5 rounded-md border border-primary/10 bg-primary/5 px-2 py-1 text-xs font-medium text-primary sm:flex">
-            <Ticket className="h-3.5 w-3.5" />
-            #{session.ticketNumber}
-          </div>
+      <div className="flex items-center justify-end gap-2">
+        <Button asChild type="button" variant="outline" size="sm" className="h-8 px-2.5 text-xs">
+          <Link href={deviceHref}>Abrir dispositivo</Link>
+        </Button>
+        {canStop && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-8 px-2.5 text-xs border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600"
+            onClick={() => onStopSession?.(session.id)}
+            disabled={isStopping}
+          >
+            {isStopping ? "Encerrando..." : "Encerrar"}
+          </Button>
         )}
-
-        <div className="hidden space-y-0.5 text-right md:block" title={startAbsolute}>
-          <p className="text-xs font-medium">{formatDateOnly(startReference)}</p>
-          <p className="text-[10px] uppercase text-muted-foreground">{formatRelativeStart(startReference)}</p>
-        </div>
-
-        <div className="flex w-24 justify-end">
-          <StatusBadge status={session.status} />
-        </div>
       </div>
     </div>
   );
 }
-

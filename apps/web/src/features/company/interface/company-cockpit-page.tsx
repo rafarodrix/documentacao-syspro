@@ -647,7 +647,7 @@ export function CompanyCockpitPage({
             <div className="grid gap-3 sm:grid-cols-2">
               <QuickAction href={newTicketHref} label="Novo ticket" description="Abrir chamado ja contextualizado na empresa." />
               <QuickAction href={newTaskHref} label="Nova tarefa" description="Criar backlog operacional ja preso na conta." />
-              <QuickAction href={newHostHref} label="Novo host" description="Cadastrar host manual com empresa preselecionada." />
+              <QuickAction href={newHostHref} label="Novo dispositivo" description="Cadastrar dispositivo manual com empresa pré-selecionada." />
               <QuickAction
                 href={latestConversationHref}
                 label="Abrir conversa"
@@ -875,7 +875,7 @@ export function CompanyCockpitPage({
                   {view.sessions.length ? view.sessions.map((session) => (
                     <CompanyListRow
                       key={session.id}
-                      href="/portal/infraestrutura?tab=operacao&view=historico"
+                      href="/portal/infraestrutura?tab=operacao&view=concluidas"
                       title={session.hostName}
                       meta={joinMeta([
                         session.status,
