@@ -159,11 +159,6 @@ export function CompanyOperationalSettingsCard({
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <DetailItem label="ID da Empresa" value={company.id} helper={isActive ? "Ativa nesta conversa" : undefined} breakAll />
         <DetailItem label="CNPJ" value={readString(company.cnpj) || "Nao informado"} />
-        <DetailItem label="Servidor" value={formatCompanyServerType(company.serverType)} helper={formatCompanyEndpoint(company)} />
-        <DetailItem label="Instalacao" value={readString(company.installationDirectory) || "Nao informado"} breakAll />
-        {company.serverType === "IIS" ? (
-          <DetailItem label="ISAPI" value={readString(company.iisIsapiPath) || "Nao informado"} breakAll />
-        ) : null}
         <DetailItem
           label="Conexoes remotas"
           value={remoteConnections.length ? `${remoteConnections.length}` : "Nenhuma"}
@@ -263,18 +258,6 @@ export function getCompanyLabel(
   return company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || "Empresa sem nome";
 }
 
-export function formatCompanyServerType(value?: ContactCompanyEntry["serverType"] | null) {
-  return value === "IIS" ? "IIS / ISAPI" : value === "SYSPRO_SERVER" ? "Syspro Server" : "Nao informado";
-}
-
-export function formatCompanyEndpoint(company: ContactCompanyEntry) {
-  const host = readString(company.serverHost);
-  if (!host) return "Nao informado";
-  const protocol = readString(company.serverProtocol).toLowerCase() || "http";
-  const port = typeof company.serverPort === "number" ? `:${company.serverPort}` : "";
-  return `${protocol}://${host}${port}`;
-}
-
 export function formatRemoteConnectionType(value?: string | null) {
   if (value === "DDNS_NOIP") return "DDNS / No-IP";
   if (value === "RADMIN_VPN") return "Radmin VPN";
@@ -283,10 +266,7 @@ export function formatRemoteConnectionType(value?: string | null) {
 
 export function hasOperationalSettings(company: ContactCompanyEntry) {
   return Boolean(
-    company.serverType ||
-    company.serverHost ||
-    company.installationDirectory ||
-    company.iisIsapiPath ||
+    readString(company.observacoes) ||
     (Array.isArray(company.remoteConnections) && company.remoteConnections.length > 0),
   );
 }

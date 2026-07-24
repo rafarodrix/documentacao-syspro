@@ -73,8 +73,26 @@ type WindowsUpdateStatusSnapshot struct {
 	PendingSignals []string `json:"pendingSignals,omitempty"`
 }
 
+// SysproRuntimeProbeSnapshot agrupa probes de porta/protocolo por instalação.
+type SysproRuntimeProbeSnapshot struct {
+	CollectedAt string                     `json:"collectedAt"`
+	Results     []SysproRuntimeProbeResult `json:"results"`
+}
+
+// SysproRuntimeProbeResult é o resultado de um probe local (VERIFIED/UNREACHABLE).
+type SysproRuntimeProbeResult struct {
+	InstallationID string `json:"installationId"`
+	RuntimeType    string `json:"runtimeType,omitempty"`
+	Host           string `json:"host"`
+	Port           int    `json:"port"`
+	Protocol       string `json:"protocol"`
+	Status         string `json:"status"`
+	LatencyMs      int64  `json:"latencyMs,omitempty"`
+	Detail         string `json:"detail,omitempty"`
+	CheckedAt      string `json:"checkedAt"`
+}
+
 // DiskVolumeSnapshot lista todos os volumes de disco fixo (DriveType=3).
-// Enviado a cada ~3 minutos (4 ciclos de sync de 45s).
 type DiskVolumeSnapshot struct {
 	CollectedAt string       `json:"collectedAt"`
 	Volumes     []DiskVolume `json:"volumes"`

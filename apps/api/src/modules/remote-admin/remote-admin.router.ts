@@ -22,12 +22,6 @@ const sessionFilterSchema = z.object({
 });
 
 const companyContextSchema = z.object({
-  serverType: z.enum(['SYSPRO_SERVER', 'IIS']).nullish(),
-  installationDirectory: z.string().nullish(),
-  serverHost: z.string().nullish(),
-  serverPort: z.union([z.number(), z.string()]).nullish(),
-  serverProtocol: z.enum(['HTTP', 'HTTPS']).nullish(),
-  iisIsapiPath: z.string().nullish(),
   observacoes: z.string().nullish(),
 });
 

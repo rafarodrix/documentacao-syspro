@@ -120,11 +120,6 @@ function buildPartialCockpitView(input: {
   regimeTributario?: string | null;
   city?: string | null;
   state?: string | null;
-  installationDirectory?: string | null;
-  serverHost?: string | null;
-  serverType?: 'SYSPRO_SERVER' | 'IIS' | null;
-  serverProtocol?: 'HTTP' | 'HTTPS' | null;
-  serverPort?: number | null;
 }): CompanyCockpitViewData {
   return {
     profile: {
@@ -140,11 +135,6 @@ function buildPartialCockpitView(input: {
       state: input.state ?? null,
       accountingFirmName: null,
       blockedReasonLabel: null,
-      installationDirectory: input.installationDirectory ?? null,
-      serverHost: input.serverHost ?? null,
-      serverType: input.serverType ?? null,
-      serverProtocol: input.serverProtocol ?? null,
-      serverPort: input.serverPort ?? null,
       counts: {
         users: 0,
         contacts: 0,
@@ -578,12 +568,6 @@ export class CompaniesService {
         logoUrl: true,
         status: true,
         ...({
-          serverType: true,
-          serverPort: true,
-          serverHost: true,
-          serverProtocol: true,
-          iisIsapiPath: true,
-          installationDirectory: true,
           remoteConnections: true,
           remoteConnectionType: true,
           remoteConnectionDetails: true,
@@ -664,12 +648,6 @@ export class CompaniesService {
         segment: company.segment ?? undefined,
         logoUrl: company.logoUrl ?? '',
         status: company.status,
-        serverType: ((company as any).serverType ?? 'SYSPRO_SERVER') as 'SYSPRO_SERVER' | 'IIS',
-        serverPort: Number((company as any).serverPort ?? 1234),
-        serverHost: ((company as any).serverHost ?? 'localhost') as string,
-        serverProtocol: ((company as any).serverProtocol ?? 'HTTP') as 'HTTP' | 'HTTPS',
-        iisIsapiPath: ((company as any).iisIsapiPath ?? 'SYSPROSERVERISAPI.DLL') as string,
-        installationDirectory: ((company as any).installationDirectory ?? '') as string,
         remoteConnections,
         parentCompanyId: company.parentCompanyId ?? '',
         accountingFirmId: company.accountingFirmId ?? '',
@@ -771,11 +749,6 @@ export class CompaniesService {
         segment: true,
         regimeTributario: true,
         observacoes: true,
-        serverType: true,
-        serverPort: true,
-        serverHost: true,
-        serverProtocol: true,
-        installationDirectory: true,
         accountingFirm: {
           select: {
             razaoSocial: true,
@@ -1287,11 +1260,6 @@ export class CompaniesService {
         state: address?.estado ?? null,
         accountingFirmName,
         blockedReasonLabel: block?.label ?? null,
-        installationDirectory: company.installationDirectory ?? null,
-        serverHost: company.serverHost ?? null,
-        serverType: company.serverType ?? null,
-        serverProtocol: company.serverProtocol ?? null,
-        serverPort: company.serverPort ?? null,
         counts: {
           users: company._count.memberships,
           contacts: company._count.contactLinks,
@@ -1462,11 +1430,6 @@ export class CompaniesService {
         status: true,
         segment: true,
         regimeTributario: true,
-        installationDirectory: true,
-        serverHost: true,
-        serverType: true,
-        serverProtocol: true,
-        serverPort: true,
         addresses: {
           take: 1,
           orderBy: { id: 'asc' },
@@ -1493,11 +1456,6 @@ export class CompaniesService {
       regimeTributario: company.regimeTributario,
       city: address?.cidade ?? null,
       state: address?.estado ?? null,
-      installationDirectory: company.installationDirectory ?? null,
-      serverHost: company.serverHost ?? null,
-      serverType: company.serverType as 'SYSPRO_SERVER' | 'IIS' | null,
-      serverProtocol: company.serverProtocol as 'HTTP' | 'HTTPS' | null,
-      serverPort: company.serverPort ?? null,
     });
   }
 

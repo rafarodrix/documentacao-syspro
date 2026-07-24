@@ -1,6 +1,6 @@
 ---
 title: Segmento Auto Center
-description: Guia completo para Gestão de uma auto center no Syspro ERP.
+description: Cuidados e particularidades da operação de Auto Center no Syspro ERP.
 lastUpdated: 2026-07-23
 owner: Equipe de Documentacao
 status: published
@@ -11,32 +11,16 @@ tags:
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import {
-  Users,
-  Car,
-  Package,
-  FileInput,
-  ClipboardList,
-  Receipt,
-  Wallet,
-  Calculator,
-  PieChart,
   Layers,
-  PlayCircle,
   BarChart3,
-  ShoppingCart,
-  User,
-  Building2,
   Wrench,
-  CheckCircle2,
-  AlertCircle
 } from 'lucide-react';
 
 import { YouTubeModal } from '@/components/docs/youtube-modal';
 
-Este guia cobre o ciclo operacional completo de uma empresa do segmento de Auto Center no Syspro ERP — do cadastro base ao fechamento financeiro. Siga os módulos na sequência apresentada: cada etapa alimenta a próxima, e pular alguma delas compromete a integridade dos dados nas fases seguintes.
+Este guia complementa os [Primeiros Passos](/portal/docs/cliente/primeiros-passos) com os cuidados próprios de oficinas, veículos e ordens de serviço.
 
 <Callout type="info" title="Como usar este guia">
   O fluxo está organizado em três camadas: **Alicerce** (cadastros que tudo sustenta), **Operação** (execução do dia a dia) e **Gestão** (análise de resultados). Se você está implantando o sistema pela primeira vez, respeite essa ordem. Se já está em produção, use o índice lateral para navegar diretamente ao módulo que precisa.
@@ -70,7 +54,7 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
       Ao cadastrar um cliente, certifique-se de preencher corretamente o CPF/CNPJ e o endereço. Esses dados são indispensáveis para a emissão da NF-e ou NFS-e após a conclusão da Ordem de Serviço.
     </Callout>
 
-    Para assistir aos vídeos de pessoa física e jurídica e conferir os dados mínimos, acesse [Cadastros rápidos](/portal/docs/cliente/primeiros-passos/cadastros-rapidos). Para os campos, guias e regras completas, consulte o [manual de Participante](/portal/docs/cliente/documentacao/cadastro/participante).
+    Para assistir aos vídeos de pessoa física e jurídica e conferir os dados mínimos, acesse [Primeiros Passos](/portal/docs/cliente/primeiros-passos#cadastros-basicos). Para os campos, guias e regras completas, consulte o [manual de Participante](/portal/docs/cliente/documentacao/cadastro/participante).
   </Step>
 
   <Step>
@@ -90,27 +74,7 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
       Ao cadastrar produtos, preencha sempre o NCM e a unidade de medida (UN, PAR, LT). Para serviços, verifique o código NBS correspondente para evitar erros na emissão de notas.
     </Callout>
 
-    Para assistir ao vídeo e conferir os dados mínimos de produto e serviço, acesse [Cadastros rápidos](/portal/docs/cliente/primeiros-passos/cadastros-rapidos). Para os campos e regras globais, consulte o [manual de Produto](/portal/docs/cliente/documentacao/estoque/produto).
-  </Step>
-
-  <Step>
-    ### Entrada de Notas Fiscais (Compras)
-
-    Este processo é fundamental para manter sua oficina abastecida. Ao dar entrada em uma nota, o sistema automatiza o **estoque** e o **contas a pagar**.
-
-    <Accordions>
-      <Accordion title="Benefícios da Automação">
-        * **Atualização de Estoque:** Peças compradas entram no saldo automaticamente.
-        * **Custo:** Recalcula o custo das peças, mantendo sua margem de lucro real.
-        * **Financeiro:** Lançamentos gerados direto no contas a pagar do fornecedor.
-      </Accordion>
-    </Accordions>
-
-    <Callout type="warn" title="Importação de XML">
-      Sempre utilize a importação via arquivo XML. Isso evita erros de digitação, garante que o NCM do produto venha correto do fornecedor e economiza um tempo precioso.
-    </Callout>
-
-    <YouTubeModal videoId="emtestes" thumbnailTitle="Entrada de Compras: Automatizando Estoque e Financeiro" />
+    Para assistir ao vídeo e conferir os dados mínimos de produto e serviço, acesse [Primeiros Passos](/portal/docs/cliente/primeiros-passos#cadastros-basicos). Para os campos e regras globais, consulte o [manual de Produto](/portal/docs/cliente/documentacao/estoque/produto).
   </Step>
 
   <Step>
@@ -164,70 +128,7 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
       Mantenha o campo **Vendedor** sempre preenchido. Sem esse vínculo, o cálculo de comissões não será processado.
     </Callout>
 
-    Para aprender o fluxo básico e assistir ao vídeo, acesse [Primeira venda com Pedido de Venda](/portal/docs/cliente/primeiros-passos/pedido-venda). Para regras e cenários completos, consulte o [manual de Pedido de Venda](/portal/docs/cliente/documentacao/vendas/pedido-venda).
+    Para aprender o fluxo básico e assistir ao vídeo, acesse [Primeiros Passos](/portal/docs/cliente/primeiros-passos#primeira-venda). Para regras e cenários completos, consulte o [manual de Pedido de Venda](/portal/docs/cliente/documentacao/vendas/pedido-venda).
   </Step>
 
-  <Step>
-    ### Emissão de NF-e, NFC-e e NFS-e
-
-    Transforma suas Ordens de Serviço finalizadas em documentos fiscais válidos, lidando com a complexidade tributária de forma automatizada.
-
-    <Tabs items={["NF-e", "NFC-e", "NFS-e"]}>
-      <Tab value="NF-e">
-        **Nota Fiscal Eletrônica:** Utilizada para a venda de peças e produtos, geralmente faturamento a prazo para empresas (frotistas).
-      </Tab>
-      <Tab value="NFC-e">
-        **Nota Fiscal do Consumidor:** Ideal para vendas rápidas de balcão e peças faturadas diretamente ao consumidor final na oficina.
-      </Tab>
-      <Tab value="NFS-e">
-        **Nota Fiscal de Serviço:** Destinada exclusivamente para o registro da mão de obra (alinhamento, revisões) prestada pelos mecânicos.
-      </Tab>
-    </Tabs>
-
-    <Callout type="warn" title="Conferência Fiscal">
-      Antes de emitir, verifique se o cadastro do cliente está completo e se as peças possuem o NCM correto. O uso correto dessas notas evita bitributação.
-    </Callout>
-
-    <YouTubeModal videoId="emtestes" thumbnailTitle="Emissão Fiscal: Como emitir notas de peças e serviços" />
-  </Step>
-
-  <Step>
-    ### Gestão Financeira
-
-    O painel de controle da saúde do seu negócio. Visualize todo o movimento financeiro (contas a receber e a pagar) e faça a conciliação bancária.
-
-    <Callout type="info" title="Disciplina Financeira">
-      Sempre realize a baixa das contas a receber vinculadas às Ordens de Serviço assim que o pagamento for confirmado no banco. Isso mantém o fluxo de caixa atualizado.
-    </Callout>
-
-    <YouTubeModal videoId="emtestes" thumbnailTitle="Gestão Financeira: Controlando Contas a Pagar e Receber" />
-  </Step>
-
-  <Step>
-    ### Fechamento de Caixa
-
-    A conferência final da sua operação diária. O objetivo é validar se todos os valores recebidos (dinheiro, cartões, Pix) conferem com os lançamentos no sistema.
-
-    <Callout type="info" title="Feche todos os dias">
-      Crie o hábito de realizar o fechamento diariamente. Isso facilita a identificação imediata de furos ou divergências, tornando a conciliação mensal muito mais segura.
-    </Callout>
-
-    <YouTubeModal videoId="emtestes" thumbnailTitle="Fechamento de Caixa" />
-  </Step>
-
-  <Step>
-    ### Relatórios e Indicadores
-
-    Onde os dados se transformam em decisões. Descubra quais áreas estão gerando mais lucro e acompanhe o desempenho geral da oficina.
-
-    <Accordions>
-      <Accordion title="Principais Relatórios">
-        * **Curva ABC de Estoque:** Quais peças não podem faltar e quais estão encalhadas.
-        * **Desempenho por Técnico:** Produtividade e comissões dos mecânicos.
-        * **DRE e Resultados:** A oficina teve lucro ou prejuízo este mês?
-      </Accordion>
-    </Accordions>
-
-    <YouTubeModal videoId="emtestes" thumbnailTitle="Relatórios Gerenciais: Como analisar os números do seu negócio" />
-  </Step>
 </Steps>

@@ -145,13 +145,10 @@ export function useHostComputedValues(
 
   const installations = useMemo(() => {
     const seen = new Set<string>();
-    const primaryCompanyDirectory = details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
     return dedupedInstallationContexts
       .map((context) => {
         const entry = context.update;
-        const companyContext = context.company;
-        const companyDirectory = companyContext?.installationDirectory?.trim();
-        const resolvedDirectory = companyDirectory || primaryCompanyDirectory || DEFAULT_INSTALLATION_DIRECTORY;
+        const resolvedDirectory = entry.path.trim() || DEFAULT_INSTALLATION_DIRECTORY;
         const key = `${entry.companyLabel}::${resolvedDirectory}`.toLowerCase();
         if (seen.has(key)) return null;
         seen.add(key);
@@ -166,7 +163,7 @@ export function useHostComputedValues(
         (entry): entry is { companyId: string | null; resolvedCompanyName: string | null; companyLabel: string; path: string } =>
           !!entry,
       );
-  }, [dedupedInstallationContexts, details.company.installationDirectory]);
+  }, [dedupedInstallationContexts]);
 
   const desiredSysproHints = useMemo(
     () =>
@@ -244,8 +241,7 @@ export function useHostComputedValues(
       .filter((value) => !!value);
     const erpVersion = collectedVersions[0] ?? null;
     const erpPaths = Array.from(new Set(installations.map((entry) => entry.path.trim()).filter((path) => !!path)));
-    const fallbackPath = details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
-    const resolvedPaths = erpPaths.length ? erpPaths : [fallbackPath];
+    const resolvedPaths = erpPaths.length ? erpPaths : [DEFAULT_INSTALLATION_DIRECTORY];
     return {
       status: serviceStatus,
       autoHeal: {
@@ -256,7 +252,7 @@ export function useHostComputedValues(
       },
       erp: { version: erpVersion, paths: resolvedPaths },
     };
-  }, [details.agentCommands, details.company.installationDirectory, host.serviceStatus, installations, serviceStatus, sysproVersionSnapshot]);
+  }, [details.agentCommands, host.serviceStatus, installations, serviceStatus, sysproVersionSnapshot]);
 
   const autoHealStatusIcon = useMemo(
     () => getAutoHealStatusIconMeta(agentHealthCard.autoHeal.status),

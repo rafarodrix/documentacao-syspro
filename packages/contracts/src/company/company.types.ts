@@ -9,12 +9,6 @@ const emptyToUndefined = z.preprocess(
   z.string().optional(),
 );
 
-export const DEFAULT_COMPANY_SERVER_TYPE = "SYSPRO_SERVER" as const;
-export const DEFAULT_COMPANY_SERVER_PROTOCOL = "HTTP" as const;
-export const DEFAULT_COMPANY_SERVER_PORT = 1234;
-export const DEFAULT_COMPANY_SERVER_HOST = "LOCALHOST";
-export const DEFAULT_COMPANY_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
-
 export const COMPANY_STATUS_VALUES = ["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_DOCS"] as const;
 export const COMPANY_SEGMENT_VALUES = [
   "AUTO_PECAS",
@@ -35,8 +29,6 @@ export const TAX_REGIME_VALUES = [
   "MEI",
 ] as const;
 export const INDICADOR_IE_VALUES = ["CONTRIBUINTE", "ISENTO", "NAO_CONTRIBUINTE"] as const;
-export const COMPANY_SERVER_TYPE_VALUES = ["SYSPRO_SERVER", "IIS"] as const;
-export const COMPANY_SERVER_PROTOCOL_VALUES = ["HTTP", "HTTPS"] as const;
 export const COMPANY_REMOTE_CONNECTION_TYPE_VALUES = ["DDNS_NOIP", "RADMIN_VPN"] as const;
 export const COMPANY_INACTIVATION_REASON_VALUES = ENTITY_INACTIVATION_REASON_VALUES;
 
@@ -73,12 +65,6 @@ export const createCompanySchema = z
     segment: z.enum(COMPANY_SEGMENT_VALUES).nullable().optional(),
     status: z.enum(COMPANY_STATUS_VALUES).default("ACTIVE"),
     logoUrl: emptyToUndefined.pipe(z.string().url("URL invalida").optional()),
-    serverType: z.enum(COMPANY_SERVER_TYPE_VALUES).optional().default(DEFAULT_COMPANY_SERVER_TYPE),
-    serverPort: z.coerce.number().int().min(1).optional().default(DEFAULT_COMPANY_SERVER_PORT),
-    serverHost: z.string().trim().optional().default(DEFAULT_COMPANY_SERVER_HOST),
-    serverProtocol: z.enum(COMPANY_SERVER_PROTOCOL_VALUES).optional().default(DEFAULT_COMPANY_SERVER_PROTOCOL),
-    iisIsapiPath: emptyToUndefined.optional().default("SYSPROSERVERISAPI.DLL"),
-    installationDirectory: emptyToUndefined.optional().default(DEFAULT_COMPANY_INSTALLATION_DIRECTORY),
     remoteConnections: z.array(companyRemoteConnectionSchema).default([]),
     parentCompanyId: emptyToUndefined,
     accountingFirmId: emptyToUndefined,
@@ -195,12 +181,6 @@ export interface CompanyEditInitialData {
   segment?: CompanySegmentValue | null;
   logoUrl: string;
   status: CompanyStatusValue;
-  serverType: "SYSPRO_SERVER" | "IIS";
-  serverPort: number;
-  serverHost: string;
-  serverProtocol: "HTTP" | "HTTPS";
-  iisIsapiPath: string;
-  installationDirectory: string;
   remoteConnections: CompanyRemoteConnectionInput[];
   parentCompanyId: string;
   accountingFirmId: string;
@@ -265,11 +245,6 @@ export interface CompanyCockpitProfile {
   state?: string | null;
   accountingFirmName?: string | null;
   blockedReasonLabel?: string | null;
-  installationDirectory?: string | null;
-  serverHost?: string | null;
-  serverType?: "SYSPRO_SERVER" | "IIS" | null;
-  serverProtocol?: "HTTP" | "HTTPS" | null;
-  serverPort?: number | null;
   counts: {
     users: number;
     contacts: number;
@@ -460,10 +435,6 @@ export const companyListItemSchema = z.object({
   nomeFantasia: z.string().nullable(),
   segment: z.enum(COMPANY_SEGMENT_VALUES).nullable().optional(),
   status: z.enum(COMPANY_STATUS_VALUES),
-  serverType: z.enum(COMPANY_SERVER_TYPE_VALUES).nullable().optional(),
-  serverPort: z.number().int().nullable().optional(),
-  serverHost: z.string().nullable().optional(),
-  serverProtocol: z.enum(COMPANY_SERVER_PROTOCOL_VALUES).nullable().optional(),
   contractBlockReasonLabel: z.string().nullable().optional(),
   isBlockedByContract: z.boolean().optional(),
   usersCount: z.number().int().optional(),

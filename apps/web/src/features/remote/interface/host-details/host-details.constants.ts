@@ -2,11 +2,6 @@ import { REMOTE_AGENT_ACK_REASON_LABELS, type RemoteAgentAckReasonCode } from "@
 import type { RemoteMachineProfile } from "@dosc-syspro/contracts/remote";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 
-export const COMPANY_SERVER_TYPE_LABEL: Record<"SYSPRO_SERVER" | "IIS", string> = {
-  SYSPRO_SERVER: "Syspro Server",
-  IIS: "IIS",
-};
-
 export const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
   DDNS_NOIP: "DDNS (NoIP)",
   RADMIN_VPN: "Radmin VPN",

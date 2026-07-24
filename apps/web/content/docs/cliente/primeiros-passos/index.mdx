@@ -1,18 +1,21 @@
 ---
 title: Primeiros Passos
-description: Jornada guiada para preparar os cadastros, realizar a primeira operação e aplicar o fluxo ao segmento da empresa.
-lastUpdated: 2026-07-23
+description: Jornada guiada para preparar os cadastros, realizar a primeira venda e aplicar o fluxo ao segmento da empresa.
+lastUpdated: 2026-07-24
 owner: Equipe de Documentação
 status: published
 tags:
   - primeiros-passos
   - operacao
+  - vendas
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Cards, Card } from 'fumadocs-ui/components/card';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
-import { BadgeCheck, Building2, FileText, ReceiptText, WalletCards, Wrench } from 'lucide-react';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { BarChart3, Building2, FileInput, Package, ReceiptText, Users, WalletCards, Wrench } from 'lucide-react';
+import { YouTubeModal } from '@/components/docs/youtube-modal';
 
 Use esta página como a jornada inicial da operação. Siga as etapas na ordem apresentada: cada uma prepara os dados e as decisões necessárias para a próxima.
 
@@ -22,54 +25,154 @@ Use esta página como a jornada inicial da operação. Siga as etapas na ordem a
 
 ## Jornada da primeira operação
 
-<Steps>
-  <Step>
-    ### 1. Preparar os cadastros-base
+<Cards>
+  <Card title="1. Cadastros básicos" href="#cadastros-basicos" icon={<Users />}>
+    Participantes, produtos e serviços necessários para começar.
+  </Card>
+  <Card title="2. Primeira venda" href="#primeira-venda" icon={<Package />}>
+    Tutorial e vídeo para registrar o primeiro Pedido de Venda.
+  </Card>
+  <Card title="3. Entrada de compras" href="#entrada-de-compras" icon={<FileInput />}>
+    Importe as notas recebidas para atualizar estoque e financeiro.
+  </Card>
+  <Card title="4. Fiscal" href="#fiscal" icon={<ReceiptText />}>
+    Valide a operação antes de emitir documentos fiscais.
+  </Card>
+  <Card title="5. Financeiro" href="#financeiro" icon={<WalletCards />}>
+    Acompanhe os efeitos financeiros gerados pela venda.
+  </Card>
+  <Card title="6. Gestão" href="#fechamento-e-indicadores" icon={<BarChart3 />}>
+    Feche o caixa e use os relatórios para acompanhar o resultado.
+  </Card>
+</Cards>
 
-    Cadastre participantes, produtos e serviços antes de iniciar uma venda. A qualidade desses dados influencia preço, estoque, financeiro e emissão fiscal.
+## Cadastros básicos
 
-    [Abrir Cadastros rápidos](/portal/docs/cliente/primeiros-passos/cadastros-rapidos)
-  </Step>
+Prepare os registros usados na operação antes de iniciar a venda. Consulte antes de incluir, complete os dados mínimos e valide o resultado na rotina em que cada cadastro será utilizado.
 
-  <Step>
-    ### 2. Registrar o primeiro Pedido de Venda
+### Participantes
 
-    Selecione o participante, inclua os itens, confira quantidades, preços e pagamento e salve o pedido. O pedido organiza a operação comercial antes do faturamento.
+O participante é o cadastro-base para clientes, fornecedores, colaboradores e outros relacionamentos usados na operação.
 
-    [Abrir tutorial da primeira venda](/portal/docs/cliente/primeiros-passos/pedido-venda)
-  </Step>
+<Tabs items={['Pessoa física', 'Pessoa jurídica']}>
+  <Tab value="Pessoa física">
+    **Indicado para:** consumidores finais, colaboradores e contatos pessoais.
 
-  <Step>
-    ### 3. Concluir a operação fiscal quando aplicável
+    **Dados mínimos:** nome completo, CPF quando aplicável, telefone ou e-mail e situação ativa. Informe o endereço quando houver entrega, cobrança ou emissão fiscal.
 
-    Antes de emitir, revise participante, itens e regras fiscais. A emissão depende da natureza da operação e das configurações da empresa.
+    <YouTubeModal videoId="Dg7VzTPY0uE" thumbnailTitle="Cadastro de participante — Pessoa Física" priority />
+  </Tab>
 
-    [Consultar documentação fiscal](/portal/docs/cliente/documentacao/fiscal)
-  </Step>
+  <Tab value="Pessoa jurídica">
+    **Indicado para:** empresas, fornecedores, transportadoras e clientes corporativos.
 
-  <Step>
-    ### 4. Acompanhar o financeiro
+    **Dados mínimos:** razão social, CNPJ quando aplicável, nome fantasia quando houver, contato e situação ativa. Antes da primeira emissão, confira os dados fiscais e o endereço.
 
-    Confirme os títulos, recebimentos, caixa e demais efeitos financeiros gerados pela operação.
-
-    [Consultar documentação financeira](/portal/docs/cliente/documentacao/financeiro)
-  </Step>
-</Steps>
-
-## Atalhos da jornada
+    <YouTubeModal videoId="E54396oUlTo" thumbnailTitle="Cadastro de participante — Pessoa Jurídica" />
+  </Tab>
+</Tabs>
 
 <Cards>
-  <Card title="Cadastros rápidos" href="/portal/docs/cliente/primeiros-passos/cadastros-rapidos" icon={<BadgeCheck />}>
-    Participantes, produtos e serviços: vídeo, dados mínimos e manuais completos.
+  <Card title="Manual de Participante" href="/portal/docs/cliente/documentacao/cadastro/participante" icon={<Users />}>
+    Campos, guias, bloqueios, regras comerciais, impactos fiscais e solução de problemas.
   </Card>
-  <Card title="Primeira venda" href="/portal/docs/cliente/primeiros-passos/pedido-venda" icon={<FileText />}>
-    Tutorial e vídeo para criar, conferir e salvar o primeiro Pedido de Venda.
+</Cards>
+
+### Produtos e serviços
+
+Cadastre o item conforme sua natureza antes de utilizá-lo em compras, vendas, estoque ou ordem de serviço. A classificação correta evita erros fiscais e de saldo.
+
+<Tabs items={['Produto', 'Serviço']}>
+  <Tab value="Produto">
+    **Indicado para:** itens físicos que podem ser comprados, vendidos ou movimentados em estoque.
+
+    **Dados mínimos:** descrição clara, unidade de medida, departamento e NCM quando houver emissão fiscal. Revise preço, custo e controle de estoque conforme a operação.
+  </Tab>
+
+  <Tab value="Serviço">
+    **Indicado para:** mão de obra e demais prestações que não movimentam estoque físico.
+
+    **Dados mínimos:** descrição clara, unidade de medida, departamento e NBS quando houver emissão fiscal. Revise o preço de venda e a classificação fiscal antes de utilizar o serviço.
+  </Tab>
+</Tabs>
+
+<YouTubeModal videoId="aJAqC5tTm0A" thumbnailTitle="Cadastro de Produtos e Serviços" />
+
+<Cards>
+  <Card title="Manual de Produto e Serviço" href="/portal/docs/cliente/documentacao/estoque/produto" icon={<Package />}>
+    Dados globais do item, classificação, estoque, preço, cuidados fiscais e validação antes do uso.
   </Card>
-  <Card title="Fiscal" href="/portal/docs/cliente/documentacao/fiscal" icon={<ReceiptText />}>
+</Cards>
+
+<Callout type="warning" title="Antes de seguir para a venda">
+  Pesquise para evitar duplicidade e confirme os campos fiscais ou comerciais que alteram o comportamento da operação, como bloqueios, preço especial, estoque, custo e classificação fiscal.
+</Callout>
+
+## Primeira venda
+
+Use o Pedido de Venda para registrar a operação comercial antes do faturamento. O participante e os produtos ou serviços precisam estar cadastrados e ativos.
+
+<Steps>
+  <Step>Acesse a rotina de **Pedido de Venda** e inicie um novo pedido.</Step>
+  <Step>Selecione o **participante** que realizará a compra.</Step>
+  <Step>Inclua os produtos ou serviços e confira quantidade, unidade, preço e desconto.</Step>
+  <Step>Informe a condição de pagamento e revise o valor total do pedido.</Step>
+  <Step>Salve o pedido e confirme se ele foi registrado corretamente antes de seguir para faturamento ou entrega.</Step>
+</Steps>
+
+<YouTubeModal videoId="jPNM_8BbjKM" thumbnailTitle="Pedido de Venda — Atendimento Ágil no Balcão" />
+
+<Cards>
+  <Card title="Manual completo de Pedido de Venda" href="/portal/docs/cliente/documentacao/vendas/pedido-venda">
+    Detalhes de pagamento, entrega, descontos, validações e regras da operação.
+  </Card>
+</Cards>
+
+## Entrada de compras
+
+A entrada de notas fiscais atualiza estoque, custo e contas a pagar. Sempre que possível, importe o XML recebido do fornecedor em vez de digitar os itens manualmente.
+
+<Callout type="warning" title="Use o XML">
+  A importação reduz erros de NCM, quantidade e custo, além de agilizar a conferência e os lançamentos financeiros.
+</Callout>
+
+<Cards>
+  <Card title="Consultar documentação de Compras" href="/portal/docs/cliente/documentacao/compra" icon={<FileInput />}>
+    Cotações, pedidos, requisições e rotinas de entrada da operação.
+  </Card>
+</Cards>
+
+## Fiscal
+
+Antes de emitir, revise participante, itens e regras fiscais. A emissão depende da natureza da operação e das configurações da empresa.
+
+<Cards>
+  <Card title="Consultar documentação fiscal" href="/portal/docs/cliente/documentacao/fiscal" icon={<ReceiptText />}>
     Regras e validações para documentos fiscais.
   </Card>
-  <Card title="Financeiro" href="/portal/docs/cliente/documentacao/financeiro" icon={<WalletCards />}>
+</Cards>
+
+## Financeiro
+
+Confirme os títulos, recebimentos, caixa e demais efeitos financeiros gerados pela operação.
+
+<Cards>
+  <Card title="Consultar documentação financeira" href="/portal/docs/cliente/documentacao/financeiro" icon={<WalletCards />}>
     Títulos, caixa e acompanhamento financeiro da operação.
+  </Card>
+</Cards>
+
+## Fechamento e indicadores
+
+O fechamento de caixa confere os valores recebidos durante o dia. Depois, os relatórios transformam os dados de venda, estoque e financeiro em informações para gestão.
+
+<Callout type="info" title="Feche o caixa diariamente">
+  Registre suprimentos e sangrias no momento em que acontecem. Conferir diariamente facilita a identificação de divergências antes do fechamento mensal.
+</Callout>
+
+<Cards>
+  <Card title="Relatórios e indicadores" href="/portal/docs/cliente/documentacao/relatorios" icon={<BarChart3 />}>
+    Acompanhe vendas, estoque, financeiro e resultados da operação.
   </Card>
 </Cards>
 

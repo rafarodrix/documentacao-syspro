@@ -28,11 +28,6 @@ async function buildEmergencyCompanyCockpitView(companyId: string): Promise<Comp
       state: initialData?.address?.estado?.trim() || null,
       accountingFirmName: null,
       blockedReasonLabel: null,
-      installationDirectory: initialData?.installationDirectory?.trim() || null,
-      serverHost: initialData?.serverHost?.trim() || null,
-      serverType: initialData?.serverType ?? null,
-      serverProtocol: initialData?.serverProtocol ?? null,
-      serverPort: initialData?.serverPort ?? null,
       counts: {
         users: 0,
         contacts: 0,

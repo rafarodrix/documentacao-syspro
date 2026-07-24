@@ -47,24 +47,7 @@ export function RemoteHostDetailsPanel({
   const [manualInstallationCompanyId, setManualInstallationCompanyId] = useState(
     host.companyId ?? details.companyOptions[0]?.id ?? "",
   );
-  const [manualInstallationPath, setManualInstallationPath] = useState(
-    details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY,
-  );
-  const [companyContextDraftByCompanyId, setCompanyContextDraftByCompanyId] = useState<
-    Record<
-      string,
-      {
-        serverType: "SYSPRO_SERVER" | "IIS" | "__none__";
-        installationDirectory: string;
-        serverHost: string;
-        serverPort: string;
-        serverProtocol: "HTTP" | "HTTPS" | "__none__";
-        iisIsapiPath: string;
-        observacoes: string;
-      }
-    >
-  >({});
-  const [savingCompanyContextId, setSavingCompanyContextId] = useState<string | null>(null);
+  const [manualInstallationPath, setManualInstallationPath] = useState(DEFAULT_INSTALLATION_DIRECTORY);
   const [ticketDetails, setTicketDetails] = useState<{ title: string; state: string; priority: string } | null>(null);
   const [isLoadingTicket, setIsLoadingTicket] = useState(false);
 
@@ -76,7 +59,6 @@ export function RemoteHostDetailsPanel({
   const [isRelinkingInstallation, startRelinkingInstallation] = useTransition();
   const [isBulkRelinkingInstallations, startBulkRelinkingInstallations] = useTransition();
   const [isCreatingManualInstallation, startCreatingManualInstallation] = useTransition();
-  const [isSavingCompanyContext, startSavingCompanyContext] = useTransition();
   const [isStartingSession, startSessionTransition] = useTransition();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingHost, startDeletingHost] = useTransition();
@@ -161,10 +143,6 @@ export function RemoteHostDetailsPanel({
   }, [details.companyOptions, host.companyId]);
 
   useEffect(() => {
-    setManualInstallationPath(details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY);
-  }, [details.company.installationDirectory]);
-
-  useEffect(() => {
     if (typeof window === "undefined") return;
     const userAgent = window.navigator.userAgent.toLowerCase();
     setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
@@ -182,42 +160,6 @@ export function RemoteHostDetailsPanel({
     if (details.companyOptions.length === 0) return;
     setBulkInstallationCompanyId((current) => current || details.companyOptions[0].id);
   }, [details.companyOptions]);
-
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-  function buildCompanyContextDraft(
-    companyContext: RemoteHostDetails["installationContexts"][number]["company"],
-    fallbackDirectory: string,
-  ) {
-    return {
-      serverType: companyContext?.serverType ?? "__none__",
-      installationDirectory: companyContext?.installationDirectory?.trim() || fallbackDirectory || DEFAULT_INSTALLATION_DIRECTORY,
-      serverHost: companyContext?.serverHost?.trim() || "",
-      serverPort: companyContext?.serverPort ? String(companyContext.serverPort) : "",
-      serverProtocol: companyContext?.serverProtocol ?? "__none__",
-      iisIsapiPath: companyContext?.iisIsapiPath?.trim() || "",
-      observacoes: companyContext?.observacoes ?? "",
-    } as const;
-  }
-
-  function updateCompanyContextDraft(
-    companyId: string,
-    patch: Partial<{
-      serverType: "SYSPRO_SERVER" | "IIS" | "__none__";
-      installationDirectory: string;
-      serverHost: string;
-      serverPort: string;
-      serverProtocol: "HTTP" | "HTTPS" | "__none__";
-      iisIsapiPath: string;
-      observacoes: string;
-    }>,
-    companyContext: RemoteHostDetails["installationContexts"][number]["company"],
-    fallbackDirectory: string,
-  ) {
-    setCompanyContextDraftByCompanyId((prev) => {
-      const current = prev[companyId] ?? buildCompanyContextDraft(companyContext, fallbackDirectory);
-      return { ...prev, [companyId]: { ...current, ...patch } };
-    });
-  }
 
   // ── Action handlers ───────────────────────────────────────────────────────────
   async function handleCopy(value: string | null, label: string) {
@@ -420,39 +362,6 @@ export function RemoteHostDetailsPanel({
     });
   }
 
-  function handleSaveCompanyContext(
-    companyId: string,
-    companyContext: RemoteHostDetails["installationContexts"][number]["company"],
-    fallbackDirectory: string,
-  ) {
-    const draft = companyContextDraftByCompanyId[companyId] ?? buildCompanyContextDraft(companyContext, fallbackDirectory);
-    const normalizedDirectory = draft.installationDirectory.trim() || fallbackDirectory || DEFAULT_INSTALLATION_DIRECTORY;
-    startSavingCompanyContext(async () => {
-      setSavingCompanyContextId(companyId);
-      try {
-        await requestRemoteMutation({
-          url: `/api/remote/companies/${companyId}/context`,
-          method: "PATCH",
-          body: {
-            serverType: draft.serverType === "__none__" ? null : draft.serverType,
-            installationDirectory: normalizedDirectory,
-            serverHost: draft.serverHost.trim() || null,
-            serverPort: draft.serverPort.trim() || null,
-            serverProtocol: draft.serverProtocol === "__none__" ? null : draft.serverProtocol,
-            iisIsapiPath: draft.iisIsapiPath.trim() || null,
-            observacoes: draft.observacoes.trim() || null,
-          },
-        });
-        toast.success("Contexto técnico da empresa atualizado.");
-        router.refresh();
-      } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error));
-      } finally {
-        setSavingCompanyContextId(null);
-      }
-    });
-  }
-
   function handleStartOrchestratedSession() {
     if (!normalizedRustdeskId) {
       toast.error("Host sem identificador remoto. Não é possível iniciar sessão.");
@@ -615,11 +524,6 @@ export function RemoteHostDetailsPanel({
             setManualInstallationPath={setManualInstallationPath}
             isCreatingManualInstallation={isCreatingManualInstallation}
             handleCreateManualInstallation={handleCreateManualInstallation}
-            companyContextDraftByCompanyId={companyContextDraftByCompanyId}
-            updateCompanyContextDraft={updateCompanyContextDraft}
-            isSavingCompanyContext={isSavingCompanyContext}
-            savingCompanyContextId={savingCompanyContextId}
-            handleSaveCompanyContext={handleSaveCompanyContext}
             sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
 
             // From agent tab

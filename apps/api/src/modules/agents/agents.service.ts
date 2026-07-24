@@ -81,7 +81,10 @@ const DESIRED_STATE_INSTALLATION_INCLUDE = {
               iisApplicationPath: true,
               companies: {
                 where: { active: true, companyId: { not: null } },
-                orderBy: [{ role: 'asc' as const }, { companyName: 'asc' as const }],
+                orderBy: [
+                  { role: 'asc' },
+                  { companyName: 'asc' },
+                ] as Prisma.ErpInstallationCompanyOrderByWithRelationInput[],
                 select: {
                   companyId: true,
                   companyName: true,
@@ -89,7 +92,7 @@ const DESIRED_STATE_INSTALLATION_INCLUDE = {
                 },
               },
             },
-            orderBy: [{ rootPath: 'asc' as const }],
+            orderBy: [{ rootPath: 'asc' }] as Prisma.ErpInstallationOrderByWithRelationInput[],
           },
           sysproUpdates: {
             select: {
@@ -906,7 +909,7 @@ export class AgentsService {
   private buildDeviceSysproInstallationHints(
     installation: DesiredStateInstallationRow,
   ): NonNullable<AgentDesiredState['device']['syspro_installation_hints']> {
-    const remoteHost = this.getRemoteCapability(installation)?.remoteHost ?? null;
+    const remoteHost = installation?.capabilities[0]?.remoteHost ?? null;
     const hints: NonNullable<AgentDesiredState['device']['syspro_installation_hints']> = [];
     const seen = new Set<string>();
 

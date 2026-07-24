@@ -22,9 +22,15 @@ type Logger interface {
 // SysproInstallationHint replica o campo do desired state para evitar import circular.
 // O module.go converte domain.SysproInstallationHint para este tipo.
 type SysproInstallationHint struct {
-	CompanyID   string
-	CompanyName string
-	Path        string
+	CompanyID      string
+	CompanyName    string
+	Path           string
+	InstallationID string
+	RuntimeType    string
+	Port           int
+	Protocol       string
+	Host           string
+	IISPath        string
 }
 
 // Collector executa coleta de metricas do sistema operacional Windows.

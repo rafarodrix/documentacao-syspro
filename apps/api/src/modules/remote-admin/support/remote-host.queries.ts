@@ -264,7 +264,7 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
   const rebootPendingFromWindows = readBooleanRecordValue(windowsUpdateStatus, "rebootRequired");
   const rebootPending = typeof host.lastRebootPending === "boolean" ? host.lastRebootPending : rebootPendingFromWindows;
   const windowsPendingCount = readNumberRecordValue(windowsUpdateStatus, "pendingCount");
-  const companyServerType = ((host.company as any).serverType ?? null) as "SYSPRO_SERVER" | "IIS" | null;
+  const hostRuntimeType = resolveHostRuntimeType(host.erpInstallations);
   const diskLow = diskSnapshot.some((entry) => {
     const freePercent = readNumberRecordValue(entry, "freePercent");
     const freeGb = readNumberRecordValue(entry, "freeGb");
@@ -278,7 +278,7 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     if (typeof usedPct === "number" && usedPct >= 90) return true;
     return false;
   });
-  const sysproProcessDown = companyServerType === "IIS" ? false : hasStoppedSysproService(sysproProcessSnapshot);
+  const sysproProcessDown = hostRuntimeType === "IIS" ? false : hasStoppedSysproService(sysproProcessSnapshot);
   const extendedSnapshotDates = [host.lastHardwareIdentityAt, host.lastDiskSnapshotAt, host.lastSysproProcessSnapshotAt, host.lastWindowsUpdateStatusAt, host.lastRebootPendingAt].filter((value): value is Date => value instanceof Date);
   const lastExtendedSnapshotAt = extendedSnapshotDates.length
     ? new Date(Math.max(...extendedSnapshotDates.map((value) => (value instanceof Date ? value.getTime() : 0)))).toISOString()
@@ -424,6 +424,40 @@ function mapCompanyRemoteConnections(input: {
   }
 
   return [];
+}
+
+function resolveHostRuntimeType(
+  erpInstallations?: Array<{ runtimeType?: "SYSPRO_SERVER" | "IIS" | null }> | null,
+): "SYSPRO_SERVER" | "IIS" | null {
+  const runtimeTypes = (erpInstallations ?? [])
+    .map((installation) => installation.runtimeType ?? null)
+    .filter((value): value is "SYSPRO_SERVER" | "IIS" => value === "SYSPRO_SERVER" || value === "IIS");
+
+  if (runtimeTypes.includes("IIS")) return "IIS";
+  if (runtimeTypes.includes("SYSPRO_SERVER")) return "SYSPRO_SERVER";
+  return null;
+}
+
+function mapRemoteCompanyContext(company: {
+  id: string;
+  razaoSocial: string;
+  nomeFantasia: string | null;
+  remoteConnections?: unknown;
+  remoteConnectionType?: unknown;
+  remoteConnectionDetails?: unknown;
+  observacoes: string | null;
+}) {
+  return {
+    id: company.id,
+    razaoSocial: company.razaoSocial,
+    nomeFantasia: company.nomeFantasia,
+    remoteConnections: mapCompanyRemoteConnections({
+      remoteConnections: company.remoteConnections,
+      remoteConnectionType: company.remoteConnectionType,
+      remoteConnectionDetails: company.remoteConnectionDetails,
+    }),
+    observacoes: company.observacoes ?? null,
+  };
 }
 
 function buildCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
@@ -1393,12 +1427,6 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
           id: true,
           nomeFantasia: true,
           razaoSocial: true,
-          serverType: true,
-          serverPort: true,
-          serverHost: true,
-          serverProtocol: true,
-          iisIsapiPath: true,
-          installationDirectory: true,
           remoteConnections: true,
           remoteConnectionType: true,
           remoteConnectionDetails: true,
@@ -1500,12 +1528,6 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
           id: true,
           razaoSocial: true,
           nomeFantasia: true,
-          serverType: true,
-          serverPort: true,
-          serverHost: true,
-          serverProtocol: true,
-          iisIsapiPath: true,
-          installationDirectory: true,
           remoteConnections: true,
           remoteConnectionType: true,
           remoteConnectionDetails: true,
@@ -1514,48 +1536,12 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       })
     : [];
   const companyContextById = new Map(
-    installationCompanies.map((company) => [
-      company.id,
-      {
-        id: company.id,
-        razaoSocial: company.razaoSocial,
-        nomeFantasia: company.nomeFantasia,
-        serverType: ((company as any).serverType ?? null) as "SYSPRO_SERVER" | "IIS" | null,
-        serverPort: company.serverPort ?? null,
-        serverHost: company.serverHost ?? null,
-        serverProtocol: ((company as any).serverProtocol ?? null) as "HTTP" | "HTTPS" | null,
-        iisIsapiPath: company.iisIsapiPath ?? null,
-        installationDirectory: company.installationDirectory ?? null,
-        remoteConnections: mapCompanyRemoteConnections({
-          remoteConnections: (company as any).remoteConnections,
-          remoteConnectionType: (company as any).remoteConnectionType,
-          remoteConnectionDetails: (company as any).remoteConnectionDetails,
-        }),
-        observacoes: company.observacoes ?? null,
-      },
-    ])
+    installationCompanies.map((company) => [company.id, mapRemoteCompanyContext(company)]),
   );
-  const primaryCompanyContext = {
-    id: host.company.id,
-    razaoSocial: host.company.razaoSocial,
-    nomeFantasia: host.company.nomeFantasia,
-    serverType: ((host.company as any).serverType ?? null) as "SYSPRO_SERVER" | "IIS" | null,
-    serverPort: host.company.serverPort ?? null,
-    serverHost: host.company.serverHost ?? null,
-    serverProtocol: ((host.company as any).serverProtocol ?? null) as "HTTP" | "HTTPS" | null,
-    iisIsapiPath: host.company.iisIsapiPath ?? null,
-    installationDirectory: host.company.installationDirectory ?? null,
-    remoteConnections: mapCompanyRemoteConnections({
-      remoteConnections: (host.company as any).remoteConnections,
-      remoteConnectionType: (host.company as any).remoteConnectionType,
-      remoteConnectionDetails: (host.company as any).remoteConnectionDetails,
-    }),
-    observacoes: host.company.observacoes ?? null,
-  };
+  const primaryCompanyContext = mapRemoteCompanyContext(host.company);
   companyContextById.set(host.company.id, primaryCompanyContext);
   const companyContexts = Array.from(companyContextById.values());
   const companyContextByIdentity = new Map<string, (typeof primaryCompanyContext)>();
-  const companyContextByDirectory = new Map<string, (typeof primaryCompanyContext)>();
 
   for (const context of companyContexts) {
     const identities = [context.nomeFantasia, context.razaoSocial]
@@ -1565,11 +1551,6 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       if (!companyContextByIdentity.has(identity)) {
         companyContextByIdentity.set(identity, context);
       }
-    }
-
-    const directoryKey = context.installationDirectory?.trim().toLowerCase();
-    if (directoryKey && !companyContextByDirectory.has(directoryKey)) {
-      companyContextByDirectory.set(directoryKey, context);
     }
   }
   const primaryCompanyLabels = new Set(
@@ -1707,7 +1688,6 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       id: host.company.id,
       razaoSocial: host.company.razaoSocial,
       nomeFantasia: host.company.nomeFantasia,
-      installationDirectory: host.company.installationDirectory ?? null,
     },
     installationContexts: mappedSysproUpdates.map((update) => {
       const linkedCompanyContext = update.companyId ? companyContextById.get(update.companyId) ?? null : null;
@@ -1728,14 +1708,6 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
         return {
           update,
           company: guessedByLabel,
-        };
-      }
-
-      const guessedByDirectory = companyContextByDirectory.get(update.path.trim().toLowerCase()) ?? null;
-      if (guessedByDirectory) {
-        return {
-          update,
-          company: guessedByDirectory,
         };
       }
 

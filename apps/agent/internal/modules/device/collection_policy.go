@@ -18,8 +18,9 @@ const (
 	collectorHardware         = "hardware"
 	collectorWindowsUpdate    = "windows_update"
 	collectorAllServices      = "all_services"
-	collectorSysproVersions   = "syspro_versions"
-	collectorCriticalEvents   = "critical_events"
+	collectorSysproVersions      = "syspro_versions"
+	collectorCriticalEvents      = "critical_events"
+	collectorSysproRuntimeProbes = "syspro_runtime_probes"
 )
 
 type collectorPolicy struct {
@@ -112,64 +113,69 @@ func profileDefaults(profile string) map[string]collectorPolicy {
 			collectorHardware:         {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
 			collectorWindowsUpdate:    {enabled: true, interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
 			collectorAllServices:      {enabled: false, interval: 12 * time.Hour, priority: 3},
-			collectorSysproVersions:   {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
-			collectorCriticalEvents:   {enabled: true, priority: 1},
+			collectorSysproVersions:      {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+			collectorCriticalEvents:      {enabled: true, priority: 1},
+			collectorSysproRuntimeProbes: {enabled: false, interval: 5 * time.Minute, priority: 2},
 		}
 	case "terminal":
 		return map[string]collectorPolicy{
-			collectorMetrics:          {enabled: true, interval: 5 * time.Minute, priority: 1},
-			collectorCriticalServices: {enabled: true, interval: 10 * time.Minute, priority: 1},
-			collectorDisks:            {enabled: true, interval: 15 * time.Minute, jitter: 2 * time.Minute, priority: 1},
-			collectorNetwork:          {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 2},
-			collectorSystem:           {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 3},
-			collectorSoftware:         {enabled: false, interval: 24 * time.Hour, priority: 3},
-			collectorHardware:         {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
-			collectorWindowsUpdate:    {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 3},
-			collectorAllServices:      {enabled: false, interval: 12 * time.Hour, priority: 3},
-			collectorSysproVersions:   {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
-			collectorCriticalEvents:   {enabled: false, priority: 1},
+			collectorMetrics:             {enabled: true, interval: 5 * time.Minute, priority: 1},
+			collectorCriticalServices:    {enabled: true, interval: 10 * time.Minute, priority: 1},
+			collectorDisks:               {enabled: true, interval: 15 * time.Minute, jitter: 2 * time.Minute, priority: 1},
+			collectorNetwork:             {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 2},
+			collectorSystem:              {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 3},
+			collectorSoftware:            {enabled: false, interval: 24 * time.Hour, priority: 3},
+			collectorHardware:            {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+			collectorWindowsUpdate:       {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 3},
+			collectorAllServices:         {enabled: false, interval: 12 * time.Hour, priority: 3},
+			collectorSysproVersions:      {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+			collectorCriticalEvents:      {enabled: false, priority: 1},
+			collectorSysproRuntimeProbes: {enabled: false, interval: 5 * time.Minute, priority: 2},
 		}
 	case "backup_node":
 		return map[string]collectorPolicy{
-			collectorMetrics:          {enabled: true, interval: 2 * time.Minute, priority: 1},
-			collectorCriticalServices: {enabled: true, interval: 2 * time.Minute, priority: 1},
-			collectorDisks:            {enabled: true, interval: 3 * time.Minute, jitter: 30 * time.Second, priority: 1},
-			collectorNetwork:          {enabled: true, interval: 30 * time.Minute, jitter: 5 * time.Minute, priority: 2},
-			collectorSystem:           {enabled: true, interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
-			collectorSoftware:         {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
-			collectorHardware:         {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
-			collectorWindowsUpdate:    {enabled: true, interval: 6 * time.Hour, jitter: 30 * time.Minute, priority: 3},
-			collectorAllServices:      {enabled: true, interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
-			collectorSysproVersions:   {enabled: false, interval: 24 * time.Hour, priority: 3},
-			collectorCriticalEvents:   {enabled: true, priority: 1},
+			collectorMetrics:             {enabled: true, interval: 2 * time.Minute, priority: 1},
+			collectorCriticalServices:    {enabled: true, interval: 2 * time.Minute, priority: 1},
+			collectorDisks:               {enabled: true, interval: 3 * time.Minute, jitter: 30 * time.Second, priority: 1},
+			collectorNetwork:             {enabled: true, interval: 30 * time.Minute, jitter: 5 * time.Minute, priority: 2},
+			collectorSystem:              {enabled: true, interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
+			collectorSoftware:            {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+			collectorHardware:            {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+			collectorWindowsUpdate:       {enabled: true, interval: 6 * time.Hour, jitter: 30 * time.Minute, priority: 3},
+			collectorAllServices:         {enabled: true, interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
+			collectorSysproVersions:      {enabled: false, interval: 24 * time.Hour, priority: 3},
+			collectorCriticalEvents:      {enabled: true, priority: 1},
+			collectorSysproRuntimeProbes: {enabled: false, interval: 5 * time.Minute, priority: 2},
 		}
 	case "unlinked":
 		return map[string]collectorPolicy{
-			collectorMetrics:          {enabled: true, interval: 5 * time.Minute, priority: 1},
-			collectorCriticalServices: {enabled: true, interval: 5 * time.Minute, priority: 1},
-			collectorDisks:            {enabled: true, interval: 15 * time.Minute, jitter: 2 * time.Minute, priority: 1},
-			collectorNetwork:          {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 2},
-			collectorSystem:           {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 3},
-			collectorSoftware:         {enabled: false, interval: 24 * time.Hour, priority: 3},
-			collectorHardware:         {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
-			collectorWindowsUpdate:    {enabled: false, interval: 6 * time.Hour, priority: 3},
-			collectorAllServices:      {enabled: false, interval: 12 * time.Hour, priority: 3},
-			collectorSysproVersions:   {enabled: false, interval: 24 * time.Hour, priority: 3},
-			collectorCriticalEvents:   {enabled: false, priority: 1},
+			collectorMetrics:             {enabled: true, interval: 5 * time.Minute, priority: 1},
+			collectorCriticalServices:    {enabled: true, interval: 5 * time.Minute, priority: 1},
+			collectorDisks:               {enabled: true, interval: 15 * time.Minute, jitter: 2 * time.Minute, priority: 1},
+			collectorNetwork:             {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 2},
+			collectorSystem:              {enabled: true, interval: 24 * time.Hour, jitter: time.Hour, priority: 3},
+			collectorSoftware:            {enabled: false, interval: 24 * time.Hour, priority: 3},
+			collectorHardware:            {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+			collectorWindowsUpdate:       {enabled: false, interval: 6 * time.Hour, priority: 3},
+			collectorAllServices:         {enabled: false, interval: 12 * time.Hour, priority: 3},
+			collectorSysproVersions:      {enabled: false, interval: 24 * time.Hour, priority: 3},
+			collectorCriticalEvents:      {enabled: false, priority: 1},
+			collectorSysproRuntimeProbes: {enabled: false, interval: 5 * time.Minute, priority: 2},
 		}
 	default: // server_syspro — RMM completo (comportamento histórico)
 		return map[string]collectorPolicy{
-			collectorMetrics:          {enabled: true, interval: time.Minute, priority: 1},
-			collectorCriticalServices: {enabled: true, interval: 2 * time.Minute, priority: 1},
-			collectorDisks:            {enabled: true, interval: 5 * time.Minute, jitter: 30 * time.Second, priority: 1},
-			collectorNetwork:          {enabled: true, interval: 15 * time.Minute, jitter: 2 * time.Minute, priority: 2},
-			collectorSystem:           {enabled: true, interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
-			collectorSoftware:         {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
-			collectorHardware:         {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
-			collectorWindowsUpdate:    {enabled: true, interval: 6 * time.Hour, jitter: 30 * time.Minute, priority: 3},
-			collectorAllServices:      {enabled: true, interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
-			collectorSysproVersions:   {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
-			collectorCriticalEvents:   {enabled: true, priority: 1},
+			collectorMetrics:             {enabled: true, interval: time.Minute, priority: 1},
+			collectorCriticalServices:    {enabled: true, interval: 2 * time.Minute, priority: 1},
+			collectorDisks:               {enabled: true, interval: 5 * time.Minute, jitter: 30 * time.Second, priority: 1},
+			collectorNetwork:             {enabled: true, interval: 15 * time.Minute, jitter: 2 * time.Minute, priority: 2},
+			collectorSystem:              {enabled: true, interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
+			collectorSoftware:            {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+			collectorHardware:            {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+			collectorWindowsUpdate:       {enabled: true, interval: 6 * time.Hour, jitter: 30 * time.Minute, priority: 3},
+			collectorAllServices:         {enabled: true, interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
+			collectorSysproVersions:      {enabled: true, interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+			collectorCriticalEvents:      {enabled: true, priority: 1},
+			collectorSysproRuntimeProbes: {enabled: true, interval: 5 * time.Minute, priority: 2},
 		}
 	}
 }

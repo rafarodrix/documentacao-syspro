@@ -31,16 +31,6 @@ type ServiceItem = {
   orderWeight: number;
 };
 
-function resolveConfiguredServerType(details: RemoteHostDetails): "SYSPRO_SERVER" | "IIS" | null {
-  const declaredTypes = details.installationContexts
-    .map((ctx) => ctx.company?.serverType ?? null)
-    .filter((value): value is "SYSPRO_SERVER" | "IIS" => value === "SYSPRO_SERVER" || value === "IIS");
-
-  if (declaredTypes.includes("IIS")) return "IIS";
-  if (declaredTypes.includes("SYSPRO_SERVER")) return "SYSPRO_SERVER";
-  return null;
-}
-
 export function HostServicesTab({
   host,
   agent,
@@ -55,7 +45,6 @@ export function HostServicesTab({
   onConnectRustDesk,
 }: HostServicesTabProps) {
   const services: ServiceItem[] = [];
-  const configuredServerType = resolveConfiguredServerType(details);
 
   const getStatusWeight = (status: ComponentStatus) => {
     switch (status) {

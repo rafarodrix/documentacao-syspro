@@ -1,30 +1,13 @@
-import { HardDriveDownload, Loader2, Plus, Save, Folder, Building2, Trash2 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Loader2, Plus } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Badge } from "@dosc-syspro/ui";
-import { cn } from "@/lib/utils";
-import { formatNumber } from "@/lib/formatters";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { SearchableCompanyPicker } from "./searchable-company-picker";
-import { formatDateTime, getSysproUpdateHealthMeta, resolveSysproServerForPath } from "../host-details.helpers";
-import {
-  COMPANY_SERVER_TYPE_LABEL,
-  DEFAULT_INSTALLATION_DIRECTORY,
-  REMOTE_CONNECTION_LABEL,
-  UNLINKED_COMPANY_VALUE,
-} from "../host-details.constants";
+import { resolveSysproServerForPath } from "../host-details.helpers";
+import { DEFAULT_INSTALLATION_DIRECTORY } from "../host-details.constants";
 
 type InstallationContext = RemoteHostDetails["installationContexts"][number];
 type HostInstallationsPanelDetails = Pick<RemoteHostDetails, "company" | "companyOptions">;
-type CompanyContextDraft = {
-  serverType: "SYSPRO_SERVER" | "IIS" | "__none__";
-  installationDirectory: string;
-  serverHost: string;
-  serverPort: string;
-  serverProtocol: "HTTP" | "HTTPS" | "__none__";
-  iisIsapiPath: string;
-  observacoes: string;
-};
 
 export function resolveSysproVersionInfoForPath(
   sysproVersionSnapshot: Record<string, unknown> | null,
@@ -57,80 +40,20 @@ export type SettingsInstallationsViewProps = {
   handleCreateManualInstallation: () => void;
   handleAddCompanyToInstallation: (updateId: string, companyId: string) => void;
   sysproVersionSnapshot: Record<string, unknown> | null;
-  companyContextDraftByCompanyId: Record<string, CompanyContextDraft>;
-  updateCompanyContextDraft: (
-    companyId: string,
-    patch: Partial<CompanyContextDraft>,
-    companyContext: InstallationContext["company"],
-    fallbackDirectory: string,
-  ) => void;
-  isSavingCompanyContext: boolean;
-  savingCompanyContextId: string | null;
-  handleSaveCompanyContext: (
-    companyId: string,
-    companyContext: InstallationContext["company"],
-    fallbackDirectory: string,
-  ) => void;
 };
 
 export function SettingsInstallationsView({
   details,
-  installationFilter,
-  setInstallationFilter,
   canManageInstallations,
-  bulkInstallationCompanyId,
-  setBulkInstallationCompanyId,
-  isBulkRelinkingInstallations,
-  handleBulkRelinkInstallations,
-  dedupedInstallationContexts,
-  unlinkedInstallationsCount,
-  installationContextsForDisplay,
-  selectedCompanyByUpdateId,
-  setSelectedCompanyByUpdateId,
-  isRelinkingInstallation,
-  handleRelinkInstallation,
-  handleAddCompanyToInstallation,
-  sysproVersionSnapshot,
   manualInstallationCompanyId,
   setManualInstallationCompanyId,
   manualInstallationPath,
   setManualInstallationPath,
   isCreatingManualInstallation,
   handleCreateManualInstallation,
-  companyContextDraftByCompanyId,
-  updateCompanyContextDraft,
-  isSavingCompanyContext,
-  savingCompanyContextId,
-  handleSaveCompanyContext,
 }: SettingsInstallationsViewProps) {
-  const [addCompanyByUpdateId, setAddCompanyByUpdateId] = useState<Record<string, string>>({});
-
-  // Grouping the items by physical folder path
-  const groupedInstallations = useMemo(() => {
-    const byPath = new Map<string, {
-      path: string;
-      contexts: InstallationContext[];
-    }>();
-
-    for (const context of installationContextsForDisplay) {
-      const normPath = context.update.path.trim().toLowerCase();
-      const existing = byPath.get(normPath);
-      if (existing) {
-        existing.contexts.push(context);
-      } else {
-        byPath.set(normPath, {
-          path: context.update.path.trim(),
-          contexts: [context],
-        });
-      }
-    }
-
-    return Array.from(byPath.values());
-  }, [installationContextsForDisplay]);
-
   return (
     <div className="space-y-6">
-      {/* Manual Association Creator */}
       <Card className="border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg">Associações de Empresa e Instalações</CardTitle>

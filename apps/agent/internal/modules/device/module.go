@@ -35,6 +35,7 @@ type Module struct {
 	lastServices      *SysproProcessSnapshot
 	lastAllServices   *AllServicesSnapshot
 	lastVersions      *SysproVersionSnapshot
+	lastRuntimeProbes *SysproRuntimeProbeSnapshot
 	syncBatch         map[string]struct{}
 }
 
@@ -220,6 +221,15 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 		}
 	}
 
+	if policy.enabled(collectorSysproRuntimeProbes) && m.snapshots.due(ctx, collectorSysproRuntimeProbes, now) {
+		probeHints := toCollectorHints(desired.Device.SysproInstallationHints)
+		probes := m.collector.CollectSysproRuntimeProbes(ctx, probeHints)
+		m.mu.Lock()
+		m.lastRuntimeProbes = probes
+		m.mu.Unlock()
+		m.observeSnapshot(ctx, collectorSysproRuntimeProbes, probes, now)
+	}
+
 	return domain.ApplyResult{
 		Module:  "device",
 		Changed: true,
@@ -327,6 +337,16 @@ func (m *Module) GetSyncSnapshots() (metrics, system, network, software, hardwar
 	return
 }
 
+// GetSysproRuntimeProbes retorna probes do batch atual (após GetSyncSnapshots).
+func (m *Module) GetSysproRuntimeProbes() any {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.lastRuntimeProbes == nil || !m.inSyncBatch(collectorSysproRuntimeProbes) {
+		return nil
+	}
+	return m.lastRuntimeProbes
+}
+
 func (m *Module) MarkSyncSnapshotsPublished(ctx context.Context) {
 	m.mu.Lock()
 	batch := m.syncBatch
@@ -360,9 +380,15 @@ func toCollectorHints(targets []domain.SysproInstallationHint) []SysproInstallat
 	out := make([]SysproInstallationHint, len(targets))
 	for i, t := range targets {
 		out[i] = SysproInstallationHint{
-			CompanyID:   t.CompanyID,
-			CompanyName: t.CompanyName,
-			Path:        t.Path,
+			CompanyID:      t.CompanyID,
+			CompanyName:    t.CompanyName,
+			Path:           t.Path,
+			InstallationID: t.InstallationID,
+			RuntimeType:    t.RuntimeType,
+			Port:           t.Port,
+			Protocol:       t.Protocol,
+			Host:           t.Host,
+			IISPath:        t.IISPath,
 		}
 	}
 	return out

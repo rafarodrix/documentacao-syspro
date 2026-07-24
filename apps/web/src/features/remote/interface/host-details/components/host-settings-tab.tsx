@@ -158,11 +158,6 @@ export function HostSettingsTab(props: Props) {
             setManualInstallationPath={props.setManualInstallationPath}
             isCreatingManualInstallation={props.isCreatingManualInstallation}
             handleCreateManualInstallation={props.handleCreateManualInstallation}
-            companyContextDraftByCompanyId={props.companyContextDraftByCompanyId}
-            updateCompanyContextDraft={props.updateCompanyContextDraft}
-            isSavingCompanyContext={props.isSavingCompanyContext}
-            savingCompanyContextId={props.savingCompanyContextId}
-            handleSaveCompanyContext={props.handleSaveCompanyContext}
           />
         </TabsContent>
 

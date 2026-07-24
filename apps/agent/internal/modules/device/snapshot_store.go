@@ -38,7 +38,8 @@ var collectionSchedules = map[string]collectorSchedule{
 	"hardware":          {interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
 	"windows_update":    {interval: 6 * time.Hour, jitter: 30 * time.Minute, priority: 3},
 	"all_services":      {interval: 12 * time.Hour, jitter: time.Hour, priority: 3},
-	"syspro_versions":   {interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+	"syspro_versions":        {interval: 24 * time.Hour, jitter: 90 * time.Minute, priority: 3},
+	"syspro_runtime_probes":  {interval: 5 * time.Minute, priority: 2},
 }
 
 type collectorSnapshotState struct {

@@ -313,8 +313,7 @@ export class ContactsOrchestrationService {
           company: {
             select: {
               id: true, razaoSocial: true, nomeFantasia: true, cnpj: true, observacoes: true,
-              serverType: true, serverPort: true, serverHost: true, serverProtocol: true,
-              iisIsapiPath: true, installationDirectory: true, remoteConnections: true,
+              remoteConnections: true,
               addresses: { select: { cidade: true, pais: true }, take: 1 },
             },
           },
@@ -333,8 +332,7 @@ export class ContactsOrchestrationService {
           company: {
             select: {
               id: true, razaoSocial: true, nomeFantasia: true, cnpj: true, observacoes: true,
-              serverType: true, serverPort: true, serverHost: true, serverProtocol: true,
-              iisIsapiPath: true, installationDirectory: true, remoteConnections: true,
+              remoteConnections: true,
               addresses: { select: { cidade: true, pais: true }, take: 1 },
             },
           },

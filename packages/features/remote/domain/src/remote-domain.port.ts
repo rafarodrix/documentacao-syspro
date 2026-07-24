@@ -304,6 +304,7 @@ export type ProcessedSyncRecord = {
   diskSnapshot: Array<Record<string, unknown>>;
   sysproProcesses: Array<Record<string, unknown>>;
   sysproVersions: Record<string, unknown> | null;
+  sysproRuntimeProbes: Record<string, unknown> | null;
   windowsUpdateStatus: Record<string, unknown> | null;
   allServicesSnapshot: Array<Record<string, unknown>>;
   rebootPending: boolean | null;

@@ -110,6 +110,7 @@ export const processSyncInputSchema = z.object({
   diskSnapshot: z.unknown().optional(),
   sysproProcesses: z.unknown().optional(),
   sysproVersions: z.unknown().optional(),
+  sysproRuntimeProbes: z.unknown().optional(),
   windowsUpdateStatus: z.unknown().optional(),
   allServicesSnapshot: z.unknown().optional(),
   rebootPending: z.unknown().optional(),

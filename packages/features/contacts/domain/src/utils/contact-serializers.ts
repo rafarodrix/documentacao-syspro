@@ -11,12 +11,6 @@ export type ChatwootCompanySummary = {
   razaoSocial?: string | null;
   cnpj?: string | null;
   observacoes?: string | null;
-  serverType?: 'SYSPRO_SERVER' | 'IIS' | null;
-  serverPort?: number | null;
-  serverHost?: string | null;
-  serverProtocol?: 'HTTP' | 'HTTPS' | null;
-  iisIsapiPath?: string | null;
-  installationDirectory?: string | null;
   remoteConnections?: ChatwootRemoteConnection[] | null;
   addresses?: Array<{ cidade?: string | null; pais?: string | null }> | null;
 };
@@ -57,12 +51,6 @@ export function normalizeChatwootCompanySummary(company: unknown): ChatwootCompa
     razaoSocial: typeof record.razaoSocial === 'string' ? record.razaoSocial : null,
     cnpj: typeof record.cnpj === 'string' ? record.cnpj : null,
     observacoes: typeof record.observacoes === 'string' ? record.observacoes : null,
-    serverType: record.serverType === 'SYSPRO_SERVER' || record.serverType === 'IIS' ? record.serverType : null,
-    serverPort: typeof record.serverPort === 'number' ? record.serverPort : null,
-    serverHost: typeof record.serverHost === 'string' ? record.serverHost : null,
-    serverProtocol: record.serverProtocol === 'HTTP' || record.serverProtocol === 'HTTPS' ? record.serverProtocol : null,
-    iisIsapiPath: typeof record.iisIsapiPath === 'string' ? record.iisIsapiPath : null,
-    installationDirectory: typeof record.installationDirectory === 'string' ? record.installationDirectory : null,
     remoteConnections: normalizeRemoteConnections(record.remoteConnections),
     addresses,
   };

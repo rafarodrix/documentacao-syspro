@@ -415,12 +415,6 @@ export type RemoteCompanyContextItem = {
   id: string;
   razaoSocial: string;
   nomeFantasia: string | null;
-  serverType: "SYSPRO_SERVER" | "IIS" | null;
-  serverPort: number | null;
-  serverHost: string | null;
-  serverProtocol: "HTTP" | "HTTPS" | null;
-  iisIsapiPath: string | null;
-  installationDirectory: string | null;
   remoteConnections: Array<{
     type: "DDNS_NOIP" | "RADMIN_VPN";
     details: string;
@@ -502,7 +496,6 @@ export type RemoteHostDetails = {
     id: string;
     razaoSocial: string;
     nomeFantasia: string | null;
-    installationDirectory: string | null;
   };
   installationContexts: Array<{
     update: RemoteHostSysproUpdateItem;
@@ -863,12 +856,6 @@ export const remoteCompanyContextItemSchema = z.object({
   id: z.string(),
   razaoSocial: z.string(),
   nomeFantasia: remoteStringOrNullSchema,
-  serverType: z.enum(["SYSPRO_SERVER", "IIS"]).nullable(),
-  serverPort: z.number().nullable(),
-  serverHost: remoteStringOrNullSchema,
-  serverProtocol: z.enum(["HTTP", "HTTPS"]).nullable(),
-  iisIsapiPath: remoteStringOrNullSchema,
-  installationDirectory: remoteStringOrNullSchema,
   remoteConnections: z.array(
     z.object({
       type: z.enum(["DDNS_NOIP", "RADMIN_VPN"]),
@@ -1062,7 +1049,6 @@ export const remoteHostDetailsSchema = z.object({
     id: z.string(),
     razaoSocial: z.string(),
     nomeFantasia: remoteStringOrNullSchema,
-    installationDirectory: remoteStringOrNullSchema,
   }),
   installationContexts: z.array(
     z.object({

@@ -130,6 +130,7 @@ type remoteDesiredIntent struct {
 // rebootPending e separado pois o portal persiste como Boolean no schema.
 type DeviceSnapshotProvider interface {
 	GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate, allServices any, rebootPending *bool)
+	GetSysproRuntimeProbes() any
 	MarkSyncSnapshotsPublished(ctx context.Context)
 	GetCriticalEvents(ctx context.Context) []map[string]any
 	MarkCriticalEventsPublished(ctx context.Context)
@@ -575,6 +576,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		syncReq.DiskSnapshot = devDisks
 		syncReq.SysproProcesses = devServices
 		syncReq.SysproVersions = devVersions
+		syncReq.SysproRuntimeProbes = m.device.GetSysproRuntimeProbes()
 		syncReq.WindowsUpdateStatus = devWindowsUpdate
 		syncReq.AllServicesSnapshot = devAllServices
 		syncReq.RebootPending = devReboot

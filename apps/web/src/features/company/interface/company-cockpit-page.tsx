@@ -255,11 +255,6 @@ function normalizeCompanyCockpitView(view: CompanyCockpitViewData): CompanyCockp
       state: typeof profile.state === "string" && profile.state.trim() ? profile.state : null,
       accountingFirmName: typeof profile.accountingFirmName === "string" && profile.accountingFirmName.trim() ? profile.accountingFirmName : null,
       blockedReasonLabel: typeof profile.blockedReasonLabel === "string" && profile.blockedReasonLabel.trim() ? profile.blockedReasonLabel : null,
-      installationDirectory: typeof profile.installationDirectory === "string" && profile.installationDirectory.trim() ? profile.installationDirectory : null,
-      serverHost: typeof profile.serverHost === "string" && profile.serverHost.trim() ? profile.serverHost : null,
-      serverType: profile.serverType ?? null,
-      serverProtocol: profile.serverProtocol ?? null,
-      serverPort: typeof profile.serverPort === "number" && Number.isFinite(profile.serverPort) ? profile.serverPort : null,
       counts: {
         users: typeof counts.users === "number" && Number.isFinite(counts.users) ? counts.users : 0,
         contacts: typeof counts.contacts === "number" && Number.isFinite(counts.contacts) ? counts.contacts : 0,
@@ -549,16 +544,6 @@ export function CompanyCockpitPage({
               <div className="rounded-lg border border-border/50 bg-background/60 p-3">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contabilidade</p>
                 <p className="mt-1 text-sm font-medium text-foreground">{view.profile.accountingFirmName || "Nao vinculada"}</p>
-              </div>
-              <div className="rounded-lg border border-border/50 bg-background/60 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Servidor</p>
-                <p className="mt-1 text-sm font-medium text-foreground">
-                  {view.profile.serverHost || "Nao configurado"}
-                  {view.profile.serverPort ? `:${view.profile.serverPort}` : ""}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {(view.profile.serverType || "sem tipo")} / {(view.profile.serverProtocol || "sem protocolo")}
-                </p>
               </div>
             </div>
           </SectionCard>
@@ -1048,13 +1033,6 @@ export function CompanyCockpitPage({
                 <p className="mt-1 text-sm font-medium text-foreground">
                   {view.profile.city || "Nao informada"}
                   {view.profile.state ? ` / ${view.profile.state}` : ""}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border/50 bg-background/60 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Servidor</p>
-                <p className="mt-1 text-sm font-medium text-foreground">
-                  {view.profile.serverHost || "Nao configurado"}
-                  {view.profile.serverPort ? `:${view.profile.serverPort}` : ""}
                 </p>
               </div>
             </div>

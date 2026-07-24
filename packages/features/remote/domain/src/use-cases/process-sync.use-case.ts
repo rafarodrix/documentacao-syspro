@@ -200,6 +200,11 @@ export async function processSync(
   const diskSnapshot = normalizeOptionalRecordArrayWithWarning(input.diskSnapshot, "SYNC_INVALID_DISK_SNAPSHOT", warnings);
   const sysproProcesses = normalizeOptionalRecordArrayWithWarning(input.sysproProcesses, "SYNC_INVALID_SYSPRO_PROCESSES", warnings);
   const sysproVersions = normalizeOptionalRecordWithWarning(input.sysproVersions, "SYNC_INVALID_SYSPRO_VERSIONS", warnings);
+  const sysproRuntimeProbes = normalizeOptionalRecordWithWarning(
+    input.sysproRuntimeProbes,
+    "SYNC_INVALID_SYSPRO_RUNTIME_PROBES",
+    warnings,
+  );
   const windowsUpdateStatus = normalizeOptionalRecordWithWarning(input.windowsUpdateStatus, "SYNC_INVALID_WINDOWS_UPDATE_STATUS", warnings);
   const allServicesSnapshot = normalizeOptionalRecordArrayWithWarning(
     input.allServicesSnapshot,
@@ -281,6 +286,7 @@ export async function processSync(
     diskSnapshot,
     sysproProcesses,
     sysproVersions,
+    sysproRuntimeProbes,
     windowsUpdateStatus,
     allServicesSnapshot,
     rebootPending,

@@ -8,11 +8,6 @@ import { useRouter } from "next/navigation";
 import {
   COMPANY_STATUS_VALUES,
   createCompanySchema,
-  DEFAULT_COMPANY_INSTALLATION_DIRECTORY,
-  DEFAULT_COMPANY_SERVER_HOST,
-  DEFAULT_COMPANY_SERVER_PORT,
-  DEFAULT_COMPANY_SERVER_PROTOCOL,
-  DEFAULT_COMPANY_SERVER_TYPE,
   INDICADOR_IE_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
@@ -92,12 +87,9 @@ const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
   {
     id: "configuracoes",
     title: "Configuracoes",
-    description: "Servidor e acesso remoto",
+    description: "Acesso remoto",
     icon: BadgeHelp as ElementType,
-    fields: [
-      "serverType", "serverPort", "serverHost", "serverProtocol",
-      "iisIsapiPath", "installationDirectory", "remoteConnections",
-    ],
+    fields: ["remoteConnections"],
   },
 ];
 
@@ -163,12 +155,6 @@ export function CreateCompanyPageForm({
       segment: undefined,
       logoUrl: "",
       status: COMPANY_STATUS_VALUES[0],
-      serverType: DEFAULT_COMPANY_SERVER_TYPE,
-      serverPort: DEFAULT_COMPANY_SERVER_PORT,
-      serverHost: DEFAULT_COMPANY_SERVER_HOST,
-      serverProtocol: DEFAULT_COMPANY_SERVER_PROTOCOL,
-      iisIsapiPath: "SYSPROSERVERISAPI.DLL",
-      installationDirectory: DEFAULT_COMPANY_INSTALLATION_DIRECTORY,
       remoteConnections: [],
       indicadorIE: INDICADOR_IE_VALUES[2],
       regimeTributario: undefined,
