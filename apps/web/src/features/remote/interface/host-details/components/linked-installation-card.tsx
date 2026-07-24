@@ -3,6 +3,7 @@ import { Cpu, ExternalLink, WifiOff } from "lucide-react";
 import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { formatInstallationHeartbeatLag, getInstallationOfflineWarningMessage } from "@/features/agents/domain/agent-installation-status";
+import { AGENT_FLEET_LIST_PATH, agentFleetDetailPath } from "@/features/agents/domain/agent-fleet-paths";
 
 export function LinkedInstallationCard({
   device,
@@ -22,14 +23,14 @@ export function LinkedInstallationCard({
           {showNavigation ? (
             <div className="flex items-center gap-3">
               <Link
-                href={`/portal/infraestrutura/agentes/${encodeURIComponent(device.deviceId)}`}
+                href={agentFleetDetailPath(device.deviceId)}
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
               >
                 Ver detalhes
                 <ExternalLink className="h-3 w-3" />
               </Link>
               <Link
-                href="/portal/infraestrutura?tab=agentes"
+                href={AGENT_FLEET_LIST_PATH}
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
               >
                 Ver todos

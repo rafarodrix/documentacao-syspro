@@ -1,11 +1,32 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowLeft, Building2, Clock, Monitor, WifiOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import {
+  ArrowLeft,
+  ArrowUpCircle,
+  Building2,
+  Clock,
+  ExternalLink,
+  KeyRound,
+  Monitor,
+  WifiOff,
+} from "lucide-react";
 import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { AGENT_COLLECTION_PROFILE_LABEL } from "@dosc-syspro/contracts/agent";
+import {
+  isAgentVersionBelowTarget,
+  supportsManagedAgentUpgrade,
+} from "@dosc-syspro/contracts/remote";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { toast } from "sonner";
 import { formatDateTime } from "@/lib/date";
 import { formatInstallationHeartbeatLag, getInstallationOfflineWarningMessage } from "@/features/agents/domain/agent-installation-status";
+import { AGENT_FLEET_LIST_PATH } from "@/features/agents/domain/agent-fleet-paths";
 import { AgentInstallationDeleteSection } from "@/features/agents/interface/agent-installation-delete-section";
 import { AgentHostLinkSection } from "@/features/agents/interface/agent-host-link-section";
+import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "-";
@@ -19,6 +40,8 @@ export function AgentInstallationDetailPanel({
   canManageRemote = false,
   companyOptions = [],
   matchedPendingHost = null,
+  agentTargetVersion = null,
+  agentAutoUpgrade = false,
 }: {
   device: AgentInstallationSummary;
   canManage?: boolean;
@@ -29,16 +52,31 @@ export function AgentInstallationDetailPanel({
     machineName: string | null;
     status: "PENDING_LINK" | "IGNORED";
   } | null;
+  agentTargetVersion?: string | null;
+  agentAutoUpgrade?: boolean;
 }) {
+  const router = useRouter();
+  const [isUpgrading, startUpgrading] = useTransition();
+  const collectionProfileLabel = device.remoteHostId
+    ? "Definido no dispositivo"
+    : AGENT_COLLECTION_PROFILE_LABEL.unlinked;
+  const outdated = Boolean(
+    agentTargetVersion && isAgentVersionBelowTarget(device.agentVersion, agentTargetVersion),
+  );
+  const canUpgrade =
+    Boolean(device.remoteHostId) &&
+    supportsManagedAgentUpgrade(device.agentVersion) &&
+    outdated;
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 pb-8 duration-700">
       <div className="flex flex-col gap-3">
         <Link
-          href="/portal/infraestrutura?tab=agentes"
+          href={AGENT_FLEET_LIST_PATH}
           className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Agentes
+          Frota de agentes
         </Link>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -51,7 +89,7 @@ export function AgentInstallationDetailPanel({
               {device.lastHeartbeatAt && ` - ${formatDate(device.lastHeartbeatAt)}`}
             </p>
           </div>
-          <div className="shrink-0">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             {device.isOnline ? (
               <Badge className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                 <span className="relative flex h-2 w-2">
@@ -66,6 +104,11 @@ export function AgentInstallationDetailPanel({
                 Offline
               </Badge>
             )}
+            {outdated ? (
+              <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                Versao abaixo do alvo
+              </Badge>
+            ) : null}
           </div>
         </div>
       </div>
@@ -82,10 +125,25 @@ export function AgentInstallationDetailPanel({
             <Detail label="Hostname" value={device.hostname} mono={false} />
             <Detail label="Sistema operacional" value={device.os} mono={false} />
             <Detail label="Versao do agente" value={device.agentVersion} mono />
+            <Detail label="Versao alvo (frota)" value={agentTargetVersion} mono />
             <Detail label="Identity source" value={device.identitySource} mono={false} />
+            <Detail
+              label="Perfil de coleta"
+              value={collectionProfileLabel}
+              mono={false}
+            />
             <div className="sm:col-span-2">
               <Detail label="Device ID" value={device.deviceId} mono />
             </div>
+            {!device.remoteHostId ? (
+              <p className="sm:col-span-2 text-xs text-muted-foreground">
+                Sem host vinculado: desired-state usa perfil <span className="font-mono">unlinked</span> (coleta minima).
+              </p>
+            ) : (
+              <p className="sm:col-span-2 text-xs text-muted-foreground">
+                O perfil efetivo segue a funcao do dispositivo (machineProfile) na tela do host.
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -114,6 +172,29 @@ export function AgentInstallationDetailPanel({
           <Card className="border-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <KeyRound className="h-4 w-4" />
+                Auth da frota
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              <Detail
+                label="Installation token"
+                value={device.hasInstallationToken ? "Emitido" : "Ausente (legado)"}
+                mono={false}
+              />
+              <Detail label="Emitido em" value={formatDate(device.installationTokenIssuedAt)} mono={false} />
+              <Detail label="Ultimo uso" value={formatDate(device.installationTokenLastUsedAt)} mono={false} />
+              <Detail
+                label="Auto-upgrade frota"
+                value={agentAutoUpgrade ? "Ativo" : "Desligado"}
+                mono={false}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <Clock className="h-4 w-4" />
                 Historico de datas
               </CardTitle>
@@ -126,6 +207,53 @@ export function AgentInstallationDetailPanel({
           </Card>
         </div>
       </div>
+
+      {(canUpgrade || device.remoteHostId) && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">Acoes</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {canUpgrade ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                disabled={isUpgrading}
+                onClick={() => {
+                  startUpgrading(async () => {
+                    try {
+                      const result = await requestRemoteMutation<Record<string, unknown>>({
+                        url: `/api/remote/hosts/${device.remoteHostId}/actions`,
+                        method: "POST",
+                        body: { action: "UPGRADE_AGENT" },
+                      });
+                      toast.success(
+                        (typeof result.message === "string" && result.message) ||
+                          "Upgrade do agente enfileirado.",
+                      );
+                      router.refresh();
+                    } catch (error) {
+                      toast.error(getRemoteApiErrorMessage(error));
+                    }
+                  });
+                }}
+              >
+                <ArrowUpCircle className="h-4 w-4" />
+                {isUpgrading ? "Agendando..." : "Atualizar agente"}
+              </Button>
+            ) : null}
+            {device.remoteHostId ? (
+              <Button asChild variant="outline" className="gap-2">
+                <Link href={`/portal/infraestrutura/dispositivos/${device.remoteHostId}`}>
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir dispositivo
+                </Link>
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
+      )}
 
       {!device.isOnline && (
         <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">

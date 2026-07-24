@@ -68,9 +68,16 @@ export function HostSettingsTab(props: Props) {
     isRequestingAgentUpgrade,
     canRequestAgentUpgrade,
     onRevokeAgentToken,
+    visibleAgentCommands,
   } = props;
   
   const { moduleSettings } = details;
+  const pendingAgentUpgrade = visibleAgentCommands.find(
+    (command) =>
+      command.type === "UPGRADE_AGENT" &&
+      (command.status === "PENDING" || command.status === "DELIVERED"),
+  );
+  const latestAgentUpgrade = visibleAgentCommands.find((command) => command.type === "UPGRADE_AGENT") ?? null;
   const canDeleteHost =
     details.tenantScope.role === "ADMIN" ||
     details.tenantScope.role === "SUPORTE" ||
@@ -354,6 +361,23 @@ export function HostSettingsTab(props: Props) {
                 &ldquo;Atualizar agente&rdquo; usa a versão alvo <span className="font-mono text-foreground">{moduleSettings.agentTargetVersion}</span>
                 {moduleSettings.agentAutoUpgrade ? " (auto-upgrade da frota ativo)" : " (auto-upgrade da frota desligado)"}.
               </p>
+              {pendingAgentUpgrade || latestAgentUpgrade ? (
+                <div className="mt-3 rounded-lg border border-border/50 bg-muted/15 px-3 py-2 text-xs text-muted-foreground">
+                  {pendingAgentUpgrade ? (
+                    <>
+                      Upgrade do agente <span className="font-medium text-foreground">pendente</span>
+                      {pendingAgentUpgrade.deliveredAt ? " (já entregue ao host)" : " (aguardando próximo sync)"}.
+                      Acompanhe também em Configurações → Agente → fila de ações.
+                    </>
+                  ) : (
+                    <>
+                      Último UPGRADE_AGENT: status <span className="font-mono text-foreground">{latestAgentUpgrade!.status}</span>
+                      {latestAgentUpgrade!.executedAt ? ` · executado` : ""}
+                      {latestAgentUpgrade!.failedAt ? ` · falhou` : ""}.
+                    </>
+                  )}
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 

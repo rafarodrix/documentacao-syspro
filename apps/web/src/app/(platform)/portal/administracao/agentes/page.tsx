@@ -4,6 +4,7 @@ import { PageHeader, PageShell } from "@/components/patterns";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { fetchAgentInstallationList, fetchAgentFleetStats } from "@/features/agents/application/agent.queries";
 import { AgentDevicesPanel } from "@/features/agents/interface/devices-panel";
+import { getRemoteModuleSettingsAction } from "@/features/remote/application/module-settings-actions";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -39,6 +40,19 @@ export default async function AgentesPage({ searchParams }: PageProps) {
     fetchAgentInstallationList({ page: pageValue, search: search || undefined, status }),
   ]);
 
+  const moduleSettingsResult = await getRemoteModuleSettingsAction().catch(() => ({
+    success: false as const,
+    error: "unavailable",
+  }));
+  const agentTargetVersion =
+    moduleSettingsResult.success && "data" in moduleSettingsResult && moduleSettingsResult.data
+      ? moduleSettingsResult.data.agentTargetVersion?.trim() || null
+      : null;
+  const agentAutoUpgrade =
+    moduleSettingsResult.success && "data" in moduleSettingsResult && moduleSettingsResult.data
+      ? Boolean(moduleSettingsResult.data.agentAutoUpgrade)
+      : false;
+
   return (
     <PageShell>
       <PageHeader
@@ -50,6 +64,8 @@ export default async function AgentesPage({ searchParams }: PageProps) {
         initialStats={stats}
         initialList={list}
         initialSearch={search}
+        agentTargetVersion={agentTargetVersion}
+        agentAutoUpgrade={agentAutoUpgrade}
       />
     </PageShell>
   );

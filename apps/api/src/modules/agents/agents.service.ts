@@ -123,6 +123,8 @@ type InstallationRow = {
   agentVersion: string | null;
   companyId: string | null;
   installationTokenHash?: string | null;
+  installationTokenIssuedAt?: Date | null;
+  installationTokenLastUsedAt?: Date | null;
   firstSeenAt: Date;
   lastHeartbeatAt: Date | null;
   lastRegisteredAt: Date | null;
@@ -1354,6 +1356,13 @@ export class AgentsService {
       lastRegisteredAt: row.lastRegisteredAt ? row.lastRegisteredAt.toISOString() : null,
       isOnline,
       heartbeatLagSeconds,
+      hasInstallationToken: Boolean(row.installationTokenHash),
+      installationTokenIssuedAt: row.installationTokenIssuedAt
+        ? row.installationTokenIssuedAt.toISOString()
+        : null,
+      installationTokenLastUsedAt: row.installationTokenLastUsedAt
+        ? row.installationTokenLastUsedAt.toISOString()
+        : null,
     } as unknown as AgentInstallationSummary;
 
     return summary;

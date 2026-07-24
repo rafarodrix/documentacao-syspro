@@ -27,13 +27,22 @@ export function CapabilitiesCell({ item }: CapabilitiesCellProps) {
 
   const getTooltip = (cap: DeviceCapability) => {
     if (cap === "AGENT") {
-      return `Trilink Agent\nVersão ${item.agentVersion ?? "1.0.0"}\nOperacional`;
+      return `Trilink Agent\nVersão ${item.agentVersion ?? "não informada"}\nOperacional`;
     }
     if (cap === "REMOTE") {
       return `RustDesk\nID ${item.remote.externalIdFormatted ?? "Sem ID"}\n${item.remote.isOperational ? "Operacional" : "Indisponível"}`;
     }
     if (cap === "ERP") {
-      return `Syspro ERP\n${item.sysproUpdate?.instanceName ?? "Instalação validada"}\n${item.sysproUpdate?.environment ?? "Produção"}`;
+      const version = item.sysproUpdate?.sysproVersion?.trim();
+      const instance = item.sysproUpdate?.instanceName?.trim();
+      return [
+        "Syspro ERP",
+        instance || item.sysproUpdate?.installationPath || "Instalação validada",
+        version ? `Versão ${version}` : null,
+        item.sysproUpdate?.environment ?? "Produção",
+      ]
+        .filter(Boolean)
+        .join("\n");
     }
     if (cap === "BACKUP") {
       return "Backup\nStatus da última execução configurado";
@@ -49,32 +58,36 @@ export function CapabilitiesCell({ item }: CapabilitiesCellProps) {
   const overflowTooltip = hiddenCapabilities.map((cap) => CAPABILITY_LABEL_MAP[cap]).join(", ");
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
-      {visibleCapabilities.map((cap) => (
-        <Badge
-          key={cap}
-          variant="outline"
-          className={cn(
-            "h-5 px-1.5 text-[9px] font-bold tracking-tight border-border/60 bg-muted/30 text-muted-foreground",
-            cap === "REMOTE" && item.remote.isOperational && "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-            cap === "AGENT" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-            cap === "ERP" && "border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300",
-          )}
-          title={getTooltip(cap)}
-        >
-          {CAPABILITY_LABEL_MAP[cap]}
-        </Badge>
-      ))}
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-1">
+        {visibleCapabilities.map((cap) => (
+          <Badge
+            key={cap}
+            variant="outline"
+            className={cn(
+              "h-5 px-1.5 text-[9px] font-semibold tracking-tight border-border/60 bg-muted/30 text-muted-foreground",
+              cap === "REMOTE" && item.remote.isOperational && "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+              cap === "AGENT" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+              cap === "ERP" && "border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300",
+            )}
+            title={getTooltip(cap)}
+          >
+            {CAPABILITY_LABEL_MAP[cap]}
+            {cap === "AGENT" && item.agentVersion ? ` ${item.agentVersion}` : ""}
+            {cap === "ERP" && item.sysproUpdate?.sysproVersion ? ` ${item.sysproUpdate.sysproVersion}` : ""}
+          </Badge>
+        ))}
 
-      {hiddenCapabilities.length > 0 && (
-        <Badge
-          variant="outline"
-          className="h-5 px-1.5 text-[9px] font-bold tracking-tight border-border/60 bg-muted/50 text-muted-foreground cursor-help"
-          title={`Outras capacidades: ${overflowTooltip}`}
-        >
-          +{hiddenCapabilities.length}
-        </Badge>
-      )}
+        {hiddenCapabilities.length > 0 && (
+          <Badge
+            variant="outline"
+            className="h-5 cursor-help px-1.5 text-[9px] font-semibold tracking-tight border-border/60 bg-muted/50 text-muted-foreground"
+            title={`Outras capacidades: ${overflowTooltip}`}
+          >
+            +{hiddenCapabilities.length}
+          </Badge>
+        )}
+      </div>
     </div>
   );
 }

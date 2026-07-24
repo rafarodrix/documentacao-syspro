@@ -250,7 +250,7 @@ export function RemoteHostDetailsPanel({
         });
         toast.success("Host excluído com sucesso.");
         setShowDeleteConfirm(false);
-        router.push("/portal/infraestrutura?tab=hosts");
+        router.push("/portal/infraestrutura?tab=dispositivos");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -426,6 +426,15 @@ export function RemoteHostDetailsPanel({
             contractValidationError={contractValidationError}
             windowsUpdateStatus={details.agentTelemetry.windowsUpdateStatus}
             diskSnapshot={diskSnapshot}
+            agentTelemetry={details.agentTelemetry}
+            erpInstallations={details.erpInstallations}
+            visibleAgentCommands={visibleAgentCommands}
+            agentTargetVersion={details.moduleSettings.agentTargetVersion?.trim() || null}
+            agentAutoUpgrade={Boolean(details.moduleSettings.agentAutoUpgrade)}
+            localIpv4={machineIpv4}
+            publicIpv4={internetIpv4}
+            productStatusLabel={productStatusMeta.label}
+            operationalStatus={host.operationalStatus}
             projectedHostName={projectedHostName}
             setProjectedHostName={setProjectedHostName}
             projectedCompanyId={projectedCompanyId}

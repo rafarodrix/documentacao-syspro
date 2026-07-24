@@ -50,6 +50,12 @@ export function DiagnosticsSummaryView({ details }: Props) {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-lg border border-border/50 bg-muted/15 px-4 py-3 text-sm text-muted-foreground">
+        Fonte: telemetria do agente (<span className="font-mono text-foreground">agent.telemetry.v1</span>)
+        {telemetry.systemSnapshotAt ? ` · última coleta ${formatDateTime(telemetry.systemSnapshotAt)}` : " · sem coleta ainda"}
+        . Durante a migração o inventário ainda pode chegar também pelo sync RustDesk.
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-border/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

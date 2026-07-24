@@ -91,9 +91,36 @@ export function SettingsAgentView({
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="text-lg">Agente de Monitoramento</CardTitle>
-          <CardDescription>Diagnóstico operacional: telemetria, saúde, conectividade e execução de comandos.</CardDescription>
+          <CardDescription>
+            Diagnóstico operacional: telemetria do agente, saúde, conectividade e execução de comandos.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {(() => {
+            const upgradeCommands = visibleAgentCommands.filter((command) => command.type === "UPGRADE_AGENT");
+            const pendingUpgrade = upgradeCommands.find((command) =>
+              command.status === "PENDING" || command.status === "DELIVERED",
+            );
+            const latestUpgrade = upgradeCommands[0] ?? null;
+            if (!pendingUpgrade && !latestUpgrade) return null;
+            const focus = pendingUpgrade ?? latestUpgrade!;
+            const statusMeta = getCommandStatusMeta(focus);
+            return (
+              <div className="rounded-lg border border-border/50 bg-muted/15 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">Upgrade do agente</p>
+                  <Badge variant="outline" className={statusMeta.className}>
+                    {statusMeta.label}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {pendingUpgrade
+                    ? "Comando UPGRADE_AGENT em andamento — aguarde ACK UPGRADE_AGENT_APPLIED ou a próxima versão no heartbeat."
+                    : `Último comando: ${AGENT_COMMAND_LABEL.UPGRADE_AGENT}. Criado em ${formatDateTime(focus.createdAt)}.`}
+                </p>
+              </div>
+            );
+          })()}
           {host.productStatus === "AWAITING_LINK" ? (
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
               A máquina já foi descoberta pelo agente, mas ainda não foi vinculada no portal. Nesse estado o RustDesk ainda não está instalado. O próximo passo é concluir o vínculo do host para liberar bootstrap e provisionamento remoto.

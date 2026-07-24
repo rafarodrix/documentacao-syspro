@@ -164,7 +164,7 @@ export function RemoteDiscoveredHostDetailsPanel({
           method: "POST",
         });
         toast.success("Host descoberto ignorado.");
-        router.push("/portal/infraestrutura?tab=hosts");
+        router.push("/portal/infraestrutura?tab=dispositivos");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -178,7 +178,7 @@ export function RemoteDiscoveredHostDetailsPanel({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
             <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground">
-              <Link href="/portal/infraestrutura?tab=hosts">
+              <Link href="/portal/infraestrutura?tab=dispositivos">
                 <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
                 Voltar para hosts
               </Link>

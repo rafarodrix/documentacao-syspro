@@ -480,7 +480,7 @@ export function CompanyCockpitPage({
     const tasksHref = `/portal/tarefas?companyId=${view.profile.companyId}`;
     const newTaskHref = `${tasksHref}&newTask=true`;
     const monthlyTasksHref = `${tasksHref}&type=ROTINA_MENSAL`;
-    const hostsHref = `/portal/infraestrutura?tab=hosts&companyId=${view.profile.companyId}`;
+    const hostsHref = `/portal/infraestrutura?tab=dispositivos&companyId=${view.profile.companyId}`;
     const newHostHref = `${hostsHref}&newHost=true`;
     const latestConversationHref = view.conversations[0]?.chatwootUrl || "/portal/configuracoes?tab=integrations";
     const latestReleaseHref = view.releases[0] ? `/portal/tickets/${view.releases[0].ticketId}` : ticketsHref;

@@ -134,8 +134,8 @@ export function ChatwootDashboardApp() {
       currentAgentName: pickFirstValue(context?.currentAgent?.name),
       ticketHref: `/portal/tickets/novo?${ticketParams.toString()}`,
       infrastructureHostsHref: remoteDirectoryParams.toString()
-        ? `/portal/infraestrutura?tab=hosts&${remoteDirectoryParams.toString()}`
-        : "/portal/infraestrutura?tab=hosts",
+        ? `/portal/infraestrutura?tab=dispositivos&${remoteDirectoryParams.toString()}`
+        : "/portal/infraestrutura?tab=dispositivos",
     };
   }, [context, manualLinkedCompany]);
 

@@ -18,6 +18,10 @@ export const agentInstallationSummarySchema = z.object({
   lastRegisteredAt: z.string().nullable(),
   isOnline: z.boolean(),
   heartbeatLagSeconds: z.number().nullable(),
+  /** Token de frota emitido (hash no servidor). Nunca inclui o secret. */
+  hasInstallationToken: z.boolean().default(false),
+  installationTokenIssuedAt: z.string().nullable().default(null),
+  installationTokenLastUsedAt: z.string().nullable().default(null),
 });
 
 export const agentInstallationListQuerySchema = z.object({

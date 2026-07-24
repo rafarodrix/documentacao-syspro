@@ -15,12 +15,18 @@ import {
   Trash2,
   Eye,
   ShieldAlert,
+  ArrowUpCircle,
+  KeyRound,
 } from "lucide-react";
 import type {
   AgentInstallationListResult,
   AgentInstallationSummary,
   AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
+import {
+  isAgentVersionBelowTarget,
+  supportsManagedAgentUpgrade,
+} from "@dosc-syspro/contracts/remote";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
   Badge,
@@ -29,6 +35,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   Dialog,
   DialogContent,
@@ -39,7 +46,9 @@ import {
 import { SearchToolbar } from "@/components/patterns";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { formatInstallationHeartbeatLag } from "@/features/agents/domain/agent-installation-status";
+import { agentFleetDetailPath } from "@/features/agents/domain/agent-fleet-paths";
 import { deleteAgentInstallation, pruneInactiveDevices, getAgentRevocations, deleteAgentRevocation } from "@/features/agents/application/agent-write.actions";
+import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 import { toast } from "sonner";
 
 type StatusFilter = "all" | "online" | "offline";
@@ -48,8 +57,16 @@ export function AgentDevicesPanel(props: {
   initialStats: AgentFleetStats;
   initialList: AgentInstallationListResult;
   initialSearch: string;
+  agentTargetVersion?: string | null;
+  agentAutoUpgrade?: boolean;
 }) {
-  const { initialStats, initialList, initialSearch } = props;
+  const {
+    initialStats,
+    initialList,
+    initialSearch,
+    agentTargetVersion = null,
+    agentAutoUpgrade = false,
+  } = props;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isRefreshing, startRefresh] = useTransition();
@@ -198,7 +215,17 @@ export function AgentDevicesPanel(props: {
         onOpenChange={setIsRevocationsOpen}
       />
 
-      <DevicesTable items={list.items} />
+      {agentTargetVersion ? (
+        <p className="text-xs text-muted-foreground">
+          Versão alvo da frota: <span className="font-mono text-foreground">{agentTargetVersion}</span>
+          {agentAutoUpgrade ? " · auto-upgrade ativo" : " · auto-upgrade desligado"}
+        </p>
+      ) : null}
+
+      <DevicesTable
+        items={list.items}
+        agentTargetVersion={agentTargetVersion}
+      />
 
       <div className="flex items-center justify-between border-t border-border/40 pt-4">
         <span className="text-xs text-muted-foreground">
@@ -265,7 +292,13 @@ function FilterPill(props: {
   );
 }
 
-function DevicesTable({ items }: { items: AgentInstallationSummary[] }) {
+function DevicesTable({
+  items,
+  agentTargetVersion,
+}: {
+  items: AgentInstallationSummary[];
+  agentTargetVersion: string | null;
+}) {
   const columns = useMemo<ColumnDef<AgentInstallationSummary>[]>(() => [
     {
       id: "status",
@@ -277,7 +310,7 @@ function DevicesTable({ items }: { items: AgentInstallationSummary[] }) {
       header: "Hostname",
       cell: ({ row }) => (
         <Link
-          href={`/portal/infraestrutura/agentes/${encodeURIComponent(row.original.deviceId)}`}
+          href={agentFleetDetailPath(row.original.deviceId)}
           className="text-sm font-medium transition-colors hover:text-primary hover:underline"
         >
           {row.original.hostname ?? <span className="font-normal text-muted-foreground">-</span>}
@@ -324,7 +357,34 @@ function DevicesTable({ items }: { items: AgentInstallationSummary[] }) {
     {
       id: "version",
       header: "Versao",
-      cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">{row.original.agentVersion ?? "-"}</span>,
+      cell: ({ row }) => (
+        <VersionCell
+          agentVersion={row.original.agentVersion}
+          targetVersion={agentTargetVersion}
+        />
+      ),
+    },
+    {
+      id: "auth",
+      header: "Auth",
+      cell: ({ row }) => (
+        <Badge
+          variant="outline"
+          className={
+            row.original.hasInstallationToken
+              ? "border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-700 dark:text-emerald-400"
+              : "text-[10px] text-muted-foreground"
+          }
+          title={
+            row.original.hasInstallationToken
+              ? `Token emitido${row.original.installationTokenLastUsedAt ? ` · ultimo uso ${row.original.installationTokenLastUsedAt}` : ""}`
+              : "Sem installation token (legado / INTERNAL_API_KEY)"
+          }
+        >
+          <KeyRound className="mr-1 h-3 w-3" />
+          {row.original.hasInstallationToken ? "Token" : "Legado"}
+        </Badge>
+      ),
     },
     {
       id: "heartbeat",
@@ -345,13 +405,18 @@ function DevicesTable({ items }: { items: AgentInstallationSummary[] }) {
       id: "actions",
       header: "",
       meta: { className: "text-right w-12" },
-      cell: ({ row }) => <DeviceRowActions device={row.original} />,
+      cell: ({ row }) => (
+        <DeviceRowActions
+          device={row.original}
+          agentTargetVersion={agentTargetVersion}
+        />
+      ),
     },
-  ], []);
+  ], [agentTargetVersion]);
 
   const renderMobileItem = (item: AgentInstallationSummary) => (
     <Link
-      href={`/portal/infraestrutura/agentes/${encodeURIComponent(item.deviceId)}`}
+      href={agentFleetDetailPath(item.deviceId)}
       className="block space-y-3 p-4 transition-colors hover:bg-muted/10"
     >
       <div className="flex items-start justify-between gap-3">
@@ -372,9 +437,10 @@ function DevicesTable({ items }: { items: AgentInstallationSummary[] }) {
             sem vinculo
           </Badge>
         )}
-        <span className="rounded-md border border-border/60 bg-background px-2 py-1 font-mono text-[10px] text-muted-foreground">
-          {item.agentVersion ?? "-"}
-        </span>
+        <VersionCell agentVersion={item.agentVersion} targetVersion={agentTargetVersion} />
+        <Badge variant="outline" className="text-[10px]">
+          {item.hasInstallationToken ? "Token" : "Legado"}
+        </Badge>
       </div>
       <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
         <span>{formatRelativeTime(item.lastHeartbeatAt, item.heartbeatLagSeconds)}</span>
@@ -388,7 +454,7 @@ function DevicesTable({ items }: { items: AgentInstallationSummary[] }) {
       columns={columns}
       data={items}
       flexible={true}
-      minWidthClassName="min-w-[1040px]"
+      minWidthClassName="min-w-[1180px]"
       emptyState={{
         title: "Nenhum dispositivo encontrado",
         description: "Ajuste filtros ou aguarde o proximo heartbeat dos agentes.",
@@ -397,6 +463,28 @@ function DevicesTable({ items }: { items: AgentInstallationSummary[] }) {
       rowClassName="hover:bg-muted/40"
       renderMobileItem={renderMobileItem}
     />
+  );
+}
+
+function VersionCell({
+  agentVersion,
+  targetVersion,
+}: {
+  agentVersion: string | null;
+  targetVersion: string | null;
+}) {
+  const outdated = Boolean(targetVersion && isAgentVersionBelowTarget(agentVersion, targetVersion));
+  return (
+    <span className="inline-flex flex-col gap-0.5">
+      <span className={`font-mono text-xs ${outdated ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>
+        {agentVersion ?? "-"}
+      </span>
+      {outdated ? (
+        <span className="text-[10px] text-amber-700 dark:text-amber-400">
+          abaixo de {targetVersion}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -425,10 +513,21 @@ function formatRelativeTime(iso: string | null, lagSeconds: number | null): stri
   return formatInstallationHeartbeatLag(lagSeconds);
 }
 
-function DeviceRowActions({ device }: { device: AgentInstallationSummary }) {
+function DeviceRowActions({
+  device,
+  agentTargetVersion,
+}: {
+  device: AgentInstallationSummary;
+  agentTargetVersion: string | null;
+}) {
   const router = useRouter();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, startDeleting] = useTransition();
+  const [isUpgrading, startUpgrading] = useTransition();
+  const canUpgrade =
+    Boolean(device.remoteHostId) &&
+    supportsManagedAgentUpgrade(device.agentVersion) &&
+    Boolean(agentTargetVersion && isAgentVersionBelowTarget(device.agentVersion, agentTargetVersion));
 
   return (
     <>
@@ -439,19 +538,61 @@ function DeviceRowActions({ device }: { device: AgentInstallationSummary }) {
             <span className="sr-only">Abrir menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuContent align="end" className="w-52">
           <DropdownMenuItem asChild>
             <Link
-              href={`/portal/infraestrutura/agentes/${encodeURIComponent(device.deviceId)}`}
-              className="flex items-center gap-2 cursor-pointer"
+              href={agentFleetDetailPath(device.deviceId)}
+              className="flex cursor-pointer items-center gap-2"
             >
               <Eye className="h-4 w-4 text-muted-foreground" />
               <span>Visualizar</span>
             </Link>
           </DropdownMenuItem>
+          {device.remoteHostId ? (
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/portal/infraestrutura/dispositivos/${device.remoteHostId}`}
+                className="flex cursor-pointer items-center gap-2"
+              >
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                <span>Abrir dispositivo</span>
+              </Link>
+            </DropdownMenuItem>
+          ) : null}
+          {canUpgrade ? (
+            <DropdownMenuItem
+              disabled={isUpgrading}
+              onSelect={(event) => {
+                event.preventDefault();
+                startUpgrading(async () => {
+                  try {
+                    const result = await requestRemoteMutation<Record<string, unknown>>({
+                      url: `/api/remote/hosts/${device.remoteHostId}/actions`,
+                      method: "POST",
+                      body: { action: "UPGRADE_AGENT" },
+                    });
+                    toast.success(
+                      (typeof result.message === "string" && result.message) ||
+                        "Upgrade do agente enfileirado. Acompanhe no dispositivo.",
+                    );
+                    router.refresh();
+                  } catch (error) {
+                    toast.error(getRemoteApiErrorMessage(error));
+                  }
+                });
+              }}
+            >
+              <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
+              <span>{isUpgrading ? "Agendando..." : "Atualizar agente"}</span>
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="flex items-center gap-2 text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 cursor-pointer"
-            onClick={() => setIsDeleteOpen(true)}
+            className="text-destructive focus:text-destructive"
+            onSelect={(event) => {
+              event.preventDefault();
+              setIsDeleteOpen(true);
+            }}
           >
             <Trash2 className="h-4 w-4" />
             <span>Excluir</span>
@@ -463,8 +604,8 @@ function DeviceRowActions({ device }: { device: AgentInstallationSummary }) {
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
         title="Excluir agente?"
-        description={`O dispositivo "${device.hostname ?? device.deviceId}" será removido do portal e bloqueado.`}
-        confirmLabel="Excluir"
+        description={`O dispositivo "${device.hostname ?? device.deviceId}" sera removido e bloqueado ate reinstalacao.`}
+        confirmLabel="Excluir agente"
         cancelLabel="Cancelar"
         isLoading={isDeleting}
         variant="danger"
@@ -472,7 +613,7 @@ function DeviceRowActions({ device }: { device: AgentInstallationSummary }) {
           startDeleting(async () => {
             try {
               await deleteAgentInstallation(device.deviceId);
-              toast.success("Agente excluído com sucesso.");
+              toast.success("Agente excluido.");
               setIsDeleteOpen(false);
               router.refresh();
             } catch (error) {

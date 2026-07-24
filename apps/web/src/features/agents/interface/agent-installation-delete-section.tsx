@@ -67,7 +67,7 @@ export function AgentInstallationDeleteSection({
               await deleteAgentInstallation(deviceId);
               toast.success("Agente excluído. Reinstale o serviço na máquina para registrar novamente.");
               setOpen(false);
-              router.push("/portal/infraestrutura?tab=agentes");
+              router.push("/portal/administracao/agentes");
               router.refresh();
             } catch (error) {
               toast.error(error instanceof Error ? error.message : "Erro ao excluir agente.");

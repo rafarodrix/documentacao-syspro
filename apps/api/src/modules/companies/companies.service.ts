@@ -1096,7 +1096,7 @@ export class CompaniesService {
     const companyTicketsHref = `/portal/tickets?companyId=${companyId}`;
     const companyNewTaskHref = `/portal/tarefas?companyId=${companyId}&newTask=true`;
     const companyMonthlyTasksHref = `/portal/tarefas?companyId=${companyId}&type=ROTINA_MENSAL`;
-    const companyInfraHref = `/portal/infraestrutura?tab=hosts&companyId=${companyId}`;
+    const companyInfraHref = `/portal/infraestrutura?tab=dispositivos&companyId=${companyId}`;
     const companyIntegrationsHref = '/portal/configuracoes?tab=integrations';
     const companyEditHref = `/portal/cadastros/empresa/${companyId}/editar`;
     const health = buildCockpitHealthSummary({

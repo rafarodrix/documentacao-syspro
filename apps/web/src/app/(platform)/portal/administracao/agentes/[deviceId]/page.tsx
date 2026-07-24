@@ -5,6 +5,7 @@ import { fetchAgentInstallation } from "@/features/agents/application/agent.quer
 import { AgentInstallationDetailPanel } from "@/features/agents/interface/installation-detail-page";
 import { searchRemoteCompanies } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { getRemoteModuleSettingsAction } from "@/features/remote/application/module-settings-actions";
 import { trpc } from "@/lib/api/trpc-client";
 import type { DeviceListResponse } from "@dosc-syspro/contracts";
 
@@ -43,11 +44,12 @@ export default async function AgentInstallationDetailPage({
   }
 
   const tenantScope = await getRemoteTenantScope();
-  const [companyOptions, discoveredResult] = await Promise.all([
+  const [companyOptions, discoveredResult, moduleSettingsResult] = await Promise.all([
     searchRemoteCompanies(tenantScope).catch(() => []),
     device.hostname
       ? (trpc.remote.devices.query({ lifecycle: "DISCOVERED", query: device.hostname }).catch(() => null) as Promise<DeviceListResponse | null>)
       : Promise.resolve(null),
+    getRemoteModuleSettingsAction().catch(() => ({ success: false as const, error: "unavailable" })),
   ]);
 
   const matchedDiscoveredItem = discoveredResult?.items.find(
@@ -62,6 +64,15 @@ export default async function AgentInstallationDetailPage({
       }
     : null;
 
+  const agentTargetVersion =
+    moduleSettingsResult.success && moduleSettingsResult.data
+      ? moduleSettingsResult.data.agentTargetVersion?.trim() || null
+      : null;
+  const agentAutoUpgrade =
+    moduleSettingsResult.success && moduleSettingsResult.data
+      ? Boolean(moduleSettingsResult.data.agentAutoUpgrade)
+      : false;
+
   return (
     <AgentInstallationDetailPanel
       device={device}
@@ -69,6 +80,8 @@ export default async function AgentInstallationDetailPage({
       canManageRemote={canManageRemote}
       companyOptions={companyOptions}
       matchedPendingHost={matchedPendingHostForPanel}
+      agentTargetVersion={agentTargetVersion}
+      agentAutoUpgrade={agentAutoUpgrade}
     />
   );
 }
