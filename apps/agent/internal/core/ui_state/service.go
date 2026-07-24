@@ -172,12 +172,17 @@ func (s *Service) AgentSetupView(ctx context.Context) (AgentSetupView, error) {
 }
 
 func (s *Service) AgentSupportView(ctx context.Context) (AgentSupportView, error) {
-	_ = ctx
-
 	baseURL := strings.TrimSpace(s.chatwoot.BaseURL)
 	websiteToken := strings.TrimSpace(s.chatwoot.WebsiteToken)
-
-	return BuildAgentSupportView(s.buildSupportContext(), baseURL, websiteToken), nil
+	desired, _ := s.loadDesiredState(ctx)
+	view := BuildAgentSupportView(s.buildSupportContext(), baseURL, websiteToken)
+	view.Monitoring = MonitoringView{
+		CollectionProfile: strings.TrimSpace(desired.Device.CollectionProfile),
+		CollectInventory:  desired.Device.CollectInventory,
+		CollectMetrics:    desired.Device.CollectMetrics,
+		AgentVersion:      strings.TrimSpace(s.agentVersion),
+	}
+	return view, nil
 }
 
 type SupportContextPublisher interface {

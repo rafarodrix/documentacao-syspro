@@ -34,7 +34,7 @@ export function useAgentShell() {
   const [setupView, setSetupView] = useState<AgentSetupViewModel>(defaultAgentSetupViewModel);
   const [supportView, setSupportView] = useState<AgentSupportViewModel | null>(null);
   const [setupHistoryOpen, setSetupHistoryOpen] = useState(false);
-  const [, setNotifications] = useState<NotificationView[]>([]);
+  const [notifications, setNotifications] = useState<NotificationView[]>([]);
   const [chatwootReady, setChatwootReady] = useState(false);
   const [chatwootLoading, setChatwootLoading] = useState(false);
   const [remoteOpening, setRemoteOpening] = useState(false);
@@ -332,6 +332,7 @@ export function useAgentShell() {
     route,
     setupView,
     supportView,
+    notifications,
     pendingSteps,
     completedSteps,
     activeStep,

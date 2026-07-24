@@ -21,3 +21,4 @@ export {
   configureRemoteSessionTicketNoteHandler,
   configureRemoteSessionWhatsAppAlertHandler,
 } from "./remote-domain-ports";
+export { persistHostTelemetryInventory } from "./persist-host-telemetry";

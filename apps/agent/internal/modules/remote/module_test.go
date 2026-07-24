@@ -660,6 +660,10 @@ func (f *fakePortalClient) Ack(ctx context.Context, req domain.RemoteAckRequest)
 	return nil
 }
 
+func (f *fakePortalClient) PostTelemetry(ctx context.Context, payload map[string]any) error {
+	return nil
+}
+
 type fakeRustDeskController struct {
 	status                  rustDeskStatus
 	ensureInstalledCalls    int

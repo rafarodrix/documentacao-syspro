@@ -195,11 +195,30 @@ export namespace uistate {
 	        this.configured = source["configured"];
 	    }
 	}
+	export class MonitoringView {
+	    collectionProfile: string;
+	    collectInventory: boolean;
+	    collectMetrics: boolean;
+	    agentVersion: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitoringView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.collectionProfile = source["collectionProfile"];
+	        this.collectInventory = source["collectInventory"];
+	        this.collectMetrics = source["collectMetrics"];
+	        this.agentVersion = source["agentVersion"];
+	    }
+	}
 	export class AgentSupportView {
 	    channel: SupportChannelView;
 	    device: DeviceView;
 	    installation: AgentInstallationView;
 	    capabilities: AgentCapabilitiesView;
+	    monitoring: MonitoringView;
 	    conversationTags: string[];
 	
 	    static createFrom(source: any = {}) {
@@ -212,6 +231,7 @@ export namespace uistate {
 	        this.device = this.convertValues(source["device"], DeviceView);
 	        this.installation = this.convertValues(source["installation"], AgentInstallationView);
 	        this.capabilities = this.convertValues(source["capabilities"], AgentCapabilitiesView);
+	        this.monitoring = this.convertValues(source["monitoring"], MonitoringView);
 	        this.conversationTags = source["conversationTags"];
 	    }
 	

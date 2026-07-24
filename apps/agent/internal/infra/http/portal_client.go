@@ -26,6 +26,7 @@ type Logger interface {
 
 type StateStore interface {
 	LoadJSON(ctx context.Context, name string, dest any) error
+	SaveJSON(ctx context.Context, name string, value any) error
 }
 
 type PortalClient struct {
@@ -100,8 +101,21 @@ func (c *PortalClient) RegisterDevice(ctx context.Context, id domain.AgentIdenti
 			"rustdeskId":   link.RustDeskID,
 		}
 	}
-	_, err := c.post(ctx, "/api/agents/register", body)
-	return err
+	resp, err := c.post(ctx, "/api/agents/register", body)
+	if err != nil {
+		return err
+	}
+
+	var result struct {
+		InstallationToken string `json:"installationToken"`
+	}
+	if err := json.Unmarshal(resp, &result); err == nil && strings.TrimSpace(result.InstallationToken) != "" {
+		id.Installation.InstallationToken = strings.TrimSpace(result.InstallationToken)
+		if saveErr := c.store.SaveJSON(ctx, "installation.json", id.Installation); saveErr != nil {
+			c.logger.Warn("persist installation token failed", "error", saveErr)
+		}
+	}
+	return nil
 }
 
 func (c *PortalClient) SendHeartbeat(ctx context.Context) error {
@@ -129,7 +143,55 @@ func (c *PortalClient) SendHeartbeat(ctx context.Context) error {
 			"rustdeskId":   link.RustDeskID,
 		}
 	}
-	_, err = c.post(ctx, "/api/agents/heartbeat", body)
+	resp, err := c.postFleet(ctx, "/api/agents/heartbeat", body, identity.Installation.InstallationToken)
+	if err != nil {
+		return err
+	}
+	c.persistInstallationTokenFromFleetResponse(ctx, identity.Installation, resp)
+	return nil
+}
+
+func (c *PortalClient) GetDesiredState(ctx context.Context) (domain.DesiredState, error) {
+	if !c.cfg.Portal.AgentAPIEnabled {
+		state := c.localDesiredState()
+		c.logger.Debug("agent desired state api disabled; using local desired state", "version", state.Version)
+		return state, nil
+	}
+
+	identity, err := c.loadAgentIdentity(ctx)
+	if err != nil {
+		return domain.DesiredState{}, fmt.Errorf("load identity for desired state: %w", err)
+	}
+
+	resp, err := c.getFleet(ctx, fmt.Sprintf("/api/agents/%s/desired-state", identity.Device.DeviceID), identity.Installation.InstallationToken)
+	if err != nil {
+		return domain.DesiredState{}, err
+	}
+
+	var state domain.DesiredState
+	if err := json.Unmarshal(resp, &state); err != nil {
+		return domain.DesiredState{}, fmt.Errorf("parse desired state: %w", err)
+	}
+	return state, nil
+}
+
+func (c *PortalClient) PostTelemetry(ctx context.Context, payload map[string]any) error {
+	if !c.cfg.Portal.AgentAPIEnabled {
+		return nil
+	}
+	identity, err := c.loadAgentIdentity(ctx)
+	if err != nil {
+		return fmt.Errorf("load identity for telemetry: %w", err)
+	}
+	deviceID := identity.Device.DeviceID
+	payload["deviceId"] = deviceID
+	payload["agentInstanceId"] = identity.Installation.AgentInstanceID
+	payload["credentialId"] = identity.Installation.CredentialID
+	payload["agentVersion"] = c.cfg.Agent.Version
+	if _, ok := payload["schemaVersion"]; !ok {
+		payload["schemaVersion"] = "agent.telemetry.v1"
+	}
+	_, err = c.postFleet(ctx, fmt.Sprintf("/api/agents/%s/telemetry", deviceID), payload, identity.Installation.InstallationToken)
 	return err
 }
 
@@ -148,28 +210,25 @@ func (c *PortalClient) loadRemoteLinkContext(ctx context.Context) *domain.Persis
 	return &link
 }
 
-func (c *PortalClient) GetDesiredState(ctx context.Context) (domain.DesiredState, error) {
-	if !c.cfg.Portal.AgentAPIEnabled {
-		state := c.localDesiredState()
-		c.logger.Debug("agent desired state api disabled; using local desired state", "version", state.Version)
-		return state, nil
-	}
+const headerSkipInternalAPIKey = "X-Trilink-Skip-Internal-Api-Key"
 
-	var id domain.DeviceIdentity
-	if err := c.store.LoadJSON(ctx, "identity.json", &id); err != nil {
-		return domain.DesiredState{}, fmt.Errorf("load identity for desired state: %w", err)
-	}
+func (c *PortalClient) postFleet(ctx context.Context, path string, body any, installationToken string) (json.RawMessage, error) {
+	return c.doRequestWithHeaders(ctx, http.MethodPost, path, body, fleetAuthHeaders(installationToken))
+}
 
-	resp, err := c.get(ctx, fmt.Sprintf("/api/agents/%s/desired-state", id.DeviceID))
-	if err != nil {
-		return domain.DesiredState{}, err
-	}
+func (c *PortalClient) getFleet(ctx context.Context, path string, installationToken string) (json.RawMessage, error) {
+	return c.doRequestWithHeaders(ctx, http.MethodGet, path, nil, fleetAuthHeaders(installationToken))
+}
 
-	var state domain.DesiredState
-	if err := json.Unmarshal(resp, &state); err != nil {
-		return domain.DesiredState{}, fmt.Errorf("parse desired state: %w", err)
+// fleetAuthHeaders prefers per-installation token and omits the shared INTERNAL_API_KEY when present.
+// Without a token (legacy installs), the default client still sends x-internal-api-key for transition.
+func fleetAuthHeaders(installationToken string) map[string]string {
+	headers := map[string]string{}
+	if token := strings.TrimSpace(installationToken); token != "" {
+		headers["x-agent-installation-token"] = token
+		headers[headerSkipInternalAPIKey] = "1"
 	}
-	return state, nil
+	return headers
 }
 
 func (c *PortalClient) loadAgentIdentity(ctx context.Context) (domain.AgentIdentity, error) {
@@ -187,6 +246,23 @@ func (c *PortalClient) loadAgentIdentity(ctx context.Context) (domain.AgentIdent
 		Device:       device,
 		Installation: installation,
 	}, nil
+}
+
+func (c *PortalClient) persistInstallationTokenFromFleetResponse(ctx context.Context, installation domain.AgentInstallation, resp json.RawMessage) {
+	var result struct {
+		InstallationToken string `json:"installationToken"`
+	}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return
+	}
+	token := strings.TrimSpace(result.InstallationToken)
+	if token == "" || token == strings.TrimSpace(installation.InstallationToken) {
+		return
+	}
+	installation.InstallationToken = token
+	if err := c.store.SaveJSON(ctx, "installation.json", installation); err != nil {
+		c.logger.Warn("persist installation token from heartbeat failed", "error", err)
+	}
 }
 
 func (c *PortalClient) Discover(ctx context.Context, req domain.RemoteDiscoverRequest) (*domain.RemoteDiscoverResponse, error) {
@@ -351,14 +427,19 @@ func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, b
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if c.cfg.Portal.APIKey != "" {
-		req.Header.Set("x-internal-api-key", c.cfg.Portal.APIKey)
-	}
+	skipInternalAPIKey := false
 	for key, value := range extraHeaders {
+		if strings.EqualFold(strings.TrimSpace(key), headerSkipInternalAPIKey) {
+			skipInternalAPIKey = strings.TrimSpace(value) == "1"
+			continue
+		}
 		if strings.TrimSpace(key) == "" || strings.TrimSpace(value) == "" {
 			continue
 		}
 		req.Header.Set(key, value)
+	}
+	if c.cfg.Portal.APIKey != "" && !skipInternalAPIKey {
+		req.Header.Set("x-internal-api-key", c.cfg.Portal.APIKey)
 	}
 
 	start := time.Now()

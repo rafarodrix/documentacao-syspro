@@ -2170,6 +2170,9 @@ model AgentInstallation {
   lastRegisteredAt DateTime?
   installedAt      DateTime  @default(now())
   supersededAt     DateTime?
+  installationTokenHash       String?
+  installationTokenIssuedAt   DateTime?
+  installationTokenLastUsedAt DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -2181,6 +2184,7 @@ model AgentInstallation {
   @@index([supersededAt])
   @@index([companyId, lastHeartbeatAt])
   @@index([deviceRecordId, supersededAt])
+  @@index([installationTokenHash])
   @@map("agent_installation")
 }
 

@@ -18,6 +18,13 @@ vi.mock("@dosc-syspro/config", () => ({
   readChatwootRuntimeConfig: vi.fn(() => ({
     url: "https://chat.example.com",
   })),
+  readCommonRuntimeConfig: vi.fn(() => ({
+    INTERNAL_API_KEY: "internal-key",
+  })),
+}));
+
+vi.mock("@dosc-syspro/remote-infra", () => ({
+  persistHostTelemetryInventory: vi.fn(async () => ["system", "metrics"]),
 }));
 
 import { AgentsService } from "../src/modules/agents/agents.service";
@@ -157,8 +164,10 @@ describe("AgentsService", () => {
     prisma.remoteDiscoveredHost.findMany.mockResolvedValue([]);
     prisma.device.upsert.mockResolvedValue({ id: "device-row-1" });
     prisma.agentInstallation.upsert.mockResolvedValue({ id: "inst-row-1" });
+    prisma.agentInstallation.update.mockResolvedValue({ id: "inst-row-1" });
     prisma.agentInstallation.updateMany.mockResolvedValue({ count: 0 });
     prisma.agentInstallation.findUnique.mockResolvedValue(buildInstallationRow());
+    prisma.agentInstallation.findFirst.mockResolvedValue(buildInstallationRow());
     prisma.agentCapability.upsert.mockResolvedValue({ id: "cap-row-1" });
     authorizationService.resolveCompanyAccessScope.mockResolvedValue({ isGlobal: true, companyIds: [] });
     service = new AgentsService(prisma as any, authorizationService as any);
@@ -686,5 +695,117 @@ describe("AgentsService", () => {
         linkedDeviceHostname: "SERVIDOR",
       },
     ]);
+  });
+
+  it("issues installation token on register", async () => {
+    prisma.agentInstallation.findUnique.mockResolvedValue(
+      buildInstallationRow({
+        remoteCapability: {
+          remoteHostId: null,
+          remoteHost: null,
+        },
+      }),
+    );
+
+    const response = await service.register("internal-key", {
+      deviceId: "device-123",
+      agentInstanceId: "install-123",
+      credentialId: "cred-123",
+      hostname: "SERVIDOR-01",
+      os: "Windows Server",
+      identitySource: "windows",
+      agentVersion: "go-agent-v1",
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.data.installationToken).toMatch(/^ainst_/);
+    expect(prisma.agentInstallation.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "inst-row-1" },
+        data: expect.objectContaining({
+          installationTokenHash: expect.any(String),
+          installationTokenIssuedAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it("mints installation token on heartbeat for legacy installs authenticated with internal key", async () => {
+    prisma.agentInstallation.findUnique.mockResolvedValue(
+      buildInstallationRow({
+        remoteCapability: {
+          remoteHostId: "host-1",
+        },
+      }),
+    );
+    prisma.$transaction.mockImplementation(async (input: unknown) => {
+      if (typeof input === "function") {
+        return input(prisma as any);
+      }
+      return Promise.all(input as Array<Promise<unknown>>);
+    });
+    // findUnique after upsert returns row without token hash
+    prisma.agentInstallation.findUnique.mockResolvedValue({
+      ...buildInstallationRow(),
+      installationTokenHash: null,
+    });
+
+    const response = await service.heartbeat("internal-key", {
+      deviceId: "device-123",
+      agentInstanceId: "install-123",
+      credentialId: "cred-123",
+      agentVersion: "go-agent-v1",
+      at: "2026-07-14T20:00:00.000Z",
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.data.installationToken).toMatch(/^ainst_/);
+  });
+
+  it("accepts telemetry with installation token and persists inventory outside rustdesk sync", async () => {
+    const { persistHostTelemetryInventory } = await import("@dosc-syspro/remote-infra");
+    const { hashAgentInstallationToken } = await import("../src/modules/agents/agent-installation-token");
+    const token = "ainst_telemetry_token";
+    prisma.agentInstallation.findFirst
+      .mockResolvedValueOnce({ id: "inst-row-1" }) // assertFleetAuth
+      .mockResolvedValueOnce({
+        id: "inst-row-1",
+        capabilities: [{ remoteHostId: "host-1" }],
+      });
+
+    const response = await service.ingestTelemetry(
+      undefined,
+      "device-123",
+      {
+        schemaVersion: "agent.telemetry.v1",
+        deviceId: "device-123",
+        agentInstanceId: "install-123",
+        credentialId: "cred-123",
+        agentVersion: "go-agent-v2",
+        systemSnapshot: { hostname: "SERVIDOR" },
+        agentMetrics: { cpuLoadPct: 12, memoryUsedMb: 1024, memoryTotalMb: 8192 },
+      },
+      {
+        "x-agent-installation-token": token,
+      },
+    );
+
+    expect(response.success).toBe(true);
+    expect(response.data.accepted).toBe(true);
+    expect(response.data.remoteHostId).toBe("host-1");
+    expect(response.data.publishedCollectors).toEqual(["system", "metrics"]);
+    expect(prisma.agentInstallation.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          installationTokenHash: hashAgentInstallationToken(token),
+        }),
+      }),
+    );
+    expect(persistHostTelemetryInventory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hostId: "host-1",
+        systemSnapshot: { hostname: "SERVIDOR" },
+      }),
+    );
   });
 });

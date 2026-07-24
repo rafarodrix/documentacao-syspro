@@ -22,6 +22,8 @@ export const agentRegisterResultSchema = z.object({
   receivedAt: z.string().trim().min(1),
   deviceId: z.string().trim().min(1),
   agentInstanceId: z.string().trim().min(1),
+  /** Token por instalação — usar em heartbeat/desired-state/telemetry. */
+  installationToken: z.string().trim().min(1).optional(),
 });
 
 export type AgentRegisterPayload = z.infer<typeof agentRegisterPayloadSchema>;

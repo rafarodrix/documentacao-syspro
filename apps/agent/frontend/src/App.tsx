@@ -28,6 +28,7 @@ function App() {
         <SupportScreen
           supportView={shell.supportView}
           setupView={shell.setupView}
+          notifications={shell.notifications}
           activeStep={shell.activeStep}
           setupOverallState={shell.setupOverallState}
           chatwootReady={shell.chatwootReady}

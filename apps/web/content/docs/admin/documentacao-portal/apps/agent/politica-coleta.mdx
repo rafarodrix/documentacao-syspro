@@ -28,6 +28,18 @@ O heartbeat base publica apenas identidade e versao a cada 30 segundos. O primei
 
 O desired-state do portal agora emite `collection_profile` e `collectors` a partir da **funcao atribuida** do host (`machineProfile`: SERVER, WORKSTATION, TERMINAL, BACKUP_NODE). Sem funcao definida em host vinculado, o default seguro e `workstation` (coleta leve). Instalacoes sem RemoteHost recebem `unlinked` (onboarding minimo, sem descoberta profunda Syspro nem Event Log). Agentes antigos continuam lendo apenas `collect_inventory` / `collect_metrics`.
 
+### Monitoring plane (P0)
+
+Inventario e telemetria operacional agora tambem seguem o canal `POST /api/agents/:deviceId/telemetry` (`agent.telemetry.v1`), autenticado por `x-agent-installation-token` (emitido no register; instalacoes legadas recebem o token no primeiro heartbeat ainda autenticado com `INTERNAL_API_KEY`). O sync RustDesk continua como dual-write durante a migracao, mas deixa de ser a unica via de persistencia de inventário no portal.
+
+Auth da frota:
+
+| Operacao | Auth |
+| --- | --- |
+| `POST /api/agents/register` | `x-internal-api-key` (bootstrap) |
+| heartbeat / desired-state / telemetry | `x-agent-installation-token` (preferencial) ou `x-internal-api-key` (transicao) |
+| sync RustDesk | `agentToken` do `RemoteHost` (inalterado) |
+
 O watcher operacional de servicos criticos consulta o SCM nativo do Windows a cada 10 segundos e dispara reconcile imediato apenas em transicoes de Firebird, Syspro, IIS/W3SVC ou RustDesk. No mesmo intervalo, o agente observa `fbguard.exe`, `fbserver.exe`, `SysproServer.exe`, `w3wp.exe` e `RustDesk.exe` pela API nativa do Windows; mudancas de PID ou presenca atualizam o snapshot de servicos e antecipam a sincronizacao. A cada 30 segundos, o Event Log tambem consulta uma allowlist: desligamento inesperado do Windows (6008), encerramento de servico (7031/7034) e falha de aplicacao (1000) apenas quando relacionada a Firebird, Syspro, IIS ou RustDesk. Os eventos usam `eventId` por host, ficam em fila local persistida e sao gravados de forma idempotente no portal; os 50 mais recentes ficam disponiveis na aba **Eventos** do detalhe do host, com filtros por severidade e origem. O polling programado continua como contingencia. Ainda faltam comandos de coleta sob demanda.
 
 ## Classes de coleta
@@ -150,8 +162,10 @@ Cada card deve mostrar sua propria freshness (`collectedAt`), nunca apenas uma d
 6. Concluido: watcher de processos criticos nativo e reconcile imediato deduplicado.
 7. Concluido: contrato de eventos criticos, fila idempotente e watcher allowlisted de Event Log.
 8. Concluido: perfis de coleta via `machineProfile` → `collection_profile` / `collectors` no desired-state.
-9. Expor coleta sob demanda idempotente pelo portal.
-10. Adicionar freshness por bloco no portal.
+9. Concluido: canal `POST /api/agents/:deviceId/telemetry` + auth por instalação (`x-agent-installation-token`).
+10. Expor coleta sob demanda idempotente pelo portal.
+11. Remover dual-write de inventario do sync RustDesk apos frota migrada.
+12. Adicionar freshness por bloco no portal.
 
 ## Criterios de aceite
 

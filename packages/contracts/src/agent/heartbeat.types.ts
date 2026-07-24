@@ -20,6 +20,8 @@ export const agentHeartbeatResultSchema = z.object({
   receivedAt: z.string().trim().min(1),
   deviceId: z.string().trim().min(1),
   agentInstanceId: z.string().trim().min(1),
+  /** Emitido uma vez para migrar instalações legadas sem token. */
+  installationToken: z.string().trim().min(1).optional(),
 });
 
 export type AgentHeartbeatPayload = z.infer<typeof agentHeartbeatPayloadSchema>;

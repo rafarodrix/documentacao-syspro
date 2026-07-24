@@ -1,9 +1,10 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   agentInstallationPatchSchema,
   agentHeartbeatPayloadSchema,
   agentRegisterPayloadSchema,
+  agentTelemetryPayloadSchema,
   resolveDeviceCollectionDesiredState,
   type AgentDesiredState,
   type AgentInstallationListQuery,
@@ -14,12 +15,18 @@ import {
 } from '@dosc-syspro/contracts/agent';
 import type { RemoteMachineProfile } from '@dosc-syspro/contracts/remote';
 import { readChatwootRuntimeConfig } from '@dosc-syspro/config';
+import { persistHostTelemetryInventory } from '@dosc-syspro/remote-infra';
 import { differenceInSeconds } from '@dosc-syspro/shared';
 import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
 import { getRemoteModuleSettingsSnapshot } from '../../common/system-settings/remote-module-settings-snapshot';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
-
+import {
+  buildAgentInstallationToken,
+  hashAgentInstallationToken,
+  isInternalApiKeyValid,
+  readInstallationTokenHeader,
+} from './agent-installation-token';
 const ONLINE_THRESHOLD_SECONDS = 5 * 60;
 const AUTO_RELEASE_REINSTALL_REVOCATION_REASONS = new Set([
   'removed_by_portal',
@@ -115,6 +122,7 @@ type InstallationRow = {
   credentialId: string;
   agentVersion: string | null;
   companyId: string | null;
+  installationTokenHash?: string | null;
   firstSeenAt: Date;
   lastHeartbeatAt: Date | null;
   lastRegisteredAt: Date | null;
@@ -260,6 +268,16 @@ export class AgentsService {
       await this.tryLinkRemoteHost(installation.id, payload.deviceId, remoteLinkContext, installation.companyId);
     }
 
+    const installationToken = buildAgentInstallationToken();
+    await this.prisma.agentInstallation.update({
+      where: { id: installation.id },
+      data: {
+        installationTokenHash: hashAgentInstallationToken(installationToken),
+        installationTokenIssuedAt: now,
+        installationTokenLastUsedAt: now,
+      },
+    });
+
     this.logger.log({
       event: 'agent.registered',
       deviceId: payload.deviceId,
@@ -280,13 +298,16 @@ export class AgentsService {
         receivedAt: now.toISOString(),
         deviceId: payload.deviceId,
         agentInstanceId: payload.agentInstanceId,
+        installationToken,
       },
     };
   }
 
-  async heartbeat(internalApiKey: string | undefined, body: unknown) {
-    assertInternalApiKey(internalApiKey);
-
+  async heartbeat(
+    internalApiKey: string | undefined,
+    body: unknown,
+    headers?: Record<string, unknown>,
+  ) {
     const parsed = agentHeartbeatPayloadSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException({
@@ -297,6 +318,14 @@ export class AgentsService {
     }
 
     const payload = parsed.data;
+    await this.assertFleetAuth({
+      internalApiKey,
+      headers,
+      deviceId: payload.deviceId,
+      agentInstanceId: payload.agentInstanceId,
+      credentialId: payload.credentialId,
+    });
+
     const now = new Date();
     const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
 
@@ -316,6 +345,13 @@ export class AgentsService {
       await this.tryLinkRemoteHost(installation.id, payload.deviceId, remoteLinkContext, installation.companyId);
     }
 
+    const installationToken = await this.ensureInstallationToken({
+      installationId: installation.id,
+      currentHash: installation.installationTokenHash,
+      allowMintWithInternalKey: isInternalApiKeyValid(internalApiKey),
+      alreadyAuthenticatedWithToken: Boolean(readInstallationTokenHeader(headers)),
+    });
+
     return {
       success: true,
       data: {
@@ -323,6 +359,7 @@ export class AgentsService {
         receivedAt: now.toISOString(),
         deviceId: payload.deviceId,
         agentInstanceId: payload.agentInstanceId,
+        ...(installationToken ? { installationToken } : {}),
       },
     };
   }
@@ -815,9 +852,11 @@ export class AgentsService {
     };
   }
 
-  async getDesiredState(internalApiKey: string | undefined, deviceId: string) {
-    assertInternalApiKey(internalApiKey);
-
+  async getDesiredState(
+    internalApiKey: string | undefined,
+    deviceId: string,
+    headers?: Record<string, unknown>,
+  ) {
     const normalizedDeviceId = deviceId?.trim();
     if (!normalizedDeviceId) {
       throw new BadRequestException({
@@ -826,11 +865,183 @@ export class AgentsService {
       });
     }
 
+    await this.assertFleetAuth({
+      internalApiKey,
+      headers,
+      deviceId: normalizedDeviceId,
+    });
+
     const state = await this.buildDesiredState(normalizedDeviceId);
     return {
       success: true,
       data: state,
     };
+  }
+
+  async ingestTelemetry(
+    internalApiKey: string | undefined,
+    deviceId: string,
+    body: unknown,
+    headers?: Record<string, unknown>,
+  ) {
+    const parsed = agentTelemetryPayloadSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        error: 'INVALID_AGENT_TELEMETRY_PAYLOAD',
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const payload = parsed.data;
+    const normalizedDeviceId = deviceId?.trim();
+    if (!normalizedDeviceId || normalizedDeviceId !== payload.deviceId) {
+      throw new BadRequestException({ success: false, error: 'DEVICE_ID_MISMATCH' });
+    }
+
+    await this.assertFleetAuth({
+      internalApiKey,
+      headers,
+      deviceId: payload.deviceId,
+      agentInstanceId: payload.agentInstanceId,
+      credentialId: payload.credentialId,
+    });
+
+    await this.assertDeviceNotRevoked(payload.deviceId);
+
+    const installation = await this.prisma.agentInstallation.findFirst({
+      where: {
+        supersededAt: null,
+        agentInstanceId: payload.agentInstanceId,
+        credentialId: payload.credentialId,
+        deviceRecord: { deviceId: payload.deviceId },
+      },
+      select: {
+        id: true,
+        capabilities: {
+          where: { kind: 'REMOTE' },
+          take: 1,
+          select: { remoteHostId: true },
+        },
+      },
+    });
+
+    if (!installation) {
+      throw new NotFoundException({ success: false, error: 'INSTALLATION_NOT_FOUND' });
+    }
+
+    const remoteHostId = installation.capabilities[0]?.remoteHostId ?? null;
+    const now = payload.collectedAt ? new Date(payload.collectedAt) : new Date();
+    let publishedCollectors: string[] = [];
+
+    if (remoteHostId) {
+      publishedCollectors = await persistHostTelemetryInventory({
+        hostId: remoteHostId,
+        heartbeatAt: Number.isNaN(now.getTime()) ? new Date() : now,
+        agentVersion: payload.agentVersion ?? null,
+        systemSnapshot: payload.systemSnapshot,
+        networkSnapshot: payload.networkSnapshot,
+        softwareSnapshot: payload.softwareSnapshot,
+        hardwareIdentity: payload.hardwareIdentity,
+        diskSnapshot: payload.diskSnapshot,
+        sysproProcesses: payload.sysproProcesses,
+        sysproVersions: payload.sysproVersions,
+        sysproRuntimeProbes: payload.sysproRuntimeProbes,
+        windowsUpdateStatus: payload.windowsUpdateStatus,
+        allServicesSnapshot: payload.allServicesSnapshot,
+        rebootPending: payload.rebootPending,
+        agentMetrics: payload.agentMetrics,
+        criticalEvents: payload.criticalEvents,
+      });
+    }
+
+    await this.prisma.agentInstallation.update({
+      where: { id: installation.id },
+      data: {
+        lastHeartbeatAt: Number.isNaN(now.getTime()) ? new Date() : now,
+        ...(payload.agentVersion ? { agentVersion: payload.agentVersion } : {}),
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        accepted: true,
+        receivedAt: new Date().toISOString(),
+        deviceId: payload.deviceId,
+        remoteHostId,
+        publishedCollectors,
+      },
+    };
+  }
+
+  /**
+   * Auth da frota: token por instalação (preferencial) OU INTERNAL_API_KEY (legado/transição).
+   * Token amarra deviceId (+ opcionalmente instance/credential) e impede impersonação só com a chave compartilhada.
+   */
+  private async assertFleetAuth(input: {
+    internalApiKey: string | undefined;
+    headers?: Record<string, unknown>;
+    deviceId: string;
+    agentInstanceId?: string;
+    credentialId?: string;
+  }) {
+    const installationToken = readInstallationTokenHeader(input.headers);
+    if (installationToken) {
+      const tokenHash = hashAgentInstallationToken(installationToken);
+      const installation = await this.prisma.agentInstallation.findFirst({
+        where: {
+          supersededAt: null,
+          installationTokenHash: tokenHash,
+          deviceRecord: { deviceId: input.deviceId },
+          ...(input.agentInstanceId ? { agentInstanceId: input.agentInstanceId } : {}),
+          ...(input.credentialId ? { credentialId: input.credentialId } : {}),
+        },
+        select: { id: true },
+      });
+      if (!installation) {
+        throw new UnauthorizedException({ success: false, error: 'INVALID_INSTALLATION_TOKEN' });
+      }
+      await this.prisma.agentInstallation.update({
+        where: { id: installation.id },
+        data: { installationTokenLastUsedAt: new Date() },
+      });
+      return;
+    }
+
+    if (isInternalApiKeyValid(input.internalApiKey)) {
+      return;
+    }
+
+    throw new UnauthorizedException({
+      success: false,
+      error: 'MISSING_FLEET_AUTH',
+      message: 'Informe x-agent-installation-token ou x-internal-api-key.',
+    });
+  }
+
+  /** Emite token para instalações legadas autenticadas ainda só com INTERNAL_API_KEY. */
+  private async ensureInstallationToken(input: {
+    installationId: string;
+    currentHash?: string | null;
+    allowMintWithInternalKey: boolean;
+    alreadyAuthenticatedWithToken: boolean;
+  }): Promise<string | undefined> {
+    if (input.currentHash || input.alreadyAuthenticatedWithToken || !input.allowMintWithInternalKey) {
+      return undefined;
+    }
+
+    const installationToken = buildAgentInstallationToken();
+    const now = new Date();
+    await this.prisma.agentInstallation.update({
+      where: { id: input.installationId },
+      data: {
+        installationTokenHash: hashAgentInstallationToken(installationToken),
+        installationTokenIssuedAt: now,
+        installationTokenLastUsedAt: now,
+      },
+    });
+    return installationToken;
   }
 
   private async buildDesiredState(deviceId: string): Promise<AgentDesiredState> {

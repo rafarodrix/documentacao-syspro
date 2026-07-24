@@ -4,6 +4,7 @@ import { ChatBubbleIcon, ShieldIcon } from "../../components/icons";
 import type {
   AgentSetupViewModel,
   AgentSupportViewModel,
+  NotificationView,
   OpenRemoteAccessResultView,
   SetupStepView,
 } from "../../types/agent-ui";
@@ -11,6 +12,7 @@ import { formatSetupCopy, getSetupDetail, getSetupHeadline, getSetupHint } from 
 import {
   buildOperationalStatusRows,
   formatAgentVersion,
+  formatCollectionProfile,
   formatRelativeTime,
   formatRemoteId,
   getRemoteActionLabel,
@@ -25,6 +27,7 @@ type AgentView = "home" | "diagnostics" | "details" | "about";
 type SupportScreenProps = {
   supportView: AgentSupportViewModel | null;
   setupView: AgentSetupViewModel;
+  notifications?: NotificationView[];
   activeStep?: SetupStepView | null;
   setupOverallState: SetupOverallState;
   chatwootReady: boolean;
@@ -40,6 +43,7 @@ export function SupportScreen(props: SupportScreenProps) {
   const {
     supportView,
     setupView,
+    notifications = [],
     activeStep,
     setupOverallState,
     chatwootReady,
@@ -70,6 +74,16 @@ export function SupportScreen(props: SupportScreenProps) {
   const lastCommunication = formatRelativeTime(remote?.lastSyncAt);
   const healthSummary = summarizeOperationalHealth(setupView, supportView);
   const statusRows = useMemo(() => buildOperationalStatusRows(setupView, supportView), [setupView, supportView]);
+  const visibleNotifications = useMemo(
+    () =>
+      notifications
+        .filter((item) => {
+          const severity = (item.severity || "info").toLowerCase();
+          return severity === "warn" || severity === "warning" || severity === "error";
+        })
+        .slice(0, 3),
+    [notifications],
+  );
   const showInitializingState = supportView === null && setupView.complete;
   const chatStateLabel = !chatConfigured
     ? "Canal nao configurado"
@@ -194,6 +208,20 @@ export function SupportScreen(props: SupportScreenProps) {
                   <span>{healthSummary.summary}</span>
                 </button>
 
+                {visibleNotifications.length > 0 ? (
+                  <section className="support-issue-list" aria-label="Avisos do agente">
+                    {visibleNotifications.map((item) => (
+                      <div key={item.id} className="support-issue-row">
+                        <span className={`support-health-bullet tone-${item.severity === "error" ? "warn" : "warn"}`} />
+                        <span>
+                          {item.title}
+                          {item.message ? ` — ${item.message}` : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </section>
+                ) : null}
+
                 <nav className="support-footer-actions compact single-line" aria-label="Navegacao do agente">
                   <button type="button" className="support-footer-link inline emphasized" onClick={() => setActiveView("diagnostics")}>
                     Diagnostico
@@ -252,6 +280,10 @@ export function SupportScreen(props: SupportScreenProps) {
               <TechnicalRow label="Empresa" value={companyName} />
               <TechnicalRow label="Operador local" value={supportView?.device.localUsername || "-"} />
               <TechnicalRow label="Versao do agente" value={agentVersion} />
+              <TechnicalRow
+                label="Perfil de coleta"
+                value={formatCollectionProfile(supportView?.monitoring?.collectionProfile)}
+              />
               <TechnicalRow label="Sistema operacional" value={supportView?.device.os || "-"} />
               <TechnicalRow label="Host alias" value={supportView?.installation.hostAlias || "-"} />
               <TechnicalRow

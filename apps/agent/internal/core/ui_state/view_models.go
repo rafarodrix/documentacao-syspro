@@ -60,7 +60,15 @@ type AgentSupportView struct {
 	Device           DeviceView            `json:"device"`
 	Installation     AgentInstallationView `json:"installation"`
 	Capabilities     AgentCapabilitiesView `json:"capabilities"`
+	Monitoring       MonitoringView        `json:"monitoring"`
 	ConversationTags []string              `json:"conversationTags"`
+}
+
+type MonitoringView struct {
+	CollectionProfile string `json:"collectionProfile,omitempty"`
+	CollectInventory  bool   `json:"collectInventory"`
+	CollectMetrics    bool   `json:"collectMetrics"`
+	AgentVersion      string `json:"agentVersion,omitempty"`
 }
 
 func BuildAgentSetupView(

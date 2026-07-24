@@ -62,6 +62,12 @@ export type AgentSupportViewModel = {
   device: DeviceView;
   installation: InstallationView;
   capabilities: AgentCapabilitiesView;
+  monitoring?: {
+    collectionProfile?: string | null;
+    collectInventory?: boolean;
+    collectMetrics?: boolean;
+    agentVersion?: string | null;
+  };
   conversationTags: string[];
 };
 

@@ -165,7 +165,39 @@ export function buildOperationalStatusRows(
       value: getRemoteOperationalLabel(remote),
       tone: remote?.status === "ready" ? "ok" : remote?.status === "pending" ? "warn" : "muted",
     },
+    {
+      label: "Perfil de coleta",
+      value: formatCollectionProfile(supportView?.monitoring?.collectionProfile),
+      tone: supportView?.monitoring?.collectionProfile ? "ok" : "muted",
+    },
+    {
+      label: "Inventario / metricas",
+      value: [
+        supportView?.monitoring?.collectInventory ? "inventario" : null,
+        supportView?.monitoring?.collectMetrics ? "metricas" : null,
+      ]
+        .filter(Boolean)
+        .join(" + ") || "Desligado",
+      tone: supportView?.monitoring?.collectInventory || supportView?.monitoring?.collectMetrics ? "ok" : "muted",
+    },
   ];
+}
+
+export function formatCollectionProfile(profile?: string | null): string {
+  switch ((profile ?? "").trim()) {
+    case "server_syspro":
+      return "Servidor Syspro";
+    case "workstation":
+      return "Estacao";
+    case "terminal":
+      return "Terminal";
+    case "backup_node":
+      return "No de backup";
+    case "unlinked":
+      return "Nao vinculado";
+    default:
+      return profile?.trim() || "Nao informado";
+  }
 }
 
 export function summarizeOperationalHealth(

@@ -10,9 +10,10 @@ type DeviceIdentity struct {
 }
 
 type AgentInstallation struct {
-	AgentInstanceID string    `json:"agent_instance_id"`
-	CredentialID    string    `json:"credential_id"`
-	InstalledAt     time.Time `json:"installed_at"`
+	AgentInstanceID     string    `json:"agent_instance_id"`
+	CredentialID        string    `json:"credential_id"`
+	InstallationToken   string    `json:"installation_token,omitempty"`
+	InstalledAt         time.Time `json:"installed_at"`
 }
 
 type AgentIdentity struct {

@@ -17,9 +17,25 @@ export class AgentsController {
   @Post('heartbeat')
   heartbeat(
     @Headers('x-internal-api-key') internalApiKey: string | undefined,
+    @Req() req: Request,
     @Body() body: unknown,
   ) {
-    return this.agentsService.heartbeat(internalApiKey, body);
+    return this.agentsService.heartbeat(internalApiKey, body, req.headers as Record<string, unknown>);
+  }
+
+  @Post(':deviceId/telemetry')
+  ingestTelemetry(
+    @Headers('x-internal-api-key') internalApiKey: string | undefined,
+    @Req() req: Request,
+    @Param('deviceId') deviceId: string,
+    @Body() body: unknown,
+  ) {
+    return this.agentsService.ingestTelemetry(
+      internalApiKey,
+      deviceId,
+      body,
+      req.headers as Record<string, unknown>,
+    );
   }
 
   @Get('stats')
@@ -70,9 +86,14 @@ export class AgentsController {
   @Get(':deviceId/desired-state')
   desiredState(
     @Headers('x-internal-api-key') internalApiKey: string | undefined,
+    @Req() req: Request,
     @Param('deviceId') deviceId: string,
   ) {
-    return this.agentsService.getDesiredState(internalApiKey, deviceId);
+    return this.agentsService.getDesiredState(
+      internalApiKey,
+      deviceId,
+      req.headers as Record<string, unknown>,
+    );
   }
 
   @Get('revocations')

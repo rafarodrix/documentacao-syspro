@@ -23,6 +23,7 @@ type PortalClient interface {
 	Bootstrap(ctx context.Context, req domain.RemoteBootstrapRequest) (*domain.RemoteBootstrapResponse, error)
 	Sync(ctx context.Context, req domain.RemoteSyncRequest) (*domain.RemoteSyncResponse, error)
 	Ack(ctx context.Context, req domain.RemoteAckRequest) error
+	PostTelemetry(ctx context.Context, payload map[string]any) error
 }
 
 type StateStore interface {
@@ -584,6 +585,25 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 			syncReq.AgentMetrics = enrichAgentMetrics(devMetrics, devSystem, devDisks, st, flushStats)
 		}
 		syncReq.CriticalEvents = m.device.GetCriticalEvents(ctx)
+	}
+
+	// Dual-write: telemetria desacoplada do RustDesk (P0 Monitoring plane).
+	if err := m.client.PostTelemetry(ctx, map[string]any{
+		"systemSnapshot":       syncReq.SystemSnapshot,
+		"networkSnapshot":      syncReq.NetworkSnapshot,
+		"softwareSnapshot":     syncReq.SoftwareSnapshot,
+		"hardwareIdentity":     syncReq.HardwareIdentity,
+		"diskSnapshot":         syncReq.DiskSnapshot,
+		"sysproProcesses":      syncReq.SysproProcesses,
+		"sysproVersions":       syncReq.SysproVersions,
+		"sysproRuntimeProbes":  syncReq.SysproRuntimeProbes,
+		"windowsUpdateStatus":  syncReq.WindowsUpdateStatus,
+		"allServicesSnapshot":  syncReq.AllServicesSnapshot,
+		"rebootPending":        syncReq.RebootPending,
+		"agentMetrics":         syncReq.AgentMetrics,
+		"criticalEvents":       syncReq.CriticalEvents,
+	}); err != nil {
+		m.logger.Warn("agent telemetry dual-write failed; continuing with rustdesk sync", "error", err)
 	}
 
 	syncResp, err := m.client.Sync(ctx, syncReq)

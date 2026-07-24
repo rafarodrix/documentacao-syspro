@@ -60,6 +60,14 @@ export function normalizeAgentSupportView(view: uistate.AgentSupportView): Agent
           }
         : null,
     },
+    monitoring: view.monitoring
+      ? {
+          collectionProfile: view.monitoring.collectionProfile?.trim() || null,
+          collectInventory: Boolean(view.monitoring.collectInventory),
+          collectMetrics: Boolean(view.monitoring.collectMetrics),
+          agentVersion: view.monitoring.agentVersion?.trim() || null,
+        }
+      : undefined,
     conversationTags: view.conversationTags ?? [],
   };
 }
