@@ -74,7 +74,7 @@ export function DeviceIdentityForm({
             <SelectValue placeholder="Selecione a função" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__">Não definido</SelectItem>
+            <SelectItem value="__none__">Não definido (coleta leve de estação)</SelectItem>
             {Object.entries(MACHINE_PROFILE_LABEL).map(([value, label]) => (
               <SelectItem key={value} value={value}>
                 {label}
@@ -82,6 +82,14 @@ export function DeviceIdentityForm({
             ))}
           </SelectContent>
         </Select>
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Controla o perfil de coleta do agente (RMM Syspro).{" "}
+          <span className="font-medium text-foreground/80">Servidor</span> ativa
+          monitoramento completo (serviços, Event Log, inventário SCM).{" "}
+          <span className="font-medium text-foreground/80">Estação/Terminal</span>{" "}
+          usam cadência mais leve e desligam coletores caros. Sem função definida,
+          o agente assume o perfil de estação.
+        </p>
       </div>
 
       <div className="space-y-2 md:col-span-2">

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  agentCollectionProfileSchema,
+  agentCollectorsPolicySchema,
+} from "./collection-profile";
 
 export const remoteDesiredStateSchema = z.object({
   enabled: z.boolean(),
@@ -47,6 +51,12 @@ export const deviceDesiredStateSchema = z.object({
   version: z.string().trim(),
   collect_inventory: z.boolean(),
   collect_metrics: z.boolean(),
+  /**
+   * Perfil RMM derivado da função do host (machineProfile) ou vínculo.
+   * Agentes antigos ignoram; agentes novos usam para cadência e enable por coletor.
+   */
+  collection_profile: agentCollectionProfileSchema.optional(),
+  collectors: agentCollectorsPolicySchema.optional(),
   syspro_installation_hints: z.array(sysproInstallationHintSchema).optional(),
 });
 

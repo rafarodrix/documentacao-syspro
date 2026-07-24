@@ -1,6 +1,7 @@
 export * from "./agent.types";
 export * from "./agent-fleet.types";
 export * from "./backup-policy.types";
+export * from "./collection-profile";
 export * from "./desired-state.types";
 export * from "./heartbeat.types";
 export * from "./remote-policy.types";

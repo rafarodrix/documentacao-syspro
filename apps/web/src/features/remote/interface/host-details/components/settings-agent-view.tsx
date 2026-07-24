@@ -1,10 +1,15 @@
 import type { RemoteConfiguredHostItem, RemoteAgentCommandType, RemoteAgentCommandStatus } from "@dosc-syspro/contracts/remote";
+import {
+  AGENT_COLLECTION_PROFILE_LABEL,
+  mapMachineProfileToCollectionProfile,
+  getCollectorsPolicyForProfile,
+} from "@dosc-syspro/contracts/agent";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import type { LucideIcon } from "lucide-react";
 import { Badge, Card, CardHeader, CardTitle, CardDescription, CardContent } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatRelativeHeartbeat, formatHourMinute, getCommandStatusMeta, extractStringFromPayload } from "../host-details.helpers";
-import { EXPECTED_SCHEMA_VERSIONS, AGENT_COMMAND_LABEL, AGENT_ACK_REASON_LABEL } from "../host-details.constants";
+import { EXPECTED_SCHEMA_VERSIONS, AGENT_COMMAND_LABEL, AGENT_ACK_REASON_LABEL, MACHINE_PROFILE_LABEL } from "../host-details.constants";
 import type { RemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reason-codes";
 import { isRemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reason-codes";
 
@@ -75,6 +80,11 @@ export function SettingsAgentView({
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
   const agent = host.agent;
+  const collectionProfile = mapMachineProfileToCollectionProfile(host.machineProfile, true);
+  const collectorsPolicy = getCollectorsPolicyForProfile(collectionProfile);
+  const enabledCollectors = Object.entries(collectorsPolicy)
+    .filter(([, policy]) => policy.enabled)
+    .map(([id]) => id);
 
   return (
     <div className="space-y-6">
@@ -89,6 +99,33 @@ export function SettingsAgentView({
               A máquina já foi descoberta pelo agente, mas ainda não foi vinculada no portal. Nesse estado o RustDesk ainda não está instalado. O próximo passo é concluir o vínculo do host para liberar bootstrap e provisionamento remoto.
             </div>
           ) : null}
+
+          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium text-foreground">Perfil de coleta (RMM)</p>
+              <Badge variant="outline">
+                {AGENT_COLLECTION_PROFILE_LABEL[collectionProfile]}
+              </Badge>
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Derivado da função do dispositivo
+              {host.machineProfile
+                ? ` (${MACHINE_PROFILE_LABEL[host.machineProfile]})`
+                : " (não definida → estação)"}
+              . Altere em Identidade do dispositivo. Servidores recebem coleta completa;
+              estações e terminais evitam inventário caro.
+            </p>
+            <p className="mt-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+              Coletores ativos ({enabledCollectors.length})
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {enabledCollectors.map((id) => (
+                <Badge key={id} variant="secondary" className="font-mono text-[10px]">
+                  {id}
+                </Badge>
+              ))}
+            </div>
+          </div>
 
           <div className="space-y-4">
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">

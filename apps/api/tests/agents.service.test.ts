@@ -374,6 +374,9 @@ describe("AgentsService", () => {
     expect(response.success).toBe(true);
     expect(response.data.device.collect_inventory).toBe(true);
     expect(response.data.device.collect_metrics).toBe(true);
+    expect(response.data.device.collection_profile).toBe("workstation");
+    expect(response.data.device.collectors?.all_services.enabled).toBe(false);
+    expect(response.data.device.collectors?.syspro_versions.enabled).toBe(true);
     expect(response.data.device.syspro_installation_hints).toEqual([
       {
         company_id: "company-a",
@@ -386,6 +389,48 @@ describe("AgentsService", () => {
         path: "D:\\Syspro\\EmpresaB",
       },
     ]);
+  });
+
+  it("emits server_syspro collection profile when host machineProfile is SERVER", async () => {
+    prisma.agentInstallation.findFirst.mockResolvedValue({
+      deviceRecord: {
+        id: "device-row-1",
+        deviceId: "device-123",
+      },
+      capabilities: [
+        {
+          remoteHost: {
+            id: "host-1",
+            machineProfile: "SERVER",
+            sysproUpdates: [],
+          },
+        },
+      ],
+    });
+
+    const response = await service.getDesiredState("internal-key", "device-123");
+
+    expect(response.success).toBe(true);
+    expect(response.data.device.collection_profile).toBe("server_syspro");
+    expect(response.data.device.collectors?.all_services.enabled).toBe(true);
+    expect(response.data.device.collectors?.metrics.interval_seconds).toBe(60);
+  });
+
+  it("emits unlinked collection profile when installation has no remote host", async () => {
+    prisma.agentInstallation.findFirst.mockResolvedValue({
+      deviceRecord: {
+        id: "device-row-1",
+        deviceId: "device-123",
+      },
+      capabilities: [],
+    });
+
+    const response = await service.getDesiredState("internal-key", "device-123");
+
+    expect(response.success).toBe(true);
+    expect(response.data.device.collection_profile).toBe("unlinked");
+    expect(response.data.device.collectors?.syspro_versions.enabled).toBe(false);
+    expect(response.data.device.syspro_installation_hints).toEqual([]);
   });
 
   it("treats linked device as online when remote host sync is recent", async () => {

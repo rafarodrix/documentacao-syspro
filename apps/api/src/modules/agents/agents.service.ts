@@ -4,6 +4,7 @@ import {
   agentInstallationPatchSchema,
   agentHeartbeatPayloadSchema,
   agentRegisterPayloadSchema,
+  resolveDeviceCollectionDesiredState,
   type AgentDesiredState,
   type AgentInstallationListQuery,
   type AgentInstallationListResult,
@@ -11,6 +12,7 @@ import {
   type AgentInstallationSummary,
   type AgentFleetStats,
 } from '@dosc-syspro/contracts/agent';
+import type { RemoteMachineProfile } from '@dosc-syspro/contracts/remote';
 import { readChatwootRuntimeConfig } from '@dosc-syspro/config';
 import { differenceInSeconds } from '@dosc-syspro/shared';
 import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
@@ -67,6 +69,7 @@ const DESIRED_STATE_INSTALLATION_INCLUDE = {
       remoteHost: {
         select: {
           id: true,
+          machineProfile: true,
           sysproUpdates: {
             select: {
               companyId: true,
@@ -158,6 +161,7 @@ type DesiredStateInstallationRow = {
   capabilities: Array<{
     remoteHost: {
       id: string;
+      machineProfile: string | null;
       sysproUpdates: Array<{
         companyId: string | null;
         companyLabel: string;
@@ -807,7 +811,15 @@ export class AgentsService {
       remoteSettings.rustDeskServerHost &&
       remoteSettings.rustDeskServerConfig,
     );
-    const sysproInstallationHints = this.buildDeviceSysproInstallationHints(installation);
+    const remoteHost = this.getRemoteCapability(installation)?.remoteHost ?? null;
+    const linked = Boolean(remoteHost?.id);
+    const collection = resolveDeviceCollectionDesiredState({
+      linked,
+      machineProfile: (remoteHost?.machineProfile ?? null) as RemoteMachineProfile | null,
+    });
+    const sysproInstallationHints = linked
+      ? this.buildDeviceSysproInstallationHints(installation)
+      : [];
 
     return {
       version: 1,
@@ -847,8 +859,10 @@ export class AgentsService {
       device: {
         enabled: true,
         version: 'go-agent-v1',
-        collect_inventory: true,
-        collect_metrics: true,
+        collect_inventory: collection.collect_inventory,
+        collect_metrics: collection.collect_metrics,
+        collection_profile: collection.collection_profile,
+        collectors: collection.collectors,
         syspro_installation_hints: sysproInstallationHints,
       },
     };

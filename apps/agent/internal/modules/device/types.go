@@ -1,7 +1,7 @@
 package device
 
-// AgentMetricsSnapshot e enviado em todo ciclo de sync (~45s).
-// Contem dados leves de saude da maquina: memoria, CPU e flag de reboot.
+// AgentMetricsSnapshot descreve saude leve da maquina: memoria, CPU e reboot.
+// Cadencia controlada pelo perfil de coleta (ex.: 1 min em servidor, 5 min em estacao).
 type AgentMetricsSnapshot struct {
 	CollectedAt   string  `json:"collectedAt"` // RFC3339
 	MemoryTotalMB uint64  `json:"memoryTotalMb"`
@@ -112,7 +112,7 @@ type ServiceStatus struct {
 }
 
 // AllServicesSnapshot lista todos os servicos Windows registrados no SCM.
-// Coletado a cada 4 ciclos (~3 min) junto com o inventario geral.
+// Ativo tipicamente no perfil server_syspro; desligado em estacao/terminal/unlinked.
 type AllServicesSnapshot struct {
 	CollectedAt string          `json:"collectedAt"`
 	Services    []ServiceStatus `json:"services"`

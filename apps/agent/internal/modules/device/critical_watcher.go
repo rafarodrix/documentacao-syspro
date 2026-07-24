@@ -18,7 +18,7 @@ func (m *Module) watchCriticalServices(ctx context.Context) {
 			return
 		case <-ticker.C:
 			m.watchMu.RLock()
-			enabled := m.watchOn
+			enabled := m.watchServices
 			trigger := m.trigger
 			m.watchMu.RUnlock()
 			if !enabled {
@@ -49,7 +49,7 @@ func (m *Module) watchCriticalServices(ctx context.Context) {
 			m.mu.Lock()
 			m.lastServices = snapshot
 			m.mu.Unlock()
-			m.observeSnapshot(ctx, "critical_services", snapshot, now)
+			m.observeSnapshot(ctx, collectorCriticalServices, snapshot, now)
 			m.logger.Warn("device: critical service state changed", "previous", previous, "current", current)
 			previous = current
 			if trigger != nil {
@@ -96,7 +96,7 @@ func (m *Module) watchCriticalProcesses(ctx context.Context) {
 			return
 		case <-ticker.C:
 			m.watchMu.RLock()
-			enabled := m.watchOn
+			enabled := m.watchServices
 			trigger := m.trigger
 			m.watchMu.RUnlock()
 			if !enabled {

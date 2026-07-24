@@ -10,9 +10,7 @@ import (
 )
 
 // Module e o modulo de coleta de contexto e metricas do dispositivo.
-// Ciclos de coleta:
-//   - Metricas (memoria, CPU, reboot), servicos e topologia Syspro: todo Apply (~45s)
-//   - Disco por unidade e inventario geral: a cada 4 ciclos (~3 min)
+// Cadencia e enable por coletor vêm do desired-state (collection_profile / collectors).
 type Module struct {
 	collector  *Collector
 	logger     Logger
@@ -21,11 +19,11 @@ type Module struct {
 	events     *criticalEventQueue
 	mu         sync.RWMutex
 	collectMu  sync.Mutex
-	watchOnce  sync.Once
-	watchMu    sync.RWMutex
-	watchOn    bool
-	trigger    func()
-	cycleCount uint64
+	watchOnce     sync.Once
+	watchMu       sync.RWMutex
+	watchServices bool
+	watchEvents   bool
+	trigger       func()
 
 	lastMetrics       *AgentMetricsSnapshot
 	lastSystem        *SystemSnapshot
@@ -85,8 +83,13 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 	}
 	m.collectMu.Lock()
 	defer m.collectMu.Unlock()
+
+	policy := resolveCollectionPolicy(desired.Device)
+	m.snapshots.setScheduleResolver(policy.schedule)
+
 	m.watchMu.Lock()
-	m.watchOn = desired.Device.CollectMetrics
+	m.watchServices = policy.enabled(collectorCriticalServices)
+	m.watchEvents = policy.enabled(collectorCriticalEvents)
 	m.watchMu.Unlock()
 	m.watchOnce.Do(func() {
 		go m.watchCriticalServices(ctx)
@@ -94,131 +97,134 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 		go m.watchWindowsEventLog(ctx)
 	})
 
-	m.cycleCount++
 	now := time.Now().UTC()
 	var sysproSnapshot *SysproVersionSnapshot
 	m.mu.RLock()
 	sysproSnapshot = m.lastVersions
 	m.mu.RUnlock()
-	if desired.Device.CollectInventory && (sysproSnapshot == nil || m.snapshots.due(ctx, "syspro_versions", now)) {
+	if policy.enabled(collectorSysproVersions) && (sysproSnapshot == nil || m.snapshots.due(ctx, collectorSysproVersions, now)) {
 		sysproHints := toCollectorHints(desired.Device.SysproInstallationHints)
 		sysproSnapshot = m.collector.CollectSysproInstallations(ctx, sysproHints)
 		m.mu.Lock()
 		m.lastVersions = sysproSnapshot
 		m.mu.Unlock()
-		m.observeSnapshot(ctx, "syspro_versions", sysproSnapshot, now)
+		m.observeSnapshot(ctx, collectorSysproVersions, sysproSnapshot, now)
 	}
 
-	if desired.Device.CollectMetrics && m.snapshots.due(ctx, "metrics", now) {
+	if policy.enabled(collectorMetrics) && m.snapshots.due(ctx, collectorMetrics, now) {
 		if metrics, err := m.collector.CollectMetrics(ctx); err != nil {
 			m.logger.Warn("device: collect metrics failed", "error", err)
-			m.recordCollectionFailure(ctx, "metrics", err, now)
+			m.recordCollectionFailure(ctx, collectorMetrics, err, now)
 		} else {
 			m.mu.Lock()
 			m.lastMetrics = metrics
 			m.mu.Unlock()
 			m.persistLastMetrics(ctx, metrics)
-			m.observeSnapshot(ctx, "metrics", metrics, now)
+			m.observeSnapshot(ctx, collectorMetrics, metrics, now)
 		}
 	}
 
-	if desired.Device.CollectMetrics && m.snapshots.due(ctx, "critical_services", now) {
+	if policy.enabled(collectorCriticalServices) && m.snapshots.due(ctx, collectorCriticalServices, now) {
 		if services, err := m.collector.CollectServices(sysproSnapshot); err != nil {
 			m.logger.Warn("device: collect services failed", "error", err)
-			m.recordCollectionFailure(ctx, "critical_services", err, now)
+			m.recordCollectionFailure(ctx, collectorCriticalServices, err, now)
 		} else {
 			m.mu.Lock()
 			m.lastServices = services
 			m.mu.Unlock()
-			m.observeSnapshot(ctx, "critical_services", services, now)
+			m.observeSnapshot(ctx, collectorCriticalServices, services, now)
 		}
 	}
 
-	if desired.Device.CollectInventory && m.snapshots.due(ctx, "system", now) {
+	if policy.enabled(collectorSystem) && m.snapshots.due(ctx, collectorSystem, now) {
 		if system, err := m.collector.CollectSystemSnapshot(ctx); err != nil {
 			m.logger.Warn("device: collect system snapshot failed", "error", err)
-			m.recordCollectionFailure(ctx, "system", err, now)
+			m.recordCollectionFailure(ctx, collectorSystem, err, now)
 		} else {
 			m.mu.Lock()
 			m.lastSystem = system
 			m.mu.Unlock()
-			m.observeSnapshot(ctx, "system", system, now)
+			m.observeSnapshot(ctx, collectorSystem, system, now)
 		}
 	}
 
-	if desired.Device.CollectInventory && m.snapshots.due(ctx, "network", now) {
+	if policy.enabled(collectorNetwork) && m.snapshots.due(ctx, collectorNetwork, now) {
 		if network, err := m.collector.CollectNetworkSnapshot(ctx); err != nil {
 			m.logger.Warn("device: collect network snapshot failed", "error", err)
-			m.recordCollectionFailure(ctx, "network", err, now)
+			m.recordCollectionFailure(ctx, collectorNetwork, err, now)
 		} else {
 			m.mu.Lock()
 			m.lastNetwork = network
 			m.mu.Unlock()
-			m.observeSnapshot(ctx, "network", network, now)
+			m.observeSnapshot(ctx, collectorNetwork, network, now)
 		}
 	}
 
-	if desired.Device.CollectInventory && m.snapshots.due(ctx, "software", now) {
+	if policy.enabled(collectorSoftware) && m.snapshots.due(ctx, collectorSoftware, now) {
 		if software, err := m.collector.CollectSoftwareSnapshot(ctx); err != nil {
 			m.logger.Warn("device: collect software snapshot failed", "error", err)
-			m.recordCollectionFailure(ctx, "software", err, now)
+			m.recordCollectionFailure(ctx, collectorSoftware, err, now)
 		} else {
 			m.mu.Lock()
 			m.lastSoftware = software
 			m.mu.Unlock()
-			m.observeSnapshot(ctx, "software", software, now)
+			m.observeSnapshot(ctx, collectorSoftware, software, now)
 		}
 	}
 
-	if desired.Device.CollectInventory && m.snapshots.due(ctx, "hardware", now) {
+	if policy.enabled(collectorHardware) && m.snapshots.due(ctx, collectorHardware, now) {
 		if hardware, err := m.collector.CollectHardwareIdentity(ctx); err != nil {
 			m.logger.Warn("device: collect hardware identity failed", "error", err)
-			m.recordCollectionFailure(ctx, "hardware", err, now)
+			m.recordCollectionFailure(ctx, collectorHardware, err, now)
 		} else {
 			m.mu.Lock()
 			m.lastHardware = hardware
 			m.mu.Unlock()
-			m.observeSnapshot(ctx, "hardware", hardware, now)
+			m.observeSnapshot(ctx, collectorHardware, hardware, now)
 		}
 	}
 
-	if desired.Device.CollectInventory && m.snapshots.due(ctx, "windows_update", now) {
+	if policy.enabled(collectorWindowsUpdate) && m.snapshots.due(ctx, collectorWindowsUpdate, now) {
 		if updates, err := m.collector.CollectWindowsUpdateStatus(ctx); err != nil {
 			m.logger.Warn("device: collect windows update status failed", "error", err)
-			m.recordCollectionFailure(ctx, "windows_update", err, now)
+			m.recordCollectionFailure(ctx, collectorWindowsUpdate, err, now)
 		} else {
 			m.mu.Lock()
 			m.lastWindowsUpdate = updates
 			m.mu.Unlock()
-			m.observeSnapshot(ctx, "windows_update", updates, now)
+			m.observeSnapshot(ctx, collectorWindowsUpdate, updates, now)
 		}
 	}
 
-	if desired.Device.CollectInventory && m.snapshots.due(ctx, "disks", now) {
+	if policy.enabled(collectorDisks) && m.snapshots.due(ctx, collectorDisks, now) {
 		if disks, err := m.collector.CollectDisks(ctx); err != nil {
 			m.logger.Warn("device: collect disks failed", "error", err)
-			m.recordCollectionFailure(ctx, "disks", err, now)
+			m.recordCollectionFailure(ctx, collectorDisks, err, now)
 		} else {
 			m.mu.Lock()
 			m.lastDisks = disks
 			m.mu.Unlock()
-			m.observeSnapshot(ctx, "disks", disks, now)
+			m.observeSnapshot(ctx, collectorDisks, disks, now)
 		}
 	}
 
-	if desired.Device.CollectInventory && m.snapshots.due(ctx, "all_services", now) {
+	if policy.enabled(collectorAllServices) && m.snapshots.due(ctx, collectorAllServices, now) {
 		if allSvc, err := m.collector.CollectAllServices(); err != nil {
 			m.logger.Warn("device: collect all services failed", "error", err)
-			m.recordCollectionFailure(ctx, "all_services", err, now)
+			m.recordCollectionFailure(ctx, collectorAllServices, err, now)
 		} else {
 			m.mu.Lock()
 			m.lastAllServices = allSvc
 			m.mu.Unlock()
-			m.observeSnapshot(ctx, "all_services", allSvc, now)
+			m.observeSnapshot(ctx, collectorAllServices, allSvc, now)
 		}
 	}
 
-	return domain.ApplyResult{Module: "device", Changed: true, Message: "device snapshot collected"}
+	return domain.ApplyResult{
+		Module:  "device",
+		Changed: true,
+		Message: "device snapshot collected profile=" + policy.profile,
+	}
 }
 
 const lastMetricsSnapshotFile = "collectors/last-metrics.json"

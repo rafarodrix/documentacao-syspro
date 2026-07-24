@@ -52,14 +52,29 @@ type collectorSnapshotState struct {
 }
 
 type snapshotTracker struct {
-	store   StateStore
-	mu      sync.Mutex
-	loaded  bool
-	entries map[string]collectorSnapshotState
+	store    StateStore
+	mu       sync.Mutex
+	loaded   bool
+	entries  map[string]collectorSnapshotState
+	schedule func(collector string) collectorSchedule
 }
 
 func newSnapshotTracker(store StateStore) *snapshotTracker {
-	return &snapshotTracker{store: store, entries: map[string]collectorSnapshotState{}}
+	return &snapshotTracker{
+		store:    store,
+		entries:  map[string]collectorSnapshotState{},
+		schedule: func(collector string) collectorSchedule { return collectionSchedules[collector] },
+	}
+}
+
+func (t *snapshotTracker) setScheduleResolver(resolver func(collector string) collectorSchedule) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if resolver == nil {
+		t.schedule = func(collector string) collectorSchedule { return collectionSchedules[collector] }
+		return
+	}
+	t.schedule = resolver
 }
 
 func (t *snapshotTracker) due(ctx context.Context, collector string, now time.Time) bool {
@@ -120,14 +135,14 @@ func (t *snapshotTracker) nextPublishBatch(ctx context.Context) map[string]struc
 		if !entry.Pending {
 			continue
 		}
-		candidate := collectionSchedules[collector].priority
+		candidate := t.schedule(collector).priority
 		if priority == 0 || candidate < priority {
 			priority = candidate
 		}
 	}
 	batch := map[string]struct{}{}
 	for collector, entry := range t.entries {
-		if entry.Pending && priority > 0 && collectionSchedules[collector].priority == priority {
+		if entry.Pending && priority > 0 && t.schedule(collector).priority == priority {
 			batch[collector] = struct{}{}
 		}
 	}
@@ -169,8 +184,8 @@ func (t *snapshotTracker) saveLocked(ctx context.Context) error {
 }
 
 func (t *snapshotTracker) nextInterval(collector string) time.Duration {
-	schedule, exists := collectionSchedules[collector]
-	if !exists || schedule.jitter <= 0 {
+	schedule := t.schedule(collector)
+	if schedule.jitter <= 0 {
 		return schedule.interval
 	}
 	var bytes [2]byte

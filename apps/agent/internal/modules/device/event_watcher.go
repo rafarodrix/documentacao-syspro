@@ -17,7 +17,7 @@ func (m *Module) watchWindowsEventLog(ctx context.Context) {
 			return
 		case <-ticker.C:
 			m.watchMu.RLock()
-			enabled, trigger := m.watchOn, m.trigger
+			enabled, trigger := m.watchEvents, m.trigger
 			m.watchMu.RUnlock()
 			if !enabled {
 				continue

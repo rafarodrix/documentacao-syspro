@@ -50,7 +50,15 @@ type DeviceDesiredState struct {
 	Version                 string                   `json:"version"`
 	CollectInventory        bool                     `json:"collect_inventory"`
 	CollectMetrics          bool                     `json:"collect_metrics"`
+	CollectionProfile       string                   `json:"collection_profile,omitempty"`
+	Collectors              map[string]CollectorPolicy `json:"collectors,omitempty"`
 	SysproInstallationHints []SysproInstallationHint `json:"syspro_installation_hints,omitempty"`
+}
+
+// CollectorPolicy controla enable/cadência por coletor (desired-state do portal).
+type CollectorPolicy struct {
+	Enabled         bool `json:"enabled"`
+	IntervalSeconds int  `json:"interval_seconds,omitempty"`
 }
 
 // SysproInstallationHint descreve caminhos ja conhecidos pelo portal que devem ser
