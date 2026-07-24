@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, Building2, Cpu, Activity, Fingerprint, Monitor, PlayCircle, RefreshCcw } from "lucide-react";
+import { Building2, Fingerprint, Monitor, PlayCircle, RefreshCcw } from "lucide-react";
 import { Button } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
+import { DeviceDetailBackLink } from "@/features/infrastructure/device/components/device-detail-back-link";
 
 type Heartbeat = {
   label: string;
@@ -43,13 +43,7 @@ export function HostHeroHeader({
     <div className="sticky top-0 z-30 -mx-6 -mt-6 mb-6 border-b border-border/45 bg-gradient-to-r from-background/80 via-background/75 to-muted/20 px-6 py-4 backdrop-blur-xl shadow-sm transition-all animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4 min-w-0">
-          <Link
-            href="/portal/infraestrutura"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/40 hover:bg-muted/80 hover:scale-105 transition-all text-muted-foreground hover:text-foreground"
-            title="Voltar para a lista"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+          <DeviceDetailBackLink />
           <div className="min-w-0 space-y-0.5">
             <div className="flex items-center gap-2.5">
               <h1 className="truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">

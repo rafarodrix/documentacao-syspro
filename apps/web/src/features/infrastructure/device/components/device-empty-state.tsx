@@ -1,8 +1,8 @@
 "use client";
 
-import { MonitorOff, SearchX, X } from "lucide-react";
+import { MonitorOff, SearchX } from "lucide-react";
 import type { DeviceLifecycleStatus } from "@dosc-syspro/contracts";
-import { Button } from "@dosc-syspro/ui";
+import { EmptyState } from "@/components/patterns";
 
 type DeviceEmptyStateProps = {
   hasSearchQuery: boolean;
@@ -17,27 +17,21 @@ export function DeviceEmptyState({
 }: DeviceEmptyStateProps) {
   if (hasSearchQuery) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/70 bg-card p-10 text-center shadow-xs">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground mb-3">
-          <SearchX className="h-6 w-6" />
-        </div>
-        <h3 className="text-base font-semibold text-foreground">Nenhum dispositivo encontrado</h3>
-        <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-          Revise o nome, CNPJ, hostname, IP ou ID RustDesk informado.
-        </p>
-        {onClearSearch && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-4 h-8 gap-1.5 text-xs shadow-xs"
-            onClick={onClearSearch}
-          >
-            <X className="h-3.5 w-3.5" />
-            Limpar pesquisa
-          </Button>
-        )}
-      </div>
+      <EmptyState
+        icon={SearchX}
+        dashed
+        className="rounded-lg border-border/70 bg-card shadow-xs"
+        title="Nenhum dispositivo encontrado"
+        description="Revise o nome, CNPJ, hostname, IP ou ID RustDesk informado."
+        action={
+          onClearSearch
+            ? {
+                label: "Limpar pesquisa",
+                onClick: onClearSearch,
+              }
+            : undefined
+        }
+      />
     );
   }
 
@@ -52,23 +46,23 @@ export function DeviceEmptyState({
     },
     ARCHIVED: {
       title: "Nenhum dispositivo arquivado",
-      desc: "Nenhuma máquina desativada ou mantida em arquivo no momento.",
+      desc: "Nenhum dispositivo desativado ou mantido em arquivo no momento.",
     },
     MANAGED: {
       title: "Nenhum dispositivo gerenciado",
-      desc: "Cadastre um novo host ou vincule uma máquina descoberta para iniciar o gerenciamento.",
+      desc: "Cadastre um novo dispositivo ou vincule uma máquina descoberta para iniciar o gerenciamento.",
     },
   };
 
   const currentMsg = lifecycleMessages[activeLifecycle] ?? lifecycleMessages.MANAGED;
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/70 bg-card p-10 text-center shadow-xs">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground mb-3">
-        <MonitorOff className="h-6 w-6" />
-      </div>
-      <h3 className="text-base font-semibold text-foreground">{currentMsg.title}</h3>
-      <p className="mt-1 text-xs text-muted-foreground max-w-sm">{currentMsg.desc}</p>
-    </div>
+    <EmptyState
+      icon={MonitorOff}
+      dashed
+      className="rounded-lg border-border/70 bg-card shadow-xs"
+      title={currentMsg.title}
+      description={currentMsg.desc}
+    />
   );
 }

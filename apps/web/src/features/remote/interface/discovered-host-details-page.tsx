@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Building2, Clock3, Copy, ExternalLink, Loader2, Monitor, ShieldCheck } from "lucide-react";
+import { Building2, Clock3, Copy, ExternalLink, Loader2, Monitor, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, Button, Input, Label } from "@dosc-syspro/ui";
 import type { RemoteDiscoveredHostDetails } from "@/features/remote/domain/remote-host.types";
@@ -21,6 +20,9 @@ import {
   getServiceStatusMeta,
 } from "./host-details/host-details.helpers";
 import { SearchableCompanyPicker } from "./host-details/components/searchable-company-picker";
+import { DeviceDetailBackLink } from "@/features/infrastructure/device/components/device-detail-back-link";
+import { useRustDeskConnect } from "@/features/infrastructure/device/hooks/use-rustdesk-connect";
+import { deviceManagedDetailPath } from "@/features/infrastructure/device/domain/device-detail-paths";
 
 function InfoCard({
   title,
@@ -58,7 +60,7 @@ export function RemoteDiscoveredHostDetailsPanel({
   details: RemoteDiscoveredHostDetails;
 }) {
   const router = useRouter();
-  const [isMobileClient, setIsMobileClient] = useState(false);
+  const { connect } = useRustDeskConnect();
   const [selectedCompanyId, setSelectedCompanyId] = useState(
     details.suggestedCompanyId ?? details.companyOptions[0]?.id ?? "",
   );
@@ -66,12 +68,6 @@ export function RemoteDiscoveredHostDetailsPanel({
   const [isLinking, startLinkTransition] = useTransition();
   const [isIgnoring, startIgnoreTransition] = useTransition();
   const [isReactivating, startReactivateTransition] = useTransition();
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
-  }, []);
 
   const normalizedRustdeskId = details.host.rustdeskId?.replace(/\s+/g, "").trim() ?? "";
   const canOpenRemote = normalizedRustdeskId.length > 0;
@@ -83,7 +79,7 @@ export function RemoteDiscoveredHostDetailsPanel({
 
   async function handleCopyRustdeskId() {
     if (!normalizedRustdeskId) {
-      toast.error("ID remoto nao informado.");
+      toast.error("ID remoto não informado.");
       return;
     }
 
@@ -96,24 +92,24 @@ export function RemoteDiscoveredHostDetailsPanel({
   }
 
   function handleOpenRemote() {
-    if (!normalizedRustdeskId) {
-      toast.error("Maquina descoberta sem RustDesk ID.");
-      return;
+    const launched = connect({
+      externalId: normalizedRustdeskId,
+      audit: false,
+      emptyError: "Dispositivo descoberto sem ID RustDesk.",
+    });
+    if (launched) {
+      toast("Acesso aberto sem auditoria formal. Vincule o dispositivo para registrar as próximas sessões.");
     }
-
-    const href = isMobileClient ? `rustdesk://[${normalizedRustdeskId}]` : `rustdesk://${normalizedRustdeskId}`;
-    window.location.href = href;
-    toast("Acesso aberto sem auditoria formal. Vincule o host para registrar as proximas sessoes.");
   }
 
   function handleLinkHost() {
     if (details.host.status === "IGNORED") {
-      toast.error("Esta descoberta esta bloqueada. Reautorize antes de vincular.");
+      toast.error("Esta descoberta está bloqueada. Reautorize antes de vincular.");
       return;
     }
 
     if (!selectedCompanyId || !trimmedProjectedHostName) {
-      toast.error("Selecione a empresa e informe o nome do host.");
+      toast.error("Selecione a empresa e informe o nome do dispositivo.");
       return;
     }
 
@@ -132,8 +128,8 @@ export function RemoteDiscoveredHostDetailsPanel({
           },
         });
 
-        toast.success(result.data.created ? "Host criado e vinculado." : "Host existente vinculado com sucesso.");
-        router.push(`/portal/infraestrutura/dispositivos/${result.data.hostId}`);
+        toast.success(result.data.created ? "Dispositivo criado e vinculado." : "Dispositivo existente vinculado com sucesso.");
+        router.push(deviceManagedDetailPath(result.data.hostId));
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -163,7 +159,7 @@ export function RemoteDiscoveredHostDetailsPanel({
           url: `/api/remote/discovered-hosts/${details.host.id}/ignore`,
           method: "POST",
         });
-        toast.success("Host descoberto ignorado.");
+        toast.success("Dispositivo descoberto ignorado.");
         router.push("/portal/infraestrutura?tab=dispositivos");
         router.refresh();
       } catch (error) {
@@ -177,16 +173,11 @@ export function RemoteDiscoveredHostDetailsPanel({
       <section className="rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-amber-500/5 p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
-            <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground">
-              <Link href="/portal/infraestrutura?tab=dispositivos">
-                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-                Voltar para hosts
-              </Link>
-            </Button>
+            <DeviceDetailBackLink variant="ghost" />
 
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                {details.host.status === "IGNORED" ? "Bloqueado" : "Sem vinculo"}
+                {details.host.status === "IGNORED" ? "Bloqueado" : "Sem vínculo"}
               </Badge>
               <Badge variant="outline" className={heartbeatMeta.className}>
                 {heartbeatMeta.label}
@@ -198,7 +189,7 @@ export function RemoteDiscoveredHostDetailsPanel({
 
             <div>
               <h1 className="text-2xl font-semibold text-foreground">
-                {details.host.machineName?.trim() || "Maquina descoberta sem nome"}
+                {details.host.machineName?.trim() || "Dispositivo descoberto sem nome"}
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {buildPendingIdentitySubtitle(details.host)}
@@ -223,8 +214,8 @@ export function RemoteDiscoveredHostDetailsPanel({
 
         <div className="mt-4 rounded-2xl border border-amber-500/15 bg-amber-500/5 p-3 text-xs text-muted-foreground">
           {details.host.status === "IGNORED"
-            ? "Esta descoberta foi bloqueada pelo portal. Reautorize a maquina para voltar ao fluxo normal de vinculo."
-            : "Enquanto a maquina estiver sem vinculo, o acesso remoto abre direto no RustDesk e nao gera sessao auditada no portal."}
+            ? "Esta descoberta foi bloqueada pelo portal. Reautorize o dispositivo para voltar ao fluxo normal de vínculo."
+            : "Enquanto o dispositivo estiver sem vínculo, o acesso remoto abre direto no RustDesk e não gera sessão auditada no portal."}
         </div>
       </section>
 
@@ -235,9 +226,9 @@ export function RemoteDiscoveredHostDetailsPanel({
             <InfoRow label="Heartbeat" value={formatRelativeHeartbeat(details.host.lastHeartbeatAt)} />
             <InfoRow label="Primeira deteccao" value={formatDateTime(details.firstSeenAt)} />
             <InfoRow label="Ultima atualizacao" value={formatDateTime(details.updatedAt)} />
-            <InfoRow label="Provider" value={details.host.provider ?? "Nao informado"} />
-            <InfoRow label="Ambiente" value={details.host.environment ?? "Nao informado"} />
-            <InfoRow label="Versao do agente" value={details.host.agentVersion ?? "Nao informado"} />
+            <InfoRow label="Provider" value={details.host.provider ?? "Não informado"} />
+            <InfoRow label="Ambiente" value={details.host.environment ?? "Não informado"} />
+            <InfoRow label="Versão do agente" value={details.host.agentVersion ?? "Não informado"} />
           </InfoCard>
 
           <InfoCard title="Telemetria rapida">
@@ -282,16 +273,16 @@ export function RemoteDiscoveredHostDetailsPanel({
           <div className="rounded-2xl border border-border/50 bg-muted/20 p-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-2 text-foreground">
               <Monitor className="h-4 w-4 text-primary" />
-              <span className="font-medium">Host projetado</span>
+              <span className="font-medium">Dispositivo projetado</span>
             </div>
             <p className="mt-2">
               {details.host.status === "IGNORED"
-                ? "A descoberta esta bloqueada. Reautorize primeiro para devolver esta maquina ao fluxo de vinculo."
-                : "Defina a empresa e o nome final do host. Depois do vinculo, esta maquina passa a ter pagina completa, sessoes auditadas e governanca remota normal."}
+                ? "A descoberta está bloqueada. Reautorize primeiro para devolver este dispositivo ao fluxo de vínculo."
+                : "Defina a empresa e o nome final do dispositivo. Depois do vínculo, ele passa a ter página completa, sessões auditadas e governança remota normal."}
             </p>
             {companySuggestionLabel ? (
               <p className="mt-2 text-xs">
-                Sugestao automatica de empresa: <span className="font-medium text-foreground">{companySuggestionLabel}</span>
+                Sugestão automática de empresa: <span className="font-medium text-foreground">{companySuggestionLabel}</span>
               </p>
             ) : null}
           </div>
@@ -307,7 +298,7 @@ export function RemoteDiscoveredHostDetailsPanel({
           </div>
 
           <div className="space-y-2">
-            <Label>Nome do host</Label>
+            <Label>Nome do dispositivo</Label>
             <Input
               value={projectedHostName}
               onChange={(event) => setProjectedHostName(event.target.value)}
@@ -317,8 +308,8 @@ export function RemoteDiscoveredHostDetailsPanel({
 
           <div className="grid gap-3 rounded-2xl border border-border/50 bg-muted/10 p-3 text-sm">
             <InfoRow label="Heartbeat" value={formatRelativeHeartbeat(details.host.lastHeartbeatAt)} />
-            <InfoRow label="Ultima leitura" value={formatDateTime(details.updatedAt)} />
-            <InfoRow label="Status do servico" value={serviceStatusMeta.label} />
+            <InfoRow label="Última leitura" value={formatDateTime(details.updatedAt)} />
+            <InfoRow label="Status do serviço" value={serviceStatusMeta.label} />
             <InfoRow label="ID remoto" value={formatRustDeskDisplay(details.host.rustdeskId)} />
           </div>
 
@@ -329,7 +320,7 @@ export function RemoteDiscoveredHostDetailsPanel({
               disabled={details.host.status === "IGNORED" || isLinking || !selectedCompanyId || !trimmedProjectedHostName}
             >
               {isLinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
-              {isLinking ? "Vinculando..." : "Vincular host"}
+              {isLinking ? "Vinculando..." : "Vincular dispositivo"}
             </Button>
             {details.host.status === "IGNORED" && (
               <Button type="button" variant="secondary" onClick={handleReactivateHost} disabled={isReactivating}>

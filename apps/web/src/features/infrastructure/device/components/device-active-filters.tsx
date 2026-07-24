@@ -10,11 +10,9 @@ import type {
 type DeviceActiveFiltersProps = {
   connectivity: DeviceConnectivityStatus | "ALL";
   health: DeviceHealthStatus | "ALL";
-  capabilities?: string[];
   companyId?: string;
   onRemoveConnectivity: () => void;
   onRemoveHealth: () => void;
-  onRemoveCapability: (cap: string) => void;
   onRemoveCompany: () => void;
   onClearAll: () => void;
 };
@@ -33,32 +31,20 @@ const HEALTH_LABELS: Record<string, string> = {
   UNEVALUATED: "Sem avaliação",
 };
 
-const CAPABILITY_LABELS: Record<string, string> = {
-  AGENT: "Agente",
-  REMOTE: "Remoto",
-  ERP: "ERP",
-  BACKUP: "Backup",
-  TUNNEL: "Túnel",
-};
-
 export function DeviceActiveFilters({
   connectivity,
   health,
-  capabilities = [],
   companyId,
   onRemoveConnectivity,
   onRemoveHealth,
-  onRemoveCapability,
   onRemoveCompany,
   onClearAll,
 }: DeviceActiveFiltersProps) {
   const hasConnectivityFilter = connectivity !== "ALL";
   const hasHealthFilter = health !== "ALL";
-  const hasCapabilitiesFilter = capabilities.length > 0;
   const hasCompanyFilter = Boolean(companyId);
 
-  const hasAnyActiveFilter =
-    hasConnectivityFilter || hasHealthFilter || hasCapabilitiesFilter || hasCompanyFilter;
+  const hasAnyActiveFilter = hasConnectivityFilter || hasHealthFilter || hasCompanyFilter;
 
   if (!hasAnyActiveFilter) {
     return null;
@@ -101,24 +87,6 @@ export function DeviceActiveFilters({
           </button>
         </Badge>
       )}
-
-      {capabilities.map((cap) => (
-        <Badge
-          key={cap}
-          variant="secondary"
-          className="h-6 gap-1 border border-border/60 pl-2 pr-1 font-normal"
-        >
-          <span>{CAPABILITY_LABELS[cap] ?? cap}</span>
-          <button
-            type="button"
-            onClick={() => onRemoveCapability(cap)}
-            className="rounded-full p-0.5 hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground transition-colors"
-            title={`Remover filtro de ${CAPABILITY_LABELS[cap] ?? cap}`}
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      ))}
 
       {hasCompanyFilter && (
         <Badge

@@ -6,8 +6,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
-import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
-import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
+import { requestRemoteMutation, getRemoteApiErrorMessage } from "@/features/remote/interface/remote-api";
 import { copyTextWithFallback } from "./host-details/host-details.helpers";
 import { DEFAULT_INSTALLATION_DIRECTORY, UNLINKED_COMPANY_VALUE, supportsManagedAgentUpgrade, type RemoteHostManualAction } from "./host-details/host-details.constants";
 import { useHostComputedValues } from "./host-details/hooks/use-host-computed-values";
@@ -23,6 +22,7 @@ import {
 } from "./host-details/components";
 import { ErpTab } from "@/features/infrastructure/device/erp/erp-tab";
 import { parseHostDetailsTab, type HostDetailsTab } from "@/features/infrastructure/device/domain/device-detail-paths";
+import { useRustDeskConnect } from "@/features/infrastructure/device/hooks/use-rustdesk-connect";
 
 export function RemoteHostDetailsPanel({
   details,
@@ -46,8 +46,8 @@ export function RemoteHostDetailsPanel({
     host.machineProfile,
   );
   const [projectedNotes, setProjectedNotes] = useState(host.notes ?? "");
-  const [isMobileClient, setIsMobileClient] = useState(false);
   const [installationFilter, setInstallationFilter] = useState<"all" | "unlinked">("all");
+  const { isMobileClient, isConnecting, connect } = useRustDeskConnect();
   const [bulkInstallationCompanyId, setBulkInstallationCompanyId] = useState(details.companyOptions[0]?.id ?? "");
   const [selectedCompanyByUpdateId, setSelectedCompanyByUpdateId] = useState<Record<string, string>>({});
   const [manualInstallationCompanyId, setManualInstallationCompanyId] = useState(
@@ -65,7 +65,6 @@ export function RemoteHostDetailsPanel({
   const [isRelinkingInstallation, startRelinkingInstallation] = useTransition();
   const [isBulkRelinkingInstallations, startBulkRelinkingInstallations] = useTransition();
   const [isCreatingManualInstallation, startCreatingManualInstallation] = useTransition();
-  const [isStartingSession, startSessionTransition] = useTransition();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingHost, startDeletingHost] = useTransition();
   const [isRequestingUpgrade, startRequestingUpgrade] = useTransition();
@@ -180,12 +179,6 @@ export function RemoteHostDetailsPanel({
   }, [details.companyOptions, host.companyId]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
-  }, []);
-
-  useEffect(() => {
     const next: Record<string, string> = {};
     for (const context of dedupedInstallationContexts) {
       next[context.update.id] = context.update.companyId ?? UNLINKED_COMPANY_VALUE;
@@ -285,7 +278,7 @@ export function RemoteHostDetailsPanel({
           url: `/api/remote/hosts/${host.id}`,
           method: "DELETE",
         });
-        toast.success("Host excluído com sucesso.");
+        toast.success("Dispositivo excluído com sucesso.");
         setShowDeleteConfirm(false);
         router.push("/portal/infraestrutura?tab=dispositivos");
         router.refresh();
@@ -400,24 +393,16 @@ export function RemoteHostDetailsPanel({
   }
 
   function handleStartOrchestratedSession() {
-    if (!normalizedRustdeskId) {
-      toast.error("Host sem identificador remoto. Não é possível iniciar sessão.");
-      return;
-    }
-    const href = isMobileClient ? `rustdesk://[${normalizedRustdeskId}]` : `rustdesk://${normalizedRustdeskId}`;
-    window.location.href = href;
-    startSessionTransition(async () => {
-      try {
-        const result = await requestRemoteSessionAction({
-          hostId: host.id,
-          companyId: host.companyId,
-          ticketNumber,
-          reason: ticketNumber ? `Suporte via Portal para Ticket #${ticketNumber}` : "Acesso técnico via Portal",
-        });
-        if (!result.success) toast.error(result.error ?? "Falha ao registrar sessão auditada.");
-      } catch {
-        // Protocol already opened; audit failure is non-blocking
-      }
+    connect({
+      externalId: normalizedRustdeskId,
+      hostId: host.id,
+      companyId: host.companyId,
+      ticketNumber,
+      reason: ticketNumber
+        ? `Suporte via Portal para Ticket #${ticketNumber}`
+        : "Acesso técnico via Portal",
+      emptyError: "Dispositivo sem identificador remoto. Não é possível iniciar a sessão.",
+      audit: true,
     });
   }
 
@@ -431,7 +416,7 @@ export function RemoteHostDetailsPanel({
         normalizedRustdeskId={normalizedRustdeskId}
         machineIpv4={machineIpv4}
         ticketNumber={ticketNumber}
-        isStartingSession={isStartingSession}
+        isStartingSession={isConnecting}
         isMobileClient={isMobileClient}
         onStartSession={handleStartOrchestratedSession}
       />

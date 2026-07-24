@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth-helpers";
+import { PageShell } from "@/components/patterns";
 import { getRemoteHostDetails } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { fetchLinkedAgentInstallation } from "@/features/agents/application/agent.queries";
@@ -31,5 +32,9 @@ export default async function InfrastructureHostDetailsPage({
     notFound();
   }
 
-  return <RemoteHostDetailsPanel details={details} linkedDevice={linkedDevice} />;
+  return (
+    <PageShell>
+      <RemoteHostDetailsPanel details={details} linkedDevice={linkedDevice} />
+    </PageShell>
+  );
 }

@@ -6,8 +6,19 @@ import type {
   DeviceConnectivityStatus,
   DeviceHealthStatus,
   DeviceLifecycleStatus,
-  DeviceListQueryParams,
 } from "@dosc-syspro/contracts";
+
+const LIFECYCLE_MAP: Record<string, DeviceLifecycleStatus | "ALL"> = {
+  MANAGED: "MANAGED",
+  GERENCIADOS: "MANAGED",
+  AWAITING_LINK: "AWAITING_LINK",
+  PENDING: "AWAITING_LINK",
+  DISCOVERED: "DISCOVERED",
+  DESCOBERTOS: "DISCOVERED",
+  ARCHIVED: "ARCHIVED",
+  ARQUIVADOS: "ARCHIVED",
+  ALL: "ALL",
+};
 
 export function useDeviceSearchParams() {
   const router = useRouter();
@@ -16,33 +27,18 @@ export function useDeviceSearchParams() {
 
   const queryParams = useMemo(() => {
     const rawQuery = searchParams.get("query") ?? searchParams.get("q") ?? "";
-    const rawLifecycle = (searchParams.get("lifecycle") ?? searchParams.get("tab") ?? "MANAGED").toUpperCase();
+    // Never read page `tab` (dispositivos/operacao) as lifecycle — only `lifecycle`.
+    const rawLifecycle = (searchParams.get("lifecycle") ?? "MANAGED").toUpperCase();
     const rawConnectivity = (searchParams.get("connectivity") ?? "ALL").toUpperCase();
     const rawHealth = (searchParams.get("health") ?? "ALL").toUpperCase();
     const rawCompanyId = searchParams.get("companyId") ?? undefined;
     const rawPage = Math.max(1, Number(searchParams.get("page")) || 1);
     const rawPageSize = Math.max(1, Number(searchParams.get("pageSize")) || 25);
     const rawSort = searchParams.get("sort") ?? undefined;
-    const rawCapabilities = searchParams.get("capabilities")
-      ? searchParams.get("capabilities")!.split(",").filter(Boolean)
-      : [];
-
-    const lifecycleMap: Record<string, DeviceLifecycleStatus | "ALL"> = {
-      MANAGED: "MANAGED",
-      GERENCIADOS: "MANAGED",
-      DISPOSITIVOS: "MANAGED",
-      AWAITING_LINK: "AWAITING_LINK",
-      PENDING: "AWAITING_LINK",
-      DISCOVERED: "DISCOVERED",
-      DESCOBERTOS: "DISCOVERED",
-      ARCHIVED: "ARCHIVED",
-      ARQUIVADOS: "ARCHIVED",
-      ALL: "ALL",
-    };
 
     return {
       query: rawQuery,
-      lifecycle: (lifecycleMap[rawLifecycle] ?? "MANAGED") as DeviceLifecycleStatus | "ALL",
+      lifecycle: (LIFECYCLE_MAP[rawLifecycle] ?? "MANAGED") as DeviceLifecycleStatus | "ALL",
       connectivity: (["ONLINE", "STALE", "OFFLINE", "MISSING"].includes(rawConnectivity)
         ? rawConnectivity
         : "ALL") as DeviceConnectivityStatus | "ALL",
@@ -53,7 +49,6 @@ export function useDeviceSearchParams() {
       page: rawPage,
       pageSize: rawPageSize,
       sort: rawSort,
-      capabilities: rawCapabilities,
     };
   }, [searchParams]);
 
@@ -62,7 +57,6 @@ export function useDeviceSearchParams() {
     if (queryParams.connectivity !== "ALL") count++;
     if (queryParams.health !== "ALL") count++;
     if (queryParams.companyId) count++;
-    if (queryParams.capabilities && queryParams.capabilities.length > 0) count += queryParams.capabilities.length;
     return count;
   }, [queryParams]);
 
@@ -77,6 +71,9 @@ export function useDeviceSearchParams() {
           next.set(key, String(val));
         }
       });
+
+      // Drop legacy fake capability filter if still present in the URL.
+      next.delete("capabilities");
 
       if (resetPage && !("page" in updates)) {
         next.set("page", "1");

@@ -69,3 +69,15 @@ describe("parseOperationsView", () => {
     expect(parseOperationsView("")).toBe("em_andamento");
   });
 });
+
+describe("normalizeRustDeskId", () => {
+  it("strips spaces from rustdesk ids", async () => {
+    const { normalizeRustDeskId, buildRustDeskHref } = await import(
+      "@/features/infrastructure/device/hooks/use-rustdesk-connect"
+    );
+    expect(normalizeRustDeskId("123 456 789")).toBe("123456789");
+    expect(buildRustDeskHref("123 456", false)).toBe("rustdesk://123456");
+    expect(buildRustDeskHref("123 456", true)).toBe("rustdesk://[123456]");
+    expect(buildRustDeskHref("   ", false)).toBeNull();
+  });
+});

@@ -19,8 +19,8 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type InfrastructureTab = "dispositivos" | "operacao" | "relatorios";
-type LegacyInfrastructureTab = InfrastructureTab | "sessoes" | "hosts" | "agentes";
+type InfrastructureTab = "dispositivos" | "operacao";
+type LegacyInfrastructureTab = InfrastructureTab | "sessoes" | "hosts" | "agentes" | "relatorios";
 
 function readParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return String(value[0] ?? "").trim();
@@ -46,9 +46,7 @@ function normalizeInfrastructureTab(tab: string, view: string): { tab: Infrastru
   if (tab === "operacao") {
     return { tab: "operacao", view: parseOperationsView(view) };
   }
-  if (tab === "relatorios") {
-    return { tab: "relatorios" };
-  }
+  // relatorios is intentionally hidden until the module ships.
   return { tab: "dispositivos", view: parseOperationsView(view) };
 }
 
@@ -65,9 +63,6 @@ function buildTabHref(tab: InfrastructureTab, params: Record<string, string>) {
     if (params.ticket) next.set("ticket", params.ticket);
     if (params.page) next.set("page", params.page);
   }
-  if (tab === "relatorios") {
-    // TBD: parameters for reports
-  }
   return `/portal/infraestrutura?${next.toString()}`;
 }
 
@@ -80,10 +75,6 @@ const TAB_META: Record<InfrastructureTab, { label: string; icon: typeof Monitor 
     label: "Operações",
     icon: Activity,
   },
-  relatorios: {
-    label: "Relatórios e auditoria",
-    icon: Activity, // Replace with appropriate icon if available, using Activity as fallback
-  },
 };
 
 export default async function InfraestruturaPage({ searchParams }: PageProps) {
@@ -92,11 +83,8 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
   const canRemote = await currentUserHasAnyPermission(["remote:view", "remote:manage"], {
     acceptCompanyScope: true,
   });
-  const canHosts = canRemote;
-  const canOperations = canRemote;
-  const canReports = canRemote;
 
-  const availableTabs = ([canHosts && "dispositivos", canOperations && "operacao", canReports && "relatorios"].filter(
+  const availableTabs = ([canRemote && "dispositivos", canRemote && "operacao"].filter(
     Boolean,
   ) as InfrastructureTab[]);
 
@@ -182,7 +170,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
       operationsView === "requer_acao" ? "REQUESTED" : 
       parseSessionStatus(tabParams.status);
       
-    const [sessionsResult, metrics] = await Promise.all([
+    const [sessionsResult] = await Promise.all([
       getRemoteSessions(tenantScope, {
         status: statusFilter,
         hostId: tabParams.host || undefined,
@@ -190,7 +178,6 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
         page: pageValue,
         pageSize: 50,
       }),
-      Promise.resolve(null),
     ]);
 
 
@@ -200,7 +187,6 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
         pagination={sessionsResult.pagination}
         hostOptions={sessionsResult.hostOptions}
         view={operationsView}
-        metrics={metrics ?? undefined}
         filters={{
           status: statusFilter ?? "ALL",
           hostId: tabParams.host,
@@ -210,19 +196,11 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     );
   }
 
-  if (activeTab === "relatorios") {
-    content = (
-      <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 text-sm text-muted-foreground">
-        Módulo de relatórios e auditoria em construção
-      </div>
-    );
-  }
-
   return (
     <PageShell>
       <PageHeader
         title="Infraestrutura"
-        description="Centralize dispositivos, operacoes remotas e auditoria em uma unica visao."
+        description="Centralize dispositivos e operações remotas em uma única visão."
         actions={actions}
       />
 
