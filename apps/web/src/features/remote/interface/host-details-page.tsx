@@ -10,6 +10,7 @@ import { requestRemoteMutation, getRemoteApiErrorMessage } from "@/features/remo
 import { copyTextWithFallback } from "./host-details/host-details.helpers";
 import { DEFAULT_INSTALLATION_DIRECTORY, UNLINKED_COMPANY_VALUE, supportsManagedAgentUpgrade, type RemoteHostManualAction } from "./host-details/host-details.constants";
 import { useHostComputedValues } from "./host-details/hooks/use-host-computed-values";
+import { useHostIdentityDraft } from "./host-details/hooks/use-host-identity-draft";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import {
   HostHeroHeader,
@@ -40,12 +41,6 @@ export function RemoteHostDetailsPanel({
     searchParams.get("edit") === "true" ? "geral" : parseHostDetailsTab(searchParams.get("tab")),
   );
   const [openIdentityOnMount] = useState(() => searchParams.get("edit") === "true");
-  const [projectedHostName, setProjectedHostName] = useState(host.name);
-  const [projectedCompanyId, setProjectedCompanyId] = useState(host.companyId ?? details.companyOptions[0]?.id ?? "");
-  const [projectedMachineProfile, setProjectedMachineProfile] = useState<RemoteHostDetails["host"]["machineProfile"]>(
-    host.machineProfile,
-  );
-  const [projectedNotes, setProjectedNotes] = useState(host.notes ?? "");
   const [installationFilter, setInstallationFilter] = useState<"all" | "unlinked">("all");
   const { isMobileClient, isConnecting, connect } = useRustDeskConnect();
   const [bulkInstallationCompanyId, setBulkInstallationCompanyId] = useState(details.companyOptions[0]?.id ?? "");
@@ -57,8 +52,7 @@ export function RemoteHostDetailsPanel({
   const [ticketDetails, setTicketDetails] = useState<{ title: string; state: string; priority: string } | null>(null);
   const [isLoadingTicket, setIsLoadingTicket] = useState(false);
 
-    // ── Transitions ──────────────────────────────────────────────────────────────
-  const [isSavingMachineName, startSavingMachineName] = useTransition();
+  // ── Transitions ──────────────────────────────────────────────────────────────
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
   const [isRequestingResendConfig, startRequestingResendConfig] = useTransition();
   const [isRequestingSelfHeal, startRequestingSelfHeal] = useTransition();
@@ -70,7 +64,6 @@ export function RemoteHostDetailsPanel({
   const [isRequestingUpgrade, startRequestingUpgrade] = useTransition();
   const [isRequestingAgentUpgrade, startRequestingAgentUpgrade] = useTransition();
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
-  const [showCompanyChangeConfirm, setShowCompanyChangeConfirm] = useState(false);
 
   // ── Computed values (memos) ──────────────────────────────────────────────────
   const computed = useHostComputedValues(details, installationFilter);
@@ -78,8 +71,6 @@ export function RemoteHostDetailsPanel({
     agent,
     normalizedRustdeskId,
     windowsComputerName,
-    rustdeskHref,
-    serviceStatus,
     rustDeskCompliance,
     visibleAgentCommands,
     hiddenAcknowledgedCount,
@@ -100,21 +91,20 @@ export function RemoteHostDetailsPanel({
     orchestrationStrategy,
     machineIpv4,
     internetIpv4,
-    localGateway,
     firebirdData,
     heartbeat,
   } = computed;
 
-  const ticketNumber = searchParams.get("ticketNumber");
+  const identity = useHostIdentityDraft({
+    host,
+    companyOptions: details.companyOptions,
+    agentRustdeskId: agent.rustdeskId,
+    agentMachineName: agent.machineName,
+    openOnMount: openIdentityOnMount,
+  });
 
-  const normalizedProjectedHostName = projectedHostName.trim();
-  const normalizedProjectedNotes = projectedNotes.trim();
+  const ticketNumber = searchParams.get("ticketNumber");
   const canRequestAgentUpgrade = supportsManagedAgentUpgrade(agent.agentVersion);
-  const canSaveProjectedHostName =
-    (normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim()) ||
-    projectedCompanyId !== host.companyId ||
-    projectedMachineProfile !== host.machineProfile ||
-    normalizedProjectedNotes !== (host.notes?.trim() ?? "");
 
   function updateHostDetailsQuery(mutate: (params: URLSearchParams) => void) {
     const params = new URLSearchParams(searchParams.toString());
@@ -159,22 +149,6 @@ export function RemoteHostDetailsPanel({
   }, [ticketNumber]);
 
   useEffect(() => {
-    setProjectedHostName(host.name);
-  }, [host.name]);
-
-  useEffect(() => {
-    setProjectedCompanyId(host.companyId ?? details.companyOptions[0]?.id ?? "");
-  }, [details.companyOptions, host.companyId]);
-
-  useEffect(() => {
-    setProjectedMachineProfile(host.machineProfile);
-  }, [host.machineProfile]);
-
-  useEffect(() => {
-    setProjectedNotes(host.notes ?? "");
-  }, [host.notes]);
-
-  useEffect(() => {
     setManualInstallationCompanyId(host.companyId ?? details.companyOptions[0]?.id ?? "");
   }, [details.companyOptions, host.companyId]);
 
@@ -200,44 +174,6 @@ export function RemoteHostDetailsPanel({
     } catch {
       toast.error(`Falha ao copiar ${label.toLowerCase()}.`);
     }
-  }
-
-  async function persistProjectedDeviceIdentity() {
-    await requestRemoteMutation({
-      url: `/api/remote/hosts/${host.id}`,
-      method: "PATCH",
-      body: {
-        companyId: projectedCompanyId || host.companyId,
-        name: normalizedProjectedHostName,
-        machineName: agent.machineName,
-        machineProfile: projectedMachineProfile,
-        environment: null,
-        provider: host.provider,
-        description: host.description,
-        notes: normalizedProjectedNotes || null,
-        agentExternalId: agent.rustdeskId,
-        status: host.status,
-      },
-    });
-    toast.success("Dispositivo atualizado.");
-    setShowCompanyChangeConfirm(false);
-    router.refresh();
-  }
-
-  function handleSaveProjectedHostName() {
-    if (!normalizedProjectedHostName) { toast.error("Informe um nome amigável válido para o dispositivo."); return; }
-    if (!projectedCompanyId) { toast.error("Selecione a empresa principal do dispositivo."); return; }
-    if (projectedCompanyId !== host.companyId) {
-      setShowCompanyChangeConfirm(true);
-      return;
-    }
-    startSavingMachineName(async () => {
-      try {
-        await persistProjectedDeviceIdentity();
-      } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error));
-      }
-    });
   }
 
   function handleRotateAgentToken() {
@@ -457,19 +393,20 @@ export function RemoteHostDetailsPanel({
             publicIpv4={internetIpv4}
             productStatusLabel={productStatusMeta.label}
             operationalStatus={host.operationalStatus}
-            projectedHostName={projectedHostName}
-            setProjectedHostName={setProjectedHostName}
-            projectedCompanyId={projectedCompanyId}
-            setProjectedCompanyId={setProjectedCompanyId}
-            projectedMachineProfile={projectedMachineProfile}
-            setProjectedMachineProfile={setProjectedMachineProfile}
-            projectedNotes={projectedNotes}
-            setProjectedNotes={setProjectedNotes}
-            canSaveProjectedHostName={canSaveProjectedHostName}
-            isSavingMachineName={isSavingMachineName}
-            onSaveHostName={handleSaveProjectedHostName}
+            projectedHostName={identity.projectedHostName}
+            setProjectedHostName={identity.setProjectedHostName}
+            projectedCompanyId={identity.projectedCompanyId}
+            setProjectedCompanyId={identity.setProjectedCompanyId}
+            projectedMachineProfile={identity.projectedMachineProfile}
+            setProjectedMachineProfile={identity.setProjectedMachineProfile}
+            projectedNotes={identity.projectedNotes}
+            setProjectedNotes={identity.setProjectedNotes}
+            canSaveProjectedHostName={identity.canSaveProjectedHostName}
+            isSavingMachineName={identity.isSavingMachineName}
+            onSaveHostName={identity.handleSaveProjectedHostName}
             installationCount={dedupedInstallationContexts.length}
-            initialIdentitySheetOpen={openIdentityOnMount}
+            identitySheetOpen={identity.identitySheetOpen}
+            onIdentitySheetOpenChange={identity.setIdentitySheetOpen}
           />
         </TabsContent>
 
@@ -510,18 +447,14 @@ export function RemoteHostDetailsPanel({
             host={host}
             details={details}
             linkedDevice={linkedDevice}
-            projectedHostName={projectedHostName}
-            setProjectedHostName={setProjectedHostName}
-            projectedCompanyId={projectedCompanyId}
-            setProjectedCompanyId={setProjectedCompanyId}
-            projectedMachineProfile={projectedMachineProfile}
-            setProjectedMachineProfile={setProjectedMachineProfile}
-            projectedNotes={projectedNotes}
-            setProjectedNotes={setProjectedNotes}
             windowsComputerName={windowsComputerName}
-            isSavingMachineName={isSavingMachineName}
-            canSaveProjectedHostName={canSaveProjectedHostName}
-            onSaveHostName={handleSaveProjectedHostName}
+            onEditIdentity={() => {
+              setActiveTab("geral");
+              updateHostDetailsQuery((params) => {
+                params.delete("tab");
+              });
+              identity.openIdentityEditor();
+            }}
             isRevokingAgentToken={isRevokingAgentToken}
             onRotateAgentToken={handleRotateAgentToken}
             isRequestingResendConfig={isRequestingResendConfig}
@@ -579,8 +512,8 @@ export function RemoteHostDetailsPanel({
       <ConfirmActionDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="Excluir Host"
-        description={`Tem certeza que deseja excluir permanentemente o host "${host.name}"? Esta ação removerá todo o histórico de sessões e dados associados a esta máquina no portal.`}
+        title="Excluir dispositivo"
+        description={`Tem certeza que deseja excluir permanentemente o dispositivo "${host.name}"? Esta ação removerá todo o histórico de sessões e dados associados a esta máquina no portal.`}
         confirmLabel="Excluir permanentemente"
         cancelLabel="Cancelar"
         isLoading={isDeletingHost}
@@ -591,7 +524,7 @@ export function RemoteHostDetailsPanel({
       <ConfirmActionDialog
         open={showRevokeConfirm}
         onOpenChange={setShowRevokeConfirm}
-        title="Revogar Acesso do Agente"
+        title="Revogar acesso do agente"
         description={`Tem certeza que deseja revogar o token do agente associado a "${host.name}"? O portal parará de receber telemetria e atualizações desta máquina até que o agente seja reconfigurado.`}
         confirmLabel="Revogar acesso"
         cancelLabel="Cancelar"
@@ -601,22 +534,14 @@ export function RemoteHostDetailsPanel({
       />
 
       <ConfirmActionDialog
-        open={showCompanyChangeConfirm}
-        onOpenChange={setShowCompanyChangeConfirm}
+        open={identity.showCompanyChangeConfirm}
+        onOpenChange={identity.setShowCompanyChangeConfirm}
         title="Alterar empresa principal"
         description="Esta alteração atualizará a listagem do dispositivo, vínculo do agente, sessões remotas, alertas, relatórios e alias do RustDesk. As empresas vinculadas às instalações Syspro não serão alteradas automaticamente."
         confirmLabel="Confirmar alteração"
         cancelLabel="Cancelar"
-        isLoading={isSavingMachineName}
-        onConfirm={async () => {
-          startSavingMachineName(async () => {
-            try {
-              await persistProjectedDeviceIdentity();
-            } catch (error) {
-              toast.error(getRemoteApiErrorMessage(error));
-            }
-          });
-        }}
+        isLoading={identity.isSavingMachineName}
+        onConfirm={identity.confirmCompanyChange}
       />
     </div>
   );

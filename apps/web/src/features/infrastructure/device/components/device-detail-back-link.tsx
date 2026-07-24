@@ -4,8 +4,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
-
-const DEVICE_LIST_HREF = "/portal/infraestrutura?tab=dispositivos";
+import { DEVICE_LIST_HREF } from "@/features/infrastructure/device/domain/infrastructure-paths";
 
 type DeviceDetailBackLinkProps = {
   href?: string;

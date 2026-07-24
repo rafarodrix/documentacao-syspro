@@ -1,32 +1,41 @@
 "use client";
 
-import { Copy, Fingerprint, HardDriveDownload, RefreshCcw, Save, Trash2, ArrowUpCircle } from "lucide-react";
+import { Copy, Edit3, Fingerprint, HardDriveDownload, RefreshCcw, Trash2, ArrowUpCircle } from "lucide-react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import type { AgentInstallationSummary } from "@dosc-syspro/contracts/agent";
 import { AgentLinkSection } from "./agent-link-section";
-import { DeviceIdentityForm } from "./device-identity-form";
 import { SettingsInstallationsView, type SettingsInstallationsViewProps } from "./settings-installations-view";
 import { SettingsAgentView, type SettingsAgentViewProps } from "./settings-agent-view";
-import type { RemoteHostManualAction } from "../host-details.constants";
+import { MACHINE_PROFILE_LABEL, type RemoteHostManualAction } from "../host-details.constants";
+import { cn } from "@/lib/utils";
+
+function IdentitySummaryField({
+  label,
+  value,
+  mono = false,
+  className,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={cn("space-y-1", className)}>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className={cn("text-sm text-foreground", mono && "font-mono")}>{value}</p>
+    </div>
+  );
+}
 
 type Props = SettingsInstallationsViewProps & Omit<SettingsAgentViewProps, "host"> & {
   host: RemoteHostDetails["host"];
   details: RemoteHostDetails;
   linkedDevice?: AgentInstallationSummary | null;
-  projectedHostName: string;
-  setProjectedHostName: (value: string) => void;
-  projectedCompanyId: string;
-  setProjectedCompanyId: (value: string) => void;
-  projectedMachineProfile: RemoteHostDetails["host"]["machineProfile"];
-  setProjectedMachineProfile: (value: RemoteHostDetails["host"]["machineProfile"]) => void;
-  projectedNotes: string;
-  setProjectedNotes: (value: string) => void;
   windowsComputerName: string | null;
-  isSavingMachineName: boolean;
-  canSaveProjectedHostName: boolean;
-  onSaveHostName: () => void;
+  onEditIdentity: () => void;
   isRevokingAgentToken: boolean;
   onRotateAgentToken: () => void;
   isRequestingResendConfig: boolean;
@@ -45,18 +54,8 @@ export function HostSettingsTab(props: Props) {
     host,
     details,
     linkedDevice,
-    projectedHostName,
-    setProjectedHostName,
-    projectedCompanyId,
-    setProjectedCompanyId,
-    projectedMachineProfile,
-    setProjectedMachineProfile,
-    projectedNotes,
-    setProjectedNotes,
     windowsComputerName,
-    isSavingMachineName,
-    canSaveProjectedHostName,
-    onSaveHostName,
+    onEditIdentity,
     isRevokingAgentToken,
     onRotateAgentToken,
     isRequestingResendConfig,
@@ -82,6 +81,9 @@ export function HostSettingsTab(props: Props) {
     details.tenantScope.role === "ADMIN" ||
     details.tenantScope.role === "SUPORTE" ||
     details.tenantScope.role === "DEVELOPER";
+  const effectiveRole = host.machineProfile
+    ? MACHINE_PROFILE_LABEL[host.machineProfile]
+    : "Não definida";
 
   return (
     <Tabs defaultValue="geral" className="flex flex-col md:flex-row gap-6">
@@ -108,34 +110,30 @@ export function HostSettingsTab(props: Props) {
       <div className="flex-1 w-full min-w-0">
         <TabsContent value="geral" className="space-y-6 m-0">
           <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg">Identificação do dispositivo</CardTitle>
-              <CardDescription>Defina nome amigável, empresa principal, função atribuída e observações deste dispositivo.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <DeviceIdentityForm
-                displayName={projectedHostName}
-                onDisplayNameChange={setProjectedHostName}
-                primaryCompanyId={projectedCompanyId}
-                onPrimaryCompanyIdChange={setProjectedCompanyId}
-                companyOptions={details.companyOptions}
-                hostname={windowsComputerName}
-                machineProfile={projectedMachineProfile}
-                onMachineProfileChange={setProjectedMachineProfile}
-                notes={projectedNotes}
-                onNotesChange={setProjectedNotes}
-                disabled={isSavingMachineName}
-              />
-
-              <Button
-                type="button"
-                onClick={onSaveHostName}
-                disabled={isSavingMachineName || !canSaveProjectedHostName}
-                className="gap-2"
-              >
-                {isSavingMachineName ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {isSavingMachineName ? "Salvando..." : "Salvar alterações"}
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg">Identificação do dispositivo</CardTitle>
+                <CardDescription>
+                  Resumo da identidade operacional. A edição acontece na Visão geral para manter um único ponto de alteração.
+                </CardDescription>
+              </div>
+              <Button type="button" variant="outline" size="sm" className="gap-2 shrink-0" onClick={onEditIdentity}>
+                <Edit3 className="h-3.5 w-3.5" />
+                Editar
               </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <IdentitySummaryField label="Nome amigável" value={host.name ?? "Sem nome configurado"} />
+                <IdentitySummaryField label="Empresa principal" value={host.companyName ?? "Sem empresa vinculada"} />
+                <IdentitySummaryField label="Hostname" value={windowsComputerName ?? "Não informado"} mono />
+                <IdentitySummaryField label="Função atribuída" value={effectiveRole} />
+                <IdentitySummaryField
+                  label="Observações"
+                  value={host.notes?.trim() || "Sem observações"}
+                  className="sm:col-span-2"
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -425,7 +423,7 @@ export function HostSettingsTab(props: Props) {
                       className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm flex items-center gap-2 sm:self-start"
                     >
                       {isDeletingHost ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      {isDeletingHost ? "Excluindo..." : "Excluir host"}
+                      {isDeletingHost ? "Excluindo..." : "Excluir dispositivo"}
                     </Button>
                   </div>
                 </CardContent>

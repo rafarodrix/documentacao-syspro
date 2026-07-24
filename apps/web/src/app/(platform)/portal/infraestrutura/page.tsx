@@ -14,6 +14,7 @@ import { parseOperationsView, type OperationsView } from "@/features/remote/inte
 import { RemoteSessionsPanel } from "@/features/remote/interface/sessions-panel";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { DeviceListPage } from "@/features/infrastructure/device/components/device-list-page";
+import { infrastructureTabHref } from "@/features/infrastructure/device/domain/infrastructure-paths";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -48,22 +49,6 @@ function normalizeInfrastructureTab(tab: string, view: string): { tab: Infrastru
   }
   // relatorios is intentionally hidden until the module ships.
   return { tab: "dispositivos", view: parseOperationsView(view) };
-}
-
-function buildTabHref(tab: InfrastructureTab, params: Record<string, string>) {
-  const next = new URLSearchParams({ tab });
-  if (tab === "dispositivos") {
-    if (params.companyId) next.set("companyId", params.companyId);
-    if (params.ticketNumber) next.set("ticketNumber", params.ticketNumber);
-  }
-  if (tab === "operacao") {
-    next.set("view", parseOperationsView(params.view));
-    if (params.status) next.set("status", params.status);
-    if (params.host) next.set("host", params.host);
-    if (params.ticket) next.set("ticket", params.ticket);
-    if (params.page) next.set("page", params.page);
-  }
-  return `/portal/infraestrutura?${next.toString()}`;
 }
 
 const TAB_META: Record<InfrastructureTab, { label: string; icon: typeof Monitor }> = {
@@ -121,9 +106,14 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     (requestedTab !== activeTab || normalized.tab !== activeTab || (activeTab === "operacao" && tabParams.view !== operationsView))
   ) {
     redirect(
-      buildTabHref(activeTab, {
-        ...tabParams,
-        view: activeTab === "operacao" ? operationsView : tabParams.view || "",
+      infrastructureTabHref(activeTab, {
+        companyId: tabParams.companyId || undefined,
+        ticketNumber: tabParams.ticketNumber || undefined,
+        status: tabParams.status || undefined,
+        host: tabParams.host || undefined,
+        ticket: tabParams.ticket || undefined,
+        page: tabParams.page || undefined,
+        view: activeTab === "operacao" ? operationsView : tabParams.view || undefined,
       }),
     );
   }
@@ -210,9 +200,14 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
             {availableTabs.map((tab) => {
               const meta = TAB_META[tab];
               const Icon = meta.icon;
-              const href = buildTabHref(tab, {
-                ...tabParams,
-                view: tab === "operacao" ? operationsView : tabParams.view || "",
+              const href = infrastructureTabHref(tab, {
+                companyId: tabParams.companyId || undefined,
+                ticketNumber: tabParams.ticketNumber || undefined,
+                status: tabParams.status || undefined,
+                host: tabParams.host || undefined,
+                ticket: tabParams.ticket || undefined,
+                page: tabParams.page || undefined,
+                view: tab === "operacao" ? operationsView : undefined,
               });
               const isActive = activeTab === tab;
               return (

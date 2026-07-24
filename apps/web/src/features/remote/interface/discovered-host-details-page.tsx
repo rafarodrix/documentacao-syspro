@@ -7,11 +7,14 @@ import { Building2, Clock3, Copy, ExternalLink, Loader2, Monitor, ShieldCheck } 
 import { toast } from "sonner";
 import { Badge, Button, Input, Label } from "@dosc-syspro/ui";
 import type { RemoteDiscoveredHostDetails } from "@/features/remote/domain/remote-host.types";
+import { DeviceDetailBackLink } from "@/features/infrastructure/device/components/device-detail-back-link";
+import { useRustDeskConnect } from "@/features/infrastructure/device/hooks/use-rustdesk-connect";
+import { deviceManagedDetailPath } from "@/features/infrastructure/device/domain/device-detail-paths";
 import {
   buildPendingIdentitySubtitle,
   formatRustDeskDisplay,
   getHeartbeatMetaAt,
-} from "@/features/remote/interface/directory-page.helpers";
+} from "@/features/infrastructure/device/domain/device-presentation";
 import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 import {
   copyTextWithFallback,
@@ -20,9 +23,6 @@ import {
   getServiceStatusMeta,
 } from "./host-details/host-details.helpers";
 import { SearchableCompanyPicker } from "./host-details/components/searchable-company-picker";
-import { DeviceDetailBackLink } from "@/features/infrastructure/device/components/device-detail-back-link";
-import { useRustDeskConnect } from "@/features/infrastructure/device/hooks/use-rustdesk-connect";
-import { deviceManagedDetailPath } from "@/features/infrastructure/device/domain/device-detail-paths";
 
 function InfoCard({
   title,

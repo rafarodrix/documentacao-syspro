@@ -27,7 +27,7 @@ export function formatDateOnly(value: string | null) {
 export function getSysproUpdateHealthMeta(input: { isServerHost: boolean | null; lastFileWriteAt: string | null }) {
   if (input.isServerHost !== true) {
     return {
-      label: "Nao aplicavel",
+      label: "Não aplicável",
       detail: "Indicador aplicado somente ao servidor Syspro.",
       className: "border-border/60 bg-background/70 text-muted-foreground",
     };
@@ -36,7 +36,7 @@ export function getSysproUpdateHealthMeta(input: { isServerHost: boolean | null;
   if (!input.lastFileWriteAt) {
     return {
       label: "Sem leitura",
-      detail: "Sem data de atualizacao recebida do agente.",
+      detail: "Sem data de atualização recebida do agente.",
       className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     };
   }
@@ -48,16 +48,16 @@ export function getSysproUpdateHealthMeta(input: { isServerHost: boolean | null;
 
   if (days > 180) {
     return {
-      label: "Critico",
-      detail: `${days} dias sem atualizacao.`,
+      label: "Crítico",
+      detail: `${days} dias sem atualização.`,
       className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
     };
   }
 
   if (days > 90) {
     return {
-      label: "Atencao",
-      detail: `${days} dias sem atualizacao.`,
+      label: "Atenção",
+      detail: `${days} dias sem atualização.`,
       className: "border-orange-500/20 bg-orange-500/10 text-orange-700 dark:text-orange-300",
     };
   }
@@ -65,14 +65,14 @@ export function getSysproUpdateHealthMeta(input: { isServerHost: boolean | null;
   if (days <= 45) {
     return {
       label: "Atualizado",
-      detail: `${days} dias desde a ultima atualizacao.`,
+      detail: `${days} dias desde a última atualização.`,
       className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
     };
   }
 
   return {
     label: "Monitorar",
-    detail: `${days} dias desde a ultima atualizacao.`,
+    detail: `${days} dias desde a última atualização.`,
     className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   };
 }
@@ -88,21 +88,21 @@ export function getServiceStatusMeta(value: string | null) {
   const normalized = value.toLowerCase();
   if (normalized === "running") {
     return {
-      label: "Servico em execucao",
+      label: "Serviço em execução",
       tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
     };
   }
 
   if (normalized === "restarted_by_agent") {
     return {
-      label: "Servico reiniciado pelo agente",
+      label: "Serviço reiniciado pelo agente",
       tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     };
   }
 
   if (normalized === "not_found") {
     return {
-      label: "Servico remoto nao encontrado",
+      label: "Serviço remoto não encontrado",
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
     };
   }

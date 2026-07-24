@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Activity,
   AlertCircle,
@@ -89,7 +89,8 @@ type Props = {
   isSavingMachineName: boolean;
   onSaveHostName: () => void;
   installationCount: number;
-  initialIdentitySheetOpen?: boolean;
+  identitySheetOpen: boolean;
+  onIdentitySheetOpenChange: (open: boolean) => void;
 };
 
 function formatOperationalStatus(status: RemoteHostDetails["host"]["operationalStatus"]): string {
@@ -101,7 +102,7 @@ function formatOperationalStatus(status: RemoteHostDetails["host"]["operationalS
     case "OFFLINE":
       return "Offline";
     case "MISCONFIGURED":
-      return "Misconfigurado";
+      return "Mal configurado";
     case "SESSION_BUSY":
       return "Em sessão";
     default:
@@ -223,16 +224,10 @@ export function HostOverviewTab(props: Props) {
     isSavingMachineName,
     onSaveHostName,
     installationCount,
-    initialIdentitySheetOpen = false,
+    identitySheetOpen,
+    onIdentitySheetOpenChange,
   } = props;
 
-  const [identitySheetOpen, setIdentitySheetOpen] = useState(initialIdentitySheetOpen);
-
-  useEffect(() => {
-    if (initialIdentitySheetOpen) {
-      setIdentitySheetOpen(true);
-    }
-  }, [initialIdentitySheetOpen]);
   const resolvedHostname = windowsComputerName?.trim() || null;
   const effectiveRole = host.machineProfile ? MACHINE_PROFILE_LABEL[host.machineProfile] : "Não definida";
   const collectionProfile = mapMachineProfileToCollectionProfile(host.machineProfile, true);
@@ -425,7 +420,7 @@ export function HostOverviewTab(props: Props) {
               <HardDrive className="h-4 w-4 text-primary" />
               Identidade
             </CardTitle>
-            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => setIdentitySheetOpen(true)}>
+            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => onIdentitySheetOpenChange(true)}>
               <Edit3 className="h-3.5 w-3.5" />
               Editar
             </Button>
@@ -619,7 +614,7 @@ export function HostOverviewTab(props: Props) {
         </div>
       )}
 
-      <Sheet open={identitySheetOpen} onOpenChange={setIdentitySheetOpen}>
+      <Sheet open={identitySheetOpen} onOpenChange={onIdentitySheetOpenChange}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-2xl">
           <SheetHeader>
             <SheetTitle>Editar dispositivo</SheetTitle>
@@ -645,7 +640,7 @@ export function HostOverviewTab(props: Props) {
           </div>
 
           <SheetFooter className="mt-6">
-            <Button type="button" variant="ghost" onClick={() => setIdentitySheetOpen(false)} disabled={isSavingMachineName}>
+            <Button type="button" variant="ghost" onClick={() => onIdentitySheetOpenChange(false)} disabled={isSavingMachineName}>
               Cancelar
             </Button>
             <Button type="button" onClick={onSaveHostName} disabled={isSavingMachineName || !canSaveProjectedHostName}>

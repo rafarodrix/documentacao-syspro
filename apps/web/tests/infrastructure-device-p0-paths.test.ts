@@ -81,3 +81,20 @@ describe("normalizeRustDeskId", () => {
     expect(buildRustDeskHref("   ", false)).toBeNull();
   });
 });
+
+describe("device-presentation", () => {
+  it("formats rustdesk and pending subtitle", async () => {
+    const { formatRustDeskDisplay, buildPendingIdentitySubtitle, getHeartbeatMetaAt } = await import(
+      "@/features/infrastructure/device/domain/device-presentation"
+    );
+    expect(formatRustDeskDisplay("123456789")).toBe("123 456 789");
+    expect(
+      buildPendingIdentitySubtitle({
+        rustdeskId: "123456789",
+        agentVersion: "1.2.3",
+        lastHeartbeatAt: null,
+      }),
+    ).toContain("agente 1.2.3");
+    expect(getHeartbeatMetaAt(null, Date.now()).bucket).toBe("never");
+  });
+});
