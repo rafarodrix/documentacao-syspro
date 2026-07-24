@@ -2,6 +2,8 @@ export const COMMAND_PROCESSED = "COMMAND_PROCESSED" as const;
 export const REAPPLY_ALIAS_NOOP = "REAPPLY_ALIAS_NOOP" as const;
 export const REAPPLY_CONFIG_NOOP = "REAPPLY_CONFIG_NOOP" as const;
 export const UPGRADE_CLIENT_SUCCESS = "UPGRADE_CLIENT_SUCCESS" as const;
+export const UPGRADE_AGENT_SCHEDULED = "UPGRADE_AGENT_SCHEDULED" as const;
+export const UPGRADE_AGENT_APPLIED = "UPGRADE_AGENT_APPLIED" as const;
 export const ROTATE_TOKEN_REQUIRED = "ROTATE_TOKEN_REQUIRED" as const;
 export const COMMAND_UNKNOWN = "COMMAND_UNKNOWN" as const;
 export const COMMAND_EXECUTION_FAILED = "COMMAND_EXECUTION_FAILED" as const;
@@ -11,6 +13,8 @@ export const REMOTE_AGENT_ACK_REASON_CODES = [
   REAPPLY_ALIAS_NOOP,
   REAPPLY_CONFIG_NOOP,
   UPGRADE_CLIENT_SUCCESS,
+  UPGRADE_AGENT_SCHEDULED,
+  UPGRADE_AGENT_APPLIED,
   ROTATE_TOKEN_REQUIRED,
   COMMAND_UNKNOWN,
   COMMAND_EXECUTION_FAILED,
@@ -30,6 +34,8 @@ export const REMOTE_AGENT_ACK_REASON_LABELS: Record<RemoteAgentAckReasonCode, st
   REAPPLY_ALIAS_NOOP: "Alias ja estava conforme",
   REAPPLY_CONFIG_NOOP: "Configuracao ja estava conforme",
   UPGRADE_CLIENT_SUCCESS: "Upgrade concluido",
+  UPGRADE_AGENT_SCHEDULED: "Upgrade do agent agendado",
+  UPGRADE_AGENT_APPLIED: "Upgrade do agent confirmado",
   ROTATE_TOKEN_REQUIRED: "Token marcado para rotacao",
   COMMAND_UNKNOWN: "Comando desconhecido",
   COMMAND_EXECUTION_FAILED: "Falha na execucao do comando",

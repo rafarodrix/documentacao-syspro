@@ -1,10 +1,16 @@
 import { processSyncInputSchema, type ProcessSyncOutput } from "../remote-domain.contracts";
 import type { RemoteSyncPort, SyncCommandDirective } from "../remote-domain.port";
+import {
+  isAgentVersionBelowTarget,
+  supportsManagedAgentUpgrade,
+} from "@dosc-syspro/contracts/remote";
 
-const COMMAND_RESPONSE_MAP: Record<string, "reapply_alias" | "reapply_config" | "upgrade_client" | "rotate_token_required"> = {
+const COMMAND_RESPONSE_MAP: Record<string, "reapply_alias" | "reapply_config" | "upgrade_client" | "upgrade_agent" | "rotate_token_required"> = {
   REAPPLY_ALIAS: "reapply_alias",
   REAPPLY_CONFIG: "reapply_config",
   UPGRADE_CLIENT: "upgrade_client",
+  UPGRADE_RUSTDESK: "upgrade_client",
+  UPGRADE_AGENT: "upgrade_agent",
   ROTATE_TOKEN_REQUIRED: "rotate_token_required",
 };
 
@@ -192,6 +198,32 @@ export async function processSync(
     }
   }
 
+  const reportedAgentVersion = input.agentVersion?.trim() || context.agentVersion?.trim() || null;
+  const agentTargetVersion = configProfile.agentTargetVersion?.trim() || null;
+  const agentManifestUrl = configProfile.agentUpdateManifestUrl?.trim() || null;
+  if (
+    agentTargetVersion &&
+    agentManifestUrl &&
+    reportedAgentVersion &&
+    supportsManagedAgentUpgrade(reportedAgentVersion) &&
+    isAgentVersionBelowTarget(reportedAgentVersion, agentTargetVersion)
+  ) {
+    if (!configProfile.agentAutoUpgrade) {
+      warnings.push("SYNC_AGENT_AUTO_UPGRADE_DISABLED");
+    } else {
+      directives.push({
+        action: "upgrade_agent",
+        reason: "Versao do agent abaixo da versao alvo configurada no portal.",
+        payload: {
+          source: "portal.auto_upgrade",
+          manifestUrl: agentManifestUrl,
+          targetVersion: agentTargetVersion,
+          reportedVersion: reportedAgentVersion,
+        },
+      });
+    }
+  }
+
   const normalizedSysproUpdates = deps.port.normalizeSysproUpdates(input.sysproUpdates);
   const systemSnapshot = normalizeOptionalRecordWithWarning(input.systemSnapshot, "SYNC_INVALID_SYSTEM_SNAPSHOT", warnings);
   const networkSnapshot = normalizeOptionalRecordWithWarning(input.networkSnapshot, "SYNC_INVALID_NETWORK_SNAPSHOT", warnings);
@@ -348,7 +380,7 @@ export async function processSync(
     warnings,
     actions: persisted.pendingCommands
       .map((command) => COMMAND_RESPONSE_MAP[command.type])
-      .filter((value): value is "reapply_alias" | "reapply_config" | "upgrade_client" | "rotate_token_required" => Boolean(value)),
+      .filter((value): value is "reapply_alias" | "reapply_config" | "upgrade_client" | "upgrade_agent" | "rotate_token_required" => Boolean(value)),
     commandQueue: persisted.pendingCommands.map((command) => ({
       id: command.id,
       type: command.type,

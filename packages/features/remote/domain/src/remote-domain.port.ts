@@ -238,6 +238,9 @@ export type RemoteSyncConfigProfile = {
   upgradeChecksumSha256?: string | null;
   upgradePackageType?: string | null;
   upgradeSilentArgs?: string | null;
+  agentTargetVersion?: string | null;
+  agentUpdateManifestUrl?: string | null;
+  agentAutoUpgrade?: boolean;
 };
 
 export type RemoteSyncIncomingUpdate = {
@@ -252,7 +255,7 @@ export type RemoteSyncIncomingUpdate = {
 };
 
 export type SyncCommandDirective = {
-  action: "reapply_alias" | "reapply_config" | "upgrade_client";
+  action: "reapply_alias" | "reapply_config" | "upgrade_client" | "upgrade_agent";
   reason: string;
   payload: Record<string, unknown> | null;
 };

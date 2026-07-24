@@ -31,6 +31,17 @@ export const remoteModuleSettingsSchema = z
     rustDeskAllowRemoteConfigModification: z.boolean().default(false),
     rustDeskAllowD3DRender: z.boolean().default(false),
     rustDeskEnableDirectXCapture: z.boolean().default(true),
+    agentUpdateManifestUrl: z
+      .string()
+      .trim()
+      .url("Informe a URL do manifest do agent-updater.")
+      .default("https://ajuda.trilinksoftware.com.br/agent/manifest.json"),
+    agentTargetVersion: z
+      .string()
+      .trim()
+      .regex(/^\d+\.\d+\.\d+$/, "Informe a versao alvo do agent no formato X.Y.Z.")
+      .default("1.0.89"),
+    agentAutoUpgrade: z.boolean().default(false),
   })
   .superRefine((value, ctx) => {
     if (value.rustDeskInstallerSha256 && !isSha256(value.rustDeskInstallerSha256)) {
@@ -71,6 +82,9 @@ export const DEFAULT_REMOTE_MODULE_SETTINGS = {
   rustDeskAllowRemoteConfigModification: false,
   rustDeskAllowD3DRender: false,
   rustDeskEnableDirectXCapture: true,
+  agentUpdateManifestUrl: "https://ajuda.trilinksoftware.com.br/agent/manifest.json",
+  agentTargetVersion: "1.0.89",
+  agentAutoUpgrade: false,
 } satisfies z.infer<typeof remoteModuleSettingsSchema>;
 
 export const remoteModuleSettingsResponseSchema = z.object({

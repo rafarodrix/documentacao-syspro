@@ -351,7 +351,7 @@ export type ProcessSyncOutput = {
     lastFullSysproSnapshotAt: string | null;
   };
   warnings: string[];
-  actions: Array<"reapply_alias" | "reapply_config" | "upgrade_client" | "rotate_token_required">;
+  actions: Array<"reapply_alias" | "reapply_config" | "upgrade_client" | "upgrade_agent" | "rotate_token_required">;
   commandQueue: SyncCommandQueueItem[];
   flow: {
     stage: "SYNC_ACTIVE";

@@ -35,6 +35,7 @@ import { linkDiscoveredHostRecord, resolveAutoLinkCompanyId } from "./discovered
 import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
   REMOTE_MODULE_SETTINGS_KEY,
+  isAgentVersionBelowTarget,
   remoteModuleSettingsSchema,
 } from "@dosc-syspro/contracts/remote";
 
@@ -56,6 +57,92 @@ const resolveAlias = resolveRustDeskAlias;
 const isAgentTokenExpired = isRemoteAgentTokenExpired;
 const getAgentTokenExpiresAt = getRemoteAgentTokenExpiresAt;
 const BOOTSTRAP_DISCOVER_AUTH_WINDOW_MS = 30 * 60 * 1000;
+const AGENT_UPGRADE_CONFIRM_WINDOW_MS = 48 * 60 * 60 * 1000;
+const AGENT_UPGRADE_STALE_FAIL_MS = 6 * 60 * 60 * 1000;
+
+async function reconcileAgentUpgradeCommands(
+  tx: Prisma.TransactionClient,
+  input: {
+    hostId: string;
+    reportedAgentVersion: string | null | undefined;
+    heartbeatAt: Date;
+  },
+) {
+  const reported = input.reportedAgentVersion?.trim() || null;
+  if (!reported) return;
+
+  const since = new Date(input.heartbeatAt.getTime() - AGENT_UPGRADE_CONFIRM_WINDOW_MS);
+  const commands = await tx.remoteAgentCommand.findMany({
+    where: {
+      hostId: input.hostId,
+      type: "UPGRADE_AGENT",
+      status: "ACKNOWLEDGED",
+      OR: [{ executedAt: { gte: since } }, { createdAt: { gte: since } }],
+    },
+    select: {
+      id: true,
+      payload: true,
+      resultPayload: true,
+      resultMessage: true,
+      executedAt: true,
+      createdAt: true,
+    },
+  });
+
+  for (const command of commands) {
+    const payload =
+      command.payload && typeof command.payload === "object" && !Array.isArray(command.payload)
+        ? (command.payload as Record<string, unknown>)
+        : {};
+    const resultPayload =
+      command.resultPayload && typeof command.resultPayload === "object" && !Array.isArray(command.resultPayload)
+        ? (command.resultPayload as Record<string, unknown>)
+        : {};
+    const reasonCode = typeof resultPayload.reasonCode === "string" ? resultPayload.reasonCode : null;
+    if (reasonCode === "UPGRADE_AGENT_APPLIED") continue;
+
+    const targetVersion =
+      typeof payload.targetVersion === "string" ? payload.targetVersion.trim() : "";
+    if (!targetVersion) continue;
+
+    const reachedTarget = !isAgentVersionBelowTarget(reported, targetVersion);
+    if (reachedTarget) {
+      await tx.remoteAgentCommand.update({
+        where: { id: command.id },
+        data: {
+          resultMessage: `Upgrade confirmado: agentVersion ${reported} (alvo ${targetVersion}).`,
+          resultPayload: {
+            ...resultPayload,
+            ...payload,
+            reasonCode: "UPGRADE_AGENT_APPLIED",
+            reportedVersion: reported,
+            confirmedAt: input.heartbeatAt.toISOString(),
+          },
+        },
+      });
+      continue;
+    }
+
+    const anchor = command.executedAt ?? command.createdAt;
+    if (input.heartbeatAt.getTime() - anchor.getTime() >= AGENT_UPGRADE_STALE_FAIL_MS) {
+      await tx.remoteAgentCommand.update({
+        where: { id: command.id },
+        data: {
+          status: "FAILED",
+          failedAt: input.heartbeatAt,
+          resultMessage: `Upgrade nao confirmado: agentVersion permanece ${reported} (alvo ${targetVersion}).`,
+          resultPayload: {
+            ...resultPayload,
+            ...payload,
+            reasonCode: "COMMAND_EXECUTION_FAILED",
+            reportedVersion: reported,
+            failedAt: input.heartbeatAt.toISOString(),
+          },
+        },
+      });
+    }
+  }
+}
 
 async function getRemoteModuleSettingsSnapshot() {
   try {
@@ -592,6 +679,7 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
     reapply_alias: "REAPPLY_ALIAS",
     reapply_config: "REAPPLY_CONFIG",
     upgrade_client: "UPGRADE_CLIENT",
+    upgrade_agent: "UPGRADE_AGENT",
     rotate_token_required: "ROTATE_TOKEN_REQUIRED",
   } as const;
 
@@ -655,6 +743,9 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
         upgradeChecksumSha256: configProfile.upgradeChecksumSha256,
         upgradePackageType: configProfile.upgradePackageType,
         upgradeSilentArgs: configProfile.upgradeSilentArgs,
+        agentTargetVersion: settings.agentTargetVersion,
+        agentUpdateManifestUrl: settings.agentUpdateManifestUrl,
+        agentAutoUpgrade: settings.agentAutoUpgrade,
       };
     },
     hashPublicKey: hashRustDeskPublicKey,
@@ -855,6 +946,12 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
             },
           });
 
+          await reconcileAgentUpgradeCommands(tx, {
+            hostId: record.context.hostId,
+            reportedAgentVersion: record.agentVersion || record.context.agentVersion,
+            heartbeatAt: record.heartbeatAt,
+          });
+
           const existingCommands = await tx.remoteAgentCommand.findMany({
             where: {
               hostId: record.context.hostId,
@@ -863,7 +960,7 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
           });
 
           const desiredTypes = record.syncDirectives.map((directive) => COMMAND_TYPE_MAP[directive.action]) as Array<
-            "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED"
+            "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "UPGRADE_AGENT" | "ROTATE_TOKEN_REQUIRED"
           >;
           for (const command of existingCommands) {
             if (
@@ -980,13 +1077,21 @@ export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAck
       });
     },
     async persistAck({ hostId, commandId, status, reasonCode, message, details, executedAt }) {
+      const detailRecord =
+        details && typeof details === "object" && !Array.isArray(details)
+          ? { ...details }
+          : {};
       await prisma.remoteAgentCommand.update({
         where: { id: commandId },
         data: {
           status,
           resultMessage: message,
-          resultPayload: details ? toJsonValue(details) : Prisma.JsonNull,
+          resultPayload: toJsonValue({
+            ...detailRecord,
+            reasonCode,
+          }),
           executedAt,
+          ...(status === "FAILED" ? { failedAt: executedAt } : {}),
         },
       });
     },

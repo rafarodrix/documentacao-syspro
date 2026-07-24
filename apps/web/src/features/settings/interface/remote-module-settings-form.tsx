@@ -403,6 +403,53 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         </CardContent>
       </Card>
 
+      </Card>
+
+      <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
+              <RefreshCw className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Atualização do Agente Syspro</CardTitle>
+              <CardDescription>
+                Versão alvo e manifest usados pelo botão do técnico e pelo auto-upgrade no sync (componentes service/ui).
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="agentTargetVersion">Versão alvo do agent</Label>
+            <Input id="agentTargetVersion" placeholder="1.0.89" {...form.register("agentTargetVersion")} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="agentUpdateManifestUrl">URL do manifest</Label>
+            <Input
+              id="agentUpdateManifestUrl"
+              placeholder="https://ajuda.trilinksoftware.com.br/agent/manifest.json"
+              {...form.register("agentUpdateManifestUrl")}
+            />
+          </div>
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-4 md:col-span-2">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">Upgrade automático do agent</p>
+                <p className="text-xs text-muted-foreground">
+                  Quando ativo, o sync enfileira `UPGRADE_AGENT` se a versão reportada estiver abaixo da versão alvo
+                  (hosts com agent ≥ 1.0.85). O técnico ainda pode forçar pelo botão no dispositivo.
+                </p>
+              </div>
+              <Switch
+                checked={form.watch("agentAutoUpgrade")}
+                onCheckedChange={(checked) => form.setValue("agentAutoUpgrade", checked, { shouldDirty: true })}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-3">

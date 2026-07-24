@@ -116,6 +116,9 @@ function buildRemoteModuleSettingsView(moduleSettings: Awaited<ReturnType<typeof
     rustDeskAllowRemoteConfigModification: moduleSettings.rustDeskAllowRemoteConfigModification,
     rustDeskAllowD3DRender: moduleSettings.rustDeskAllowD3DRender,
     rustDeskEnableDirectXCapture: moduleSettings.rustDeskEnableDirectXCapture,
+    agentUpdateManifestUrl: moduleSettings.agentUpdateManifestUrl,
+    agentTargetVersion: moduleSettings.agentTargetVersion,
+    agentAutoUpgrade: moduleSettings.agentAutoUpgrade,
   };
 }
 

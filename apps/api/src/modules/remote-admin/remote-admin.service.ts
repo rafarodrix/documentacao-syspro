@@ -1,6 +1,9 @@
 import { BadRequestException, ForbiddenException, HttpException, Injectable, Logger } from '@nestjs/common';
 import { ErpProtocol, ErpRuntimeType, Prisma, Role } from '@prisma/client';
 import { hashAddressBookToken, prisma } from '@dosc-syspro/database';
+import {
+  supportsManagedAgentUpgrade,
+} from '@dosc-syspro/contracts/remote';
 import { resolveScopedCompanyContext } from '@dosc-syspro/remote-infra';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { executeRemoteAdminProcedure, type RemoteAdminProcedure } from './remote-procedure-runner';
@@ -17,19 +20,10 @@ import { getRemoteEfficiencyMetrics } from './support/report-queries';
 import { cleanupExpiredRemoteSessions, getRemoteSessions } from './support/session-queries';
 import { buildScopedCompanyWhere, buildScopedHostWhere } from './support/scope';
 import type { RemoteSessionStatus, RemoteTenantScope } from './support/remote-admin.types';
+import { getRemoteModuleSettingsSnapshot } from '../../common/system-settings/remote-module-settings-snapshot';
 
 type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS' | 'UPGRADE_CLIENT' | 'UPGRADE_RUSTDESK' | 'UPGRADE_AGENT';
 const DEFAULT_INSTALLATION_DIRECTORY = 'C:\\Syspro\\Server\\SysproServer.exe';
-const AGENT_UPDATE_MANIFEST_URL = 'https://ajuda.trilinksoftware.com.br/agent/manifest.json';
-const AGENT_UPDATE_TARGET_VERSION = '1.0.89';
-
-function supportsManagedAgentUpgrade(agentVersion: string | null) {
-  const match = agentVersion?.trim().match(/^(\d+)\.(\d+)\.(\d+)$/);
-  if (!match) return false;
-
-  const [, major, minor, patch] = match.map(Number);
-  return major > 1 || (major === 1 && (minor > 0 || (minor === 0 && patch >= 85)));
-}
 
 function normalizeCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
   const nomeFantasia = input.nomeFantasia?.trim() ?? '';
@@ -354,6 +348,15 @@ export class RemoteAdminService {
       };
     }
 
+    let upgradePayload: Record<string, unknown> | undefined;
+    if (action === 'UPGRADE_AGENT') {
+      const settings = await getRemoteModuleSettingsSnapshot();
+      upgradePayload = {
+        manifestUrl: settings.agentUpdateManifestUrl,
+        targetVersion: settings.agentTargetVersion,
+      };
+    }
+
     const command = await prisma.remoteAgentCommand.create({
       data: {
         hostId,
@@ -365,7 +368,7 @@ export class RemoteAdminService {
           requestedByUserId: requester.userId,
           requestedAt: new Date().toISOString(),
           action,
-          ...(action === 'UPGRADE_AGENT' ? { manifestUrl: AGENT_UPDATE_MANIFEST_URL, targetVersion: AGENT_UPDATE_TARGET_VERSION } : {}),
+          ...(upgradePayload ?? {}),
         },
       },
       select: {

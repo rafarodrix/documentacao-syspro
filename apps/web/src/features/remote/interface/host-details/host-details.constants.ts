@@ -1,6 +1,8 @@
 import { REMOTE_AGENT_ACK_REASON_LABELS, type RemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reason-codes";
-import type { RemoteMachineProfile } from "@dosc-syspro/contracts/remote";
+import { supportsManagedAgentUpgrade, type RemoteMachineProfile } from "@dosc-syspro/contracts/remote";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
+
+export { supportsManagedAgentUpgrade };
 
 export const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
   DDNS_NOIP: "DDNS (NoIP)",
@@ -11,14 +13,6 @@ export const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\SysproServer.exe";
 export const UNLINKED_COMPANY_VALUE = "__unlinked__";
 
 export type RemoteHostManualAction = "RESEND_CONFIG" | "REAPPLY_ALIAS" | "UPGRADE_CLIENT" | "UPGRADE_AGENT";
-
-export function supportsManagedAgentUpgrade(agentVersion: string | null | undefined) {
-  const match = agentVersion?.trim().match(/^(\d+)\.(\d+)\.(\d+)$/);
-  if (!match) return false;
-
-  const [, major, minor, patch] = match.map(Number);
-  return major > 1 || (major === 1 && (minor > 0 || (minor === 0 && patch >= 85)));
-}
 
 export const MACHINE_PROFILE_LABEL: Record<RemoteMachineProfile, string> = {
   SERVER: "Servidor",

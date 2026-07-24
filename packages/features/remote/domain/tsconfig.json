@@ -1,7 +1,11 @@
 {
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@dosc-syspro/contracts/remote": ["../../../contracts/src/remote/index.ts"],
+      "@dosc-syspro/contracts/remote/*": ["../../../contracts/src/remote/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

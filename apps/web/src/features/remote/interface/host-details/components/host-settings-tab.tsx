@@ -351,6 +351,8 @@ export function HostSettingsTab(props: Props) {
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
                 &ldquo;Forçar inicialização remota&rdquo; invalida a credencial atual e faz o agente executar novo bootstrap autenticado no próximo ciclo.
+                &ldquo;Atualizar agente&rdquo; usa a versão alvo <span className="font-mono text-foreground">{moduleSettings.agentTargetVersion}</span>
+                {moduleSettings.agentAutoUpgrade ? " (auto-upgrade da frota ativo)" : " (auto-upgrade da frota desligado)"}.
               </p>
             </CardContent>
           </Card>
