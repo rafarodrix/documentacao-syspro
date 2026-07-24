@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import { ChatwootLazyLauncher } from '@/components/site/chatwoot-lazy-launcher';
+import { canUseChatwootLazyLauncher } from '@/features/chatwoot/domain/chatwoot-lazy-launcher-access';
+import { getProtectedSession } from '@/lib/auth-helpers';
 import { ThemeProvider } from '@/providers/theme-provider';
 
 const inter = Inter({
@@ -15,7 +17,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const session = await getProtectedSession();
+  const canUseChatLauncher = canUseChatwootLazyLauncher(session?.role);
+
   return (
     <html
       lang="pt-BR"
@@ -26,7 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
         </ThemeProvider>
-        <ChatwootLazyLauncher />
+        {canUseChatLauncher ? <ChatwootLazyLauncher /> : null}
       </body>
     </html>
   );
