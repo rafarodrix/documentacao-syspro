@@ -9,9 +9,10 @@ import { ErpDiagnosticsView } from "./diagnostics/erp-diagnostics-view";
 
 type Props = {
   details: RemoteHostDetails;
+  hostId: string;
 };
 
-export function ErpTab({ details }: Props) {
+export function ErpTab({ details, hostId }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
@@ -36,7 +37,7 @@ export function ErpTab({ details }: Props) {
         </TabsContent>
 
         <TabsContent value="instalacoes" className="m-0 space-y-6">
-          <ErpInstallationsView details={details} />
+          <ErpInstallationsView details={details} hostId={hostId} />
         </TabsContent>
 
         <TabsContent value="componentes" className="m-0 space-y-6">

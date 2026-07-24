@@ -70,6 +70,27 @@ const DESIRED_STATE_INSTALLATION_INCLUDE = {
         select: {
           id: true,
           machineProfile: true,
+          erpInstallations: {
+            select: {
+              id: true,
+              rootPath: true,
+              runtimeType: true,
+              configuredPort: true,
+              protocol: true,
+              hostName: true,
+              iisApplicationPath: true,
+              companies: {
+                where: { active: true, companyId: { not: null } },
+                orderBy: [{ role: 'asc' as const }, { companyName: 'asc' as const }],
+                select: {
+                  companyId: true,
+                  companyName: true,
+                  role: true,
+                },
+              },
+            },
+            orderBy: [{ rootPath: 'asc' as const }],
+          },
           sysproUpdates: {
             select: {
               companyId: true,
@@ -162,6 +183,20 @@ type DesiredStateInstallationRow = {
     remoteHost: {
       id: string;
       machineProfile: string | null;
+      erpInstallations: Array<{
+        id: string;
+        rootPath: string;
+        runtimeType: 'SYSPRO_SERVER' | 'IIS' | null;
+        configuredPort: number | null;
+        protocol: 'HTTP' | 'HTTPS' | 'TCP' | null;
+        hostName: string | null;
+        iisApplicationPath: string | null;
+        companies: Array<{
+          companyId: string | null;
+          companyName: string;
+          role: 'PRIMARY' | 'SECONDARY';
+        }>;
+      }>;
       sysproUpdates: Array<{
         companyId: string | null;
         companyLabel: string;
@@ -871,11 +906,36 @@ export class AgentsService {
   private buildDeviceSysproInstallationHints(
     installation: DesiredStateInstallationRow,
   ): NonNullable<AgentDesiredState['device']['syspro_installation_hints']> {
-    const updates = this.getRemoteCapability(installation)?.remoteHost?.sysproUpdates ?? [];
+    const remoteHost = this.getRemoteCapability(installation)?.remoteHost ?? null;
     const hints: NonNullable<AgentDesiredState['device']['syspro_installation_hints']> = [];
     const seen = new Set<string>();
 
-    for (const update of updates) {
+    for (const erp of remoteHost?.erpInstallations ?? []) {
+      const path = erp.rootPath?.trim();
+      const primaryCompany =
+        erp.companies.find((entry) => entry.role === 'PRIMARY' && entry.companyId) ??
+        erp.companies.find((entry) => entry.companyId);
+      const companyId = primaryCompany?.companyId?.trim();
+      if (!path || !companyId) continue;
+
+      const dedupeKey = `${companyId.toLowerCase()}::${path.replace(/[\\/]+/g, '\\').toLowerCase()}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+
+      hints.push({
+        company_id: companyId,
+        company_name: primaryCompany?.companyName?.trim() || companyId,
+        path,
+        installation_id: erp.id,
+        runtime_type: erp.runtimeType ?? undefined,
+        port: erp.configuredPort ?? undefined,
+        protocol: erp.protocol ?? undefined,
+        host: erp.hostName ?? undefined,
+        iis_path: erp.iisApplicationPath ?? undefined,
+      });
+    }
+
+    for (const update of remoteHost?.sysproUpdates ?? []) {
       const companyId = update.companyId?.trim();
       const path = update.path?.trim();
       if (!companyId || !path) continue;

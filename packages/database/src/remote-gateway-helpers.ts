@@ -468,4 +468,11 @@ export async function syncErpInstallations(
       }
     }
   }
+
+  if (installationsByFingerprint.size > 0) {
+    await tx.remoteHost.updateMany({
+      where: { id: input.hostId, machineProfile: null },
+      data: { machineProfile: "SERVER" },
+    });
+  }
 }

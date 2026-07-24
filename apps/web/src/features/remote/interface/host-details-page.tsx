@@ -553,7 +553,7 @@ export function RemoteHostDetailsPanel({
         </TabsContent>
 
         <TabsContent value="erp" className="m-0 space-y-6">
-          <ErpTab details={details} />
+          <ErpTab details={details} hostId={host.id} />
         </TabsContent>
 
         <TabsContent value="bkp" className="space-y-6">

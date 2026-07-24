@@ -64,7 +64,13 @@ type CollectorPolicy struct {
 // SysproInstallationHint descreve caminhos ja conhecidos pelo portal que devem ser
 // tratados como pistas de descoberta, nao como instalacoes validadas.
 type SysproInstallationHint struct {
-	CompanyID   string `json:"company_id"`
-	CompanyName string `json:"company_name"`
-	Path        string `json:"path"` // ex: "C:\Syspro\Server" ou "C:\Syspro\Server\SysproServer.exe"
+	CompanyID      string `json:"company_id"`
+	CompanyName    string `json:"company_name"`
+	Path           string `json:"path"` // ex: "C:\Syspro\Server" ou "C:\Syspro\Server\SysproServer.exe"
+	InstallationID string `json:"installation_id,omitempty"`
+	RuntimeType    string `json:"runtime_type,omitempty"` // SYSPRO_SERVER | IIS
+	Port           int    `json:"port,omitempty"`
+	Protocol       string `json:"protocol,omitempty"` // HTTP | HTTPS | TCP
+	Host           string `json:"host,omitempty"`
+	IISPath        string `json:"iis_path,omitempty"`
 }

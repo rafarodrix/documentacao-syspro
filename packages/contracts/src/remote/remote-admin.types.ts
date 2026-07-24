@@ -516,10 +516,14 @@ export type RemoteHostDetails = {
     configPath: string | null;
     dataPath: string | null;
     runtimeType: "SYSPRO_SERVER" | "IIS" | null;
+    protocol: "HTTP" | "HTTPS" | "TCP" | null;
+    hostName: string | null;
+    iisApplicationPath: string | null;
     configuredPort: number | null;
     requestedPort: number | null;
     detectedPort: number | null;
     runtimeStatus: string;
+    lastRuntimeCheckAt: string | null;
     version: string | null;
     serviceStatus: string | null;
     processPid: number | null;
@@ -1075,10 +1079,14 @@ export const remoteHostDetailsSchema = z.object({
       configPath: remoteStringOrNullSchema,
       dataPath: remoteStringOrNullSchema,
       runtimeType: z.enum(["SYSPRO_SERVER", "IIS"]).nullable(),
+      protocol: z.enum(["HTTP", "HTTPS", "TCP"]).nullable(),
+      hostName: remoteStringOrNullSchema,
+      iisApplicationPath: remoteStringOrNullSchema,
       configuredPort: z.number().int().nullable(),
       requestedPort: z.number().int().nullable(),
       detectedPort: z.number().int().nullable(),
       runtimeStatus: z.string(),
+      lastRuntimeCheckAt: remoteStringOrNullSchema,
       version: remoteStringOrNullSchema,
       serviceStatus: remoteStringOrNullSchema,
       processPid: z.number().int().nullable(),

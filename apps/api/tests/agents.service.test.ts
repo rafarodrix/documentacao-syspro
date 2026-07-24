@@ -337,6 +337,8 @@ describe("AgentsService", () => {
         {
           remoteHost: {
             id: "host-1",
+            machineProfile: null,
+            erpInstallations: [],
             sysproUpdates: [
               {
                 companyId: "company-a",
@@ -402,6 +404,7 @@ describe("AgentsService", () => {
           remoteHost: {
             id: "host-1",
             machineProfile: "SERVER",
+            erpInstallations: [],
             sysproUpdates: [],
           },
         },

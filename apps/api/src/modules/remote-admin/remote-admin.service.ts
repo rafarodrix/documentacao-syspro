@@ -505,26 +505,141 @@ export class RemoteAdminService {
     await this.authorizationService.assertPermission(rawHeaders as any, 'remote:manage');
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     const payload = this.asObject(body);
-    const runtimeType: ErpRuntimeType | null = payload.runtimeType === 'SYSPRO_SERVER' || payload.runtimeType === 'IIS' ? payload.runtimeType : null;
-    const protocol: ErpProtocol | null = payload.protocol === 'HTTP' || payload.protocol === 'HTTPS' || payload.protocol === 'TCP' ? payload.protocol : null;
-    const configuredPort = typeof payload.configuredPort === 'number' && Number.isInteger(payload.configuredPort) ? payload.configuredPort : null;
-    if (configuredPort !== null && (configuredPort < 1 || configuredPort > 65535)) throw new BadRequestException('A porta deve estar entre 1 e 65535.');
+    const runtimeType: ErpRuntimeType | null =
+      payload.runtimeType === 'SYSPRO_SERVER' || payload.runtimeType === 'IIS' ? payload.runtimeType : null;
+    const protocol: ErpProtocol | null =
+      payload.protocol === 'HTTP' || payload.protocol === 'HTTPS' || payload.protocol === 'TCP'
+        ? payload.protocol
+        : null;
+    const configuredPort =
+      typeof payload.configuredPort === 'number' && Number.isInteger(payload.configuredPort)
+        ? payload.configuredPort
+        : null;
+    if (configuredPort !== null && (configuredPort < 1 || configuredPort > 65535)) {
+      throw new BadRequestException('A porta deve estar entre 1 e 65535.');
+    }
+    if (runtimeType === null) {
+      throw new BadRequestException('Informe se a instalação usa Syspro Server ou IIS.');
+    }
+    if (configuredPort === null) {
+      throw new BadRequestException('Informe a porta da instalação (cada servidor na máquina precisa de porta distinta).');
+    }
+
+    const companyId = typeof payload.companyId === 'string' ? payload.companyId.trim() : '';
+    if (!companyId) {
+      throw new BadRequestException('Vincule a empresa desta instalação (cada diretório atende uma empresa).');
+    }
+    const hostName =
+      typeof payload.hostName === 'string' && payload.hostName.trim()
+        ? payload.hostName.trim()
+        : '127.0.0.1';
+    const iisApplicationPath =
+      runtimeType === 'IIS' && typeof payload.iisApplicationPath === 'string' && payload.iisApplicationPath.trim()
+        ? payload.iisApplicationPath.trim()
+        : runtimeType === 'IIS'
+          ? '/SYSPROSERVERISAPI.DLL'
+          : null;
 
     const installation = await prisma.erpInstallation.findFirst({
       where: { id: installationId, deviceId: hostId, host: buildScopedHostWhere(tenantScope, hostId) },
-      select: { id: true, deviceId: true },
+      select: { id: true, deviceId: true, rootPath: true },
     });
     if (!installation) throw new ForbiddenException('Instalação ERP não encontrada no escopo.');
 
-    const conflict = configuredPort === null ? null : await prisma.erpInstallation.findFirst({
+    const resolved = await this.resolveRemoteCompanyContext(tenantScope, companyId);
+    const company = {
+      id: resolved.id,
+      displayLabel: resolved.displayLabel,
+    };
+
+    const conflict = await prisma.erpInstallation.findFirst({
       where: { deviceId: hostId, configuredPort, id: { not: installationId } },
       select: { rootPath: true },
     });
-    const data = conflict
-      ? { runtimeType, protocol, hostName: typeof payload.hostName === 'string' ? payload.hostName.trim() || null : null, requestedPort: configuredPort, runtimeSource: 'MANUAL' as const, runtimeStatus: 'PORT_CONFLICT' as const }
-      : { runtimeType, protocol, hostName: typeof payload.hostName === 'string' ? payload.hostName.trim() || null : null, configuredPort, requestedPort: null, runtimeSource: runtimeType || configuredPort ? 'MANUAL' as const : null, runtimeStatus: runtimeType && configuredPort ? 'CONFIGURED' as const : 'PENDING_CONFIGURATION' as const };
-    const saved = await prisma.erpInstallation.update({ where: { id: installationId }, data });
-    return { success: !conflict, data: saved, error: conflict ? `A porta ${configuredPort} já está configurada em ${conflict.rootPath}.` : null };
+    if (conflict) {
+      throw new BadRequestException(`A porta ${configuredPort} já está configurada em ${conflict.rootPath}.`);
+    }
+
+    const data = {
+      runtimeType,
+      protocol: protocol ?? (runtimeType === 'IIS' ? ('HTTP' as const) : ('TCP' as const)),
+      hostName,
+      iisApplicationPath,
+      iisSiteName: runtimeType === 'IIS' ? (typeof payload.iisSiteName === 'string' ? payload.iisSiteName.trim() || null : null) : null,
+      iisAppPoolName: runtimeType === 'IIS' ? (typeof payload.iisAppPoolName === 'string' ? payload.iisAppPoolName.trim() || null : null) : null,
+      configuredPort,
+      requestedPort: null,
+      runtimeSource: 'MANUAL' as const,
+      runtimeStatus: 'CONFIGURED' as const,
+    };
+
+    const saved = await prisma.$transaction(async (tx) => {
+      const updated = await tx.erpInstallation.update({ where: { id: installationId }, data });
+
+      await tx.erpInstallationCompany.upsert({
+        where: {
+          installationId_companyCode: {
+            installationId,
+            companyCode: '1',
+          },
+        },
+        create: {
+          installationId,
+          companyId: company.id,
+          companyCode: '1',
+          companyName: company.displayLabel,
+          role: 'PRIMARY',
+          active: true,
+        },
+        update: {
+          companyId: company.id,
+          companyName: company.displayLabel,
+          role: 'PRIMARY',
+          active: true,
+        },
+      });
+
+      const existingLink = await tx.remoteHostSysproUpdate.findFirst({
+        where: { hostId, path: installation.rootPath, companyId: company.id },
+        select: { id: true },
+      });
+      if (existingLink) {
+        await tx.remoteHostSysproUpdate.update({
+          where: { id: existingLink.id },
+          data: {
+            companyLabel: company.displayLabel,
+            isServerHost: true,
+            lastHeartbeatAt: new Date(),
+          },
+        });
+      } else {
+        await tx.remoteHostSysproUpdate.create({
+          data: {
+            hostId,
+            companyId: company.id,
+            companyLabel: company.displayLabel,
+            path: installation.rootPath,
+            isServerHost: true,
+            hasClientFolder: false,
+            hasDllFolder: false,
+            lastHeartbeatAt: new Date(),
+          },
+        });
+      }
+
+      // RMM: host com instalação Syspro validada + configurada vira SERVER se ainda sem função.
+      await tx.remoteHost.updateMany({
+        where: { id: hostId, machineProfile: null },
+        data: { machineProfile: 'SERVER' },
+      });
+
+      return updated;
+    });
+
+    return {
+      success: true,
+      data: saved,
+    };
   }
 
   async createManualRemoteHostSysproUpdate(

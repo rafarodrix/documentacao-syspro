@@ -44,6 +44,14 @@ export const sysproInstallationHintSchema = z.object({
   company_id: z.string(),
   company_name: z.string(),
   path: z.string(),
+  /** Id estável da ErpInstallation no portal (para mapear resultado do probe). */
+  installation_id: z.string().optional(),
+  /** SYSPRO_SERVER ou IIS — nunca os dois na mesma instalação. */
+  runtime_type: z.enum(["SYSPRO_SERVER", "IIS"]).optional(),
+  port: z.number().int().positive().max(65535).optional(),
+  protocol: z.enum(["HTTP", "HTTPS", "TCP"]).optional(),
+  host: z.string().trim().optional(),
+  iis_path: z.string().trim().optional(),
 });
 
 export const deviceDesiredStateSchema = z.object({

@@ -27,6 +27,7 @@ export const agentCollectorIdSchema = z.enum([
   "all_services",
   "syspro_versions",
   "critical_events",
+  "syspro_runtime_probes",
 ]);
 
 export type AgentCollectorId = z.infer<typeof agentCollectorIdSchema>;
@@ -51,6 +52,7 @@ export const agentCollectorsPolicySchema = z.object({
   all_services: agentCollectorPolicySchema,
   syspro_versions: agentCollectorPolicySchema,
   critical_events: agentCollectorPolicySchema,
+  syspro_runtime_probes: agentCollectorPolicySchema,
 });
 
 export type AgentCollectorsPolicy = z.infer<typeof agentCollectorsPolicySchema>;
@@ -78,6 +80,7 @@ const SERVER_SYSPRO_COLLECTORS: CollectorDefaults = {
   all_services: { enabled: true, interval_seconds: seconds.hours(12) },
   syspro_versions: { enabled: true, interval_seconds: seconds.day },
   critical_events: { enabled: true },
+  syspro_runtime_probes: { enabled: true, interval_seconds: seconds.minutes(5) },
 };
 
 /** Estação / cliente Syspro — inventário leve, sem varredura cara de SCM completo. */
@@ -93,6 +96,7 @@ const WORKSTATION_COLLECTORS: CollectorDefaults = {
   all_services: { enabled: false },
   syspro_versions: { enabled: true, interval_seconds: seconds.day },
   critical_events: { enabled: true },
+  syspro_runtime_probes: { enabled: false },
 };
 
 /** Terminal — ainda mais leve; foco em presença, disco e RustDesk/Syspro client. */
@@ -108,6 +112,7 @@ const TERMINAL_COLLECTORS: CollectorDefaults = {
   all_services: { enabled: false },
   syspro_versions: { enabled: true, interval_seconds: seconds.day },
   critical_events: { enabled: false },
+  syspro_runtime_probes: { enabled: false },
 };
 
 /** Nó de backup — operacional + discos; inventário software opcional. */
@@ -123,6 +128,7 @@ const BACKUP_NODE_COLLECTORS: CollectorDefaults = {
   all_services: { enabled: true, interval_seconds: seconds.hours(12) },
   syspro_versions: { enabled: false },
   critical_events: { enabled: true },
+  syspro_runtime_probes: { enabled: false },
 };
 
 /**
@@ -141,6 +147,7 @@ const UNLINKED_COLLECTORS: CollectorDefaults = {
   all_services: { enabled: false },
   syspro_versions: { enabled: false },
   critical_events: { enabled: false },
+  syspro_runtime_probes: { enabled: false },
 };
 
 const PROFILE_COLLECTORS: Record<AgentCollectionProfile, CollectorDefaults> = {
