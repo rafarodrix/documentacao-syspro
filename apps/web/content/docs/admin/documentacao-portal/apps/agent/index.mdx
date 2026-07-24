@@ -28,7 +28,7 @@ O `apps/agent` é uma aplicação desktop para Windows que:
 
 ---
 
-## Dois binários independentes
+## Três binários independentes
 
 O agente compila em **dois binários distintos** que se comunicam via IPC:
 
@@ -51,6 +51,11 @@ agent-ui.exe  (alias: agent.exe)
       - UI de onboarding e status
       - Timeline de progresso
       - Chat de suporte ao vivo
+
+agent-updater.exe
+  ├── Atualizador dedicado de bundles locais e remotos
+  ├── Valida manifesto, versão e SHA-256 antes de aplicar arquivos
+  └── Não substitui a si próprio enquanto estiver em execução
 ```
 
 ---
@@ -101,7 +106,9 @@ apps/agent/
 │
 ├── cmd/
 │   ├── agent/main.go          ← alias do agent-ui
-│   └── agent-service/main.go  ← entry point do agent-service
+│   ├── agent-service/main.go  ← entry point do agent-service
+│   ├── agent-updater/main.go  ← updater versionado junto do serviço
+│   └── agent-installer/main.go ← staging e compilação do instalador
 │
 ├── internal/
 │   ├── app/
@@ -224,14 +231,11 @@ pending_ack_queue.json
 # Build do agent-ui (Wails) — requer Wails CLI instalado
 wails build
 
-# Build do agent-service
-go build ./cmd/agent-service/...
-
-# Installer Windows
-# Compilar com InnoSetup: deploy/windows-installer/AgenteTrilink.iss
+# Release completa: binários, instalador, manifest e settings
+powershell -ExecutionPolicy Bypass -File .\apps\agent\scripts\release-agent.ps1 -Version 1.0.92
 ```
 
-**Dependências de runtime (incluídas no installer):**
-- WebView2 Runtime (para Wails)
-- RustDesk client
-- gbak (Firebird backup tool)
+**Dependências de runtime:**
+- WebView2 Runtime: pré-requisito externo da UI Wails;
+- RustDesk: incluído somente quando seu instalador estiver disponível no staging;
+- `gbak`: depende da instalação Firebird do host e não é empacotado pelo instalador.

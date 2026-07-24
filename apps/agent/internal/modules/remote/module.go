@@ -8,8 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -1132,31 +1130,7 @@ func parseAgentUpgradeCommandPayload(raw json.RawMessage) agentUpgradeCommandPay
 }
 
 func (m *Module) launchAgentUpdater(manifestURL string) error {
-	executable, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("resolve agent executable: %w", err)
-	}
-	updater := filepath.Join(filepath.Dir(executable), "agent-updater.exe")
-	if _, err := os.Stat(updater); err != nil {
-		return fmt.Errorf("locate updater %s: %w", updater, err)
-	}
-	// The updater compares manifest versions and downloads only changed components.
-	// Do not include itself: a running executable cannot safely replace itself.
-	// The service version is known from the running binary. The UI version is not
-	// reported by its executable yet, so it is intentionally left to the updater
-	// to refresh when this command is explicitly requested.
-	installedVersion := strings.TrimSpace(m.agentVersion)
-	command := exec.Command(
-		updater,
-		"apply-remote",
-		"--manifest-url", manifestURL,
-		"--components", "service,ui",
-		"--service-version", installedVersion,
-	)
-	if err := command.Start(); err != nil {
-		return fmt.Errorf("start updater: %w", err)
-	}
-	return nil
+	return newAgentUpdateLauncher().launch(manifestURL, m.agentVersion)
 }
 
 func parseServiceControlCommandPayload(raw json.RawMessage) serviceControlCommandPayload {

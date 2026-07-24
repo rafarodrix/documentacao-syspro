@@ -420,7 +420,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="agentTargetVersion">Versão alvo do agent</Label>
-            <Input id="agentTargetVersion" placeholder="1.0.90" {...form.register("agentTargetVersion")} />
+            <Input id="agentTargetVersion" placeholder="1.0.92" {...form.register("agentTargetVersion")} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="agentUpdateManifestUrl">URL do manifest</Label>

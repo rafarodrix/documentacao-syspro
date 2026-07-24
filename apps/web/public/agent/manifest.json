@@ -3,19 +3,19 @@
   "channel": "stable",
   "components": {
     "service": {
-      "version": "1.0.90",
-      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.90/agent-service.exe",
-      "sha256": "6ea885008dba5a11235fc830bd32664364d24ff466cea863e021087b242cbbee"
+      "version": "1.0.92",
+      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.92/agent-service.exe",
+      "sha256": "217a16a1ec3191c8138b292f10e33111c0f13b7c078dc42752a42a2d845ab1d8"
     },
     "ui": {
-      "version": "1.0.90",
-      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.90/agent-ui.exe",
-      "sha256": "d6a0be589c05a36c9698f6c4cfdc27a8b5eb5391d4ba86013119c806274319f4"
+      "version": "1.0.92",
+      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.92/agent-ui.exe",
+      "sha256": "6fe7d7c6dd4b058f01753ce48567b535206d278061cf218c213f1659182ec1c6"
     },
     "updater": {
-      "version": "1.0.90",
-      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.90/agent-updater.exe",
-      "sha256": "5d114ee099739ee8b9a9e9c4987ae80ae31212c6762a3b50991c0ceca0ac24ec"
+      "version": "1.0.92",
+      "url": "https://ajuda.trilinksoftware.com.br/agent/1.0.92/agent-updater.exe",
+      "sha256": "4f74470690ad59ca0da7d93cc3671d922b01be85d4c0c114b50f78094b54cef7"
     }
   }
 }

@@ -13,10 +13,13 @@ import (
 	"strings"
 	"time"
 
+	"trilink/agent/internal/buildinfo"
 	"trilink/agent/internal/infra/winsvc"
 )
 
-var buildVersion = "dev"
+// Keep the updater on the same release version source as agent-service.
+// Release builds set buildinfo.Version with -ldflags.
+var buildVersion = buildinfo.Version
 
 const usage = `Uso: agent-updater <comando> [opcoes]
 

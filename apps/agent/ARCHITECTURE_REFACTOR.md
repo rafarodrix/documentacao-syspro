@@ -1,5 +1,7 @@
 # Refatoração da Interface Wails do Trilink Agent
 
+> Status: plano histórico de refatoração. Os nomes de executáveis e etapas descritos abaixo registram a direção original, mas não são o procedimento operacional atual. Para a arquitetura implantada, consulte a documentação do portal em `apps/web/content/docs/admin/documentacao-portal/apps/agent/`; para gerar uma release, use `scripts/release-agent.ps1`.
+
 ## Contexto
 
 O Trilink Agent é uma aplicação desenvolvida em Go para gerenciamento das máquinas dos clientes da Trilink Software.

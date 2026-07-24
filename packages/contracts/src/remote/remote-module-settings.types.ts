@@ -40,7 +40,7 @@ export const remoteModuleSettingsSchema = z
       .string()
       .trim()
       .regex(/^\d+\.\d+\.\d+$/, "Informe a versao alvo do agent no formato X.Y.Z.")
-      .default("1.0.90"),
+      .default("1.0.92"),
     agentAutoUpgrade: z.boolean().default(false),
   })
   .superRefine((value, ctx) => {
@@ -83,7 +83,7 @@ export const DEFAULT_REMOTE_MODULE_SETTINGS = {
   rustDeskAllowD3DRender: false,
   rustDeskEnableDirectXCapture: true,
   agentUpdateManifestUrl: "https://ajuda.trilinksoftware.com.br/agent/manifest.json",
-  agentTargetVersion: "1.0.90",
+  agentTargetVersion: "1.0.92",
   agentAutoUpgrade: false,
 } satisfies z.infer<typeof remoteModuleSettingsSchema>;
 

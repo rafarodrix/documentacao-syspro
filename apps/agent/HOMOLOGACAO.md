@@ -47,14 +47,14 @@ Windows:
 
 - Windows 10 ou 11
 - PowerShell
-- WebView2 Runtime desejavel
+- WebView2 Runtime instalado para validar a UI Wails
 
 ## Limpeza agressiva do RustDesk
 
 Se uma maquina ficou com instalacao quebrada, servico preso ou resquicios de configuracao antiga do RustDesk, rode como administrador:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\apps\agent\clean-rustdesk.ps1
+powershell -ExecutionPolicy Bypass -File .\apps\agent\scripts\clean-rustdesk.ps1
 ```
 
 O script:
@@ -96,8 +96,8 @@ Quando houver artefatos publicados para o agent, o updater dedicado pode validar
 
 ```powershell
 cd .\apps\agent
-go run .\cmd\agent-updater check-remote --manifest-url https://artifacts.trilinksoftware.com.br/agent/manifest.json
-go run .\cmd\agent-updater apply-remote --manifest-url https://artifacts.trilinksoftware.com.br/agent/manifest.json --dry-run
+go run .\cmd\agent-updater check-remote --manifest-url https://ajuda.trilinksoftware.com.br/agent/manifest.json
+go run .\cmd\agent-updater apply-remote --manifest-url https://ajuda.trilinksoftware.com.br/agent/manifest.json --dry-run
 ```
 
 O manifesto deve seguir o vocabulario `service / ui / updater` e informar `version`, `url` e `sha256` por componente.
@@ -113,13 +113,13 @@ powershell -ExecutionPolicy Bypass -File .\apps\agent\dist\test-deploy\windows-a
 2. Suba o agente com o `.env`.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\apps\agent\start-agent-from-env.ps1
+powershell -ExecutionPolicy Bypass -File .\apps\agent\scripts\start-agent-from-env.ps1
 ```
 
 Se quiser manter o console de homologacao aberto para acompanhar logs locais:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\apps\agent\start-agent-from-env.ps1 -KeepConsoleOpen
+powershell -ExecutionPolicy Bypass -File .\apps\agent\scripts\start-agent-from-env.ps1 -KeepConsoleOpen
 ```
 
 3. Confirme no console:

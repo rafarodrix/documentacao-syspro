@@ -179,6 +179,24 @@ export namespace uistate {
 		    return a;
 		}
 	}
+	export class MonitoringView {
+	    collectionProfile?: string;
+	    collectInventory: boolean;
+	    collectMetrics: boolean;
+	    agentVersion?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitoringView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.collectionProfile = source["collectionProfile"];
+	        this.collectInventory = source["collectInventory"];
+	        this.collectMetrics = source["collectMetrics"];
+	        this.agentVersion = source["agentVersion"];
+	    }
+	}
 	export class SupportChannelView {
 	    baseUrl: string;
 	    websiteToken: string;
@@ -193,24 +211,6 @@ export namespace uistate {
 	        this.baseUrl = source["baseUrl"];
 	        this.websiteToken = source["websiteToken"];
 	        this.configured = source["configured"];
-	    }
-	}
-	export class MonitoringView {
-	    collectionProfile: string;
-	    collectInventory: boolean;
-	    collectMetrics: boolean;
-	    agentVersion: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new MonitoringView(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.collectionProfile = source["collectionProfile"];
-	        this.collectInventory = source["collectInventory"];
-	        this.collectMetrics = source["collectMetrics"];
-	        this.agentVersion = source["agentVersion"];
 	    }
 	}
 	export class AgentSupportView {
@@ -253,6 +253,7 @@ export namespace uistate {
 		    return a;
 		}
 	}
+	
 	
 	export class Notification {
 	    id: string;
